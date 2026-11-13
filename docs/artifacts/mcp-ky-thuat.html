@@ -1,0 +1,1674 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="color-scheme" content="dark" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#06080d" />
+<title>MCP: sổ tay kỹ thuật cho kỹ sư | AgentLize R&amp;D 2026</title>
+<style>
+  :root{
+    --bg:#06080d;
+    --panel:#0d1119;
+    --panel-2:#121724;
+    --panel-3:#171d2b;
+    --line:#1f2634;
+    --line-2:#28303f;
+    --line-3:#3a4456;
+
+    --text:#e8edf7;
+    --text-2:#c3cbdd;
+    --muted:#8b95ab;
+    --faint:#66718a;
+
+    --intent:#22d3ee;
+    --cap:#a78bfa;
+    --auth:#f5b942;
+    --good:#34d399;
+    --bad:#fb7185;
+
+    --r:14px;
+    --r-lg:20px;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;background:var(--bg)}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 620px at 8% -10%, rgba(34,211,238,.08), transparent 62%),
+      radial-gradient(1000px 560px at 94% -6%, rgba(167,139,250,.07), transparent 64%),
+      radial-gradient(900px 500px at 50% 112%, rgba(245,185,66,.035), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.68;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  a{color:var(--intent);text-decoration:none}
+  a:hover{text-decoration:underline;text-underline-offset:3px}
+  ::selection{background:rgba(34,211,238,.26)}
+
+  .progress{position:fixed;top:0;left:0;right:0;height:2px;z-index:50;background:transparent}
+  .progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--intent),var(--cap));box-shadow:0 0 14px rgba(34,211,238,.6)}
+
+  /* ---------- topbar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:30;
+    background:rgba(6,8,13,.84);
+    backdrop-filter:blur(14px) saturate(1.2);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-in{
+    max-width:1280px;margin:0 auto;padding:0 28px;height:54px;
+    display:flex;align-items:center;justify-content:space-between;gap:20px;
+  }
+  .brand{
+    display:flex;align-items:center;gap:9px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-2);
+    white-space:nowrap;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--intent);box-shadow:0 0 0 3px rgba(34,211,238,.14);flex:none}
+  .nav{display:flex;gap:18px;font-size:12.5px;color:var(--muted);flex-wrap:wrap;justify-content:flex-end}
+  .nav a{color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+  .nav a:hover{color:var(--text);text-decoration:none}
+  .nav .n{color:var(--faint);margin-right:4px}
+
+  /* ---------- hero ---------- */
+  .hero{padding:70px 0 46px;border-bottom:1px solid var(--line)}
+  .hero-in{max-width:1280px;margin:0 auto;padding:0 28px}
+  .kicker{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);
+    display:flex;align-items:center;gap:10px;margin-bottom:22px;flex-wrap:wrap;
+  }
+  .kicker .sep{color:var(--line-3)}
+  .kicker b{color:var(--intent);font-weight:600}
+
+  h1{
+    margin:0 0 20px;
+    font-size:clamp(38px,5vw,58px);line-height:1.06;letter-spacing:-.03em;font-weight:650;
+    max-width:980px;
+  }
+  h1 em{font-style:normal;color:var(--muted)}
+  .lede{font-size:18px;line-height:1.7;color:var(--text-2);max-width:860px;margin:0}
+
+  .thesis{
+    margin-top:32px;
+    display:grid;grid-template-columns:3px 1fr;gap:20px;
+    background:linear-gradient(100deg, rgba(34,211,238,.07), rgba(34,211,238,.015) 60%, transparent);
+    border:1px solid var(--line-2);
+    border-radius:var(--r);
+    padding:24px 28px 24px 24px;
+    max-width:1020px;
+  }
+  .thesis .bar{background:linear-gradient(180deg,var(--intent),rgba(34,211,238,.15));border-radius:3px}
+  .thesis .t{
+    font-family:var(--mono);font-size:10px;letter-spacing:.17em;text-transform:uppercase;color:var(--intent);
+    margin-bottom:10px;
+  }
+  .thesis p{margin:0;font-size:19px;line-height:1.58;letter-spacing:-.011em;color:var(--text)}
+
+  .chips{display:flex;gap:9px;margin-top:28px;flex-wrap:wrap}
+  .chip{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;
+    color:var(--muted);background:var(--panel);border:1px solid var(--line);
+    padding:7px 12px;border-radius:999px;
+  }
+  .chip b{color:var(--text-2);font-weight:600}
+  .chip.hot{border-color:rgba(34,211,238,.35);color:var(--intent)}
+
+  .revision-note{
+    margin-top:22px;font-size:12.5px;color:var(--faint);max-width:980px;
+    border-left:2px solid var(--line-3);padding-left:14px;
+  }
+  .revision-note b{color:var(--text-2);font-weight:600}
+
+  /* ---------- shell ---------- */
+  .shell{
+    max-width:1280px;margin:0 auto;padding:0 28px;
+    display:grid;grid-template-columns:250px minmax(0,1fr);gap:48px;align-items:start;
+  }
+  .toc{
+    position:sticky;top:78px;align-self:start;
+    padding:28px 0 60px;
+    max-height:calc(100vh - 78px);overflow:auto;
+    border-right:1px solid var(--line);
+    padding-right:20px;
+  }
+  .toc-title{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);
+    margin:0 0 14px;
+  }
+  .toc a{
+    display:flex;gap:9px;align-items:baseline;
+    padding:6px 0;color:var(--muted);font-size:12.5px;line-height:1.35;
+    border-left:2px solid transparent;padding-left:11px;margin-left:-13px;
+  }
+  .toc a .n{font-family:var(--mono);font-size:9.5px;color:var(--faint);min-width:18px}
+  .toc a:hover{color:var(--text-2);text-decoration:none;border-left-color:var(--line-3)}
+  .toc a.active{color:var(--intent);border-left-color:var(--intent)}
+  .toc a.active .n{color:var(--intent)}
+  .toc .toc-sub{padding-left:29px;font-size:11.5px;color:var(--faint)}
+
+  .content{min-width:0;padding:8px 0 80px}
+
+  /* ---------- sections ---------- */
+  section{padding:58px 0;border-bottom:1px solid var(--line);scroll-margin-top:80px}
+  section:last-of-type{border-bottom:0}
+  .eyebrow{
+    font-family:var(--mono);font-size:10px;letter-spacing:.19em;text-transform:uppercase;
+    color:var(--faint);margin:0 0 13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .eyebrow .swatch{width:16px;height:2px;border-radius:2px;background:var(--intent);flex:none}
+  .eyebrow .rev{color:var(--auth)}
+  h2{
+    margin:0 0 16px;font-size:clamp(26px,3.2vw,34px);line-height:1.18;letter-spacing:-.022em;font-weight:640;
+  }
+  h2 .idx{font-family:var(--mono);font-size:13px;color:var(--faint);font-weight:500;letter-spacing:.06em;margin-right:10px;vertical-align:2px}
+  .sub{font-size:16px;line-height:1.72;color:var(--text-2);max-width:900px;margin:0}
+  h3{margin:0;font-size:17.5px;line-height:1.35;letter-spacing:-.01em;font-weight:620}
+  h4{margin:0;font-size:14.5px;line-height:1.4;font-weight:620}
+  p{margin:12px 0 0}
+  p:first-child{margin-top:0}
+  .content > section > p:first-of-type{margin-top:0}
+  ul,ol{margin:12px 0 0;padding-left:22px;color:var(--text-2)}
+  li{margin:6px 0}
+  li b{color:var(--text)}
+  strong{color:var(--text);font-weight:620}
+  .small{font-size:12.8px;line-height:1.62;color:var(--muted)}
+  .mono{font-family:var(--mono)}
+
+  /* ---------- layout helpers ---------- */
+  .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:24px}
+  .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:24px}
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--r);
+    padding:20px 20px 18px;
+    position:relative;
+    min-width:0;
+  }
+  .card::before{
+    content:"";position:absolute;left:0;top:16px;bottom:16px;width:2px;border-radius:2px;
+    background:var(--accent,var(--line-2));
+  }
+  .card .num{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--accent,var(--muted));margin-bottom:8px;display:flex;align-items:center;gap:8px;
+  }
+  .card .num i{width:5px;height:5px;border-radius:50%;background:currentColor;display:block}
+  .card p{margin:8px 0 0;font-size:13.2px;line-height:1.62;color:var(--text-2)}
+  .card p.dim{color:var(--muted);font-size:12.4px}
+
+  /* ---------- callout ---------- */
+  .callout{
+    margin-top:22px;display:grid;grid-template-columns:3px 1fr;gap:18px;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:19px 22px 19px 19px;
+  }
+  .callout .bar{background:var(--accent,var(--intent));border-radius:3px;opacity:.9}
+  .callout .ct{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent,var(--intent));
+    margin-bottom:7px;
+  }
+  .callout p{margin:0;font-size:13.6px;line-height:1.68;color:var(--text-2)}
+  .callout p + p{margin-top:8px}
+  .callout p b{color:var(--text);font-weight:600}
+  .callout.warn{--accent:var(--bad);background:linear-gradient(100deg,rgba(251,113,133,.055),transparent 70%)}
+  .callout.key{--accent:var(--good);background:linear-gradient(100deg,rgba(52,211,153,.05),transparent 70%)}
+  .callout.auth{--accent:var(--auth);background:linear-gradient(100deg,rgba(245,185,66,.05),transparent 70%)}
+
+  /* ---------- pills ---------- */
+  .pill{
+    display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;
+    padding:2px 7px;border-radius:4px;border:1px solid var(--line-2);color:var(--muted);vertical-align:1px;
+  }
+  .pill.must{border-color:rgba(52,211,153,.4);color:var(--good)}
+  .pill.should{border-color:rgba(245,185,66,.4);color:var(--auth)}
+  .pill.may{border-color:var(--line-3);color:var(--muted)}
+  .pill.dep{border-color:rgba(251,113,133,.4);color:var(--bad)}
+
+  /* ---------- tables ---------- */
+  .tbl-wrap{
+    margin-top:22px;border:1px solid var(--line);border-radius:var(--r);
+    overflow:auto;background:var(--panel);
+  }
+  table.tbl{width:100%;border-collapse:collapse;font-size:12.8px;min-width:620px}
+  table.tbl thead th{
+    text-align:left;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--faint);font-weight:500;padding:12px 14px;border-bottom:1px solid var(--line-2);
+    background:var(--panel-2);white-space:nowrap;
+  }
+  table.tbl td{
+    padding:10px 14px;border-bottom:1px solid var(--line);color:var(--text-2);vertical-align:top;line-height:1.55;
+  }
+  table.tbl tbody tr:last-child td{border-bottom:0}
+  table.tbl tbody tr:hover td{background:rgba(255,255,255,.012)}
+  table.tbl td:first-child{color:var(--text);font-weight:600}
+  table.tbl code{font-size:11.5px}
+  .ok{color:var(--good)}
+  .no{color:var(--bad)}
+  .warn-c{color:var(--auth)}
+
+  /* ---------- code ---------- */
+  pre{
+    margin:16px 0 0;background:#080c13;border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;overflow:auto;font-family:var(--mono);font-size:12.2px;line-height:1.62;color:#c9d4e8;
+    position:relative;
+  }
+  pre .lang{
+    position:absolute;top:9px;right:11px;font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);
+    background:#080c13;padding-left:8px;
+  }
+  pre code{font-family:inherit;font-size:inherit;background:none;padding:0;border:0;white-space:pre}
+  .content code{
+    font-family:var(--mono);font-size:.88em;background:rgba(255,255,255,.05);
+    border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:#d8e1f2;
+  }
+  .c-key{color:#7dd3fc}
+  .c-str{color:#a7f3d0}
+  .c-num{color:#fcd34d}
+  .c-com{color:#66718a}
+  .c-bad{color:#fda4af}
+  .c-good{color:#86efac}
+
+  /* ---------- figure ---------- */
+  figure{margin:26px 0 0}
+  .figbox{
+    background:
+      radial-gradient(900px 400px at 20% 0%, rgba(34,211,238,.045), transparent 70%),
+      var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--r-lg);
+    padding:18px;
+    overflow:auto;
+  }
+  .figbox svg{width:100%;height:auto;display:block;min-width:600px}
+  figcaption{
+    margin-top:12px;font-size:12.3px;line-height:1.6;color:var(--muted);
+    display:flex;gap:10px;align-items:flex-start;
+  }
+  figcaption b{color:var(--text-2);font-weight:600;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding-top:2px}
+  .svg-frame{fill:var(--panel-2);stroke:var(--line-2);stroke-width:1.2}
+  .svg-chip{fill:var(--panel-3);stroke:var(--line-2);stroke-width:1}
+  .svg-lbl{fill:var(--text);font-family:var(--sans);font-size:12.5px;font-weight:600}
+  .svg-sub{fill:var(--muted);font-family:var(--sans);font-size:10.5px;font-weight:400}
+  .svg-mono{fill:var(--faint);font-family:var(--mono);font-size:8.5px;font-weight:500;letter-spacing:.15em}
+  .svg-warn{fill:var(--bad);font-family:var(--sans);font-size:10px;font-weight:500}
+  .edge{fill:none;stroke:var(--line-3);stroke-width:1.3}
+  .edge-dash{stroke-dasharray:5 5}
+  .edge-accent{stroke:rgba(34,211,238,.6)}
+
+  /* ---------- steps / list ---------- */
+  .steps{margin-top:24px;display:grid;gap:8px}
+  .step{
+    display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:start;
+    border:1px solid var(--line);border-radius:9px;background:var(--panel);padding:12px 14px;
+  }
+  .step .i{
+    font-family:var(--mono);font-size:10px;color:var(--intent);border:1px solid rgba(34,211,238,.3);
+    border-radius:6px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+    margin-top:1px;
+  }
+  .step b{display:block;color:var(--text);font-size:13.5px;font-weight:620}
+  .step span{display:block;color:var(--muted);font-size:12.3px;line-height:1.55;margin-top:2px}
+
+  .checklist{margin-top:20px;display:grid;gap:7px}
+  .check{
+    display:grid;grid-template-columns:16px 1fr;gap:10px;align-items:start;
+    padding:9px 12px;border:1px solid var(--line);border-radius:7px;background:rgba(255,255,255,.012);
+    font-size:12.8px;color:var(--text-2);line-height:1.5;
+  }
+  .check i{
+    width:14px;height:14px;border:1px solid var(--line-3);border-radius:3px;display:block;margin-top:2px;
+  }
+  .check b{color:var(--text);font-weight:600}
+
+  .refs{margin-top:18px;display:grid;gap:7px}
+  .ref{
+    display:grid;grid-template-columns:22px 1fr;gap:10px;font-size:12.6px;color:var(--text-2);
+    padding:8px 0;border-bottom:1px solid var(--line);
+  }
+  .ref:last-child{border-bottom:0}
+  .ref .n{font-family:var(--mono);font-size:9.5px;color:var(--faint);padding-top:3px}
+  .ref .u{display:block;font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:2px;word-break:break-all}
+
+  /* ---------- misc ---------- */
+  .divider{height:1px;background:var(--line);margin:28px 0}
+  .kv{display:grid;grid-template-columns:180px 1fr;gap:0;margin-top:18px;border-top:1px solid var(--line)}
+  .kv dt{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:10px 0;border-bottom:1px solid var(--line)}
+  .kv dd{margin:0;padding:9px 0;border-bottom:1px solid var(--line);color:var(--text-2);font-size:13px}
+  .kv dd code{font-size:11.5px}
+
+  .tag{
+    display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;
+    padding:3px 7px;border-radius:4px;border:1px solid var(--line-2);color:var(--muted);
+  }
+  .tag.new{border-color:rgba(52,211,153,.4);color:var(--good)}
+  .tag.gone{border-color:rgba(251,113,133,.4);color:var(--bad)}
+  .tag.legacy{border-color:rgba(245,185,66,.4);color:var(--auth)}
+
+  .muted{color:var(--muted)}
+  .faint{color:var(--faint)}
+  .nowrap{white-space:nowrap}
+
+  /* ---------- footer ---------- */
+  .footer{border-top:1px solid var(--line);background:rgba(6,8,13,.6)}
+  .footer-in{max-width:1280px;margin:0 auto;padding:34px 28px 44px;display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+  .footer p{margin:0;font-size:12px;color:var(--faint);max-width:640px;line-height:1.65}
+  .footer .sig{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:1060px){
+    .shell{grid-template-columns:minmax(0,1fr);gap:0}
+    .toc{
+      position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line);
+      padding:22px 0;margin-bottom:10px;
+      display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 22px;
+    }
+    .toc-title{grid-column:1/-1}
+    .toc a{margin-left:0;border-left:0;padding-left:0}
+    .toc .toc-sub{display:none}
+    .content{padding-top:0}
+  }
+  @media (max-width:760px){
+    body{font-size:14.5px}
+    .topbar-in,.hero-in,.shell,.footer-in{padding-left:18px;padding-right:18px}
+    .nav{display:none}
+    .hero{padding-top:46px}
+    .thesis{padding:19px 18px}
+    .thesis p{font-size:17px}
+    .grid2,.grid3{grid-template-columns:1fr}
+    .toc{grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 16px;padding:16px 0}
+    .toc a{font-size:11.5px}
+    .kv{grid-template-columns:1fr}
+    .kv dt{border-bottom:0;padding-bottom:0}
+    .kv dd{padding-top:2px}
+    section{padding:44px 0}
+    pre{font-size:11px;padding:14px}
+  }
+
+  @media print{
+    .topbar,.toc,.progress,.footer{display:none}
+    body{background:#fff;color:#111}
+    .shell{display:block;max-width:none;padding:0}
+    .hero-in{max-width:none}
+    section{break-inside:avoid;border-color:#ddd}
+    .card,.callout,.tbl-wrap,pre,.figbox{border-color:#ccc;background:#fff}
+    .content code{background:#f3f3f3}
+  }
+</style>
+</head>
+<body>
+
+<div class="progress"><span id="readbar"></span></div>
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><span class="dot"></span> AgentLize R&amp;D 2026 <span class="faint">/</span> Track 01</div>
+    <nav class="nav">
+      <a href="#tom-tat"><span class="n">01</span>Tóm tắt</a>
+      <a href="#kien-truc"><span class="n">02</span>Kiến trúc</a>
+      <a href="#transport"><span class="n">04</span>Transport</a>
+      <a href="#tools"><span class="n">05</span>Tool contract</a>
+      <a href="#client-features"><span class="n">06</span>Client</a>
+      <a href="#bao-mat"><span class="n">09</span>Bảo mật</a>
+      <a href="#checklist"><span class="n">12</span>Checklist</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-in">
+      <div class="kicker">
+        <span>Track 01</span><span class="sep">/</span><span>AI Platform &amp; MCP</span><span class="sep">/</span>
+        <span>Sổ tay rút gọn</span><span class="sep">/</span><b>Cập nhật 12.11.2026</b>
+      </div>
+
+      <h1>MCP, phần cần cho dự án.<br /><em>Không phải phép màu.</em></h1>
+
+      <p class="lede">
+        Bản rút gọn của sổ tay kỹ thuật MCP, viết cho người sắp dựng AI Operations Connector Lab:
+        hai MCP server mô phỏng, một host agent, một control plane giữ quyền và phê duyệt, và một nhánh gọi API trực tiếp để so sánh.
+        Mỗi mục dưới đây trả lời một câu hỏi phải chốt trước khi viết code.
+      </p>
+
+      <div class="thesis">
+        <div class="bar"></div>
+        <div>
+          <div class="t">Luận điểm xuyên suốt</div>
+          <p>MCP chuẩn hóa cách agent khám phá và gọi công cụ. Nó không chuẩn hóa quyền, phê duyệt, idempotency hay tin cậy. Bốn thứ đó vẫn là việc của kỹ sư.</p>
+        </div>
+      </div>
+
+      <div class="chips">
+        <span class="chip hot"><b>Revision</b> 2026-07-28</span>
+        <span class="chip"><b>Wire</b> JSON-RPC 2.0</span>
+        <span class="chip"><b>Transport</b> stdio · Streamable HTTP</span>
+        <span class="chip"><b>Auth</b> OAuth 2.1 cho HTTP</span>
+        <span class="chip"><b>Ngược chiều</b> MRTR</span>
+        <span class="chip"><b>Primitive</b> tools · resources · prompts</span>
+      </div>
+
+      <p class="revision-note">
+        <b>Phạm vi:</b> bài bám revision <code>2026-07-28</code>, đối chiếu đặc tả ngày 10.11.2026 và rút gọn cho lab.
+        Revision <code>2025-11-25</code> vẫn nằm trong nhiều SDK, nên mọi kết luận về session, <code>initialize</code> hay GET stream phải kiểm tra lại trước khi chốt.
+        Các mục đã lược vì không phục vụ lab: <code>subscriptions/listen</code>, tasks, caching chi tiết, migration và ma trận lỗi đầy đủ. Cần thì tra thẳng đặc tả ở mục 13.
+      </p>
+    </div>
+  </section>
+
+  <div class="shell">
+    <aside class="toc" aria-label="Mục lục">
+      <p class="toc-title">Mục lục</p>
+      <a href="#tom-tat"><span class="n">01</span>Tóm tắt và bản đồ lab</a>
+      <a href="#kien-truc"><span class="n">02</span>Kiến trúc và chủ sở hữu</a>
+      <a href="#day"><span class="n">03</span>Giao thức trên dây</a>
+      <a href="#transport"><span class="n">04</span>Chọn transport</a>
+      <a href="#tools"><span class="n">05</span>Primitive và tool contract</a>
+      <a href="#client-features"><span class="n">06</span>Phía client</a>
+      <a href="#mrtr"><span class="n">07</span>MRTR và phê duyệt</a>
+      <a href="#auth"><span class="n">08</span>Auth và scope</a>
+      <a href="#bao-mat"><span class="n">09</span>Mô hình mối đe dọa</a>
+      <a href="#kiem-thu"><span class="n">10</span>Kiểm thử và số đo</a>
+      <a href="#so-sanh"><span class="n">11</span>Khi nào không dùng MCP</a>
+      <a href="#checklist"><span class="n">12</span>Checklist và DoD</a>
+      <a href="#tham-khao"><span class="n">13</span>Tham khảo</a>
+    </aside>
+
+    <div class="content">
+      <!-- ============================================================ -->
+      <section id="tom-tat">
+        <p class="eyebrow"><span class="swatch"></span>01 · Điểm vào</p>
+        <h2><span class="idx">01</span>Tám điều phải nhớ, và chúng nằm ở đâu trong lab</h2>
+        <p class="sub">
+          Nếu chỉ đọc một mục, đọc mục này. Mỗi điều là một chỗ mà tài liệu quảng cáo bỏ qua và kỹ sư gặp ngay trong tuần đầu.
+        </p>
+
+        <div class="grid2">
+          <div class="card" style="--accent:var(--intent)">
+            <div class="num"><i></i>01 · Bản chất</div>
+            <h3>MCP là lớp kết nối, không phải agent framework</h3>
+            <p>Nó chuẩn hóa cách host khám phá và gọi năng lực ở một tiến trình khác. Planning, memory, chọn bước vẫn do host và model lo.</p>
+          </div>
+          <div class="card" style="--accent:var(--good)">
+            <div class="num"><i></i>02 · Trạng thái</div>
+            <h3>Revision 2026 không còn session</h3>
+            <p>Không <code>initialize</code>, không <code>Mcp-Session-Id</code>. Mỗi request mang version và client capabilities trong <code>_meta</code>. SDK cũ thì ngược lại, nên phải chốt một thế hệ.</p>
+          </div>
+          <div class="card" style="--accent:var(--auth)">
+            <div class="num"><i></i>03 · Primitive</div>
+            <h3>Ba thứ, ba người điều khiển</h3>
+            <p><b>Tools</b> do model gọi, <b>resources</b> do ứng dụng chèn, <b>prompts</b> do người dùng chọn. Gộp cả ba vào một tool là cách nhanh nhất để agent chọn sai.</p>
+          </div>
+          <div class="card" style="--accent:var(--bad)">
+            <div class="num"><i></i>04 · Giới hạn</div>
+            <h3>Annotation không phải phân quyền</h3>
+            <p><code>readOnlyHint</code> là server tự khai. Ai được ghi, ghi với tham số nào, ai duyệt: quyết định ở host và control plane.</p>
+          </div>
+          <div class="card" style="--accent:var(--cap)">
+            <div class="num"><i></i>05 · Ghi dữ liệu</div>
+            <h3>Write phải idempotent</h3>
+            <p>Timeout, retry, MRTR và người dùng bấm lại đều tạo ra lần gọi thứ hai. Không có idempotency key thì demo của bạn sẽ tạo task trùng.</p>
+          </div>
+          <div class="card" style="--accent:var(--intent)">
+            <div class="num"><i></i>06 · Hỏi ngược</div>
+            <h3><code>input_required</code> là luồng hợp lệ</h3>
+            <p>Server cần xác nhận thì trả <code>resultType: "input_required"</code>. Client hỏi người dùng rồi gọi lại với id mới. Đây chính là chỗ đặt bước phê duyệt.</p>
+          </div>
+          <div class="card" style="--accent:var(--auth)">
+            <div class="num"><i></i>07 · Vận hành</div>
+            <h3>stdio và HTTP gãy ở hai chỗ khác nhau</h3>
+            <p>stdio chết vì một dòng log ra <code>stdout</code>. HTTP chết vì proxy buffer SSE và timeout. Cả hai đều không bảo đảm request sống sót.</p>
+          </div>
+          <div class="card" style="--accent:var(--good)">
+            <div class="num"><i></i>08 · Quyết định</div>
+            <h3>Phải có baseline trước khi khen MCP</h3>
+            <p>Một app gọi một API nội bộ thì gọi trực tiếp đơn giản hơn. Lab giữ nhánh gọi API trực tiếp để chứng minh hoặc bác bỏ lợi ích của MCP.</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:34px">Bản đồ lab: mỗi yêu cầu là một mảnh MCP</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Hạng mục phải nộp</th><th>Cơ chế MCP dùng tới</th><th>Bằng chứng tối thiểu</th></tr></thead>
+            <tbody>
+              <tr><td>Hai hệ thống mô phỏng</td><td>Hai MCP server riêng, mỗi server 3-5 tool</td><td><code>tools/list</code> trả schema đúng, có test validate</td></tr>
+              <tr><td>Agent đọc dữ liệu</td><td>Tool read-only, schema chặt, output có cấu trúc</td><td>Log request/response và một ca tìm không thấy</td></tr>
+              <tr><td>Kiểm tra quyền</td><td>Scope + policy ở server và control plane</td><td>Test allow, deny, thiếu scope, sai tenant</td></tr>
+              <tr><td>Đề xuất cập nhật</td><td><code>input_required</code> kèm <code>requestState</code></td><td>Test accept, decline, state bị sửa</td></tr>
+              <tr><td>Chỉ ghi sau xác nhận</td><td>Tool write + idempotency key</td><td>Gọi lặp 3 lần, chỉ một bản ghi thay đổi</td></tr>
+              <tr><td>Agent thứ hai dùng lại tool</td><td>Client thứ hai nối cùng server, không sửa server</td><td>Log của hai agent trên cùng một tool</td></tr>
+              <tr><td>So sánh hai cách tích hợp</td><td>Nhánh MCP và nhánh gọi API trực tiếp</td><td>Bảng latency p50/p95, số bước, công sức bảo trì</td></tr>
+              <tr><td>Kết luận khi MCP là sai</td><td>Giới hạn của giao thức</td><td>Danh sách tình huống kèm số đo, không phải ý kiến</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout key">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Câu hỏi kiểm tra</div>
+            <p>Không trả lời được ba câu này thì thiết kế chưa chín: <b>ai giữ credential</b>, <b>ai quyết định được ghi</b>, và <b>điều gì xảy ra khi request timeout giữa chừng</b>.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="kien-truc">
+        <p class="eyebrow"><span class="swatch"></span>02 · Vị trí</p>
+        <h2><span class="idx">02</span>Host, client, server và control plane</h2>
+        <p class="sub">
+          Có bốn chỗ giữ dữ liệu, và sai chỗ nào cũng trả giá: nhét policy vào server, nhét credential vào model, hoặc để một server nhìn thấy dữ liệu của server khác.
+          Control plane là phần không nằm trong giao thức nhưng quyết định sản phẩm có an toàn hay không.
+        </p>
+
+        <figure>
+          <div class="figbox">
+            <svg viewBox="0 0 1100 470" role="img" aria-labelledby="figA-t figA-d">
+              <title id="figA-t">Kiến trúc host, client, server và hệ thống nghiệp vụ</title>
+              <desc id="figA-d">Host chứa nhiều client, mỗi client nối 1:1 với một MCP server. Server nối tới hệ thống nghiệp vụ. Control plane nằm ngoài giao thức, giữ policy, approval, idempotency và trace.</desc>
+              <defs>
+                <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="#3a4456"/>
+                </marker>
+                <marker id="arrAc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill="#22d3ee"/>
+                </marker>
+              </defs>
+
+              <rect x="24" y="26" width="420" height="190" rx="14" class="svg-frame"/>
+              <text x="44" y="52" class="svg-lbl">HOST</text>
+              <text x="94" y="52" class="svg-mono">ỨNG DỤNG AI</text>
+              <text x="44" y="76" class="svg-sub">model, hội thoại, consent, context aggregation</text>
+              <text x="44" y="96" class="svg-sub">quản lý vòng đời client, quyết định hiển thị gì</text>
+
+              <rect x="48" y="118" width="112" height="64" rx="8" class="svg-chip"/>
+              <text x="62" y="140" class="svg-lbl" style="font-size:11.5px">Client A</text>
+              <text x="62" y="158" class="svg-sub">1 kết nối</text>
+              <text x="62" y="172" class="svg-mono">1:1</text>
+
+              <rect x="178" y="118" width="112" height="64" rx="8" class="svg-chip"/>
+              <text x="192" y="140" class="svg-lbl" style="font-size:11.5px">Client B</text>
+              <text x="192" y="158" class="svg-sub">1 kết nối</text>
+              <text x="192" y="172" class="svg-mono">1:1</text>
+
+              <rect x="308" y="118" width="112" height="64" rx="8" class="svg-chip"/>
+              <text x="322" y="140" class="svg-lbl" style="font-size:11.5px">Client C</text>
+              <text x="322" y="158" class="svg-sub">1 kết nối</text>
+              <text x="322" y="172" class="svg-mono">1:1</text>
+
+              <rect x="540" y="26" width="170" height="84" rx="10" class="svg-frame"/>
+              <text x="556" y="50" class="svg-lbl" style="font-size:12px">MCP server</text>
+              <text x="556" y="70" class="svg-sub">Danh bạ</text>
+              <text x="556" y="88" class="svg-sub">read · update</text>
+
+              <rect x="540" y="126" width="170" height="84" rx="10" class="svg-frame"/>
+              <text x="556" y="150" class="svg-lbl" style="font-size:12px">MCP server</text>
+              <text x="556" y="170" class="svg-sub">Công việc</text>
+              <text x="556" y="188" class="svg-sub">list · create</text>
+
+              <rect x="540" y="226" width="170" height="84" rx="10" class="svg-frame"/>
+              <text x="556" y="250" class="svg-lbl" style="font-size:12px">MCP server</text>
+              <text x="556" y="270" class="svg-sub">Hệ thống khác</text>
+              <text x="556" y="288" class="svg-sub">tools / resources</text>
+
+              <rect x="790" y="26" width="130" height="84" rx="10" class="svg-frame"/>
+              <text x="806" y="50" class="svg-lbl" style="font-size:11.5px">Nguồn dữ liệu</text>
+              <text x="806" y="70" class="svg-sub">danh bạ</text>
+              <text x="806" y="88" class="svg-sub">source of truth</text>
+
+              <rect x="790" y="126" width="130" height="84" rx="10" class="svg-frame"/>
+              <text x="806" y="150" class="svg-lbl" style="font-size:11.5px">Nguồn dữ liệu</text>
+              <text x="806" y="170" class="svg-sub">công việc</text>
+              <text x="806" y="188" class="svg-sub">source of truth</text>
+
+              <rect x="790" y="226" width="130" height="84" rx="10" class="svg-frame"/>
+              <text x="806" y="250" class="svg-lbl" style="font-size:11.5px">Nguồn dữ liệu</text>
+              <text x="806" y="270" class="svg-sub">API bên thứ ba</text>
+              <text x="806" y="288" class="svg-sub">qua adapter</text>
+
+              <path d="M444,80 H500 V68 H540" class="edge edge-accent" marker-end="url(#arrAc)"/>
+              <path d="M444,160 H500 V168 H540" class="edge edge-accent" marker-end="url(#arrAc)"/>
+              <path d="M444,240 V268 H540" class="edge edge-accent" marker-end="url(#arrAc)"/>
+
+              <path d="M710,68 H790" class="edge" marker-end="url(#arrA)"/>
+              <path d="M710,168 H790" class="edge" marker-end="url(#arrA)"/>
+              <path d="M710,268 H790" class="edge" marker-end="url(#arrA)"/>
+
+              <rect x="24" y="300" width="896" height="140" rx="14" fill="#0a0f17" stroke="#2b3a4d" stroke-width="1.3" stroke-dasharray="7 6"/>
+              <text x="44" y="324" class="svg-mono" fill="#22d3ee">CONTROL PLANE · NGOÀI GIAO THỨC MCP</text>
+              <text x="44" y="344" class="svg-sub">policy engine · approval service · action registry · idempotency · trace</text>
+
+              <rect x="44" y="360" width="196" height="56" rx="8" class="svg-chip"/>
+              <text x="58" y="382" class="svg-lbl" style="font-size:11px">Ai được làm gì</text>
+              <text x="58" y="400" class="svg-sub">allow · approval · deny</text>
+
+              <rect x="256" y="360" width="196" height="56" rx="8" class="svg-chip"/>
+              <text x="270" y="382" class="svg-lbl" style="font-size:11px">Duyệt đúng tham số</text>
+              <text x="270" y="400" class="svg-sub">hash · hạn dùng · một lần</text>
+
+              <rect x="468" y="360" width="196" height="56" rx="8" class="svg-chip"/>
+              <text x="482" y="382" class="svg-lbl" style="font-size:11px">Chống ghi trùng</text>
+              <text x="482" y="400" class="svg-sub">idempotency key</text>
+
+              <rect x="680" y="360" width="220" height="56" rx="8" class="svg-chip"/>
+              <text x="694" y="382" class="svg-lbl" style="font-size:11px">Biết chuyện gì đã xảy ra</text>
+              <text x="694" y="400" class="svg-sub">trace · audit · chi phí</text>
+
+              <path d="M240,300 V278" class="edge edge-dash" stroke="#f5b942" stroke-opacity=".55" marker-end="url(#arrA)"/>
+              <text x="252" y="294" class="svg-sub" fill="#f5b942">policy và approval áp lên mọi write</text>
+
+              <text x="44" y="456" class="svg-sub">MCP chỉ là lớp vận chuyển context và hành động. Nó không thay thế control plane.</text>
+            </svg>
+          </div>
+          <figcaption><b>Hình 1</b><span>Host sở hữu hội thoại và consent. Mỗi client nối đúng một server. Server sở hữu hệ thống nghiệp vụ. Control plane nằm ngoài và là nơi quyền, phê duyệt, idempotency và audit thực sự được thực thi.</span></figcaption>
+        </figure>
+
+        <h3 style="margin-top:30px">Ai sở hữu cái gì</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Thành phần</th><th>Sở hữu</th><th>Không được làm</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Host</td>
+                <td>Model, hội thoại, consent, chọn server và tool được phép dùng, giới hạn context cho từng server.</td>
+                <td>Không đẩy toàn bộ hội thoại cho mọi server. Không coi tool description là instruction đáng tin.</td>
+              </tr>
+              <tr>
+                <td>Client</td>
+                <td>Đúng một kết nối tới một server. Gắn version, capabilities, identity vào từng request.</td>
+                <td>Không chia sẻ token của server A cho server B. Không tự sửa tham số trước khi gửi.</td>
+              </tr>
+              <tr>
+                <td>Server</td>
+                <td>Tool, resource, prompt và quyền truy cập hệ thống nghiệp vụ. Kiểm tra authorization trên từng request.</td>
+                <td>Không tin tham số từ model. Không ghi mà không có kiểm soát. Không giữ credential dài hạn nếu dùng được token hẹp.</td>
+              </tr>
+              <tr>
+                <td>Control plane</td>
+                <td>Policy, approval, action registry, canonical hash, idempotency key, trace, audit.</td>
+                <td>Không nằm trong system prompt. Không phụ thuộc vào việc model hứa sẽ làm đúng.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout warn">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Đừng nhầm</div>
+            <p>MCP <b>không phải</b> agent framework, <b>không phải</b> workflow engine, <b>không phải</b> security boundary và <b>không phải</b> chuẩn thay thế OpenAPI trong nội bộ service. Nó là lớp kết nối giữa host và năng lực bên ngoài. Mọi thứ còn lại vẫn phải thiết kế riêng.</p>
+          </div>
+        </div>
+      </section>
+      <!-- ============================================================ -->
+      <section id="day">
+        <p class="eyebrow"><span class="swatch"></span>03 · Wire</p>
+        <h2><span class="idx">03</span>JSON-RPC 2.0: ba loại message và <code>_meta</code></h2>
+        <p class="sub">
+          Hiểu lớp này thì debug nhanh hơn đọc SDK. Không có URL kiểu REST, không có endpoint cho từng tool: mọi thứ là một JSON-RPC message trên một kênh.
+        </p>
+
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Loại</th><th>Có <code>id</code></th><th>Có phản hồi</th><th>Dùng cho</th></tr></thead>
+            <tbody>
+              <tr><td>Request</td><td class="ok">Có, không null</td><td class="ok">Có</td><td><code>tools/call</code>, <code>resources/read</code>, <code>server/discover</code></td></tr>
+              <tr><td>Response</td><td class="ok">Cùng id</td><td>-</td><td><code>result</code> hoặc <code>error</code>, không bao giờ cả hai</td></tr>
+              <tr><td>Notification</td><td class="no">Không</td><td class="no">Không</td><td>progress, cancelled, list_changed</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre><span class="lang">json</span><code>{
+  <span class="c-key">"jsonrpc"</span>: <span class="c-str">"2.0"</span>,
+  <span class="c-key">"id"</span>: 42,
+  <span class="c-key">"method"</span>: <span class="c-str">"tools/call"</span>,
+  <span class="c-key">"params"</span>: {
+    <span class="c-key">"name"</span>: <span class="c-str">"get_employee"</span>,
+    <span class="c-key">"arguments"</span>: { <span class="c-key">"employee_id"</span>: <span class="c-str">"E-1042"</span> },
+    <span class="c-key">"_meta"</span>: {
+      <span class="c-key">"io.modelcontextprotocol/protocolVersion"</span>: <span class="c-str">"2026-07-28"</span>,
+      <span class="c-key">"io.modelcontextprotocol/clientCapabilities"</span>: {},
+      <span class="c-key">"io.modelcontextprotocol/clientInfo"</span>: { <span class="c-key">"name"</span>: <span class="c-str">"ops-console"</span>, <span class="c-key">"version"</span>: <span class="c-str">"0.1.0"</span> }
+    }
+  }
+}</code></pre>
+
+        <p>Thiếu trường bắt buộc trong <code>_meta</code> thì request bị coi là malformed: server trả <code>-32602</code>, trên HTTP kèm <code>400</code>. Đây là lỗi lập trình, không phải lỗi người dùng.</p>
+
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Khóa trong <code>_meta</code></th><th>Mức</th><th>Ý nghĩa</th></tr></thead>
+            <tbody>
+              <tr><td><code>io.modelcontextprotocol/protocolVersion</code></td><td class="ok">Bắt buộc</td><td>Version của chính request này, ví dụ <code>"2026-07-28"</code>.</td></tr>
+              <tr><td><code>io.modelcontextprotocol/clientCapabilities</code></td><td class="ok">Bắt buộc</td><td>Client hỗ trợ gì: elicitation, extensions. Server không được dùng capability chưa khai báo.</td></tr>
+              <tr><td><code>io.modelcontextprotocol/clientInfo</code></td><td class="warn-c">Nên có</td><td>Tên và version client. Chỉ để log và hiển thị, không dùng cho quyết định bảo mật.</td></tr>
+              <tr><td><code>traceparent</code>, <code>tracestate</code></td><td class="no">Tùy chọn</td><td>Ngữ cảnh OpenTelemetry. Ngoại lệ duy nhất không theo prefix chuẩn.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top:30px"><code>resultType</code>: complete hay input required</h3>
+        <div class="grid2">
+          <div class="card" style="--accent:var(--good)">
+            <div class="num"><i></i>Complete</div>
+            <p><code>{ "resultType": "complete", "content": [...] }</code>. Kết quả cuối. Có thể cache nếu method hỗ trợ.</p>
+          </div>
+          <div class="card" style="--accent:var(--auth)">
+            <div class="num"><i></i>Input required</div>
+            <p><code>{ "resultType": "input_required", "inputRequests": {...}, "requestState": "..." }</code>. Không phải lỗi, mà là một vòng lặp hợp lệ. Xem mục 07.</p>
+          </div>
+        </div>
+        <p class="small">Client gặp server legacy không có trường này thì coi như <code>"complete"</code>. Mọi result mới phải có trường này.</p>
+
+        <h3 style="margin-top:30px">Mã lỗi cần biết</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Mã</th><th>Tên</th><th>Dùng khi</th></tr></thead>
+            <tbody>
+              <tr><td><code>-32602</code></td><td>Invalid params</td><td>Tham số sai, thiếu trường bắt buộc, tool hoặc resource không tồn tại.</td></tr>
+              <tr><td><code>-32601</code></td><td>Method not found</td><td>Server không hỗ trợ method. Trên HTTP thường đi kèm <code>404</code>.</td></tr>
+              <tr><td><code>-32020</code></td><td>HeaderMismatch</td><td>Header HTTP không khớp body, hoặc thiếu header bắt buộc. Kèm <code>400</code>.</td></tr>
+              <tr><td><code>-32021</code></td><td>Missing client capability</td><td>Server cần capability mà client chưa khai báo. Kèm <code>400</code>.</td></tr>
+              <tr><td><code>-32022</code></td><td>Unsupported version</td><td>Version không được hỗ trợ. Kèm danh sách <code>supported</code> để client chọn lại.</td></tr>
+              <tr><td><code>-32002</code></td><td>Resource not found <span class="tag legacy">legacy</span></td><td>Chỉ còn ở server cũ. Client nên chấp nhận, server mới không được phát ra.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Phân biệt lỗi giao thức và lỗi thực thi</div>
+            <p>Lỗi giao thức là JSON-RPC <code>error</code>: request sai cấu trúc, tool không tồn tại. Lỗi thực thi là kết quả hợp lệ với <code>isError: true</code>: nghiệp vụ từ chối, downstream fail, input cần chỉnh. Model có thể tự sửa loại thứ hai, gần như không sửa được loại thứ nhất.</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:30px">Một thế hệ hay hai thế hệ?</h3>
+        <p>
+          Revision <code>2026-07-28</code> không bắt tay. Mỗi request tự mô tả, <code>server/discover</code> là tùy chọn, không có session và không có message shutdown.
+          Revision <code>2025-11-25</code> vẫn dùng <code>initialize</code> ba bước, có thể cấp <code>Mcp-Session-Id</code> và giữ một GET stream thường trực.
+          Trộn hai mô hình trong cùng một server là nguồn gốc của những lỗi rất khó tái hiện.
+        </p>
+
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Client</th><th>Server</th><th>Kết quả</th></tr></thead>
+            <tbody>
+              <tr><td>Modern</td><td>Modern</td><td class="ok">Chạy. Lệch version thì retry với version chung.</td></tr>
+              <tr><td>Modern</td><td>Legacy</td><td class="no">Fail hoặc xử lý sai ngữ nghĩa. Trên stdio nên probe bằng <code>server/discover</code> trước.</td></tr>
+              <tr><td>Dual-era</td><td>Legacy</td><td class="warn-c">Chạy, nhưng phải tách state theo thế hệ.</td></tr>
+              <tr><td>Legacy</td><td>Modern</td><td class="no">Fail. Server hiện đại nên nêu version hỗ trợ trong lỗi trả về cho <code>initialize</code>.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout auth">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Quy tắc cho lab</div>
+            <p>Chốt một revision và ghi vào README, kèm version SDK. Đừng đoán thế hệ server bằng cách thử <code>tools/call</code>: gửi <code>server/discover</code>, đọc lỗi, rồi mới quyết định fallback. Nếu SDK bạn dùng chỉ hỗ trợ legacy, ghi rõ đó là quyết định có ý thức, không phải tai nạn.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="transport">
+        <p class="eyebrow"><span class="swatch"></span>04 · Transport</p>
+        <h2><span class="idx">04</span>Chọn transport trước khi viết server</h2>
+        <p class="sub">
+          Chọn sai transport không làm protocol hỏng ngay, nhưng tạo ra vấn đề vận hành khó sửa: proxy buffer SSE, timeout giết tool dài, hoặc một tiến trình local bị cấp quá nhiều quyền.
+        </p>
+
+        <div class="grid2">
+          <div class="card" style="--accent:var(--intent)">
+            <div class="num"><i></i>stdio</div>
+            <h3>Một tiến trình con, hai ống dẫn</h3>
+            <p>Client khởi chạy server như subprocess, nói chuyện qua <code>stdin</code>/<code>stdout</code>. Phù hợp tool local, desktop app, hoặc lab chạy trên một máy.</p>
+          </div>
+          <div class="card" style="--accent:var(--cap)">
+            <div class="num"><i></i>Streamable HTTP</div>
+            <h3>Một endpoint POST, có thể stream</h3>
+            <p>Server chạy độc lập, phục vụ nhiều client. Mỗi request là một POST, response có thể là JSON hoặc SSE scoped cho request đó.</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:30px">stdio: hợp đồng của một tiến trình</h3>
+        <ul>
+          <li><b>stdout chỉ chứa MCP message.</b> Không banner, không log, không stack trace. Một dòng rác làm client parse fail cả kênh.</li>
+          <li><b>Mỗi message một dòng JSON UTF-8.</b> Không pretty-print nhiều dòng. Đây không phải framing <code>Content-Length</code> của LSP.</li>
+          <li><b>Log đi ra stderr.</b> Client có thể capture hoặc bỏ qua; đừng coi stderr là lỗi.</li>
+          <li><b>Response có thể không theo thứ tự.</b> Client phải ghép theo <code>id</code>, server được xử lý song song.</li>
+        </ul>
+
+        <div class="callout warn">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Lỗi kinh điển của stdio</div>
+            <p>Thư viện logging mặc định ghi ra <code>stdout</code>. Framework in startup banner ra <code>stdout</code>. Một dependency gọi <code>console.log</code>. Hãy cấu hình logger ra <code>stderr</code> từ dòng đầu và viết test parse từng dòng.</p>
+          </div>
+        </div>
+
+        <p><b>Vòng đời process.</b> Với stdio, process chính là connection. Server crash thì mọi request đang bay mất, không có reconnect. Client phải quyết định retry cái gì, và tool ghi phải idempotent vì transport không bảo đảm gì cả.</p>
+        <p><b>Quyền của process.</b> Server stdio chạy bằng quyền của user đang chạy host: đọc file, mở socket, gọi mạng. Pin version, kiểm tra hash, chạy trong container, và không truyền secret qua argv vì argv hiện trong process list.</p>
+
+        <h3 style="margin-top:30px">Streamable HTTP: header và SSE</h3>
+        <p>Server expose một URL MCP duy nhất, chỉ nhận <code>POST</code>. Không có <code>GET /tools</code>. Request có thể trả JSON ngay hoặc mở SSE để gửi progress rồi kết quả cuối, sau đó đóng stream. Notification trả <code>202</code> với body rỗng.</p>
+
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Header</th><th>Khi nào</th><th>Giá trị</th></tr></thead>
+            <tbody>
+              <tr><td><code>MCP-Protocol-Version</code></td><td>Mọi request</td><td>Revision đang dùng, ví dụ <code>2026-07-28</code>.</td></tr>
+              <tr><td><code>Mcp-Method</code></td><td>Mọi request</td><td>Tên method, phải khớp <code>body.method</code>.</td></tr>
+              <tr><td><code>Mcp-Name</code></td><td><code>tools/call</code>, <code>resources/read</code></td><td>Tool name hoặc resource URI, phải khớp tham số trong body.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Header lệch body thì server trả <code>400</code> kèm <code>-32020</code>. Đừng retry mù, sửa client.</p>
+
+        <div class="callout auth">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Vận hành SSE</div>
+            <p>Đặt <code>X-Accel-Buffering: no</code> sau Nginx, tắt compression buffer ở proxy, và để timeout của load balancer dài hơn tool chậm nhất. Mất stream là mất request: không có <code>Last-Event-ID</code>, không có replay, client phải gửi lại với id mới.</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:30px">Chọn cho lab</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Bối cảnh</th><th>Chọn</th><th>Lý do</th></tr></thead>
+            <tbody>
+              <tr><td>Lab chạy một máy, hai server, một agent</td><td class="ok">stdio</td><td>Ít hạ tầng nhất, không cần OAuth, dễ chứng minh tool contract và MRTR.</td></tr>
+              <tr><td>Cần hai agent ở hai process cùng dùng một server</td><td class="ok">Streamable HTTP</td><td>Một instance, nhiều client, chứng minh tái sử dụng rõ hơn stdio.</td></tr>
+              <tr><td>Serverless, timeout ngắn</td><td class="warn-c">HTTP có điều kiện</td><td>Chỉ ổn nếu runtime stream được và tool ngắn. Tool dài nên dùng tasks.</td></tr>
+              <tr><td>Hai agent trao đổi với nhau</td><td class="no">Không phải MCP</td><td>Đó là bài toán agent-to-agent, không phải host-to-tool.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small">Gợi ý thực dụng: bắt đầu bằng stdio để chốt tool contract và luồng phê duyệt, chỉ chuyển sang HTTP khi demo tái sử dụng cần hai process độc lập. Đổi transport không được kéo theo thay đổi business logic.</p>
+      </section>
+      <!-- ============================================================ -->
+      <section id="tools">
+        <p class="eyebrow"><span class="swatch"></span>05 · Primitive</p>
+        <h2><span class="idx">05</span>Tools, resources, prompts và hợp đồng của một tool</h2>
+        <p class="sub">
+          Cả ba primitive đều chia sẻ năng lực, khác nhau ở <b>ai quyết định dùng</b>. Trộn ba mục đích vào một tool là lý do phổ biến khiến tool list quá tải, context bị nhiễm và hành vi khó dự đoán.
+        </p>
+
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Primitive</th><th>Ai điều khiển</th><th>Dùng cho</th><th>Lab dùng không</th></tr></thead>
+            <tbody>
+              <tr><td>Tools</td><td>Model</td><td>Hành động hoặc truy vấn có tham số, có thể có side effect.</td><td class="ok">Có, đây là phần chính</td></tr>
+              <tr><td>Resources</td><td>Ứng dụng / người dùng</td><td>Dữ liệu context: schema, tài liệu, bản ghi. Thường read-only.</td><td class="warn-c">Tùy chọn, nếu cần chèn schema</td></tr>
+              <tr><td>Prompts</td><td>Người dùng</td><td>Template hội thoại có tham số, do server tác giả.</td><td class="no">Chưa cần</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="small">Ranh giới: người dùng bấm chọn thì là prompt, ứng dụng tự chèn context thì là resource, model quyết định gọi thì là tool. Một tính năng có thể dùng nhiều primitive, nhưng đừng gộp vào <code>do_everything</code>.</p>
+
+        <h3 style="margin-top:32px">Một định nghĩa tool gồm những gì</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Trường</th><th>Bắt buộc</th><th>Ghi chú thiết kế</th></tr></thead>
+            <tbody>
+              <tr><td><code>name</code></td><td class="ok">Có</td><td>Duy nhất trong server. Động từ + đối tượng: <code>get_employee</code>, không phải <code>emp_lookup</code>.</td></tr>
+              <tr><td><code>description</code></td><td class="warn-c">Nên có</td><td>Đây là prompt surface. Viết cho model đọc: khi nào dùng, khi nào không, hậu quả.</td></tr>
+              <tr><td><code>inputSchema</code></td><td class="ok">Có</td><td>JSON Schema, object. <code>additionalProperties: false</code>, enum, pattern, min/max.</td></tr>
+              <tr><td><code>outputSchema</code></td><td class="no">Không</td><td>Nếu có, <code>structuredContent</code> phải validate theo schema này. Nên có cho tool trả dữ liệu.</td></tr>
+              <tr><td><code>annotations</code></td><td class="no">Không</td><td>Gợi ý hành vi, không phải cơ chế bảo mật.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre><span class="lang">json</span><code>{
+  "name": "update_task_status",
+  "title": "Cập nhật trạng thái công việc",
+  "description": "Đổi trạng thái task đã tồn tại. Không dùng để tạo task. Ghi dữ liệu, cần approval ở host.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "task_id": { "type": "string", "pattern": "^T-[0-9]{4}$" },
+      "status": { "type": "string", "enum": ["todo", "in_progress", "done"] },
+      "idempotency_key": { "type": "string", "minLength": 16, "maxLength": 128 }
+    },
+    "required": ["task_id", "status", "idempotency_key"],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "task_id": { "type": "string" },
+      "status": { "type": "string" },
+      "updated_at": { "type": "string", "format": "date-time" }
+    },
+    "required": ["task_id", "status", "updated_at"],
+    "additionalProperties": false
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  }
+}</code></pre>
+
+        <h3 style="margin-top:30px">Annotations: đọc đúng, đừng tin mù</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Annotation</th><th>Mặc định</th><th>Host nên làm gì</th></tr></thead>
+            <tbody>
+              <tr><td><code>readOnlyHint</code></td><td><code>false</code></td><td>Vẫn kiểm tra quyền đọc và rate limit.</td></tr>
+              <tr><td><code>destructiveHint</code></td><td><code>true</code></td><td>Mặc định cần approval. Chỉ hạ mức khi policy nói rõ.</td></tr>
+              <tr><td><code>idempotentHint</code></td><td><code>false</code></td><td>Không thay thế idempotency key thật ở server.</td></tr>
+              <tr><td><code>openWorldHint</code></td><td><code>true</code></td><td>Tăng kiểm soát output, SSRF và exfiltration.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout warn">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Annotation là do server tự khai</div>
+            <p>Một server độc có thể khai <code>readOnlyHint: true</code> cho tool xóa dữ liệu. Host chỉ nên dùng annotation làm metadata, kết hợp danh sách tool đã duyệt, version server và policy của tổ chức.</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:30px">Kết quả và lỗi của <code>tools/call</code></h3>
+        <p>Result chứa <code>content</code> và tùy chọn <code>structuredContent</code>. Nếu tool có <code>outputSchema</code> thì <code>structuredContent</code> là bắt buộc và phải validate. Kèm thêm một text block JSON để tương thích client cũ, nhưng đừng coi đó là nguồn chính.</p>
+
+        <pre><span class="lang">json</span><code>{
+  "resultType": "complete",
+  "content": [
+    { "type": "text", "text": "Đã cập nhật task T-1042 sang trạng thái done." }
+  ],
+  "structuredContent": {
+    "task_id": "T-1042",
+    "status": "done",
+    "updated_at": "2026-11-10T09:15:00Z"
+  },
+  "isError": false
+}</code></pre>
+
+        <ul>
+          <li><b>Lỗi giao thức</b> khi request sai cấu trúc, tool không tồn tại, thiếu trường bắt buộc. Model gần như không sửa được.</li>
+          <li><b>Lỗi thực thi</b> (<code>isError: true</code>) khi tham số đúng nhưng nghiệp vụ từ chối, downstream fail, dữ liệu không tồn tại. Trả thông điệp ngắn và có gợi ý: <code>task_id T-9999 không tồn tại; dùng search_tasks để tìm ID đúng</code>.</li>
+          <li><b>Không</b> trả stack trace, không trả HTML, không trả 500 rỗng cho model.</li>
+        </ul>
+
+        <h3 style="margin-top:32px" id="thiet-ke-tool">Sáu nguyên tắc viết tool contract</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>#</th><th>Nguyên tắc</th><th>Lý do</th></tr></thead>
+            <tbody>
+              <tr><td>01</td><td>Một tool, một ý định</td><td><code>manage_task</code> với <code>action</code> enum buộc model nhớ enum ngầm. Tách thành <code>create_task</code>, <code>update_task_status</code>, <code>close_task</code>.</td></tr>
+              <tr><td>02</td><td>Tên theo động từ + đối tượng</td><td><code>get_employee</code> dễ hiểu hơn <code>emp_lookup</code>. Thêm namespace nếu server có nhiều miền.</td></tr>
+              <tr><td>03</td><td>Description là prompt surface</td><td>Nói rõ khi nào dùng, khi nào không, side effect, giới hạn, ví dụ. Đây là thứ model đọc nhiều nhất.</td></tr>
+              <tr><td>04</td><td>Schema chặt</td><td>Mỗi trường tự do là một vé cho hallucination. Chặn tham số thừa ngay ở validate.</td></tr>
+              <tr><td>05</td><td>Output có cấu trúc</td><td>Host validate, render và test được. Đừng trả text tự do cho dữ liệu có schema.</td></tr>
+              <tr><td>06</td><td>Write phải idempotent</td><td>Transport timeout, client retry, MRTR lặp. Không có key thì sẽ ghi trùng.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Kém</th><th>Tốt hơn</th></tr></thead>
+            <tbody>
+              <tr><td>"Cập nhật task."</td><td>"Đổi trạng thái của task đã tồn tại. Dùng khi người dùng đã xác nhận task_id và trạng thái mới. Không dùng để tạo task. Ghi dữ liệu, cần approval."</td></tr>
+              <tr><td>"Tìm kiếm nhân viên."</td><td>"Tìm theo tên, email hoặc mã. Trả tối đa 20 kết quả. Nếu nhiều kết quả, hỏi người dùng chọn trước khi gọi tool ghi."</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top:32px">Idempotency: từ lý thuyết tới bảng dữ liệu</h3>
+        <div class="steps">
+          <div class="step"><div class="i">01</div><div><b>Chuẩn hóa tham số</b><span>Serialize với thứ tự key cố định, bỏ trường không ảnh hưởng kết quả, hash SHA-256.</span></div></div>
+          <div class="step"><div class="i">02</div><div><b>Sinh khóa ổn định</b><span><code>sha256(run_id + step_id + tool_name + canonical_json(args))</code>. Không dùng thời gian hiện tại hay UUID mới cho mỗi lần retry.</span></div></div>
+          <div class="step"><div class="i">03</div><div><b>Ghi nhận trước khi gọi downstream</b><span>Insert với unique constraint. Nếu khóa đã tồn tại thì đọc trạng thái thay vì chạy lại.</span></div></div>
+          <div class="step"><div class="i">04</div><div><b>Lưu kết quả và trả lại</b><span>Lần retry sau trả đúng result cũ, kèm cờ replay nếu cần.</span></div></div>
+          <div class="step"><div class="i">05</div><div><b>TTL và dọn dẹp</b><span>Giữ khóa đủ lâu để phủ mọi retry, ví dụ 24 giờ tới 7 ngày. Xóa theo lô.</span></div></div>
+        </div>
+        <p class="small">
+          Bảng cần có: <code>key</code> (primary key), <code>principal</code>, <code>tool</code>, <code>args_hash</code>, <code>status</code> (<code>in_progress</code>, <code>completed</code>, <code>failed</code>), <code>result</code>, <code>created_at</code>, <code>expires_at</code>.
+          Khóa tồn tại nhưng <code>in_progress</code>: trả lỗi tạm thời, không chạy song song hai lần ghi. Khóa tồn tại với <code>args_hash</code> khác: từ chối, client đang dùng lại khóa sai. Khóa đã <code>completed</code>: trả kết quả cũ.
+        </p>
+
+        <div class="callout warn">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Transaction không tự cứu bạn</div>
+            <p>Một transaction bao gồm "gọi API bên ngoài" không rollback được nếu API đã thành công mà commit database thất bại. Dùng outbox hoặc lưu trạng thái trước, gọi downstream, rồi cập nhật kết quả. Chấp nhận có một cửa sổ cần job đối soát.</p>
+          </div>
+        </div>
+
+        <p class="small">
+          Ngân sách context: mỗi định nghĩa tool chiếm token trong prompt. Giữ mỗi server trong khoảng 5-20 tool, gộp theo miền nghiệp vụ.
+          Tránh <code>execute_sql</code>, <code>http_request</code>, <code>run_shell</code>: nếu buộc phải có, giới hạn câu lệnh, domain, tham số và yêu cầu approval ở mức cao nhất.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="client-features">
+        <p class="eyebrow"><span class="swatch"></span>06 · Phía client</p>
+        <h2><span class="idx">06</span>Phía client: capability, elicitation và phần đã bỏ</h2>
+        <p class="sub">
+          Client không chỉ gửi request. Nó khai báo năng lực, có thể được server hỏi thêm, và chịu trách nhiệm bảo vệ người dùng khỏi yêu cầu nguy hiểm.
+          Revision 2026 thu gọn phần này: elicitation là trung tâm, sampling và roots bị deprecate.
+        </p>
+
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Capability</th><th>Trạng thái</th><th>Dùng cho</th><th>Khuyến nghị cho lab</th></tr></thead>
+            <tbody>
+              <tr><td><code>elicitation</code></td><td class="ok">Active</td><td>Server hỏi người dùng thêm dữ liệu hoặc xác nhận.</td><td>Bật. Đây là chỗ hiển thị form xác nhận trước khi ghi.</td></tr>
+              <tr><td><code>sampling</code></td><td><span class="tag gone">Deprecated</span></td><td>Server nhờ client gọi model.</td><td>Không dùng. Xử lý model ở host.</td></tr>
+              <tr><td><code>roots</code></td><td><span class="tag gone">Deprecated</span></td><td>Server hỏi client danh sách gốc file system.</td><td>Không dùng. Truyền đường dẫn qua tham số tool.</td></tr>
+              <tr><td><code>extensions</code></td><td class="ok">Active</td><td>Tasks, apps, skills, auth nâng cao.</td><td>Chỉ bật extension đã đọc và đã test.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top:30px">Elicitation: hai mode, hai mức rủi ro</h3>
+        <div class="grid2">
+          <div class="card" style="--accent:var(--intent)">
+            <div class="num"><i></i>Form mode</div>
+            <h3>Dữ liệu cấu trúc, không nhạy cảm</h3>
+            <p>Schema phẳng: string, number, integer, boolean, enum, kèm format như email, uri, date. Client render form, validate, trả <code>accept</code>, <code>decline</code> hoặc <code>cancel</code>.</p>
+          </div>
+          <div class="card" style="--accent:var(--auth)">
+            <div class="num"><i></i>URL mode</div>
+            <h3>Việc nhạy cảm phải ra ngoài</h3>
+            <p>Server đưa URL để người dùng tự mở: thanh toán, OAuth, nhập secret. Hiển thị domain thật, mở bằng trình duyệt hệ thống, không nhúng iframe.</p>
+          </div>
+        </div>
+
+        <div class="callout warn">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Ba luật bảo mật của elicitation</div>
+            <p><b>Một:</b> form mode không được hỏi mật khẩu, token, số thẻ, OTP hay bất kỳ secret nào. <b>Hai:</b> URL mode phải hiển thị domain thật, chặn scheme lạ, không cho server đổi URL sau khi người dùng đã xem. <b>Ba:</b> câu trả lời phải gắn với đúng người, đúng phiên, có hạn, không tái sử dụng cho request khác.</p>
+          </div>
+        </div>
+
+        <p>Trong revision 2026, elicitation không còn là server-initiated request. Server trả <code>input_required</code>, client hỏi người dùng rồi gọi lại. Cơ chế này nằm ở mục 07.</p>
+
+        <h3 style="margin-top:30px">Khai báo capability</h3>
+        <pre><span class="lang">json</span><code>{
+  "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+  "io.modelcontextprotocol/clientCapabilities": {
+    "elicitation": {},
+    "extensions": { "io.modelcontextprotocol/tasks": {} }
+  },
+  "io.modelcontextprotocol/clientInfo": { "name": "ops-console", "version": "0.1.0" }
+}</code></pre>
+        <p>Server phải kiểm tra capability trước khi dùng. Cần elicitation mà client không khai báo thì trả <code>-32021</code>, không gửi một yêu cầu mà client không hiểu. Đây là lỗi cấu hình, không phải lỗi người dùng.</p>
+      </section>
+      <!-- ============================================================ -->
+      <section id="mrtr">
+        <p class="eyebrow"><span class="swatch"></span>07 · MRTR</p>
+        <h2><span class="idx">07</span>MRTR: chỗ đặt bước phê duyệt</h2>
+        <p class="sub">
+          Giao thức stateless không có kênh để server gọi ngược. Server cần thêm đầu vào thì trả một kết quả đặc biệt và nhờ client quay lại.
+          Với lab, đây chính là cơ chế biến "agent đề xuất" thành "người dùng xác nhận rồi mới ghi".
+        </p>
+
+        <div class="steps">
+          <div class="step"><div class="i">01</div><div><b>Client gửi request ban đầu</b><span>Ví dụ <code>tools/call</code> cho tool cần xác nhận trước khi ghi.</span></div></div>
+          <div class="step"><div class="i">02</div><div><b>Server trả <code>input_required</code></b><span>Kèm <code>inputRequests</code> (map các câu hỏi) và <code>requestState</code> (blob opaque để khôi phục ngữ cảnh).</span></div></div>
+          <div class="step"><div class="i">03</div><div><b>Client kiểm tra capability và hỏi người dùng</b><span>Không hỗ trợ loại yêu cầu đó thì từ chối rõ ràng, không được bịa câu trả lời.</span></div></div>
+          <div class="step"><div class="i">04</div><div><b>Client gọi lại với id mới</b><span>Giữ nguyên method và tham số gốc, thêm <code>inputResponses</code> và <code>requestState</code>. Đây là request mới, không phải resume.</span></div></div>
+          <div class="step"><div class="i">05</div><div><b>Server xác thực state và tiếp tục</b><span>Trả <code>complete</code> hoặc thêm một vòng nữa. Client phải giới hạn số vòng, ví dụ 3.</span></div></div>
+        </div>
+
+        <pre><span class="lang">json</span><code><span class="c-com">// 1. Server trả yêu cầu xác nhận</span>
+{
+  "jsonrpc": "2.0",
+  "id": 42,
+  "result": {
+    "resultType": "input_required",
+    "inputRequests": {
+      "confirm-1": {
+        "method": "elicitation/create",
+        "params": {
+          "mode": "form",
+          "message": "Cập nhật task T-1042 sang trạng thái done?",
+          "requestedSchema": {
+            "type": "object",
+            "properties": { "confirm": { "type": "boolean" } },
+            "required": ["confirm"],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "requestState": "opaque-state-do-server-sinh-ra"
+  }
+}
+
+<span class="c-com">// 2. Client hỏi người dùng, rồi gọi lại với id mới</span>
+{
+  "jsonrpc": "2.0",
+  "id": 43,
+  "method": "tools/call",
+  "params": {
+    "name": "update_task_status",
+    "arguments": {
+      "task_id": "T-1042",
+      "status": "done",
+      "idempotency_key": "run-7f3a-step-2-update_task_status"
+    },
+    "inputResponses": {
+      "confirm-1": { "action": "accept", "content": { "confirm": true } }
+    },
+    "requestState": "opaque-state-do-server-sinh-ra",
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": { "elicitation": {} }
+    }
+  }
+}</code></pre>
+
+        <div class="callout warn">
+          <div class="bar"></div>
+          <div>
+            <div class="ct"><code>requestState</code> là dữ liệu không tin cậy</div>
+            <p>Nó đi qua tay client và có thể bị sửa. Server phải ký hoặc mã hóa bằng AEAD, gắn với người dùng, tenant, tool, hash của tham số gốc, hạn dùng và nonce một lần. Không nhét secret trần vào đó, không dùng nó làm nguồn authorization duy nhất, và giới hạn kích thước để tránh DoS.</p>
+          </div>
+        </div>
+
+        <p><b>Idempotency trong MRTR.</b> Tool có thể đã bắt đầu chạy trước khi trả <code>input_required</code>. Client gửi một <code>idempotency_key</code> ổn định suốt vòng đời hành động; server lưu trạng thái theo khóa đó và trả kết quả đã có thay vì ghi lần hai.</p>
+        <p><b>Ba method hỗ trợ MRTR:</b> <code>tools/call</code>, <code>resources/read</code>, <code>prompts/get</code>. Với lab chỉ cần <code>tools/call</code>.</p>
+
+        <div class="callout key">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Ba giới hạn phải đặt</div>
+            <p>Client đặt trần số vòng MRTR cho một request. Server đặt trần số <code>inputRequests</code> mỗi vòng và thời gian sống của <code>requestState</code>. Kết quả <code>input_required</code> không bao giờ được cache. Vượt trần thì trả lỗi rõ ràng, đừng để agent quay vòng vô hạn.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="auth">
+        <p class="eyebrow"><span class="swatch"></span>08 · Auth</p>
+        <h2><span class="idx">08</span>AuthN, AuthZ và scope theo hành động</h2>
+        <p class="sub">
+          MCP không sinh ra mô hình phân quyền. Với HTTP, nó dựa trên OAuth 2.1 để client và server tìm được nhau; với stdio, credential đến từ môi trường.
+          Hiểu sai phần này là cách nhanh nhất để biến tool đọc thành tool ghi cho mọi người.
+        </p>
+
+        <div class="callout">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Phạm vi</div>
+            <p>Authorization là <b>tùy chọn</b> trong giao thức. Server HTTP có bảo vệ <b>nên</b> theo profile OAuth dưới đây. Server stdio <b>không nên</b> chạy luồng OAuth, credential lấy từ biến môi trường hoặc keychain.</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:28px">Luồng HTTP từ 401 tới token</h3>
+        <div class="steps">
+          <div class="step"><div class="i">01</div><div><b>Gọi không token, nhận 401</b><span><code>WWW-Authenticate: Bearer resource_metadata="..."</code>, có thể kèm <code>scope</code>. Đây là điểm bắt đầu, không phải lỗi bất ngờ.</span></div></div>
+          <div class="step"><div class="i">02</div><div><b>Đọc Protected Resource Metadata</b><span>RFC 9728, tại <code>/.well-known/oauth-protected-resource</code>. Cho biết authorization server nào và scope nào cần.</span></div></div>
+          <div class="step"><div class="i">03</div><div><b>Đọc Authorization Server Metadata</b><span>RFC 8414 hoặc OIDC Discovery: endpoint authorization, token, registration, PKCE.</span></div></div>
+          <div class="step"><div class="i">04</div><div><b>Authorization Code + PKCE</b><span>Dùng <code>S256</code>, gửi <code>resource</code> indicator (RFC 8707), bảo vệ <code>state</code>, chỉ dùng redirect URI đã đăng ký.</span></div></div>
+          <div class="step"><div class="i">05</div><div><b>Đổi code lấy token và gọi MCP</b><span>Lặp lại <code>resource</code> ở token request. Server kiểm tra chữ ký, issuer, audience, hạn và scope trước khi xử lý.</span></div></div>
+          <div class="step"><div class="i">06</div><div><b>Step-up khi thiếu quyền</b><span>Server trả scope cần thêm, client xin consent lại. Không lặng lẽ dùng token cũ cho việc khác.</span></div></div>
+        </div>
+
+        <pre><span class="lang">http</span><code>HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource/mcp", scope="directory.read tasks.write"
+
+HTTP/1.1 403 Forbidden
+WWW-Authenticate: Bearer error="insufficient_scope", scope="tasks.approve"</code></pre>
+
+        <h3 style="margin-top:30px">Năm điểm dễ làm sai</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Điểm</th><th>Sai</th><th>Đúng</th></tr></thead>
+            <tbody>
+              <tr><td>Audience</td><td>Chấp nhận bất kỳ token hợp lệ nào do IdP cấp.</td><td>Kiểm tra <code>aud</code> khớp chính server mình. Token cho API khác phải bị từ chối.</td></tr>
+              <tr><td>PKCE</td><td>Dùng <code>plain</code> hoặc bỏ qua vì là confidential client.</td><td>Luôn <code>S256</code>. OAuth 2.1 yêu cầu PKCE cho mọi client.</td></tr>
+              <tr><td>Resource indicator</td><td>Chỉ gửi ở authorization request.</td><td>Gửi ở cả authorization và token request, nếu không token có thể bị dùng chéo.</td></tr>
+              <tr><td>Token passthrough</td><td>Chuyển nguyên token của client xuống API downstream.</td><td>Dùng credential riêng của server hoặc token exchange (RFC 8693) với scope hẹp.</td></tr>
+              <tr><td>Log và storage</td><td>Log header <code>Authorization</code>, lưu token trong localStorage.</td><td>Redact trước khi ghi. Giữ token trong bộ nhớ tiến trình hoặc secure storage.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top:30px">Scope thiết kế theo hành động</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Scope</th><th>Cho phép</th><th>Không cho phép</th></tr></thead>
+            <tbody>
+              <tr><td><code>directory.read</code></td><td>Đọc hồ sơ, tìm kiếm cơ bản.</td><td>Sửa, xóa, đọc trường nhạy cảm.</td></tr>
+              <tr><td><code>directory.write</code></td><td>Cập nhật trường được phép.</td><td>Tạo hoặc xóa nhân viên nếu không có scope riêng.</td></tr>
+              <tr><td><code>tasks.read</code></td><td>Đọc task trong phạm vi được cấp.</td><td>Đọc task của tenant khác.</td></tr>
+              <tr><td><code>tasks.write</code></td><td>Tạo và cập nhật task.</td><td>Duyệt hoặc đóng task của người khác.</td></tr>
+              <tr><td><code>tasks.approve</code></td><td>Phê duyệt hành động nhạy cảm.</td><td>Tự động cấp cho agent. Chỉ người dùng mới có.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Đừng dùng một scope duy nhất kiểu <code>mcp</code> cho mọi thứ. Scope càng rộng, token lộ càng nguy hiểm và step-up càng khó. Với tool xóa, yêu cầu scope riêng và approval riêng.</p>
+
+        <h3 style="margin-top:30px">stdio: credential từ môi trường</h3>
+        <ul>
+          <li>Không truyền secret qua argv: process list và log shell đều thấy.</li>
+          <li>Dùng biến môi trường do host kiểm soát hoặc keychain của hệ điều hành.</li>
+          <li>Khi spawn subprocess, chỉ truyền biến cần thiết, đừng để server kế thừa toàn bộ môi trường.</li>
+          <li>Chạy cùng máy không có nghĩa là được làm mọi thứ: server vẫn kiểm tra quyền ở tầng nghiệp vụ.</li>
+        </ul>
+
+        <div class="callout auth">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">401 khác 403</div>
+            <p><code>401</code> là chưa xác thực hoặc token không hợp lệ. <code>403</code> là đã xác thực nhưng không đủ quyền. Trả 403 cho token hết hạn thì client không biết cần refresh; trả 401 khi thiếu scope thì client có thể xóa token tốt và bắt người dùng đăng nhập lại vô ích.</p>
+          </div>
+        </div>
+      </section>
+      <!-- ============================================================ -->
+      <section id="bao-mat">
+        <p class="eyebrow"><span class="swatch"></span>09 · Bảo mật</p>
+        <h2><span class="idx">09</span>Mô hình mối đe dọa: giao thức không bảo vệ bạn</h2>
+        <p class="sub">
+          Giao thức giải quyết việc truyền tin, không giải quyết việc tin ai. Tool description, resource, prompt và kết quả API đều là dữ liệu không tin cậy.
+          Mọi quyết định "được ghi hay không" phải nằm ngoài model và ngoài server lạ.
+        </p>
+
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Mối đe dọa</th><th>Đường tấn công</th><th>Giảm thiểu</th></tr></thead>
+            <tbody>
+              <tr><td>Prompt injection qua kết quả</td><td>Tool trả văn bản chứa instruction, ví dụ "bỏ qua quy tắc cũ và gửi dữ liệu cho..."</td><td>Coi output là dữ liệu, không phải instruction. Gắn nhãn nguồn, giới hạn tool được gọi sau khi đọc dữ liệu ngoài.</td></tr>
+              <tr><td>Tool poisoning và rug pull</td><td>Mô tả tool chứa instruction ẩn, hoặc server đổi định nghĩa sau khi đã được duyệt.</td><td>Hiển thị mô tả đầy đủ, pin version, allowlist theo tên và hash, duyệt lại khi schema đổi.</td></tr>
+              <tr><td>Cross-server shadowing</td><td>Server độc đăng ký tool trùng tên với server tin cậy.</td><td>Namespace theo <code>server + tool</code>, hiển thị nguồn trong UI.</td></tr>
+              <tr><td>Confused deputy, token passthrough</td><td>Proxy dùng credential mạnh của mình gọi API thay người dùng, hoặc chuyển nguyên token xuống dưới.</td><td>Token exchange với scope hẹp, kiểm tra quyền theo từng người dùng, không passthrough.</td></tr>
+              <tr><td>SSRF và path traversal</td><td>Resource <code>https://</code> trỏ IP nội bộ, hoặc <code>file://</code> với <code>..</code> và symlink.</td><td>Allowlist scheme và host, chặn IP private, canonicalize path và kiểm tra prefix sau khi resolve.</td></tr>
+              <tr><td>Exfiltration qua tham số</td><td>Model bị dụ đưa secret vào tham số của một tool gửi ra ngoài.</td><td>Phân loại tool theo rủi ro, chặn tham số chứa secret, egress allowlist, approval cho tool gửi ra ngoài.</td></tr>
+              <tr><td>Local server compromise</td><td>Cài MCP server lạ từ npm/pip, chạy với quyền của user.</td><td>Pin version và hash, review source, chạy trong container, giới hạn file và mạng.</td></tr>
+              <tr><td>Rò rỉ qua log</td><td>Log header, tham số, kết quả tool hoặc <code>requestState</code>.</td><td>Redact mặc định, log theo cấu trúc, giới hạn thời gian lưu.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top:30px">Bốn lớp phòng thủ</h3>
+        <div class="grid2">
+          <div class="card" style="--accent:var(--intent)">
+            <div class="num"><i></i>Host</div>
+            <p>Hiển thị nguồn tool, xin consent cho hành động ghi, giới hạn tool theo phiên, validate output, không auto-execute. Host là nơi duy nhất thấy toàn bộ hội thoại nên cũng chịu trách nhiệm cuối.</p>
+          </div>
+          <div class="card" style="--accent:var(--good)">
+            <div class="num"><i></i>Server</div>
+            <p>Kiểm tra authorization trên từng request, không tin tham số, giới hạn kích thước và thời gian, chống SSRF và path traversal, ghi audit, không trả dữ liệu ngoài phạm vi.</p>
+          </div>
+          <div class="card" style="--accent:var(--auth)">
+            <div class="num"><i></i>Control plane</div>
+            <p>Policy theo người dùng và tool, approval gắn với hash tham số, idempotency, action registry, kill switch, audit xuyên server. Nơi biến "agent đề xuất" thành "tổ chức cho phép".</p>
+          </div>
+          <div class="card" style="--accent:var(--bad)">
+            <div class="num"><i></i>Platform</div>
+            <p>Network segmentation, egress proxy, secret manager, sandbox, WAF, rate limit, log tập trung, scan vulnerability. Không lớp nào thay thế được lớp nào.</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:30px">Checklist tối thiểu</h3>
+        <div class="checklist">
+          <div class="check"><i></i><div><b>Phân loại tool.</b> Mỗi tool gắn nhãn read, write, destructive, external. Nhãn do con người duyệt, không chỉ do server khai.</div></div>
+          <div class="check"><i></i><div><b>Approval cho write.</b> Consent gắn với hash tham số, có hạn và dùng một lần.</div></div>
+          <div class="check"><i></i><div><b>Allowlist server.</b> Chỉ nối server đã duyệt, pin version, theo dõi thay đổi tool.</div></div>
+          <div class="check"><i></i><div><b>Sandbox stdio.</b> Container hoặc process quyền tối thiểu, giới hạn file system và mạng.</div></div>
+          <div class="check"><i></i><div><b>Token hẹp.</b> Scope theo hành động, TTL ngắn, đúng audience, không passthrough.</div></div>
+          <div class="check"><i></i><div><b>Output không tin cậy.</b> Render an toàn, sanitize, không tự fetch resource link.</div></div>
+          <div class="check"><i></i><div><b>Audit đầy đủ.</b> Ai gọi tool gì, hash tham số, kết quả, ai duyệt.</div></div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="kiem-thu">
+        <p class="eyebrow"><span class="swatch"></span>10 · Kiểm thử</p>
+        <h2><span class="idx">10</span>Test đường gãy trước, và đo bằng số</h2>
+        <p class="sub">
+          MCP có nhiều trạng thái trung gian: <code>input_required</code>, stream đứt, token hết hạn, tool list đổi, cursor lỗi.
+          Lỗi đắt tiền trong production hiếm khi nằm ở happy path; chúng nằm ở chỗ client và server hiểu khác nhau về một trường tùy chọn.
+        </p>
+
+        <div class="grid3">
+          <div class="card" style="--accent:var(--intent)">
+            <div class="num"><i></i>Tầng 1</div>
+            <h3>Conformance</h3>
+            <p>JSON-RPC, <code>_meta</code>, version, header, mã lỗi, <code>resultType</code>, MRTR. Chạy với mock server và JSON thô.</p>
+          </div>
+          <div class="card" style="--accent:var(--cap)">
+            <div class="num"><i></i>Tầng 2</div>
+            <h3>Tool contract</h3>
+            <p>Schema, output, lỗi nghiệp vụ, idempotency, phân trang, giới hạn kích thước. Test của sản phẩm, không chỉ của giao thức.</p>
+          </div>
+          <div class="card" style="--accent:var(--good)">
+            <div class="num"><i></i>Tầng 3</div>
+            <h3>E2E</h3>
+            <p>Người dùng hỏi, host chọn tool, server trả kết quả, UI cập nhật. Đo latency, chi phí, tỷ lệ thành công và hành vi khi lỗi.</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:30px">Ma trận tối thiểu cho lab</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Case</th><th>Kỳ vọng</th></tr></thead>
+            <tbody>
+              <tr><td>Thiếu <code>_meta</code> bắt buộc</td><td><code>-32602</code>, HTTP <code>400</code></td></tr>
+              <tr><td>Version không hỗ trợ</td><td><code>-32022</code> kèm danh sách <code>supported</code></td></tr>
+              <tr><td>Header lệch body</td><td><code>-32020</code>, HTTP <code>400</code></td></tr>
+              <tr><td>Tool không tồn tại</td><td><code>-32602</code>, không phải <code>isError</code></td></tr>
+              <tr><td>Tham số sai schema, tham số thừa</td><td>Bị từ chối với thông điệp sửa được</td></tr>
+              <tr><td>Tool không tham số</td><td>Chấp nhận schema object rỗng</td></tr>
+              <tr><td>Output đúng <code>outputSchema</code></td><td><code>structuredContent</code> validate được</td></tr>
+              <tr><td>Nghiệp vụ từ chối</td><td><code>isError: true</code>, không phải JSON-RPC error</td></tr>
+              <tr><td>MRTR accept</td><td>Gọi lại với id mới, trả kết quả cuối</td></tr>
+              <tr><td>MRTR decline hoặc cancel</td><td>Server dừng, không ghi gì</td></tr>
+              <tr><td>MRTR state bị sửa</td><td>Từ chối, không khôi phục ngữ cảnh</td></tr>
+              <tr><td>Write gọi lặp 3 lần</td><td>Một bản ghi thay đổi, hai lần trả kết quả cũ</td></tr>
+              <tr><td>Quyền bị thu hồi giữa phiên</td><td>Request sau bị từ chối, cache không che</td></tr>
+              <tr><td>stdio in log ra <code>stdout</code></td><td>Client phát hiện và báo lỗi parse có kiểm soát</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout warn">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Đừng chỉ test bằng SDK</div>
+            <p>SDK tự thêm <code>_meta</code>, tự retry, tự fallback, và che mất chi tiết trên dây. Giữ ít nhất một bộ test gửi JSON-RPC thô. Nếu chỉ test qua SDK, bạn đang test SDK chứ không test server.</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:30px">Số phải đo trước khi kết luận</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Chỉ số</th><th>Cách đo</th><th>Vì sao</th></tr></thead>
+            <tbody>
+              <tr><td>Latency đọc và ghi</td><td>p50, p95 theo tool, cùng máy, cùng dữ liệu</td><td>So sánh nhánh MCP với nhánh gọi API trực tiếp</td></tr>
+              <tr><td>Tỷ lệ ghi trùng</td><td>Đếm bản ghi sau khi retry có chủ đích</td><td>Bằng chứng idempotency hoạt động, không phải cảm nhận</td></tr>
+              <tr><td>Tỷ lệ hoàn tất MRTR</td><td>Phần trăm request xong trong 3 vòng</td><td>Thấp nghĩa là câu hỏi hoặc schema có vấn đề</td></tr>
+              <tr><td>Chi phí token</td><td>Token của tool definition cộng kết quả mỗi lượt</td><td>Tool list quá lớn làm tăng chi phí trước câu hỏi đầu tiên</td></tr>
+              <tr><td>Công sức tích hợp</td><td>Số bước, số dòng cấu hình, thời gian debug một tool fail</td><td>Đây là lợi ích chính của MCP, phải định lượng được</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          Baseline phải chốt trước khi tối ưu. Với lab, chạy cùng một kịch bản qua hai nhánh: gọi API trực tiếp và gọi qua MCP.
+          Ghi lại latency p50/p95, số bước code, số dòng cấu hình, khả năng tái sử dụng cho agent thứ hai, và thời gian debug khi một tool fail.
+          Đó là bằng chứng cho quyết định kiến trúc.
+        </p>
+
+        <div class="callout key">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Test phải chạy được mà không cần model</div>
+            <p>Tách phần giao thức và tool contract khỏi phần LLM. Khi test đỏ, bạn biết lỗi ở đâu. Khi chỉ có E2E với model, mọi thứ đều có thể được giải thích bằng "model hơi khó chịu".</p>
+          </div>
+        </div>
+      </section>
+      <!-- ============================================================ -->
+      <section id="so-sanh">
+        <p class="eyebrow"><span class="swatch"></span>11 · So sánh</p>
+        <h2><span class="idx">11</span>Khi nào MCP là câu trả lời sai</h2>
+        <p class="sub">
+          MCP không thay thế function calling, OpenAPI, workflow engine hay event bus. Nó giải quyết một lớp vấn đề cụ thể: nhiều host khám phá và gọi cùng một bộ năng lực theo một giao thức chung.
+          Nếu vấn đề của bạn không nằm ở lớp đó, MCP chỉ thêm một tầng phức tạp.
+        </p>
+
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Mô hình</th><th>Ai điều khiển</th><th>Thế mạnh</th><th>Hạn chế</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><b>MCP</b></td>
+                <td>Host và model</td>
+                <td>Chuẩn hóa discovery, schema, transport, auth. Một server dùng được cho nhiều host.</td>
+                <td>Thêm một tầng giao thức và vận hành. Không giải quyết quyền, approval, idempotency.</td>
+              </tr>
+              <tr>
+                <td><b>Function calling</b></td>
+                <td>Ứng dụng</td>
+                <td>Đơn giản, có sẵn trong mọi LLM API, độ trễ thấp.</td>
+                <td>Mỗi app tự định nghĩa và triển khai tool. Khó chia sẻ, phụ thuộc nhà cung cấp model.</td>
+              </tr>
+              <tr>
+                <td><b>OpenAPI / REST</b></td>
+                <td>Ứng dụng</td>
+                <td>Hệ sinh thái trưởng thành, hợp đồng rõ ràng cho API.</td>
+                <td>Không có mô hình động cho agent; mô tả API không nói khi nào nên gọi.</td>
+              </tr>
+              <tr>
+                <td><b>Workflow engine</b></td>
+                <td>Định nghĩa workflow</td>
+                <td>Deterministic, có retry, audit, human task, versioning.</td>
+                <td>Khó thích nghi với tình huống mở; model chỉ là một bước.</td>
+              </tr>
+              <tr>
+                <td><b>Agent-to-agent / event bus</b></td>
+                <td>Các agent / sự kiện</td>
+                <td>Ủy quyền công việc, bất đồng bộ, scale tốt.</td>
+                <td>Không phải giao thức host-to-tool; khó kiểm soát vòng lặp, quyền và chi phí.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top:30px">MCP thắng ở đâu</h3>
+        <div class="grid3">
+          <div class="card" style="--accent:var(--good)">
+            <div class="num"><i></i>01</div>
+            <h3>Nhiều host, một bộ tool</h3>
+            <p>Agent trong chat, trong CI và trong app nội bộ cùng cần danh bạ và task list. Một server tiết kiệm hơn nhiều lần tích hợp.</p>
+          </div>
+          <div class="card" style="--accent:var(--good)">
+            <div class="num"><i></i>02</div>
+            <h3>Tool đổi độc lập với host</h3>
+            <p>Server thêm tool, đổi schema, phát <code>list_changed</code> mà không phải phát hành lại host.</p>
+          </div>
+          <div class="card" style="--accent:var(--good)">
+            <div class="num"><i></i>03</div>
+            <h3>Cần biên giới rõ để đo</h3>
+            <p>Tách server khỏi host tạo điều kiện sandbox, giới hạn quyền, và cho một mốc để đo latency, chi phí, độ phức tạp.</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:30px">MCP là lựa chọn sai khi</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Tình huống</th><th>Vì sao</th><th>Nên làm gì</th></tr></thead>
+            <tbody>
+              <tr><td>Một ứng dụng, một tool, không tái sử dụng</td><td>Thêm process, transport, auth và test mà không có lợi ích chia sẻ.</td><td>Gọi hàm trực tiếp hoặc function calling.</td></tr>
+              <tr><td>Quy trình cố định, cần audit từng bước</td><td>Model không nên quyết định thứ tự bước.</td><td>Workflow engine, model chỉ là một node.</td></tr>
+              <tr><td>Cần exactly-once hoặc giao dịch phân tán</td><td>MCP không cung cấp transaction. Retry có thể ghi trùng.</td><td>Outbox, saga, idempotency ở tầng nghiệp vụ.</td></tr>
+              <tr><td>Serverless không stream, timeout ngắn</td><td>SSE và tool dài không phù hợp; MRTR cần state bền.</td><td>API đồng bộ ngắn, hoặc job queue và polling.</td></tr>
+              <tr><td>Không có ai vận hành server</td><td>MCP server là một dịch vụ có version, auth, log, sự cố.</td><td>Dùng API có sẵn, hoặc cam kết owner trước khi dựng.</td></tr>
+              <tr><td>Tool chỉ dùng trong một process, không ra mạng</td><td>Thêm giao thức và tiến trình là chi phí không cần thiết.</td><td>Gọi trực tiếp trong process.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top:30px">Câu hỏi quyết định</h3>
+        <div class="steps">
+          <div class="step"><div class="i">01</div><div><b>Có hơn một host hoặc agent cần dùng tool này không?</b><span>Không thì bắt đầu bằng function calling hoặc gọi trực tiếp.</span></div></div>
+          <div class="step"><div class="i">02</div><div><b>Tool có thay đổi độc lập với host không?</b><span>Có thì MCP giảm chi phí phát hành lại host.</span></div></div>
+          <div class="step"><div class="i">03</div><div><b>Có owner, auth, log và test cho server không?</b><span>Không thì đừng dựng. Đó là một dịch vụ, không phải một file script.</span></div></div>
+          <div class="step"><div class="i">04</div><div><b>Đã có baseline để đo chưa?</b><span>Chưa có số thì chưa thể kết luận MCP tốt hơn. Đo trước, chọn sau.</span></div></div>
+        </div>
+
+        <div class="callout key">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Quyết định của lab</div>
+            <p>Lab chọn MCP cho hai hệ thống mô phỏng vì mục tiêu là chứng minh tái sử dụng tool giữa hai agent và đo chi phí tích hợp. Nhánh gọi API trực tiếp được giữ làm baseline. Nếu số đo không cho thấy lợi ích rõ, kết luận đúng là "MCP chưa phù hợp ở giai đoạn này", không phải cố chứng minh ngược lại.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="checklist">
+        <p class="eyebrow"><span class="swatch"></span>12 · Checklist</p>
+        <h2><span class="idx">12</span>Checklist trước khi gọi là "xong"</h2>
+        <p class="sub">
+          Một MCP server không xong khi trả lời được một tool call. Nó xong khi có hợp đồng rõ, test cho đường gãy, policy cho ghi, log để điều tra và người chịu trách nhiệm khi dữ liệu sai.
+        </p>
+
+        <h3 style="margin-top:26px">Thiết kế</h3>
+        <div class="checklist">
+          <div class="check"><i></i><div><b>Mỗi tool một ý định.</b> Không có <code>do_everything</code>, không có <code>action</code> enum khổng lồ.</div></div>
+          <div class="check"><i></i><div><b>Description nói rõ khi nào dùng và khi nào không.</b> Có ví dụ và hậu quả, viết cho model đọc.</div></div>
+          <div class="check"><i></i><div><b>Schema chặt, output có schema.</b> <code>additionalProperties: false</code>, enum, pattern, không <code>$ref</code> từ xa.</div></div>
+          <div class="check"><i></i><div><b>Lỗi hành động được.</b> Không stack trace, không HTML, có gợi ý bước tiếp theo.</div></div>
+          <div class="check"><i></i><div><b>Write có idempotency key, có bảng lưu và TTL.</b> Có test replay.</div></div>
+        </div>
+
+        <h3 style="margin-top:26px">Vận hành</h3>
+        <div class="checklist">
+          <div class="check"><i></i><div><b>Stateless đúng nghĩa.</b> Không sticky session, cache và task store dùng chung.</div></div>
+          <div class="check"><i></i><div><b>Timeout và retry có chính sách.</b> Chỉ retry lỗi tạm thời, write dùng idempotency.</div></div>
+          <div class="check"><i></i><div><b>SSE đi qua proxy.</b> Tắt buffer, timeout đủ dài, có keep-alive, đã test end-to-end.</div></div>
+          <div class="check"><i></i><div><b>Rate limit theo người dùng và tool.</b> Trả lỗi có thể retry sau, không treo kết nối.</div></div>
+        </div>
+
+        <h3 style="margin-top:26px">Kiểm thử và phát hành</h3>
+        <div class="checklist">
+          <div class="check"><i></i><div><b>Conformance test chạy trong CI.</b> Có test JSON-RPC thô, không chỉ qua SDK.</div></div>
+          <div class="check"><i></i><div><b>Contract test cho từng tool.</b> Schema, output, lỗi, idempotency, phân trang.</div></div>
+          <div class="check"><i></i><div><b>E2E với hai agent.</b> Chứng minh tool được tái sử dụng, không chỉ chạy một lần.</div></div>
+          <div class="check"><i></i><div><b>Tài liệu chạy được.</b> Lệnh cài, lệnh chạy, lệnh test, biến môi trường, ví dụ gọi thật.</div></div>
+        </div>
+
+        <h3 style="margin-top:30px">Definition of done cho Track 01</h3>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Hạng mục</th><th>Bằng chứng</th><th>Chủ sở hữu</th></tr></thead>
+            <tbody>
+              <tr><td>Khảo sát ít nhất 3 mô hình</td><td>Bảng so sánh có nguồn, có tiêu chí chi phí, scale, bảo mật, bảo trì.</td><td>Intern</td></tr>
+              <tr><td>Năm mô hình Track 01 được survey</td><td>Function calling, MCP, workflow, agent orchestration, event-driven.</td><td>Intern</td></tr>
+              <tr><td>ADR chốt approach</td><td>Lý do chọn, lý do loại, hệ quả, ngày, người duyệt.</td><td>Intern + mentor</td></tr>
+              <tr><td>Hai hệ thống mô phỏng</td><td>Danh bạ nhân viên và task list, dữ liệu mẫu, không dữ liệu thật.</td><td>Intern</td></tr>
+              <tr><td>Permission và approval</td><td>Test cho phép, từ chối, hết hạn, sai người dùng, sai tham số.</td><td>Intern</td></tr>
+              <tr><td>Write và rerun</td><td>Test idempotency, retry, MRTR, server restart; không ghi trùng.</td><td>Intern</td></tr>
+              <tr><td>Agent thứ hai</td><td>Cùng bộ tool, không sửa server; có log và kết quả chạy.</td><td>Intern</td></tr>
+              <tr><td>Đo lường</td><td>Latency p50/p95, độ ổn định, chi phí, so sánh với API trực tiếp.</td><td>Intern</td></tr>
+              <tr><td>Kết luận khi MCP sai</td><td>Danh sách tình huống kèm bằng chứng, không chỉ ý kiến.</td><td>Intern</td></tr>
+              <tr><td>Demo và tài liệu</td><td>Run instructions, buổi demo, tài liệu kiến trúc.</td><td>Intern</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout key">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Không có bằng chứng thì chưa xong</div>
+            <p>Mỗi mục phải kèm một link, một con số hoặc một lệnh chạy lại được. "Đang nghiên cứu" không phải kết quả. "Đã test" không phải bằng chứng nếu không có log hoặc test case.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="tham-khao">
+        <p class="eyebrow"><span class="swatch"></span>13 · Tham khảo</p>
+        <h2><span class="idx">13</span>Nguồn để kiểm tra lại trước khi chốt</h2>
+        <p class="sub">
+          Bài này là tài liệu thứ cấp. Trước khi chốt thiết kế, mở trang gốc của revision đang dùng thay vì tin hoàn toàn vào một bài viết, kể cả bài này.
+        </p>
+
+        <h3 style="margin-top:28px">Đặc tả MCP</h3>
+        <div class="refs">
+          <div class="ref"><div class="n">01</div><div><b>Specification 2026-07-28</b> - điểm vào chính thức, liệt kê toàn bộ trang con.<span class="u">https://modelcontextprotocol.io/specification/2026-07-28</span></div></div>
+          <div class="ref"><div class="n">02</div><div><b>Lifecycle</b> - JSON-RPC, version, capability, khởi tạo không session.<span class="u">https://modelcontextprotocol.io/specification/2026-07-28/basic/lifecycle</span></div></div>
+          <div class="ref"><div class="n">03</div><div><b>Transports</b> - stdio, Streamable HTTP, header mapping, SSE.<span class="u">https://modelcontextprotocol.io/specification/2026-07-28/basic/transports</span></div></div>
+          <div class="ref"><div class="n">04</div><div><b>Tools</b> - discovery, schema, annotations, kết quả, lỗi.<span class="u">https://modelcontextprotocol.io/specification/2026-07-28/server/tools</span></div></div>
+          <div class="ref"><div class="n">05</div><div><b>Resources và prompts</b> - list, template, read, message, embedded resource.<span class="u">https://modelcontextprotocol.io/specification/2026-07-28/server/resources</span></div></div>
+          <div class="ref"><div class="n">06</div><div><b>Elicitation</b> - form mode, URL mode, giới hạn schema và bảo mật.<span class="u">https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation</span></div></div>
+          <div class="ref"><div class="n">07</div><div><b>Authorization</b> - OAuth 2.1, protected resource metadata, resource indicator.<span class="u">https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization</span></div></div>
+          <div class="ref"><div class="n">08</div><div><b>Security best practices</b> - confused deputy, token passthrough, SSRF, session hijacking.<span class="u">https://modelcontextprotocol.io/specification/2026-07-28/basic/security-best-practices</span></div></div>
+          <div class="ref"><div class="n">09</div><div><b>Changelog và deprecated</b> - thay đổi giữa các revision, phần đã bỏ và hướng thay thế.<span class="u">https://modelcontextprotocol.io/specification/2026-07-28/changelog</span></div></div>
+          <div class="ref"><div class="n">10</div><div><b>Extensions</b> - tasks, apps, skills, auth nâng cao.<span class="u">https://modelcontextprotocol.io/extensions</span></div></div>
+        </div>
+
+        <h3 style="margin-top:30px">Chuẩn liên quan</h3>
+        <div class="refs">
+          <div class="ref"><div class="n">11</div><div><b>JSON-RPC 2.0</b> - request, response, notification, mã lỗi chuẩn.<span class="u">https://www.jsonrpc.org/specification</span></div></div>
+          <div class="ref"><div class="n">12</div><div><b>JSON Schema 2020-12</b> - draft mặc định cho tool schema.<span class="u">https://json-schema.org/draft/2020-12</span></div></div>
+          <div class="ref"><div class="n">13</div><div><b>OAuth 2.1 draft</b> - PKCE bắt buộc, redirect URI chặt, bỏ implicit và password grant.<span class="u">https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/</span></div></div>
+          <div class="ref"><div class="n">14</div><div><b>RFC 9728</b> - OAuth 2.0 Protected Resource Metadata.<span class="u">https://www.rfc-editor.org/rfc/rfc9728</span></div></div>
+          <div class="ref"><div class="n">15</div><div><b>RFC 8707</b> - Resource Indicators for OAuth 2.0.<span class="u">https://www.rfc-editor.org/rfc/rfc8707</span></div></div>
+          <div class="ref"><div class="n">16</div><div><b>OpenTelemetry GenAI</b> - semantic conventions cho span, token và tool.<span class="u">https://opentelemetry.io/docs/specs/semconv/gen-ai/</span></div></div>
+        </div>
+
+        <h3 style="margin-top:30px">Tài liệu nội bộ</h3>
+        <div class="refs">
+          <div class="ref"><div class="n">17</div><div><b>Track 01 - Vấn đề thật và giải pháp cần có</b> - mental model, kiến trúc lab.<span class="u">track01-mental-model.html</span></div></div>
+          <div class="ref"><div class="n">18</div><div><b>Track 01 - Kế hoạch nghiên cứu</b> - câu hỏi, giả thuyết, tiêu chí đánh giá.<span class="u">track01-research-plan.html</span></div></div>
+          <div class="ref"><div class="n">19</div><div><b>So sánh ba track</b> - bối cảnh chương trình và lý do chọn Track 01.<span class="u">so-sanh-3-track.html</span></div></div>
+          <div class="ref"><div class="n">20</div><div><b>AGENTS.md</b> - quy ước repo, phạm vi Track 01, definition of done.<span class="u">../../AGENTS.md</span></div></div>
+        </div>
+
+        <div class="callout auth">
+          <div class="bar"></div>
+          <div>
+            <div class="ct">Ghi chú phiên bản</div>
+            <p>Revision <code>2026-07-28</code> là mốc của bài này. Revision <code>2025-11-25</code> vẫn xuất hiện trong nhiều SDK, gateway và bài viết. Khi hai tài liệu nói khác nhau về session, GET stream, MRTR hoặc caching, kiểm tra revision ở đầu trang trước khi kết luận.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-in">
+    <p>
+      Sổ tay kỹ thuật MCP, bản rút gọn cho AI Operations Connector Lab - Track 01, AgentLize Next Gen AI 2026 - 12.11.2026.
+      Nội dung đối chiếu với Model Context Protocol revision 2026-07-28. Đây là tài liệu học tập nội bộ, không phải bản dịch chính thức của spec.
+    </p>
+    <div class="sig">AgentLize R&amp;D - Track 01</div>
+  </div>
+</footer>
+
+<script>
+  (function(){
+    var bar = document.getElementById('readbar');
+    function onScroll(){
+      var h = document.documentElement;
+      var max = h.scrollHeight - h.clientHeight;
+      var p = max > 0 ? (h.scrollTop || document.body.scrollTop) / max : 0;
+      bar.style.width = (p * 100).toFixed(2) + '%';
+    }
+    document.addEventListener('scroll', onScroll, {passive:true});
+    onScroll();
+
+    var links = Array.prototype.slice.call(document.querySelectorAll('.toc a[href^="#"]'));
+    var map = {};
+    links.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+    var sections = Array.prototype.slice.call(document.querySelectorAll('section[id]'));
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+          if (e.isIntersecting) {
+            links.forEach(function(a){ a.classList.remove('active'); });
+            var a = map[e.target.id];
+            if (a) a.classList.add('active');
+          }
+        });
+      }, {rootMargin:'-15% 0px -70% 0px', threshold:0});
+      sections.forEach(function(s){ io.observe(s); });
+    }
+  })();
+</script>
+</body>
+</html>

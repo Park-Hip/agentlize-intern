@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 720" width="1000" height="720" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a5670"/>
+    </marker>
+    <marker id="ad" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7a8399"/>
+    </marker>
+  </defs>
+
+  <rect width="1000" height="720" fill="#ffffff"/>
+
+  <!-- nhan moi noi -->
+  <g font-size="11.5" font-weight="600" fill="#4a5670" paint-order="stroke" stroke="#ffffff" stroke-width="3.5">
+    <text x="482" y="96">N1 danh tính</text>
+    <text x="398" y="184" text-anchor="end">N2</text>
+    <text x="570" y="196">N2 vào PDP</text>
+    <text x="398" y="272" text-anchor="end">N3 đề xuất</text>
+    <text x="522" y="372">N4 verdict</text>
+    <text x="482" y="460">N5 tham số</text>
+    <text x="482" y="548">N6 ghi</text>
+    <text x="680" y="399" text-anchor="middle">N7 duyệt</text>
+    <text x="688" y="250" text-anchor="middle">N8 rủi ro</text>
+    <text x="168" y="178" text-anchor="end">N9</text>
+    <text x="680" y="490" text-anchor="middle">N10 dùng lại</text>
+  </g>
+
+  <!-- duong ghi -->
+  <g stroke="#4a5670" stroke-width="1.6" fill="none" marker-end="url(#a)">
+    <line x1="470" y1="70" x2="470" y2="106"/>
+    <line x1="410" y1="158" x2="410" y2="194"/>
+    <line x1="560" y1="158" x2="560" y2="280"/>
+    <line x1="410" y1="244" x2="410" y2="280"/>
+    <line x1="510" y1="342" x2="510" y2="382"/>
+    <line x1="470" y1="432" x2="470" y2="472"/>
+    <line x1="470" y1="522" x2="470" y2="556"/>
+  </g>
+
+  <!-- canh ben -->
+  <g stroke="#4a5670" stroke-width="1.6" fill="none">
+    <line x1="760" y1="243" x2="686" y2="286" marker-end="url(#a)"/>
+    <line x1="760" y1="409" x2="604" y2="409" marker-end="url(#a)"/>
+    <line x1="760" y1="499" x2="608" y2="499" stroke-dasharray="7 5" marker-end="url(#ad)"/>
+  </g>
+
+  <!-- bang chung N9 -->
+  <g stroke="#6b7280" stroke-width="1.2" fill="none" stroke-dasharray="2 4" marker-end="url(#ad)">
+    <line x1="340" y1="134" x2="186" y2="134"/>
+    <line x1="300" y1="221" x2="186" y2="221"/>
+    <line x1="340" y1="313" x2="186" y2="313"/>
+    <line x1="340" y1="409" x2="186" y2="409"/>
+    <line x1="340" y1="499" x2="186" y2="499"/>
+  </g>
+  <line x1="180" y1="134" x2="180" y2="598" stroke="#6b7280" stroke-width="1.2" stroke-dasharray="2 4" marker-end="url(#ad)"/>
+
+  <!-- thanh phan loi -->
+  <g stroke="#3a5a8c" stroke-width="1.3">
+    <rect x="340" y="110" width="260" height="48" rx="6" fill="#eef3fa"/>
+    <rect x="300" y="198" width="220" height="46" rx="6" fill="#eef3fa"/>
+    <rect x="340" y="386" width="260" height="46" rx="6" fill="#eef3fa"/>
+    <rect x="340" y="476" width="260" height="46" rx="6" fill="#eef3fa"/>
+    <rect x="760" y="220" width="200" height="46" rx="6" fill="#eef3fa"/>
+  </g>
+  <rect x="340" y="284" width="340" height="58" rx="7" fill="#f7f2e8" stroke="#8a6d3b" stroke-width="1.8"/>
+
+  <!-- tac nhan ngoai bien -->
+  <g stroke="#8a8f99" stroke-width="1.2">
+    <rect x="340" y="24" width="260" height="46" rx="6" fill="#f4f4f6"/>
+    <rect x="760" y="386" width="200" height="46" rx="6" fill="#f4f4f6"/>
+    <rect x="760" y="476" width="200" height="46" rx="6" fill="#f4f4f6"/>
+    <rect x="340" y="560" width="260" height="60" rx="6" fill="#f1f1f1"/>
+  </g>
+
+  <!-- observability -->
+  <rect x="40" y="600" width="260" height="64" rx="6" fill="#eef3fa" stroke="#3a5a8c" stroke-width="1.3" stroke-dasharray="6 4"/>
+
+  <g text-anchor="middle">
+    <text x="470" y="52" font-size="14" fill="#333a45">U1 người yêu cầu</text>
+
+    <text x="470" y="130" font-size="14" font-weight="600" fill="#16324f">Identity</text>
+    <text x="470" y="147" font-size="11" fill="#41577a">subject là người, actor là agent</text>
+
+    <text x="410" y="218" font-size="14" font-weight="600" fill="#16324f">Runtime agent</text>
+    <text x="410" y="234" font-size="11" fill="#41577a">vòng lặp và chỗ dừng</text>
+
+    <text x="510" y="308" font-size="14" font-weight="600" fill="#4d3d20">Policy engine (PDP)</text>
+    <text x="510" y="326" font-size="11" fill="#6b5527">allow, deny, need-approval</text>
+
+    <text x="470" y="406" font-size="14" font-weight="600" fill="#16324f">Gateway (PEP)</text>
+    <text x="470" y="422" font-size="11" fill="#41577a">một cửa, kiểm hash và khoá</text>
+
+    <text x="470" y="496" font-size="14" font-weight="600" fill="#16324f">Connector</text>
+    <text x="470" y="512" font-size="11" fill="#41577a">schema và phạm vi trường</text>
+
+    <text x="860" y="240" font-size="14" font-weight="600" fill="#16324f">Registry</text>
+    <text x="860" y="256" font-size="11" fill="#41577a">tool, rủi ro, đích</text>
+
+    <text x="860" y="414" font-size="14" fill="#333a45">U2 người duyệt</text>
+    <text x="860" y="504" font-size="14" fill="#333a45">U5 agent thứ hai</text>
+
+    <text x="470" y="586" font-size="14" font-weight="600" fill="#4a4a4a">Hệ nghiệp vụ giả lập</text>
+    <text x="470" y="604" font-size="11" fill="#6a6a6a">danh bạ, công việc</text>
+
+    <text x="170" y="627" font-size="14" font-weight="600" fill="#3f4653">Observability</text>
+    <text x="170" y="645" font-size="11" fill="#5c6472">N9: ai, tham số, kết quả, chi phí</text>
+  </g>
+
+  <!-- chu thich -->
+  <g font-size="11" fill="#5c6472">
+    <text x="620" y="600">Nét liền: đường ghi, N1 tới N6. Nét đứt: dùng lại, N10.</text>
+    <text x="620" y="618">Nét chấm: bằng chứng, N9.</text>
+    <text x="620" y="636">Xám ngoài biên, xanh thành phần lab, vàng nơi phán quyết.</text>
+  </g>
+</svg>

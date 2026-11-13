@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>So sánh 3 track R&D - AgentLize Next Gen AI 2026</title>
+<style>
+  :root{
+    --bg:#07090e;
+    --bg-soft:#0b0e15;
+    --panel:#0f131c;
+    --panel-2:#141926;
+    --panel-3:#1a2030;
+    --line:#232a3a;
+    --line-soft:#1b2130;
+    --text:#e9edf6;
+    --text-2:#c3cbdc;
+    --muted:#8d97ad;
+    --faint:#69738a;
+
+    --t1:#22d3ee;
+    --t1-dim:#0e5b68;
+    --t2:#a78bfa;
+    --t2-dim:#5b4a8f;
+    --t3:#f5b942;
+    --t3-dim:#7a5c1c;
+    --good:#34d399;
+    --warn:#fb7185;
+
+    --r-sm:8px;
+    --r:14px;
+    --r-lg:20px;
+    --shadow:0 24px 60px -30px rgba(0,0,0,.9);
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 12% -8%, rgba(34,211,238,.10), transparent 60%),
+      radial-gradient(1000px 520px at 88% -4%, rgba(167,139,250,.09), transparent 62%),
+      radial-gradient(900px 500px at 50% 110%, rgba(245,185,66,.05), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:15.5px;
+    line-height:1.68;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow-wrap:break-word;
+  }
+  a{color:var(--t1);text-decoration:none}
+  a:hover{text-decoration:underline}
+  ::selection{background:rgba(34,211,238,.28)}
+
+  /* ---------- topbar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:blur(14px) saturate(140%);
+    background:rgba(7,9,14,.82);
+    border-bottom:1px solid var(--line-soft);
+  }
+  .topbar-in{
+    max-width:1200px;margin:0 auto;padding:10px clamp(16px,4vw,40px);
+    display:flex;align-items:center;gap:18px;
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);white-space:nowrap;font-weight:600;
+  }
+  .brand .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--t1);box-shadow:0 0 0 4px rgba(34,211,238,.14),0 0 14px rgba(34,211,238,.7);
+  }
+  nav.scroll{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-left:auto}
+  nav.scroll::-webkit-scrollbar{display:none}
+  nav.scroll a{
+    color:var(--muted);font-size:13px;padding:6px 11px;border-radius:999px;
+    white-space:nowrap;transition:color .15s,background .15s;
+  }
+  nav.scroll a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+  nav.scroll a.on{color:var(--bg);background:var(--text-2);font-weight:600}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:1200px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+  section{padding:clamp(44px,6vw,78px) 0;border-top:1px solid var(--line-soft)}
+  section:first-of-type{border-top:0}
+  .eyebrow{
+    display:flex;align-items:center;gap:12px;
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--faint);margin:0 0 14px;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--line);flex:none}
+  h2{
+    font-size:clamp(24px,3.2vw,34px);line-height:1.22;margin:0 0 12px;
+    letter-spacing:-.02em;font-weight:680;
+  }
+  h3{font-size:17px;margin:0 0 8px;letter-spacing:-.01em;font-weight:650}
+  h4{font-size:13.5px;margin:0 0 6px;font-weight:650;letter-spacing:.01em}
+  p{margin:0 0 12px;color:var(--text-2)}
+  p.lede{font-size:17px;color:var(--muted);max-width:74ch}
+  .muted{color:var(--muted)}
+  .small{font-size:13px;line-height:1.62}
+  .tiny{font-size:12px;line-height:1.55}
+  code{
+    font-family:var(--mono);font-size:.88em;
+    background:var(--panel-3);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--text-2);
+  }
+  .hr{height:1px;background:var(--line-soft);margin:26px 0}
+
+  /* ---------- hero ---------- */
+  .hero{padding:clamp(46px,7vw,92px) 0 clamp(30px,4vw,46px);border-top:0}
+  .hero .kicker{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--t1);margin:0 0 18px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;
+  }
+  .hero .kicker .sep{color:var(--line);}
+  h1{
+    font-size:clamp(32px,5.4vw,58px);line-height:1.06;letter-spacing:-.035em;
+    margin:0 0 18px;font-weight:700;
+    background:linear-gradient(180deg,#ffffff 0%,#b9c3d8 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .hero .sub{font-size:clamp(16px,2vw,19px);color:var(--muted);max-width:72ch;margin-bottom:26px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+  .chip{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;
+    padding:5px 11px;border-radius:999px;
+    border:1px solid var(--line);background:var(--panel);color:var(--muted);
+  }
+  .chip b{color:var(--text-2);font-weight:600}
+
+  /* ---------- verdict strip ---------- */
+  .verdict{
+    display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:12px;margin-top:clamp(28px,4vw,44px);
+  }
+  .vcard{
+    border:1px solid var(--line);border-radius:var(--r);background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    padding:18px 18px 16px;position:relative;overflow:hidden;
+  }
+  .vcard::after{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--accent,var(--line))}
+  .vcard.main{background:linear-gradient(180deg,rgba(34,211,238,.10),rgba(15,19,28,.95))}
+  .vcard .vlabel{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--faint);margin-bottom:8px;
+  }
+  .vcard .vtitle{font-size:16px;font-weight:660;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+  .vcard .vscore{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1}
+  .vcard .vscore span{font-size:13px;color:var(--faint);font-weight:400}
+  .vcard .vnote{font-size:12.5px;color:var(--muted);margin-top:6px}
+  .swatch{width:9px;height:9px;border-radius:3px;flex:none}
+
+  /* ---------- cards ---------- */
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .card{
+    border:1px solid var(--line);border-radius:var(--r-lg);
+    background:linear-gradient(180deg,var(--panel-2),#0d1119);
+    padding:22px;position:relative;overflow:hidden;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;
+  }
+  .card::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,var(--accent),transparent 78%);
+  }
+  .card .num{
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--accent);
+    text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;
+  }
+  .card .title{font-size:19px;font-weight:670;margin:0 0 10px;letter-spacing:-.015em;line-height:1.3}
+  .card .q{
+    font-size:13.5px;color:var(--text-2);line-height:1.6;
+    border-left:2px solid var(--accent);padding-left:12px;margin:0 0 16px;
+    min-height:7.7em;
+  }
+  .card .q em{color:var(--faint);font-style:normal;display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:5px}
+  .taglist{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 4px;padding:0;list-style:none}
+  .taglist li{
+    font-size:11.5px;padding:3px 9px;border-radius:6px;
+    background:var(--panel-3);border:1px solid var(--line-soft);color:var(--muted);
+  }
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px;margin:auto 0 0;padding-top:0}
+  .kv dt{color:var(--faint);font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding-top:3px}
+  .kv dd{margin:0;color:var(--text-2)}
+
+  /* ---------- table ---------- */
+  .tablewrap{
+    border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel);
+    overflow-x:auto;
+  }
+  table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:820px}
+  thead th{
+    position:sticky;top:0;z-index:2;
+    background:var(--panel-3);
+    text-align:left;padding:14px 16px;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);font-weight:650;border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  thead th .thdot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:1px}
+  tbody td{padding:13px 16px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--text-2);line-height:1.6}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover td{background:rgba(255,255,255,.018)}
+  td:first-child,th:first-child{
+    position:sticky;left:0;z-index:1;background:var(--panel);
+    color:var(--muted);font-size:12.5px;font-weight:550;white-space:nowrap;min-width:150px;
+    border-right:1px solid var(--line-soft);
+  }
+  thead th:first-child{z-index:3;background:var(--panel-3)}
+  tbody tr:hover td:first-child{background:#121722}
+  tr.group td{
+    background:var(--bg-soft);color:var(--faint);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+    padding:9px 16px;border-bottom:1px solid var(--line-soft);
+  }
+  tr.group td:first-child{background:var(--bg-soft);border-right:0;position:static}
+  .t1{color:var(--t1)}
+  .t2{color:var(--t2)}
+  .t3{color:var(--t3)}
+  .yes{color:var(--good)}
+  .no{color:var(--warn)}
+  .mini{display:block;font-size:11.5px;color:var(--faint);margin-top:4px}
+
+  /* ---------- score ---------- */
+  .scoregrid{display:grid;grid-template-columns:400px 1fr;gap:26px;align-items:start}
+  .scoregrid > *,.two > *,.grid3 > *,.verdict > *,.flip > *{min-width:0}
+  .radar{
+    border:1px solid var(--line);border-radius:var(--r-lg);background:
+      radial-gradient(420px 320px at 50% 45%, rgba(34,211,238,.05), transparent 70%), var(--panel);
+    padding:16px 10px 12px;min-width:0;overflow:hidden;
+  }
+  .radar svg{display:block;width:100%;max-width:100%;height:auto}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;padding:4px 10px 8px}
+  .legend span{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+  .legend i{width:10px;height:10px;border-radius:3px;display:block}
+
+  .bars{display:grid;gap:10px;margin-top:2px}
+  .barrow{
+    display:grid;grid-template-columns:44px 1fr 58px;gap:12px;align-items:center;
+    font-size:13px;
+  }
+  .barrow .bn{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .bartrack{height:9px;border-radius:999px;background:var(--panel-3);overflow:hidden;border:1px solid var(--line-soft)}
+  .barfill{height:100%;border-radius:999px}
+  .barrow .bv{font-family:var(--mono);font-size:12.5px;text-align:right;color:var(--text-2)}
+
+  table.score{min-width:640px}
+  table.score td,table.score th{padding:11px 14px}
+  table.score td:not(:first-child){font-family:var(--mono);font-size:12.5px;text-align:center}
+  table.score td:first-child{font-family:var(--sans);font-size:13px;white-space:normal;min-width:250px}
+  .cellbar{height:5px;border-radius:99px;background:var(--panel-3);margin-top:6px;overflow:hidden}
+  .cellbar i{display:block;height:100%}
+  tfoot td{
+    padding:13px 14px;border-top:1px solid var(--line);background:var(--panel-2);
+    font-family:var(--mono);font-size:13px;color:var(--text)
+  }
+  tfoot td:first-child{
+    font-family:var(--sans);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    background:var(--panel-2);position:static;border-right:0;
+  }
+  tfoot td:not(:first-child){text-align:center}
+
+  /* ---------- callouts ---------- */
+  .callout{
+    border:1px solid var(--line);border-left:3px solid var(--accent,var(--t1));
+    border-radius:var(--r);background:var(--panel);padding:16px 18px;margin:18px 0;
+  }
+  .callout .ct{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent,var(--t1));font-family:var(--mono);margin-bottom:6px}
+  .callout p:last-child{margin-bottom:0}
+  .callout.warn{border-left-color:var(--warn)}.callout.warn .ct{color:var(--warn)}
+  .callout.good{border-left-color:var(--good)}.callout.good .ct{color:var(--good)}
+
+  /* ---------- recommend ---------- */
+  .reco{
+    border:1px solid rgba(34,211,238,.32);border-radius:var(--r-lg);
+    background:
+      radial-gradient(700px 260px at 0% 0%, rgba(34,211,238,.13), transparent 65%),
+      linear-gradient(180deg,var(--panel-2),#0b0f17);
+    padding:clamp(22px,3vw,34px);box-shadow:var(--shadow);
+  }
+  .reco .tag{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--t1);border:1px solid rgba(34,211,238,.3);border-radius:999px;padding:5px 12px;margin-bottom:16px;
+  }
+  .reco h3{font-size:clamp(22px,2.8vw,30px);letter-spacing:-.02em;margin:0 0 10px;font-weight:680}
+  .reco > p{max-width:80ch}
+  .reasons{display:grid;gap:0;margin:22px 0 4px;counter-reset:r}
+  .reason{
+    display:grid;grid-template-columns:34px 1fr;gap:14px;
+    padding:14px 0;border-top:1px solid var(--line-soft);
+  }
+  .reason:first-child{border-top:0;padding-top:6px}
+  .reason::before{
+    counter-increment:r;content:counter(r);
+    font-family:var(--mono);font-size:12px;color:var(--t1);
+    width:26px;height:26px;border-radius:8px;border:1px solid rgba(34,211,238,.28);
+    display:grid;place-items:center;background:rgba(34,211,238,.07);
+  }
+  .reason h4{margin-bottom:3px}
+  .reason p{margin:0;font-size:13.5px;color:var(--muted)}
+
+  .flip{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
+  .flipcard{
+    border:1px solid var(--line);border-radius:var(--r);padding:16px;background:var(--panel);
+    border-top:2px solid var(--accent);
+  }
+  .flipcard h4{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+  .flipcard p{font-size:13px;margin:0;color:var(--muted)}
+
+  /* ---------- timeline ---------- */
+  .timeline{display:grid;gap:0;margin-top:8px}
+  .phase{
+    display:grid;grid-template-columns:190px 1fr;gap:22px;
+    padding:20px 0;border-top:1px solid var(--line-soft);
+  }
+  .phase:first-child{border-top:0}
+  .phase .ph-l{position:relative;padding-left:16px}
+  .phase .ph-l::before{
+    content:"";position:absolute;left:0;top:7px;bottom:7px;width:2px;border-radius:2px;
+    background:linear-gradient(180deg,var(--t1),rgba(34,211,238,.15));
+  }
+  .phase .wk{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--t1);margin-bottom:4px}
+  .phase .nm{font-weight:650;font-size:14.5px}
+  .phase .ph-r ul{margin:0;padding-left:16px;font-size:13.5px;color:var(--text-2)}
+  .phase .ph-r li{margin-bottom:6px}
+  .phase .ph-r li::marker{color:var(--faint)}
+  .deliv{
+    margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;
+  }
+  .deliv b{
+    font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.06em;
+    padding:4px 9px;border-radius:5px;background:rgba(34,211,238,.08);
+    border:1px solid rgba(34,211,238,.22);color:#8fe9f8;
+  }
+
+  /* ---------- risk ---------- */
+  table.risk{min-width:760px}
+  table.risk td:first-child{white-space:normal;font-size:13px;color:var(--text-2);font-weight:500}
+  .sev{
+    display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+    padding:2px 8px;border-radius:5px;border:1px solid;
+  }
+  .sev.h{color:#ffb4bf;border-color:rgba(251,113,133,.4);background:rgba(251,113,133,.1)}
+  .sev.m{color:#ffd79a;border-color:rgba(245,185,66,.4);background:rgba(245,185,66,.1)}
+  .sev.l{color:#93e9c7;border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.1)}
+
+  /* ---------- q&a ---------- */
+  .qa{display:grid;gap:12px}
+  .qa details{
+    border:1px solid var(--line);border-radius:var(--r);background:var(--panel);
+    padding:0;overflow:hidden;
+  }
+  .qa details[open]{background:var(--panel-2)}
+  .qa summary{
+    cursor:pointer;padding:14px 16px;font-weight:600;font-size:14px;
+    display:flex;gap:10px;align-items:flex-start;list-style:none;
+  }
+  .qa summary::-webkit-details-marker{display:none}
+  .qa summary::before{
+    content:"?";font-family:var(--mono);font-size:11px;color:var(--t1);
+    width:20px;height:20px;flex:none;border-radius:6px;display:grid;place-items:center;
+    border:1px solid rgba(34,211,238,.28);background:rgba(34,211,238,.07);margin-top:2px;
+  }
+  .qa .a{padding:0 16px 16px 46px;font-size:13.5px;color:var(--muted)}
+  .qa .a p{margin:0 0 8px}
+  .qa .a p:last-child{margin:0}
+
+  .check{list-style:none;padding:0;margin:0}
+  .check li{
+    position:relative;padding-left:29px;margin-bottom:10px;
+    font-size:13.5px;line-height:1.6;color:var(--text-2);
+  }
+  .check li:last-child{margin-bottom:0}
+  .check li b{color:var(--text);font-weight:650}
+  .check li::before{
+    content:"";position:absolute;left:0;top:5px;
+    width:15px;height:15px;border-radius:4px;
+    border:1px solid var(--line);background:var(--panel-3);
+  }
+  .check li.done::before{
+    background:rgba(52,211,153,.16);border-color:rgba(52,211,153,.45);
+  }
+  .check li.done::after{
+    content:"";left:7.5px;top:12.5px;width:6px;height:6px;
+    border-right:1.7px solid var(--good);border-bottom:1.7px solid var(--good);
+    border-radius:0;background:transparent;
+    transform:translate(-50%,-58%) rotate(45deg);
+  }
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .panelbox{
+    border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:20px;
+  }
+
+  footer{
+    border-top:1px solid var(--line-soft);padding:30px 0 56px;color:var(--faint);font-size:12.5px;
+  }
+  footer .fnote{max-width:80ch;line-height:1.7}
+
+  @media (max-width:1040px){
+    .scoregrid{grid-template-columns:1fr}
+    .radar{max-width:460px;margin:0 auto}
+  }
+  @media (max-width:900px){
+    .grid3{grid-template-columns:1fr}
+    .verdict{grid-template-columns:1fr}
+    .flip{grid-template-columns:1fr}
+    .two{grid-template-columns:1fr}
+    .phase{grid-template-columns:1fr;gap:10px}
+    .phase .ph-l{padding-left:14px}
+    nav.scroll{display:none}
+  }
+
+  /* stacked cards for the main comparison table on narrow screens */
+  @media (max-width:760px){
+    .cmp-wrap{border:0;background:transparent;overflow:visible}
+    table.cmp{display:block;min-width:0;font-size:13.5px}
+    table.cmp thead{display:none}
+    table.cmp tbody{display:block}
+    table.cmp tr{
+      display:block;margin:0 0 12px;border:1px solid var(--line);border-radius:12px;
+      background:var(--panel);overflow:hidden;
+    }
+    table.cmp tbody tr:hover td{background:transparent}
+    table.cmp td{
+      display:block;border:0;border-bottom:1px solid var(--line-soft);
+      padding:11px 14px;position:static;
+    }
+    table.cmp td:last-child{border-bottom:0}
+    table.cmp td:first-child{
+      position:static;background:var(--panel-2);border-right:0;white-space:normal;
+      color:var(--text);font-weight:660;font-size:13px;letter-spacing:-.005em;
+    }
+    table.cmp td[data-label]::before{
+      content:attr(data-label);display:block;margin-bottom:3px;
+      font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+      color:var(--faint);
+    }
+    table.cmp td:nth-of-type(2)::before{color:var(--t1)}
+    table.cmp td:nth-of-type(3)::before{color:var(--t2)}
+    table.cmp td:nth-of-type(4)::before{color:var(--t3)}
+    table.cmp tr.group{
+      margin:22px 0 10px;border:0;border-radius:0;background:transparent;overflow:visible;
+    }
+    table.cmp tr.group:first-child{margin-top:0}
+    table.cmp tr.group td{
+      background:transparent;padding:0 0 0 2px;border:0;
+      font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);
+    }
+  }
+  @media (max-width:560px){
+    .kv{display:block}
+    .kv dt{margin:14px 0 3px}
+    .kv dt:first-child{margin-top:0}
+    .kv dd{margin:0}
+  }
+  @media (max-width:520px){
+    body{font-size:15px}
+    .card{padding:18px}
+    .hero .kicker .sep{display:none}
+    .hero .kicker{gap:6px 12px}
+  }
+  @media print{
+    body{background:#fff;color:#000}
+    .topbar{display:none}
+    section{break-inside:avoid}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><span class="dot"></span>AgentLize / R&amp;D 2026</div>
+    <nav class="scroll" id="nav">
+      <a href="#tong-quan">Tổng quan</a>
+      <a href="#so-sanh">Bảng so sánh</a>
+      <a href="#diem">Chấm điểm</a>
+      <a href="#khuyen-nghi">Khuyến nghị</a>
+      <a href="#lo-trinh">Lộ trình 8 tuần</a>
+      <a href="#rui-ro">Rủi ro</a>
+      <a href="#bao-ve">Buổi bảo vệ</a>
+      <a href="#tuan-1">Tuần 1</a>
+    </nav>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">
+      <span>Phân tích nội bộ</span>
+      <span class="sep">/</span>
+      <span>3 track R&amp;D</span>
+      <span class="sep">/</span>
+      <span>08 tuần</span>
+    </div>
+    <h1>Ba track nghiên cứu,<br />một quyết định chọn.</h1>
+    <p class="sub">
+      Bản so sánh dựng từ tài liệu <em>Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.pdf</em>, kèm khung chấm điểm minh bạch và một khuyến nghị có điều kiện đổi.
+      Mục tiêu không phải chọn track "hay nhất", mà chọn track mà bạn tạo được nhiều bằng chứng nhất trong 8 tuần.
+    </p>
+    <div class="chips">
+      <span class="chip">Khởi động <b>09/11/2026</b></span>
+      <span class="chip">Thời lượng <b>8 tuần</b></span>
+      <span class="chip">Intern <b>4</b></span>
+      <span class="chip">Mentor <b>Kevin · Hữu · Huy · Chính</b></span>
+      <span class="chip">Điểm bảo vệ <b>Tuần 8</b></span>
+    </div>
+
+    <div class="verdict">
+      <div class="vcard main" style="--accent:var(--t1)">
+        <div class="vlabel">Khuyến nghị chính</div>
+        <div class="vtitle"><span class="swatch" style="background:var(--t1)"></span>Track 01 · AI Platform &amp; MCP</div>
+        <div class="vscore">4.60<span> / 5</span></div>
+        <div class="vnote">Bằng chứng nhanh nhất, baseline sạch nhất, là hạ tầng mà hai track còn lại cũng cần.</div>
+      </div>
+      <div class="vcard" style="--accent:var(--t3)">
+        <div class="vlabel">Lựa chọn thứ hai</div>
+        <div class="vtitle"><span class="swatch" style="background:var(--t3)"></span>Track 03 · Skill &amp; Eval</div>
+        <div class="vscore">4.10<span> / 5</span></div>
+        <div class="vnote">Thước đo sắc nhất, nhưng dễ thành "chấm điểm đồ chơi" nếu chưa có tool và knowledge thật.</div>
+      </div>
+      <div class="vcard" style="--accent:var(--t2)">
+        <div class="vlabel">Độ khó cao nhất</div>
+        <div class="vtitle"><span class="swatch" style="background:var(--t2)"></span>Track 02 · Knowledge</div>
+        <div class="vscore">3.70<span> / 5</span></div>
+        <div class="vnote">Giá trị dài hạn lớn nhất, nhưng phạm vi gần như không có điểm dừng tự nhiên trong 8 tuần.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ 01 TỔNG QUAN ============ -->
+<section id="tong-quan">
+  <div class="wrap">
+    <p class="eyebrow">01 - Tổng quan</p>
+    <h2>Ba track, ba loại rủi ro khác nhau</h2>
+    <p class="lede">
+      Cả ba track dùng chung một framework 7 bước (Explore, Compare, Question, Propose, Build, Evaluate, Package) và chung một bộ tiêu chí nghiệm thu.
+      Khác biệt thật nằm ở chỗ: track nào cho bạn câu trả lời "đúng hoặc sai" nhanh nhất.
+    </p>
+
+    <div class="grid3" style="margin-top:28px">
+      <article class="card" style="--accent:var(--t1)">
+        <div class="num"><span class="swatch" style="background:var(--t1)"></span>Track 01</div>
+        <h3 class="title">AI Platform &amp; MCP</h3>
+        <p class="q"><em>Câu hỏi trung tâm</em>Làm sao để AI kết nối, sử dụng và phối hợp công cụ/hệ thống nghiệp vụ một cách an toàn, quan sát được và tái sử dụng được?</p>
+        <ul class="taglist">
+          <li>API / Function Calling</li><li>MCP</li><li>Workflow Engine</li><li>Agent Orchestration</li><li>Event-driven</li>
+        </ul>
+        <dl class="kv">
+          <dt>Nhánh</dt><dd>Connector &amp; Reuse, Identity &amp; Permission, Workflow &amp; Approval, Reliability, Observability</dd>
+          <dt>Mini-project</dt><dd>AI Operations Connector Lab: hai hệ thống giả lập, một Agent đọc, kiểm tra quyền, đề xuất và ghi sau xác nhận</dd>
+          <dt>Bàn giao</dt><dd>MCP server + permission guard + trace, kèm kết luận khi nào <b>không</b> nên dùng MCP</dd>
+        </dl>
+      </article>
+
+      <article class="card" style="--accent:var(--t2)">
+        <div class="num"><span class="swatch" style="background:var(--t2)"></span>Track 02</div>
+        <h3 class="title">Knowledge &amp; Second Brain</h3>
+        <p class="q"><em>Câu hỏi trung tâm</em>Tri thức đa nguồn được thu thập, phân loại, xác thực, lưu giữ, cập nhật và kế thừa thế nào để AI dùng đúng ngữ cảnh, đúng quyền và đúng phiên bản?</p>
+        <ul class="taglist">
+          <li>Document Repository</li><li>RAG / Hybrid Search</li><li>Knowledge Graph</li><li>Federated Search</li><li>Agent Memory</li>
+        </ul>
+        <dl class="kv">
+          <dt>Trọng tâm</dt><dd>Vòng đời tri thức: Capture, Classify &amp; Validate, Store &amp; Connect, Retrieve &amp; Reuse, Refresh / Supersede, Retire / Delete</dd>
+          <dt>Mini-project</dt><dd>Organizational Memory Lab: tối thiểu 4 loại nguồn, một thông tin xuất hiện nhiều nơi, V1/V2, một quyền bị thu hồi</dd>
+          <dt>Bàn giao</dt><dd>Pipeline ingest + bộ metadata + lớp truy vấn tôn trọng quyền và phiên bản</dd>
+        </dl>
+      </article>
+
+      <article class="card" style="--accent:var(--t3)">
+        <div class="num"><span class="swatch" style="background:var(--t3)"></span>Track 03</div>
+        <h3 class="title">Skill, Evaluation &amp; Agent Composition</h3>
+        <p class="q"><em>Câu hỏi trung tâm</em>Skill được đo hiệu quả thực chất thế nào; khi kết hợp nhiều Skill thành Agent, chất lượng và giá trị có được duy trì, giải thích và cải tiến không?</p>
+        <ul class="taglist">
+          <li>Skill packages</li><li>Tool / MCP Registry</li><li>Single Agent + Skills</li><li>Sequential Pipeline</li><li>Agent Graph</li><li>Supervisor / Multi-Agent</li>
+        </ul>
+        <dl class="kv">
+          <dt>Trọng tâm</dt><dd>L0 Technical Compliance là điều kiện cần; L1 đến L5 mới là phần phải chứng minh bằng test case và baseline</dd>
+          <dt>Mini-project</dt><dd>Composable Agent Lab: 4 đến 5 Skill cùng một công việc, ít nhất hai mô hình phối hợp, so sánh A/B/C</dd>
+          <dt>Bàn giao</dt><dd>Eval harness + Agent Manifest + bộ test hồi quy khi lên Skill V2</dd>
+        </dl>
+      </article>
+    </div>
+
+    <div class="callout" style="--accent:var(--t1)">
+      <div class="ct">Điểm chung bắt buộc</div>
+      <p>
+        Không track nào được phép bắt đầu bằng câu hỏi "sẽ code gì".
+        Mỗi track phải có tối thiểu 3 mô hình được khảo sát trước khi chốt phương án, và buổi bảo vệ phải trả lời được 4 câu hỏi bắt buộc ở mục 08.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 SO SÁNH ============ -->
+<section id="so-sanh">
+  <div class="wrap">
+    <p class="eyebrow">02 - Bảng so sánh</p>
+    <h2>Đối chiếu trên cùng một bộ tiêu chí</h2>
+    <p class="lede">Mọi dòng dưới đây lấy trực tiếp từ đề bài trong tài liệu, trừ phần "rủi ro" và "gói phạm vi an toàn" là phân tích thêm.</p>
+
+    <div class="tablewrap cmp-wrap" style="margin-top:24px">
+      <table class="cmp">
+        <thead>
+          <tr>
+            <th>Tiêu chí</th>
+            <th><span class="thdot" style="background:var(--t1)"></span>01 · AI Platform &amp; MCP</th>
+            <th><span class="thdot" style="background:var(--t2)"></span>02 · Knowledge &amp; Second Brain</th>
+            <th><span class="thdot" style="background:var(--t3)"></span>03 · Skill, Eval &amp; Agent</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="group"><td colspan="4">Bản chất công việc</td></tr>
+          <tr>
+            <td>Câu hỏi bạn trả lời</td>
+            <td data-label="01 · AI Platform &amp; MCP">AI gọi được công cụ một cách an toàn, quan sát được và tái dùng được không?</td>
+            <td data-label="02 · Knowledge &amp; Second Brain">Tri thức có được lưu, xác thực, cập nhật và kế thừa đúng không?</td>
+            <td data-label="03 · Skill, Eval &amp; Agent">Skill có thực sự tốt hơn làm tay, và ghép nhiều Skill có giữ được chất lượng không?</td>
+          </tr>
+          <tr>
+            <td>Kiểu tư duy mạnh nhất</td>
+            <td data-label="01 · AI Platform &amp; MCP">Tư duy hệ thống và ranh giới: quyền, side effect, lỗi, phục hồi</td>
+            <td data-label="02 · Knowledge &amp; Second Brain">Tư duy dữ liệu và bản thể học: nguồn, phiên bản, mức xác thực</td>
+            <td data-label="03 · Skill, Eval &amp; Agent">Tư duy đo lường: baseline, test case, nhiễu, hồi quy</td>
+          </tr>
+          <tr>
+            <td>Đơn vị thử nghiệm</td>
+            <td data-label="01 · AI Platform &amp; MCP">Một lần gọi công cụ, một quy trình 3 đến 5 bước</td>
+            <td data-label="02 · Knowledge &amp; Second Brain">Một câu hỏi trên tập dữ liệu đã gán nhãn</td>
+            <td data-label="03 · Skill, Eval &amp; Agent">Một Skill, rồi cả Agent đầu cuối trên cùng bộ test</td>
+          </tr>
+          <tr>
+            <td>Baseline so sánh</td>
+            <td data-label="01 · AI Platform &amp; MCP" class="t1">API trực tiếp so với MCP, cùng một tác vụ</td>
+            <td data-label="02 · Knowledge &amp; Second Brain" class="t2">Tìm kiếm từ khóa so với hybrid, cùng một tập câu hỏi</td>
+            <td data-label="03 · Skill, Eval &amp; Agent" class="t3">A làm tay, B AI không Skill, C AI có Skill</td>
+          </tr>
+
+          <tr class="group"><td colspan="4">Sản phẩm và bằng chứng</td></tr>
+          <tr>
+            <td>Mini-project</td>
+            <td data-label="01 · AI Platform &amp; MCP">AI Operations Connector Lab</td>
+            <td data-label="02 · Knowledge &amp; Second Brain">Organizational Memory Lab</td>
+            <td data-label="03 · Skill, Eval &amp; Agent">Composable Agent Lab</td>
+          </tr>
+          <tr>
+            <td>Thứ bạn nộp được</td>
+            <td data-label="01 · AI Platform &amp; MCP">Repo có 2 server công cụ, 2 Agent dùng chung tool, bộ test quyền và lỗi, trace log, bảng so sánh</td>
+            <td data-label="02 · Knowledge &amp; Second Brain">Repo ingest, schema metadata, tập câu hỏi gán nhãn, bảng precision, nhật ký vượt quyền</td>
+            <td data-label="03 · Skill, Eval &amp; Agent">4 đến 5 Skill, eval harness, Agent Manifest, báo cáo hồi quy V1 so với V2</td>
+          </tr>
+          <tr>
+            <td>Số liệu bắt buộc</td>
+            <td data-label="01 · AI Platform &amp; MCP">Thời gian tích hợp, độ ổn định, chi phí (nếu đo được)</td>
+            <td data-label="02 · Knowledge &amp; Second Brain">Truy xuất đúng nguồn, tính cập nhật, tính xác thực, an toàn dữ liệu, tính kế thừa</td>
+            <td data-label="03 · Skill, Eval &amp; Agent">Task Success Rate, thời gian trung vị gồm kiểm duyệt, chi phí/tác vụ, tỷ lệ phải sửa</td>
+          </tr>
+          <tr>
+            <td>Kết luận phản biện đáng giá</td>
+            <td data-label="01 · AI Platform &amp; MCP">Khi nào <b>không</b> nên dùng MCP</td>
+            <td data-label="02 · Knowledge &amp; Second Brain">Bản nào có hiệu lực, và vì sao không được coi mọi thứ nạp vào là tri thức chính thức</td>
+            <td data-label="03 · Skill, Eval &amp; Agent">Mô hình phối hợp nào đắt hơn giá trị nó mang lại</td>
+          </tr>
+
+          <tr class="group"><td colspan="4">Rủi ro và khả năng kiểm soát</td></tr>
+          <tr>
+            <td>Rủi ro lớn nhất</td>
+            <td data-label="01 · AI Platform &amp; MCP" class="no">Sa vào hạ tầng vặt, demo chạy được nhưng không có số liệu</td>
+            <td data-label="02 · Knowledge &amp; Second Brain" class="no">Phạm vi nổ, đo lường mơ hồ, thiếu dữ liệu thật</td>
+            <td data-label="03 · Skill, Eval &amp; Agent" class="no">Thiếu tool và knowledge thật, dễ thành "chấm điểm cảm tính"</td>
+          </tr>
+          <tr>
+            <td>Gói phạm vi an toàn</td>
+            <td data-label="01 · AI Platform &amp; MCP">2 hệ thống giả lập, 2 đến 4 công cụ, 2 tài khoản, 1 bước phê duyệt</td>
+            <td data-label="02 · Knowledge &amp; Second Brain">4 nguồn giả lập, 40 đến 60 câu hỏi gán nhãn, 1 bộ metadata 8 trường</td>
+            <td data-label="03 · Skill, Eval &amp; Agent">4 đến 5 Skill tự viết, 30 đến 50 test case, chạy 3 lần lấy trung vị</td>
+          </tr>
+          <tr>
+            <td>Phụ thuộc track khác</td>
+            <td data-label="01 · AI Platform &amp; MCP" class="yes">Thấp, tự đủ</td>
+            <td data-label="02 · Knowledge &amp; Second Brain">Trung bình, cần tool để capture và retrieve</td>
+            <td data-label="03 · Skill, Eval &amp; Agent">Cao, cần tool và knowledge để Skill có nghĩa</td>
+          </tr>
+          <tr>
+            <td>Rủi ro dữ liệu nhạy cảm</td>
+            <td data-label="01 · AI Platform &amp; MCP" class="yes">Thấp, dữ liệu giả lập là đủ</td>
+            <td data-label="02 · Knowledge &amp; Second Brain">Cao hơn, dễ bị kéo về dữ liệu nội bộ thật</td>
+            <td data-label="03 · Skill, Eval &amp; Agent">Thấp, nếu Skill làm trên dữ liệu giả lập</td>
+          </tr>
+
+          <tr class="group"><td colspan="4">Giá trị để lại sau 8 tuần</td></tr>
+          <tr>
+            <td>Research Finding</td>
+            <td data-label="01 · AI Platform &amp; MCP">Đánh đổi thật giữa gọi hàm trực tiếp và MCP</td>
+            <td data-label="02 · Knowledge &amp; Second Brain">Mô hình vòng đời tri thức nào chịu được supersede và retire</td>
+            <td data-label="03 · Skill, Eval &amp; Agent">Lớp eval nào thực sự phân biệt Skill tốt và Skill xấu</td>
+          </tr>
+          <tr>
+            <td>Reusable Asset</td>
+            <td data-label="01 · AI Platform &amp; MCP" class="t1">MCP server + permission guard + trace, dùng lại được bởi mọi Agent sau này</td>
+            <td data-label="02 · Knowledge &amp; Second Brain" class="t2">Pipeline ingest + schema metadata + query layer</td>
+            <td data-label="03 · Skill, Eval &amp; Agent" class="t3">Eval harness + regression suite, dùng lại được cho mọi Skill về sau</td>
+          </tr>
+          <tr>
+            <td>Điểm số tổng hợp</td>
+            <td data-label="01 · AI Platform &amp; MCP"><span class="t1" style="font-family:var(--mono);font-size:15px">4.60 / 5</span><span class="mini">Hạng 1</span></td>
+            <td data-label="02 · Knowledge &amp; Second Brain"><span class="t2" style="font-family:var(--mono);font-size:15px">3.70 / 5</span><span class="mini">Hạng 3</span></td>
+            <td data-label="03 · Skill, Eval &amp; Agent"><span class="t3" style="font-family:var(--mono);font-size:15px">4.10 / 5</span><span class="mini">Hạng 2</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tiny muted" style="margin-top:10px">Bảng có thể cuộn ngang trên màn hình nhỏ. Cột tiêu chí được ghim bên trái.</p>
+  </div>
+</section>
+
+<!-- ============ 03 CHẤM ĐIỂM ============ -->
+<section id="diem">
+  <div class="wrap">
+    <p class="eyebrow">03 - Chấm điểm</p>
+    <h2>Khung điểm và lý do phía sau từng con số</h2>
+    <p class="lede">
+      Điểm ở đây không phải điểm của tài liệu, mà là điểm tôi gán theo bối cảnh của bạn: một Intern, 8 tuần, phải bảo vệ bằng bằng chứng.
+      Trọng số đặt nặng ba thứ mà buổi bảo vệ chấm nhất: bằng chứng, thước đo, và tài sản để lại.
+    </p>
+
+    <div class="scoregrid" style="margin-top:26px">
+      <div class="radar">
+        <svg viewBox="0 0 400 400" role="img" aria-labelledby="rt rd">
+          <title id="rt">Biểu đồ radar so sánh ba track</title>
+          <desc id="rd">Sáu trục: bằng chứng nhanh, đo được, tái dùng, phạm vi gọn, học sâu, độc lập. Track 01 cao nhất ở bốn trục.</desc>
+
+          <g stroke="#1b2230" fill="none">
+            <polygon points="200.0,172.0 224.2,186.0 224.2,214.0 200.0,228.0 175.8,214.0 175.8,186.0"/>
+            <polygon points="200.0,144.0 248.5,172.0 248.5,228.0 200.0,256.0 151.5,228.0 151.5,172.0"/>
+            <polygon points="200.0,116.0 272.7,158.0 272.7,242.0 200.0,284.0 127.3,242.0 127.3,158.0"/>
+            <polygon points="200.0,88.0 297.0,144.0 297.0,256.0 200.0,312.0 103.0,256.0 103.0,144.0"/>
+            <polygon points="200.0,60.0 321.2,130.0 321.2,270.0 200.0,340.0 78.8,270.0 78.8,130.0"/>
+          </g>
+          <g stroke="#232a3a" stroke-width="1">
+            <line x1="200" y1="200" x2="200" y2="60"/>
+            <line x1="200" y1="200" x2="321.2" y2="130"/>
+            <line x1="200" y1="200" x2="321.2" y2="270"/>
+            <line x1="200" y1="200" x2="200" y2="340"/>
+            <line x1="200" y1="200" x2="78.8" y2="270"/>
+            <line x1="200" y1="200" x2="78.8" y2="130"/>
+          </g>
+
+          <g fill="#a78bfa" fill-opacity="0.05" stroke="#a78bfa" stroke-width="1.7" stroke-linejoin="round" stroke-dasharray="5 4">
+            <polygon points="200.0,116.0 297.0,144.0 309.1,263.0 200.0,256.0 78.8,270.0 115.1,151.0"/>
+          </g>
+          <g fill="#f5b942" fill-opacity="0.05" stroke="#f5b942" stroke-width="1.7" stroke-linejoin="round" stroke-dasharray="2 3.5">
+            <polygon points="200.0,102.0 321.2,130.0 309.1,263.0 200.0,298.0 90.9,263.0 127.3,158.0"/>
+          </g>
+          <g fill="#22d3ee" fill-opacity="0.10" stroke="#22d3ee" stroke-width="2.2" stroke-linejoin="round">
+            <polygon points="200.0,60.0 309.1,137.0 321.2,270.0 200.0,312.0 103.0,256.0 78.8,130.0"/>
+          </g>
+          <g>
+            <circle cx="200" cy="60" r="3.2" fill="#22d3ee"/>
+            <circle cx="309.1" cy="137" r="3.2" fill="#22d3ee"/>
+            <circle cx="321.2" cy="270" r="3.2" fill="#22d3ee"/>
+            <circle cx="200" cy="312" r="3.2" fill="#22d3ee"/>
+            <circle cx="103" cy="256" r="3.2" fill="#22d3ee"/>
+            <circle cx="78.8" cy="130" r="3.2" fill="#22d3ee"/>
+          </g>
+          <g fill="#0f131c" stroke="#a78bfa" stroke-width="1.5">
+            <circle cx="200" cy="116" r="2.2"/><circle cx="297" cy="144" r="2.2"/>
+            <circle cx="309.1" cy="263" r="2.2"/><circle cx="200" cy="256" r="2.2"/>
+            <circle cx="78.8" cy="270" r="2.2"/><circle cx="115.1" cy="151" r="2.2"/>
+          </g>
+          <g fill="#0f131c" stroke="#f5b942" stroke-width="1.5">
+            <circle cx="200" cy="102" r="2.2"/><circle cx="321.2" cy="130" r="2.2"/>
+            <circle cx="309.1" cy="263" r="2.2"/><circle cx="200" cy="298" r="2.2"/>
+            <circle cx="90.9" cy="263" r="2.2"/><circle cx="127.3" cy="158" r="2.2"/>
+          </g>
+
+          <g fill="#8d97ad" font-family="ui-monospace,monospace" font-size="9.5" letter-spacing="0.04em">
+            <text x="200" y="46" text-anchor="middle">BẰNG CHỨNG NHANH</text>
+            <text x="331" y="122" text-anchor="start">ĐO ĐƯỢC</text>
+            <text x="331" y="290" text-anchor="start">TÁI DÙNG</text>
+            <text x="200" y="370" text-anchor="middle">PHẠM VI GỌN</text>
+            <text x="69" y="290" text-anchor="end">ĐỘC LẬP</text>
+            <text x="69" y="122" text-anchor="end">HỌC SÂU</text>
+          </g>
+        </svg>
+        <div class="legend">
+          <span><i style="background:#22d3ee"></i>Track 01</span>
+          <span><i style="background:#a78bfa"></i>Track 02</span>
+          <span><i style="background:#f5b942"></i>Track 03</span>
+        </div>
+      </div>
+
+      <div>
+        <h3 style="margin-bottom:14px">Sáu tiêu chí, thang 0 đến 5</h3>
+        <div class="tablewrap">
+          <table class="score">
+            <thead>
+              <tr>
+                <th>Tiêu chí</th>
+                <th>Trọng số</th>
+                <th>01</th>
+                <th>02</th>
+                <th>03</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Bằng chứng tạo được trong 8 tuần
+                  <span class="mini">Biết đúng sai sau mỗi 1 đến 2 ngày hay sau mỗi 2 tuần</span></td>
+                <td>20%</td>
+                <td><span class="t1">5.0</span><span class="cellbar"><i style="width:100%;background:var(--t1)"></i></span></td>
+                <td><span class="t2">3.0</span><span class="cellbar"><i style="width:60%;background:var(--t2)"></i></span></td>
+                <td><span class="t3">3.5</span><span class="cellbar"><i style="width:70%;background:var(--t3)"></i></span></td>
+              </tr>
+              <tr>
+                <td>Thước đo rõ ràng, có baseline sạch
+                  <span class="mini">Có so sánh A/B mà mentor khó bác bỏ</span></td>
+                <td>20%</td>
+                <td><span class="t1">4.5</span><span class="cellbar"><i style="width:90%;background:var(--t1)"></i></span></td>
+                <td><span class="t2">4.0</span><span class="cellbar"><i style="width:80%;background:var(--t2)"></i></span></td>
+                <td><span class="t3">5.0</span><span class="cellbar"><i style="width:100%;background:var(--t3)"></i></span></td>
+              </tr>
+              <tr>
+                <td>Giá trị tái sử dụng cho AgentLize
+                  <span class="mini">Thứ còn dùng được sau khi bạn rời chương trình</span></td>
+                <td>20%</td>
+                <td><span class="t1">5.0</span><span class="cellbar"><i style="width:100%;background:var(--t1)"></i></span></td>
+                <td><span class="t2">4.5</span><span class="cellbar"><i style="width:90%;background:var(--t2)"></i></span></td>
+                <td><span class="t3">4.5</span><span class="cellbar"><i style="width:90%;background:var(--t3)"></i></span></td>
+              </tr>
+              <tr>
+                <td>Khả năng giới hạn phạm vi
+                  <span class="mini">Có điểm dừng tự nhiên, không bị kéo dài vô hạn</span></td>
+                <td>15%</td>
+                <td><span class="t1">4.0</span><span class="cellbar"><i style="width:80%;background:var(--t1)"></i></span></td>
+                <td><span class="t2">2.0</span><span class="cellbar"><i style="width:40%;background:var(--t2)"></i></span></td>
+                <td><span class="t3">3.5</span><span class="cellbar"><i style="width:70%;background:var(--t3)"></i></span></td>
+              </tr>
+              <tr>
+                <td>Độ sâu kiến thức học được
+                  <span class="mini">Kỹ năng còn giữ lại sau 8 tuần và sau này</span></td>
+                <td>15%</td>
+                <td><span class="t1">4.0</span><span class="cellbar"><i style="width:80%;background:var(--t1)"></i></span></td>
+                <td><span class="t2">5.0</span><span class="cellbar"><i style="width:100%;background:var(--t2)"></i></span></td>
+                <td><span class="t3">4.5</span><span class="cellbar"><i style="width:90%;background:var(--t3)"></i></span></td>
+              </tr>
+              <tr>
+                <td>Tính độc lập
+                  <span class="mini">Ít phụ thuộc track khác, ít phụ thuộc hạ tầng chưa có</span></td>
+                <td>10%</td>
+                <td><span class="t1">5.0</span><span class="cellbar"><i style="width:100%;background:var(--t1)"></i></span></td>
+                <td><span class="t2">3.5</span><span class="cellbar"><i style="width:70%;background:var(--t2)"></i></span></td>
+                <td><span class="t3">3.0</span><span class="cellbar"><i style="width:60%;background:var(--t3)"></i></span></td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Điểm có trọng số</td>
+                <td>100%</td>
+                <td style="color:var(--t1)">4.60</td>
+                <td style="color:var(--t2)">3.70</td>
+                <td style="color:var(--t3)">4.10</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="bars" style="margin-top:18px">
+          <div class="barrow">
+            <span class="bn t1">T01</span>
+            <div class="bartrack"><div class="barfill" style="width:92%;background:linear-gradient(90deg,#0e5b68,#22d3ee)"></div></div>
+            <span class="bv">92%</span>
+          </div>
+          <div class="barrow">
+            <span class="bn t2">T02</span>
+            <div class="bartrack"><div class="barfill" style="width:74%;background:linear-gradient(90deg,#5b4a8f,#a78bfa)"></div></div>
+            <span class="bv">74%</span>
+          </div>
+          <div class="barrow">
+            <span class="bn t3">T03</span>
+            <div class="bartrack"><div class="barfill" style="width:82%;background:linear-gradient(90deg,#7a5c1c,#f5b942)"></div></div>
+            <span class="bv">82%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <div class="ct">Đọc điểm này cho đúng</div>
+      <p>
+        Khoảng cách 4.60 so với 4.10 không phải "track 3 kém hơn hẳn".
+        Nó phản ánh một điều cụ thể: track 3 có thước đo tốt nhất nhưng lại phụ thuộc nhiều nhất vào thứ chưa tồn tại, nên rủi ro thực thi cao hơn.
+        Nếu bạn đã có sẵn tool và kho tri thức để test, khoảng cách gần như biến mất.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 KHUYẾN NGHỊ ============ -->
+<section id="khuyen-nghi">
+  <div class="wrap">
+    <p class="eyebrow">04 - Khuyến nghị</p>
+    <h2>Nếu phải chốt một track trong tuần 2</h2>
+
+    <div class="reco" style="margin-top:24px">
+      <div class="tag">Khuyến nghị · Track 01</div>
+      <h3>Chọn AI Platform &amp; MCP làm track chính</h3>
+      <p>
+        Không phải vì nó dễ nhất. Vì trong 8 tuần, đây là track duy nhất cho bạn một vòng lặp bằng chứng ngắn: bạn đổi một thứ, chạy lại bộ test, có số liệu trong cùng ngày.
+        Với hai track còn lại, vòng lặp đó dài hơn nhiều, và tuần 6 là lúc bạn không còn thời gian để phát hiện mình đang đo sai thứ.
+      </p>
+
+      <div class="reasons">
+        <div class="reason">
+          <div>
+            <h4>Baseline của bạn đã có sẵn, không phải tự phát minh</h4>
+            <p>
+              Đề bài yêu cầu đúng một phép so sánh: cùng một tác vụ, một bên dùng API trực tiếp, một bên dùng MCP.
+              Đây là dạng so sánh mà người phản biện khó bác bỏ, vì cả hai vế đều chạy thật và cùng đầu vào.
+              Bạn không phải thuyết phục ai rằng thước đo của mình là đúng.
+            </p>
+          </div>
+        </div>
+        <div class="reason">
+          <div>
+            <h4>Mỗi nhánh đều đẻ ra test case trong 1 đến 2 ngày</h4>
+            <p>
+              Quyền đọc so với quyền ghi, timeout, retry, ghi trùng, phục hồi giữa bước, trace từng lần gọi.
+              Sáu kịch bản đó là sáu bằng chứng độc lập, không cần chờ dữ liệu, không cần chờ ai.
+              Đây là lý do điểm "bằng chứng tạo được" là 5.0, cao nhất trong ba track.
+            </p>
+          </div>
+        </div>
+        <div class="reason">
+          <div>
+            <h4>Nó là hạ tầng mà hai track còn lại cũng cần</h4>
+            <p>
+              Track 2 cần công cụ để capture và retrieve. Track 3 cần tool registry để Skill có chỗ đứng.
+              Làm track 1 nghĩa là bạn không trở thành silo, đúng cảnh báo trong tài liệu về "bốn silo kiến thức hoặc bốn dự án tách biệt".
+              Bạn còn có thể nhận review chéo có chiều sâu với cả ba bạn.
+            </p>
+          </div>
+        </div>
+        <div class="reason">
+          <div>
+            <h4>Rủi ro dữ liệu thấp nhất, nên không bị chặn bởi phê duyệt</h4>
+            <p>
+              Hai hệ thống giả lập là đủ để làm toàn bộ đề bài.
+              Bạn không cần xin dữ liệu nội bộ, không cần chờ cấp quyền, không có nguy cơ đưa thông tin nhạy cảm vào môi trường thử nghiệm chưa được duyệt.
+              Với track 2, đây là rủi ro thật và nó thường xuất hiện đúng vào tuần 3.
+            </p>
+          </div>
+        </div>
+        <div class="reason">
+          <div>
+            <h4>Câu kết luận bạn phải bảo vệ là câu hiếm ai trả lời được</h4>
+            <p>
+              Đề bài yêu cầu kết luận "khi nào không nên dùng MCP".
+              Đó là một câu trả lời có giá trị thật, không phải một bản demo.
+              Một Intern dám nói rõ giới hạn của công cụ mình vừa xây là tín hiệu trưởng thành trong tư duy nghiên cứu, đúng thứ chương trình nói là đang đánh giá.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="margin-top:30px">Khi nào nên đổi ý</h3>
+      <p class="small muted" style="margin-bottom:14px">Khuyến nghị này có điều kiện. Ba trường hợp dưới đây đủ mạnh để đổi track.</p>
+      <div class="flip">
+        <div class="flipcard" style="--accent:var(--t2)">
+          <h4><span class="swatch" style="background:var(--t2)"></span>Đổi sang Track 02 nếu</h4>
+          <p>
+            Bạn đã có kinh nghiệm thật với search hoặc dữ liệu, và bạn sẵn sàng cắt phạm vi xuống một lát cắt dọc: chỉ xử lý supersede, quyền và trích dẫn, bỏ hẳn knowledge graph và multi-source ingestion.
+            Nếu bạn không cắt được như vậy, đừng chọn track này.
+          </p>
+        </div>
+        <div class="flipcard" style="--accent:var(--t3)">
+          <h4><span class="swatch" style="background:var(--t3)"></span>Đổi sang Track 03 nếu</h4>
+          <p>
+            Bạn thấy hứng thú với thống kê và rubric hơn với hạ tầng, và bạn muốn nhận vai "người làm cho AI của team kiểm chứng được".
+            Điều kiện: bạn phải tự viết 4 đến 5 Skill đủ thật, chứ không test Skill đồ chơi.
+          </p>
+        </div>
+        <div class="flipcard" style="--accent:var(--t1)">
+          <h4><span class="swatch" style="background:var(--t1)"></span>Giữ Track 01 nếu</h4>
+          <p>
+            Bạn muốn một repo mà người khác clone về chạy được trong 15 phút, và muốn mỗi tuần đều có thứ để demo kèm số liệu.
+            Đây cũng là lựa chọn tốt nếu bạn chưa chắc về hướng dài hạn, vì kỹ năng tích hợp và kiểm soát quyền dùng lại được ở mọi hướng.
+          </p>
+        </div>
+      </div>
+
+      <div class="callout good" style="margin-top:26px">
+        <div class="ct">Chiến lược phối hợp với ba bạn còn lại</div>
+        <p>
+          Tài liệu nói rõ: không chia cứng mỗi người một chủ đề, và bốn bạn cùng khảo sát cả ba hướng.
+          Vì vậy tuần 1 hãy kiểm tra xem ai đang nghiêng về đâu trước khi đăng ký.
+          Nếu ba bạn kia đã chọn Knowledge và Skill, việc bạn nhận Platform làm giảm trùng lặp và tăng giá trị cho cả nhóm.
+          Nếu hai bạn cùng chọn Platform, hãy tách theo nhánh: một người làm Identity và Permission, một người làm Reliability và Observability, và thống nhất chung một bộ hai hệ thống giả lập.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 LỘ TRÌNH ============ -->
+<section id="lo-trinh">
+  <div class="wrap">
+    <p class="eyebrow">05 - Lộ trình</p>
+    <h2>8 tuần của Track 01, bám đúng các mốc trong tài liệu</h2>
+    <p class="lede">
+      Mỗi giai đoạn có một câu hỏi duy nhất cần trả lời và một bằng chứng cụ thể phải tồn tại trước khi sang giai đoạn sau.
+      Nếu bằng chứng chưa có, đừng đi tiếp, hãy cắt phạm vi.
+    </p>
+
+    <div class="timeline" style="margin-top:22px">
+      <div class="phase">
+        <div class="ph-l">
+          <div class="wk">Tuần 1 đến 2</div>
+          <div class="nm">Nghiên cứu</div>
+        </div>
+        <div class="ph-r">
+          <ul>
+            <li>Khảo sát tối thiểu 3 mô hình: API gọi hàm trực tiếp, MCP, Workflow Engine. Đọc thêm Agent Orchestration và Event-driven để biết ranh giới.</li>
+            <li>Ghi rõ nguồn gốc thiết kế của từng mô hình và tình huống nó sinh ra để giải quyết.</li>
+            <li>Chốt 2 hệ thống giả lập: một danh bạ nhân viên chỉ đọc, một hệ thống công việc có ghi.</li>
+            <li><b>Đo baseline bằng API trực tiếp trước khi xây MCP.</b> Đây là bước dễ bỏ nhất và cũng là bước quyết định cả track.</li>
+            <li>Pitch đầu tuần 2 theo mẫu 6 mục, nêu rõ giả thuyết sẽ bị bác bỏ nếu sai điều gì.</li>
+          </ul>
+          <div class="deliv">
+            <b>research-note.md</b><b>map-phuong-an.md</b><b>baseline-so-lieu.csv</b><b>de-xuat-2-trang.md</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-l">
+          <div class="wk">Tuần 3 đến 4</div>
+          <div class="nm">MVP</div>
+        </div>
+        <div class="ph-r">
+          <ul>
+            <li>Dựng MCP server với 2 đến 4 công cụ: đọc danh bạ, đọc công việc, đề xuất cập nhật, ghi sau xác nhận.</li>
+            <li>Permission guard cho 2 tài khoản: một chỉ đọc, một đọc và ghi. Kiểm soát cả chiều đọc lẫn chiều ghi.</li>
+            <li>Approval gate trước mọi thao tác thay đổi dữ liệu.</li>
+            <li>Trace mỗi lần gọi: công cụ, tham số, thời gian, lỗi, chi phí, kết quả.</li>
+            <li>Dựng Agent thứ hai chỉ bằng cấu hình, để chứng minh công cụ tái sử dụng được.</li>
+          </ul>
+          <div class="deliv">
+            <b>repo mcp-connector-lab</b><b>adr-001.md</b><b>permission-tests</b><b>README chạy 15 phút</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-l">
+          <div class="wk">Tuần 5 đến 6</div>
+          <div class="nm">Evaluation</div>
+        </div>
+        <div class="ph-r">
+          <ul>
+            <li>Fault injection: timeout, retry, mất kết nối, ghi trùng, thất bại giữa bước, chạy lại sau lỗi.</li>
+            <li>Chạy cả hai cách tích hợp trên cùng 12 đến 20 tác vụ, cùng đầu vào, cùng tiêu chí đúng.</li>
+            <li>Đo bốn thứ: thời gian tích hợp, số lỗi trên mỗi tác vụ, chi phí token, số dòng code keo dính phải viết.</li>
+            <li>Ghi lại các trường hợp thất bại thay vì bỏ qua. Một giả thuyết bị bác bỏ bằng thử nghiệm rõ ràng vẫn là kết quả có giá trị.</li>
+          </ul>
+          <div class="deliv">
+            <b>reliability-tests</b><b>bang-so-sanh.md</b><b>trace-log</b><b>evaluation-report.md</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-l">
+          <div class="wk">Tuần 7</div>
+          <div class="nm">Review chéo</div>
+        </div>
+        <div class="ph-r">
+          <ul>
+            <li>Nhờ mentor hoặc một bạn khác tự chạy demo từ README, không có bạn bên cạnh. Ghi lại mọi chỗ họ dừng lại.</li>
+            <li>Thử ghép với hướng Knowledge: retrieve một tài liệu rồi ghi kết quả qua công cụ, để chứng minh tái dùng liên track.</li>
+            <li>Sửa README theo đúng những gì người khác vấp phải.</li>
+          </ul>
+          <div class="deliv">
+            <b>bao-cao-thu-nguoi-dung.md</b><b>van-de-tuong-thich.md</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-l">
+          <div class="wk">Tuần 8</div>
+          <div class="nm">Bảo vệ và bàn giao</div>
+        </div>
+        <div class="ph-r">
+          <ul>
+            <li>Bảo vệ lựa chọn kiến trúc, kết quả đo, giới hạn và tiềm năng áp dụng.</li>
+            <li>Nêu rõ kết luận "không nên dùng MCP khi nào", kèm điều kiện cụ thể chứ không phải câu chung chung.</li>
+            <li>Đóng gói: repo, README, test suite, backlog phát triển tiếp, và tên người sở hữu sau bạn.</li>
+          </ul>
+          <div class="deliv">
+            <b>demo cuối</b><b>repo</b><b>test-suite</b><b>de-xuat-tiep-tuc.md</b>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="ct">Nguyên tắc cắt phạm vi</div>
+      <p>
+        Nếu đến cuối tuần 4 mà MCP server chưa chạy được với 2 công cụ, hãy bỏ bớt chứ không kéo dài.
+        Bỏ Event-driven trước, bỏ công cụ thứ tư sau, nhưng không bao giờ bỏ permission test và không bao giờ bỏ baseline.
+        Hai thứ đó là toàn bộ giá trị của track này.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 RỦI RO ============ -->
+<section id="rui-ro">
+  <div class="wrap">
+    <p class="eyebrow">06 - Rủi ro</p>
+    <h2>Rủi ro của cả ba track và cách chặn sớm</h2>
+    <p class="lede">Rủi ro ở đây không phải rủi ro kỹ thuật chung chung, mà là những thứ thực sự làm hỏng một bài R&amp;D 8 tuần.</p>
+
+    <div class="tablewrap" style="margin-top:22px">
+      <table class="risk">
+        <thead>
+          <tr>
+            <th>Track</th>
+            <th>Rủi ro</th>
+            <th>Mức</th>
+            <th>Dấu hiệu sớm</th>
+            <th>Cách chặn</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="3"><span class="t1">01</span> Platform &amp; MCP</td>
+            <td>Demo chạy được nhưng không có số liệu, buổi bảo vệ thành buổi trình diễn</td>
+            <td><span class="sev h">Cao</span></td>
+            <td>Tuần 4 vẫn chưa có bảng baseline API trực tiếp</td>
+            <td>Đo baseline ở tuần 2, trước khi viết dòng MCP nào</td>
+          </tr>
+          <tr>
+            <td>Sa vào hạ tầng vặt: auth, hosting, secret, CI</td>
+            <td><span class="sev m">Vừa</span></td>
+            <td>Tuần 3 dành hơn 3 ngày cho cấu hình môi trường</td>
+            <td>Chốt trước: chạy local, 2 server, không auth ngoài phạm vi permission guard</td>
+          </tr>
+          <tr>
+            <td>Hệ sinh thái MCP đổi nhanh làm kết quả hết đúng</td>
+            <td><span class="sev l">Thấp</span></td>
+            <td>SDK đổi breaking change giữa chương trình</td>
+            <td>Ghim phiên bản, ghi lại phiên bản trong ADR và trong README</td>
+          </tr>
+
+          <tr>
+            <td rowspan="3"><span class="t2">02</span> Knowledge</td>
+            <td>Phạm vi nổ: 5 nhóm nguồn nhân với 6 bước vòng đời</td>
+            <td><span class="sev h">Cao</span></td>
+            <td>Tuần 3 vẫn đang thiết kế schema thay vì nạp dữ liệu</td>
+            <td>Chốt 4 nguồn, 8 trường metadata, 1 lát cắt dọc, ghi rõ phần bị loại</td>
+          </tr>
+          <tr>
+            <td>Không có ground truth nên không đo được gì</td>
+            <td><span class="sev h">Cao</span></td>
+            <td>Tập câu hỏi chưa gán nhãn ở tuần 4</td>
+            <td>Gán nhãn 40 đến 60 câu trước khi build, không gán sau</td>
+          </tr>
+          <tr>
+            <td>Bị kéo về dữ liệu nội bộ thật</td>
+            <td><span class="sev m">Vừa</span></td>
+            <td>Ai đó đề nghị "cứ lấy tài liệu thật cho nhanh"</td>
+            <td>Chỉ dùng giả lập và công khai, đúng giới hạn tài liệu đặt ra</td>
+          </tr>
+
+          <tr>
+            <td rowspan="3"><span class="t3">03</span> Skill &amp; Eval</td>
+            <td>Test Skill đồ chơi vì chưa có tool và knowledge thật</td>
+            <td><span class="sev h">Cao</span></td>
+            <td>Skill chỉ đọc file JSON tĩnh do chính bạn tạo</td>
+            <td>Tự viết 4 đến 5 Skill có ít nhất một bước gọi công cụ ngoài</td>
+          </tr>
+          <tr>
+            <td>Mẫu quá nhỏ, kết luận không đáng tin</td>
+            <td><span class="sev m">Vừa</span></td>
+            <td>Mỗi phương án chạy 5 case, chênh lệch 1 case đã đổi kết luận</td>
+            <td>30 đến 50 case, chạy 3 lần lấy trung vị, báo cáo cả khoảng biến thiên</td>
+          </tr>
+          <tr>
+            <td>Chấm điểm cảm tính dù có rubric</td>
+            <td><span class="sev m">Vừa</span></td>
+            <td>Không ai khác chấm lại được cùng bộ kết quả</td>
+            <td>Nhờ một bạn chấm độc lập 10 case, so sánh và ghi lại phần lệch</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <div class="ct">Điều kiện dừng</div>
+      <p>
+        Nếu đến cuối tuần 5 mà bạn không có baseline và không có ít nhất một bảng số liệu, hãy dừng xây thêm tính năng và dồn toàn bộ hai tuần còn lại cho đo lường.
+        Một MVP nhỏ có số liệu luôn thắng một MVP lớn không có số liệu, vì tài liệu nói rõ: không đo R&amp;D bằng demo đẹp.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 07 BẢO VỆ ============ -->
+<section id="bao-ve">
+  <div class="wrap">
+    <p class="eyebrow">07 - Buổi bảo vệ</p>
+    <h2>Bốn câu hỏi bắt buộc, và cách trả lời</h2>
+    <p class="lede">Đề bài liệt kê bốn câu hỏi mà mọi track đều phải trả lời. Dưới đây là cách trả lời nếu bạn chọn Track 01.</p>
+
+    <div class="qa" style="margin-top:22px">
+      <details open>
+        <summary>Vấn đề thực sự nằm ở đâu? Người dùng và môi trường sử dụng là ai?</summary>
+        <div class="a">
+          <p>Vấn đề không phải "thiếu công cụ", mà là mỗi Agent mới lại phải viết lại lớp keo dính cho từng hệ thống, và lớp keo đó thường không có phân quyền, không có phê duyệt, không có trace.</p>
+          <p>Người dùng là đội vận hành: người cần Agent đọc dữ liệu nhân sự và công việc, đề xuất thay đổi, rồi để người thật duyệt trước khi ghi. Môi trường là môi trường thử nghiệm với dữ liệu giả lập.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Giải pháp hiện có nào gần nhất? Vì sao không áp dụng nguyên bản?</summary>
+        <div class="a">
+          <p>Có ba giải pháp gần nhất: gọi hàm trực tiếp trong code ứng dụng, MCP làm chuẩn giao diện công cụ, và workflow engine để cố định quy trình.</p>
+          <p>Không áp dụng nguyên bản vì mỗi cái giả định một bối cảnh khác: gọi hàm trực tiếp giả định chỉ có một Agent duy nhất, workflow engine giả định quy trình đã biết trước và ít thay đổi. Bối cảnh ở đây là nhiều Agent dùng chung công cụ và quy trình còn đang đổi.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Demo kiểm chứng giả thuyết gì, có baseline ra sao, thất bại thế nào?</summary>
+        <div class="a">
+          <p>Giả thuyết: với cùng một tác vụ, dùng MCP giảm công sức tích hợp cho Agent thứ hai và tăng khả năng kiểm soát quyền, đổi lại có chi phí phụ về độ trễ và một lớp cấu hình mới.</p>
+          <p>Baseline: hai cách tích hợp chạy trên cùng 12 đến 20 tác vụ, cùng hai tài khoản, cùng bộ test lỗi. Số liệu gồm thời gian tích hợp, số lỗi, chi phí token, số dòng keo dính.</p>
+          <p>Thất bại đã ghi nhận: ví dụ trường hợp retry sinh ghi trùng khi không có idempotency key, hoặc chi phí token tăng vì mô tả công cụ quá dài. Nêu rõ những case đó, đừng giấu.</p>
+        </div>
+      </details>
+      <details>
+        <summary>Nếu người tạo không còn tham gia, người khác có tiếp tục được không?</summary>
+        <div class="a">
+          <p>Có, nếu ba thứ tồn tại: README chạy được trong 15 phút mà không cần hỏi bạn, ADR ghi rõ vì sao chọn MCP và vì sao loại phương án còn lại, và test suite chạy bằng một lệnh.</p>
+          <p>Bằng chứng mạnh nhất là tuần 7: một người khác tự chạy demo từ README và bạn ghi lại đúng những chỗ họ dừng lại. Đó là dữ liệu thật về khả năng kế thừa, không phải lời hứa.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="two" style="margin-top:26px">
+      <div class="panelbox">
+        <h4 style="margin-bottom:10px">Mẫu đăng ký đề tài, điền sẵn cho Track 01</h4>
+        <ul class="check">
+          <li class="done"><b>Bài toán:</b> Agent thứ hai phải viết lại lớp tích hợp, không có phân quyền và không có trace</li>
+          <li class="done"><b>Khảo sát:</b> API gọi hàm trực tiếp, MCP, Workflow Engine, kèm nguồn gốc thiết kế</li>
+          <li class="done"><b>Khoảng trống:</b> chưa ai đo đánh đổi thật giữa hai cách, và chưa ai nói rõ khi nào MCP là lựa chọn sai</li>
+          <li class="done"><b>POC 2 tuần:</b> 1 MCP server, 2 công cụ, 2 tài khoản, 1 bước phê duyệt</li>
+          <li class="done"><b>Đánh giá:</b> baseline API trực tiếp, 12 đến 20 tác vụ, 4 chỉ số</li>
+          <li class="done"><b>Bàn giao:</b> repo, permission test, trace, kết luận giới hạn của MCP</li>
+        </ul>
+      </div>
+
+      <div class="panelbox">
+        <h4 style="margin-bottom:10px">Ba loại giá trị phải có, kiểm tra trước khi nộp</h4>
+        <ul class="check">
+          <li class="done"><b>Research Finding:</b> hiểu đúng vì sao MCP ra đời và ranh giới của nó với quyền nghiệp vụ</li>
+          <li class="done"><b>Experimental Evidence:</b> bảng so sánh có số liệu, có kịch bản lỗi, có case thất bại</li>
+          <li class="done"><b>Reusable Asset:</b> MCP server, permission guard, trace, test suite, README</li>
+        </ul>
+        <div class="hr" style="margin:16px 0"></div>
+        <h4 style="margin-bottom:10px">Câu tự kiểm tra trước buổi bảo vệ</h4>
+        <ul class="check">
+          <li>Người khác clone repo và chạy được mà không cần tôi?</li>
+          <li>Tôi có nói được một trường hợp mà MCP là lựa chọn sai?</li>
+          <li>Số liệu của tôi có baseline, không phải số của riêng phương án tôi thích?</li>
+          <li>Tôi có ít nhất một giả thuyết đã bị chính dữ liệu của mình bác bỏ?</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 08 TUẦN 1 ============ -->
+<section id="tuan-1">
+  <div class="wrap">
+    <p class="eyebrow">08 - Tuần 1</p>
+    <h2>Việc cần làm trước khi chốt track</h2>
+    <p class="lede">Tuần 1 không phải tuần chọn track. Đó là tuần thu thập đủ thông tin để lựa chọn của bạn có cơ sở, và để không ai phải đoán ý nhau ở tuần 2.</p>
+
+    <div class="two" style="margin-top:22px">
+      <div class="panelbox">
+        <h4 style="margin-bottom:12px">Checklist khởi động</h4>
+        <ul class="check">
+          <li>Xác nhận môi trường làm việc, tài khoản, quyền truy cập, kho mã nguồn, kênh báo cáo</li>
+          <li>Nghe phiên giới thiệu tầm nhìn AgentLize và ranh giới với các team/platform hiện có</li>
+          <li>Thống nhất giờ sync hằng ngày và cách trao đổi với mentor</li>
+          <li>Đọc cả ba hướng, không chỉ hướng mình thích</li>
+          <li>Hỏi ba bạn còn lại đang nghiêng về đâu, để tránh trùng và tránh silo</li>
+          <li>Chuẩn bị research brief 1 đến 2 trang kèm câu hỏi phản biện</li>
+          <li>Gửi báo cáo vào nhóm Lark trước 11:00 sáng thứ Hai</li>
+        </ul>
+      </div>
+
+      <div class="panelbox">
+        <h4 style="margin-bottom:12px">Mười câu hỏi nên hỏi mentor trong tuần 1</h4>
+        <ul class="check">
+          <li>Nếu chọn Platform, đã có hệ thống giả lập nào dùng lại được chưa?</li>
+          <li>Có Agent nào đang chạy thật để tôi lấy làm mốc so sánh không?</li>
+          <li>Với Knowledge, dữ liệu nào được phép dùng trong môi trường thử nghiệm?</li>
+          <li>Với Skill và Eval, đã có bộ test case nào của team chưa?</li>
+          <li>Trọng số đánh giá giữa hành vi và chất lượng sản phẩm là bao nhiêu?</li>
+          <li>Ai sẽ là người phản biện chính cho track tôi chọn?</li>
+          <li>Kỳ vọng về độ sâu của research note là gì, bao nhiêu nguồn?</li>
+          <li>Buổi demo tuần 4 cần đạt mức nào thì được coi là đủ?</li>
+          <li>Có ràng buộc nào về công cụ, ngôn ngữ hay hạ tầng không?</li>
+          <li>Nếu giả thuyết của tôi bị bác bỏ, kết quả đó có được tính là thành công không?</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout" style="--accent:var(--t1);margin-top:26px">
+      <div class="ct">Tóm lại trong ba câu</div>
+      <p>
+        Track 01 cho bạn nhiều bằng chứng nhất trên mỗi tuần, baseline sạch nhất, và một tài sản mà hai track còn lại cũng cần.
+        Track 03 có thước đo sắc nhất nhưng phụ thuộc vào thứ chưa tồn tại, nên chỉ chọn khi bạn tự viết được Skill đủ thật.
+        Track 02 có giá trị dài hạn lớn nhất, nhưng chỉ nên chọn nếu bạn cắt được phạm vi xuống một lát cắt dọc ngay từ tuần 1.
+      </p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p class="fnote">
+      Nguồn duy nhất: <em>Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.pdf</em>, bản định hướng nội bộ ngày 09/11/2026.
+      Phần mô tả ba track, framework, tiêu chí nghiệm thu, chỉ số và lộ trình giai đoạn lấy nguyên từ tài liệu.
+      Phần chấm điểm, rủi ro, lộ trình chi tiết theo tuần và khuyến nghị là phân tích cá nhân, không phải quan điểm chính thức của AgentLize hay Mentor.
+      Các chủ đề và mini-project trong tài liệu là gợi ý nghiên cứu, không phải phân công đề tài cuối cùng.
+    </p>
+    <p class="tiny" style="margin-top:16px;color:#4d5668;font-family:var(--mono);letter-spacing:.1em">
+      SO SÁNH 3 TRACK · AGENTLIZE NEXT GEN AI 2026 · 08 TUẦN
+    </p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('#nav a'));
+  var sections = links.map(function (a) {
+    return document.querySelector(a.getAttribute('href'));
+  }).filter(Boolean);
+
+  if (!('IntersectionObserver' in window)) return;
+
+  var visible = new Map();
+  var obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      visible.set(e.target.id, e.isIntersecting ? e.intersectionRatio : 0);
+    });
+    var best = null, bestRatio = 0;
+    visible.forEach(function (r, id) {
+      if (r > bestRatio) { bestRatio = r; best = id; }
+    });
+    if (best) {
+      links.forEach(function (a) {
+        a.classList.toggle('on', a.getAttribute('href') === '#' + best);
+      });
+    }
+  }, { rootMargin: '-20% 0px -60% 0px', threshold: [0, 0.15, 0.4, 0.75, 1] });
+
+  sections.forEach(function (s) { obs.observe(s); });
+})();
+</script>
+</body>
+</html>

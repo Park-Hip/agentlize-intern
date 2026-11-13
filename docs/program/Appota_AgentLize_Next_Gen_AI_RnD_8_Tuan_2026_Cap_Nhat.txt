@@ -1,0 +1,540 @@
+APPOTA GROUP / AGENTLIZE - NEXT GEN AI 2026
+Chương trình R&D và phát triển Intern trong 8 tuần
+
+Bản gốc có thẩm quyền: Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.pdf (cùng thư mục).
+Đây là bản trích xuất text để tìm kiếm và trích dẫn nhanh; các mốc "PAGE 1" ... "PAGE 13" tương ứng số trang PDF.
+Đã sửa lỗi trích xuất nhỏ: ký tự NUL được thay bằng dấu phẩy hoặc ô checkbox "[ ]"; xuống dòng chuẩn hóa về LF.
+Nội dung giữ nguyên văn, kể cả lỗi chính tả của bản gốc (ví dụ "R&D;").
+
+--------------------------------------------------------------------------------
+
+=== PAGE 1 ===
+APPOTA GROUP  /  AGENTLIZE
+Tài liệu nội bộ  •  01
+AGENTLIZE / NEXT GEN AI 2026
+CHƯƠNG TRÌNH R&D;
+VÀ PHÁT TRIỂN INTERN
+TRONG 8 TUẦN
+Định hướng nghiên cứu · Phân công Mentor · Nguyên tắc phối hợp · Đề bài và đầu ra kỳ vọng
+Tinh thần chương trình: Nghiên cứu mô hình hiện có trước khi xây dựng; mỗi Intern làm chủ kết quả, Mentor đồng
+hành và phản biện; mỗi thử nghiệm để lại tri thức hoặc tài sản có thể tái sử dụng.
+BẢN ĐỊNH HƯỚNG NỘI BỘ | 09/11/2026
+Dành cho: Mentor, Intern, đội ngũ AgentLize và các bên phối hợp tại Appota Group.
+Các chủ đề và mini-project trong tài liệu là gợi ý nghiên cứu, không phải phân công đề tài cuối cùng hay cam kết triển khai production.
+
+=== PAGE 2 ===
+APPOTA GROUP  /  AGENTLIZE
+Tài liệu nội bộ  •  02
+NEXT GEN AI  /  R&D PROGRAM 2026
+TỔNG QUAN
+01. Mục tiêu & phạm vi chương trình
+Chương trình dành cho bốn Intern đến từ Next Gen AI, tham gia AgentLize trong khoảng 8 tuần, khởi động từ
+09/11/2026. Các bạn được đồng hành bởi Mentor và tham gia nghiên cứu những năng lực có liên hệ với tầm
+nhìn xây dựng AI Operating System cho Appota Group.
+Hai mục tiêu chính
+Mục tiêu
+Kết quả kỳ vọng
+Phát triển con người
+Đánh giá năng lực tự học, tư duy hệ thống, giải quyết vấn đề, phối hợp và mức độ phù
+hợp để tiếp tục đồng hành với AgentLize.
+Kiểm chứng hướng công nghệ
+Khảo sát mô hình hiện có, xác định đánh đổi, xây nguyên mẫu và đo bằng dữ liệu thay vì
+đánh giá cảm tính.
+Phạm vi và giới hạn
+• Không đặt mục tiêu xây ngay một nền tảng production hoặc hoàn thành cả ba trục nghiên cứu trong tám tuần.
+• Mỗi Intern có một phần việc do mình sở hữu; có thể hợp tác dự án chung nhưng phải nhìn rõ đóng góp cá
+nhân.
+• Ưu tiên dữ liệu giả lập, dữ liệu công khai hoặc nguồn đã được cấp quyền; không đưa thông tin nội bộ nhạy cảm
+vào môi trường thử nghiệm chưa được phê duyệt.
+Định hướng dài hạn: AgentLize nghiên cứu cách kết nối con người, dữ liệu, tri thức, công cụ và tài sản AI dùng chung.
+Ba chủ đề R&D; dưới đây bổ trợ cho định hướng đó, nhưng không thay thế các phân công nền tảng hiện có giữa những
+team của Group.
+Ba chủ đề nghiên cứu
+Chủ đề
+Câu hỏi trọng tâm
+01. AI Platform & MCP
+AI kết nối và thực hiện tác vụ qua các hệ thống như thế nào, với quyền và kiểm soát
+phù hợp?
+02. Knowledge & Second Brain
+Tri thức đa nguồn được thu thập, phân loại, xác minh, lưu giữ và tái sử dụng thế
+nào?
+03. Skill, Agent & Evaluation
+Đo hiệu quả thực chất của Skill ra sao, và kết hợp các Skill để tạo Agent có thể kiểm
+chứng thế nào?
+
+=== PAGE 3 ===
+APPOTA GROUP  /  AGENTLIZE
+Tài liệu nội bộ  •  03
+NEXT GEN AI  /  R&D PROGRAM 2026
+TỔ CHỨC
+02. Phân công Mentor – Intern & văn hóa làm
+việc
+Phân công đã thống nhất
+Mentor
+Intern
+Kevin
+Phạm Bách Hiệp
+Hữu
+Nguyễn Võ An Vi
+Huy
+Nguyễn Hồ Nguyên
+Chính
+Nguyễn Minh Nhật
+Vai trò chung của tất cả Mentor
+Bốn Mentor có cùng vai trò và trách nhiệm: đồng hành cùng Intern trong suốt chương trình; định hướng và
+đặt câu hỏi; phản biện phương án, chất lượng nghiên cứu và thử nghiệm; chủ động đồng bộ, thúc đẩy tiến độ
+và hỗ trợ tháo gỡ trở ngại. Mentor không làm thay; Intern là người sở hữu công việc và chịu trách nhiệm về kết
+quả.
+Bốn phẩm chất cốt lõi AgentLize coi trọng
+Giá trị
+Biểu hiện quan sát được
+Ownership – Sở hữu và trách nhiệm
+Nhận trách nhiệm đến cùng với kết quả; có kế hoạch, báo sớm rủi ro, xử lý hoặc chủ
+động đề xuất hỗ trợ.
+Chủ động
+Tự tìm hiểu, chủ động thử nghiệm; khi hỏi Mentor cần mô tả đã thử gì và đề xuất
+cách tiếp cận.
+Máu lửa
+Dám nhận thử thách, kiên trì kiểm chứng, không bỏ cuộc sớm; không đánh đồng
+nhiệt huyết với làm thêm giờ.
+Đồng bộ – Teamwork
+Chia sẻ tiến độ, tài liệu, blocker và tri thức; giữ cam kết, tích cực hỗ trợ thành viên
+khác.
+Nguyên tắc trách nhiệm: Intern sở hữu công việc và kết quả. Mentor hướng dẫn, cùng phản biện, thúc đẩy và tháo gỡ
+trở ngại, không làm thay hoặc nhận Ownership thay Intern.
+
+=== PAGE 4 ===
+APPOTA GROUP  /  AGENTLIZE
+Tài liệu nội bộ  •  04
+NEXT GEN AI  /  R&D PROGRAM 2026
+VẬN HÀNH
+03. Nhịp làm việc & cơ chế đồng bộ
+Tần suất
+Hoạt động
+Mục đích
+Hằng ngày
+Mentor và Intern chủ động sync-up trực
+tiếp hoặc qua công cụ phù hợp.
+Nắm tiến độ, kết quả, blocker, quyết định cần hỗ
+trợ và việc tiếp theo; không cần họp kéo dài.
+Sáng thứ Hai
+Intern gửi báo cáo tuần vào nhóm Lark
+chung.
+Minh bạch kết quả tuần trước, mục tiêu tuần mới
+và vấn đề cần hỗ trợ trước khi họp.
+11:00 thứ Hai
+Toàn team sync-up hằng tuần.
+Demo, phản biện, tháo gỡ điểm nghẽn, đồng bộ
+phụ thuộc và thống nhất ưu tiên.
+Mẫu báo cáo tuần đề xuất
+• 1. Kết quả tuần trước: Việc đã làm, sản phẩm, link repo/demo, minh chứng.
+• 2. Bài học: Mô hình/công nghệ đã nghiên cứu; điều gì làm thay đổi giả thuyết.
+• 3. Blocker: Vấn đề, những gì đã thử, phương án đề xuất, hỗ trợ cần thiết.
+• 4. Kế hoạch tuần mới: Mục tiêu, đầu ra, người phối hợp, thời hạn.
+• 5. Nội dung cần phản biện: Câu hỏi hoặc quyết định cần đưa vào sync-up 11:00.
+Quy tắc phối hợp
+• Blocker ảnh hưởng tiến độ cần được trao đổi ngay khi phát hiện, không chờ đến thứ Hai.
+• Mỗi nhiệm vụ nên có người sở hữu, định nghĩa hoàn thành và bằng chứng kiểm chứng; báo cáo không chỉ ghi
+“đang nghiên cứu”.
+• Mentor phản biện các lựa chọn và đánh đổi; Intern tự xây, tự thử nghiệm và tự trình bày kết quả.
+• Khuyến khích chia sẻ chéo giữa bốn bạn; không tạo bốn silo kiến thức hoặc bốn dự án tách biệt nếu không cần
+thiết.
+Khung đánh giá
+Đánh giá cần kết hợp hành vi văn hóa và chất lượng nghiên cứu/sản phẩm. Trọng số cụ thể do AgentLize và
+Mentor thống nhất trước khi áp dụng chính thức; không chỉ dựa vào số dòng code, số giờ làm hoặc cảm nhận
+chủ quan.
+
+=== PAGE 5 ===
+APPOTA GROUP  /  AGENTLIZE
+Tài liệu nội bộ  •  05
+NEXT GEN AI  /  R&D PROGRAM 2026
+PHƯƠNG PHÁP
+04. Framework R&D; áp dụng cho cả ba chủ
+đề
+Yêu cầu bắt buộc: Không bắt đầu bằng câu hỏi “sẽ code gì?”. Tất cả đi từ nghiên cứu những mô hình, sản
+phẩm, framework và giải pháp hiện đang được sử dụng; sau đó mới chọn bài toán và cách thử nghiệm.
+Bước
+Nội dung bắt buộc
+Bằng chứng/đầu ra
+01. Explore
+Khảo sát tối thiểu 3 mô hình/giải pháp, tìm nguồn gốc thiết kế
+và các tình huống áp dụng.
+Research note có liên kết tài liệu gốc,
+bản đồ các phương án.
+02. Compare
+So sánh ưu/nhược, khả năng mở rộng, chi phí, bảo mật, bảo
+trì và độ phù hợp với nhu cầu.
+Bảng so sánh và tiêu chí lựa chọn.
+03. Question
+Chỉ ra điểm chưa rõ, giới hạn và các giả định còn thiếu bằng
+chứng.
+Research questions và giả thuyết có
+thể kiểm chứng.
+04. Propose
+Chọn mô hình thử nghiệm; giải thích vì sao không chọn
+phương án còn lại.
+Sơ đồ giải pháp, phạm vi MVP,
+Architecture Decision Record.
+05. Build
+Làm POC/MVP nhỏ, có thể chạy, kiểm tra được.
+Repo, cấu hình demo, dữ liệu đầu vào
+và hướng dẫn chạy.
+06. Evaluate
+Dùng bộ test, baseline và tiêu chí đo trước khi tuyên bố thành
+công.
+Kết quả thử nghiệm, số liệu, giới hạn,
+thất bại học được.
+07. Package
+Đóng gói và bàn giao tài sản có thể tái sử dụng.
+Tài liệu, test suite, demo, backlog phát
+triển tiếp.
+Bộ câu hỏi bắt buộc ở buổi bảo vệ
+• Vấn đề thực sự nằm ở đâu? Người dùng và môi trường sử dụng là ai?
+• Giải pháp hiện có nào gần nhất? Vì sao không áp dụng nguyên bản?
+• Demo kiểm chứng giả thuyết gì, có baseline ra sao, thất bại thế nào?
+• Nếu người tạo không còn tham gia, người khác có tiếp tục được không?
+Ba loại giá trị phải có: (1) Research Finding – hiểu đúng mô hình; (2) Experimental Evidence – dữ liệu kiểm chứng; (3)
+Reusable Asset – thứ AgentLize giữ lại sau tám tuần.
+
+=== PAGE 6 ===
+APPOTA GROUP  /  AGENTLIZE
+Tài liệu nội bộ  •  06
+NEXT GEN AI  /  R&D PROGRAM 2026
+ĐỀ BÀI NGHIÊN CỨU
+05. Chủ đề 01 — AI Platform & MCP
+Câu hỏi trung tâm: Làm sao để AI kết nối, sử dụng và phối hợp công cụ/hệ thống nghiệp vụ một cách an toàn,
+quan sát được và tái sử dụng được?
+Những mô hình cần khảo sát trước
+Mô hình
+Nội dung so sánh
+API / Function Calling
+Khả năng gọi hàm trực tiếp, mức độ phụ thuộc ứng dụng, chi phí bảo trì.
+MCP
+Chuẩn hóa Tools, Resources, Prompts; ranh giới với quyền nghiệp vụ và logic thực thi.
+Workflow Engine
+Quy trình cố định, khả năng kiểm soát, phê duyệt và chạy lại.
+Agent Orchestration
+Agent tự chọn công cụ, điều phối nhiều bước, giới hạn và kiểm soát vòng lặp.
+Event-driven Integration
+Kích hoạt từ sự kiện, chống xử lý trùng, phục hồi và truy vết.
+Breakdown thành các hướng nhiệm vụ
+Nhánh
+Thử nghiệm gợi ý
+Connector & Reuse
+Cho 2 Agent dùng chung một bộ công cụ; so sánh API trực tiếp với MCP.
+Identity & Permission
+Hai tài khoản với quyền khác nhau truy cập cùng công cụ; kiểm soát cả đọc và ghi.
+Workflow & Approval
+Một quy trình 3–5 bước, có phê duyệt trước thao tác thay đổi dữ liệu.
+Reliability
+Thử lỗi timeout, retry, ghi trùng và phục hồi sau bước thất bại.
+Observability
+Trace từng lần gọi công cụ, thời gian, lỗi, chi phí và kết quả.
+Mini-project gợi ý
+AI Operations Connector Lab: Tạo hai hệ thống giả lập (ví dụ danh bạ nhân viên và công việc). Một Agent đọc
+dữ liệu, kiểm tra quyền, đề xuất cập nhật và thực hiện sau xác nhận. Dựng hai cách tích hợp để so sánh công
+sức phát triển, khả năng kiểm soát và độ tin cậy.
+Tiêu chí nghiệm thu
+• Có bảng so sánh ít nhất ba mô hình kiến trúc trước khi chốt phương án.
+• Có kiểm thử phân quyền, thao tác ghi, lỗi và chạy lại; chứng minh Agent khác tái sử dụng được công cụ.
+• Có số liệu về thời gian, độ ổn định, chi phí (nếu đo được) và kết luận khi nào không nên dùng MCP.
+
+=== PAGE 7 ===
+APPOTA GROUP  /  AGENTLIZE
+Tài liệu nội bộ  •  07
+NEXT GEN AI  /  R&D PROGRAM 2026
+ĐỀ BÀI NGHIÊN CỨU
+06. Chủ đề 02 — Knowledge & Second Brain
+Câu hỏi trung tâm: Tri thức từ nhiều nguồn và định dạng được thu thập, phân loại, xác thực, lưu giữ, cập nhật
+và kế thừa thế nào để AI sử dụng đúng ngữ cảnh, đúng quyền và đúng phiên bản?
+Các mô hình cần khảo sát
+Mô hình
+Điểm cần hiểu
+Document Repository
+Tổ chức tài liệu, phiên bản, chủ sở hữu, hiệu lực.
+RAG / Hybrid Search
+Tìm kiếm từ khóa/ngữ nghĩa, trích dẫn, các trường hợp truy xuất sai.
+Knowledge Graph
+Thực thể, quan hệ, chi phí duy trì và truy vấn đa bước.
+Enterprise / Federated Search
+Tìm xuyên hệ thống, dữ liệu nguồn so với chỉ mục.
+Organizational / Agent Memory
+Ghi nhớ sự kiện, quyết định và kinh nghiệm; cách cập nhật và quên.
+Đa dạng nguồn tri thức
+Nhóm nguồn
+Ví dụ
+Điều kiện quản trị
+Tài liệu
+PDF, DOCX, slide, quy trình, hợp đồng
+Phiên bản, tác giả, hiệu lực, bản quyền.
+Dữ liệu có cấu trúc
+CRM, HRM, ticket, bảng tính
+Schema, ID bản ghi, đồng bộ và quyền.
+Trao đổi / họp
+Lark, email, transcript, meeting notes
+Ai nói, ý kiến hay quyết định, quyền riêng tư.
+Sự kiện / kết quả
+Workflow logs, kết quả Agent, audit trail
+Thời điểm, thứ tự, tính toàn vẹn.
+Con người / bên ngoài
+Bài học cá nhân, website, báo cáo
+Kiểm chứng, nguồn, độ tin cậy, quyền sử
+dụng.
+Phân loại tri thức đa chiều
+Thử một bộ metadata nhỏ nhưng đủ rõ: loại tri thức (sự kiện/quyết định/quy trình/giả thuyết/bài học); nghiệp
+vụ; đối tượng liên quan; mức xác thực; chủ sở hữu; quyền truy cập; thời gian hiệu lực; vòng đời. Không
+được tự coi toàn bộ hội thoại hoặc tài liệu nạp vào là tri thức chính thức.
+
+=== PAGE 8 ===
+APPOTA GROUP  /  AGENTLIZE
+Tài liệu nội bộ  •  08
+NEXT GEN AI  /  R&D PROGRAM 2026
+ĐÀO SÂU CHỦ ĐỀ 02
+07. Knowledge: Retention & thử nghiệm
+Vòng đời tri thức cần chứng minh
+Bước
+Câu hỏi triển khai
+Capture
+Lấy dữ liệu từ nguồn nào, định kỳ hay theo sự kiện? Làm sao nhận biết thay đổi?
+Classify & Validate
+Đâu là sự kiện, đâu là giả thuyết? Ai phê duyệt tri thức chính thức?
+Store & Connect
+Lưu bản gốc, phiên bản, nguồn, thực thể và quan hệ theo cách nào?
+Retrieve & Reuse
+AI tìm nội dung phù hợp thời điểm, quyền và mức xác thực như thế nào?
+Refresh / Supersede
+Tài liệu V2 thay V1 ra sao, xử lý nguồn mâu thuẫn thế nào?
+Retire / Delete
+Quá hạn lưu giữ, đổi quyền, yêu cầu xóa: chỉ mục và câu trả lời phải thay đổi ra sao?
+Phân biệt ba tầng: Storage = dữ liệu còn được lưu. Retention = giữ đúng thời hạn và chính sách. Knowledge continuity =
+tri thức vẫn tìm được, đúng, có nguồn và có thể được kế thừa khi người hoặc hệ thống thay đổi.
+Mini-project gợi ý: Organizational Memory Lab
+• Dùng tối thiểu 4 loại nguồn giả lập (tài liệu, hội thoại, biên bản họp, CRM hoặc log).
+• Tạo tình huống một thông tin xuất hiện ở nhiều nguồn; liên kết bản ghi mà không nhân bản sai.
+• Tạo tài liệu quy trình V1 và V2, một quyết định chưa phê duyệt, một nguồn mâu thuẫn và một quyền bị thu hồi.
+• Chứng minh AI trả lời theo bản có hiệu lực, trích dẫn nguồn, không lộ nội dung trái quyền.
+• Mô phỏng bàn giao người phụ trách nhưng vẫn giữ được tri thức hợp lệ của tổ chức.
+Đo lường
+Chỉ số
+Ví dụ cách kiểm tra
+Truy xuất đúng nguồn
+Tỷ lệ tìm đúng tài liệu/bản ghi trong tập câu hỏi đã gán nhãn.
+Tính cập nhật
+Tỷ lệ phát hiện V1 hết hiệu lực, chỉ sử dụng V2 cho câu hỏi hiện hành.
+Tính xác thực
+Tỷ lệ câu trả lời có trích dẫn đúng; xử lý tài liệu mâu thuẫn.
+An toàn dữ liệu
+Số lần vượt quyền, rò rỉ từ chỉ mục hoặc cache khi thu hồi quyền.
+Tính kế thừa
+Người khác vẫn tra cứu và hiểu được quyết định/tri thức sau bàn giao.
+
+=== PAGE 9 ===
+APPOTA GROUP  /  AGENTLIZE
+Tài liệu nội bộ  •  09
+NEXT GEN AI  /  R&D PROGRAM 2026
+ĐỀ BÀI NGHIÊN CỨU
+08. Chủ đề 03 — Skill, Evaluation & Agent
+Composition
+Câu hỏi trung tâm: Skill được đo hiệu quả thực chất thế nào; khi kết hợp nhiều Skill thành Agent, chất lượng và
+giá trị có được duy trì, giải thích và cải tiến không?
+Khảo sát các mô hình có sẵn
+Mô hình
+Nội dung nghiên cứu
+Agent Skills / Skill packages
+Manifest, hướng dẫn, scripts, tài nguyên, phụ thuộc, phiên bản.
+Tool / MCP Registry
+Tool khác Skill ở đâu; định nghĩa giao diện, quyền, khả năng tái sử dụng.
+Single Agent + Multiple Skills
+Agent tự lựa chọn Skill, rủi ro chọn sai hoặc dùng sai thứ tự.
+Sequential Workflow
+Các bước xác định trước, điều kiện qua bước, kiểm soát lỗi.
+Agent Graph
+Phân nhánh, state, checkpoint, phê duyệt, phục hồi.
+Supervisor / Multi-Agent
+Agent điều phối và Agent chuyên môn; chi phí, lỗi truyền giao, tính cần thiết.
+Các lớp Evaluation
+Lớp
+Câu hỏi cần đo
+L0. Technical Compliance
+Đóng gói đúng quy chuẩn, metadata, dependencies, quyền? (nên tự động hóa).
+L1. Functional Correctness
+Skill trả đầu ra đúng theo bộ test đã định nghĩa?
+L2. Quality & Reliability
+Đúng, nhất quán, an toàn khi đầu vào khó hoặc chạy lặp?
+L3. Efficiency
+Thời gian, chi phí, thao tác và công sửa lại giảm hay tăng?
+L4. Business Effectiveness
+Người dùng có hoàn thành tác vụ tốt hơn? Kết quả nghiệp vụ có cải thiện?
+L5. Reusability & Value
+Người khác có sử dụng/duy trì, cập nhật mà không làm hỏng workflow?
+Trọng tâm nghiên cứu: L0 là điều kiện cần, không phải thành tựu chính. Các lớp L1–L5 phải được đánh giá bằng test
+case và baseline, tránh chấm một điểm cảm tính cho mọi loại Skill.
+
+=== PAGE 10 ===
+APPOTA GROUP  /  AGENTLIZE
+Tài liệu nội bộ  •  10
+NEXT GEN AI  /  R&D PROGRAM 2026
+ĐÀO SÂU CHỦ ĐỀ 03
+09. Skill: từ đo hiệu quả đến Agent hoàn
+chỉnh
+So sánh ba phương án cho cùng tác vụ
+Phương án
+Điều cần đo
+A. Baseline thủ công
+Thời gian thực tế, chất lượng do người kiểm chứng, tổng công sửa lỗi.
+B. AI cơ bản (không có Skill)
+Tỷ lệ hoàn thành, sai sót, chi phí và thời gian.
+C. AI + Skill
+Chất lượng tăng/giảm thế nào, có ổn định, tái sử dụng được không?
+Chỉ số gợi ý: Task Success Rate (tác vụ đạt chuẩn / tổng tác vụ), thời gian trung vị bao gồm cả kiểm duyệt, chi
+phí/tác vụ, tỷ lệ phải sửa và khả năng duy trì chất lượng khi lên phiên bản mới. Không nên đánh đổi độ đúng lấy
+tốc độ mà không ghi rõ.
+Mô hình đóng gói Agent từ nhiều Skill
+Mô hình
+Khi nào phù hợp
+Điểm cần kiểm chứng
+Single Agent + Skills
+Số bước ít, Agent có khả năng chọn
+đúng Skill.
+Độ chính xác chọn Skill, kiểm soát quyền, tính
+ổn định.
+Sequential Pipeline
+Quy trình có thứ tự, đầu ra chuẩn.
+Lỗi truyền giữa bước, retry và điều kiện hoàn
+thành.
+Agent Graph
+Có nhiều nhánh, trạng thái, chờ phê
+duyệt.
+Checkpoint, khôi phục và quản lý ngữ cảnh.
+Supervisor / Multi-Agent
+Cần chia chuyên môn hoặc xử lý các
+đầu việc khác nhau.
+Chi phí tăng thêm, lỗi phối hợp, cải thiện thực
+sự so với một Agent.
+Agent Manifest tối thiểu cần có
+Vai trò & mục tiêu; danh sách Skill và phiên bản; công cụ/MCP và quyền; nguồn Knowledge; cách điều phối;
+trạng thái/bộ nhớ; điều kiện cần phê duyệt; bộ test đầu cuối; trace/chi phí/lỗi; owner chịu trách nhiệm bảo trì.
+Mini-project gợi ý: Composable Agent Lab
+• Tạo 4–5 Skill phục vụ cùng một công việc (thu thập dữ liệu, chuẩn hóa, phân tích, soạn báo cáo, kiểm tra).
+• Thử ít nhất hai mô hình phối hợp, ví dụ một Agent tự chọn Skill và pipeline cố định.
+• Đánh giá từng Skill riêng và toàn bộ Agent đầu cuối bằng cùng bộ dữ liệu kiểm thử.
+• Phát hành Skill V2, chạy lại toàn bộ test để phát hiện hồi quy; ghi rõ phiên bản nào Agent đang dùng.
+
+=== PAGE 11 ===
+APPOTA GROUP  /  AGENTLIZE
+Tài liệu nội bộ  •  11
+NEXT GEN AI  /  R&D PROGRAM 2026
+NGUYÊN TẮC GIAO ĐỀ TÀI
+10. Lựa chọn chủ đề & phân chia công việc
+Không chia cứng “mỗi Intern một chủ đề” ngay khi bắt đầu. Bốn Intern khảo sát cả ba hướng, sau đó chủ động
+đăng ký một vấn đề cụ thể, giải thích giá trị, phương án nghiên cứu và phạm vi có thể hoàn thành. Mentor phản
+biện nhưng không viết đề xuất thay.
+Quy trình đề xuất đề tài
+Thời điểm
+Hoạt động
+Kết quả
+Tuần 1
+Tìm hiểu ba hướng; đọc mô hình hiện có; xác định
+điều quan tâm.
+Research brief cá nhân 1–2 trang.
+Cuối tuần 1
+Intern pitch vấn đề, giả thuyết, demo nhỏ nhất và tiêu
+chí đo.
+Mentor phản biện, ghi nhận rủi ro và tính
+khả thi.
+Đầu tuần 2
+Thống nhất chủ đề, người sở hữu, phạm vi và phụ
+thuộc.
+Đề bài thử nghiệm được xác nhận.
+Xuyên suốt
+Review chéo và chia sẻ tri thức.
+Mỗi cá nhân có đóng góp rõ ràng, tránh xây
+trùng.
+Mẫu bản đăng ký đề tài
+• Bài toán: Ai gặp khó khăn gì? Kết quả mong muốn?
+• Khảo sát: Ít nhất ba mô hình/giải pháp hiện có, nguồn tham khảo.
+• Khoảng trống: Giả thuyết nào chưa được chứng minh?
+• POC: Demo nhỏ nhất có thể làm trong hai tuần đầu?
+• Đánh giá: Baseline, test case, điều kiện đạt/chưa đạt.
+• Bàn giao: Thành phần nào có thể tái sử dụng, ai tiếp tục?
+Không giới hạn sự phối hợp: Có thể một bạn tập trung Knowledge, hai bạn phối hợp Skill/Agent và một bạn làm MCP;
+cũng có thể hai bạn chung một nghiên cứu. Chỉ cần xác định rõ Ownership, đầu ra và phần đánh giá độc lập.
+
+=== PAGE 12 ===
+APPOTA GROUP  /  AGENTLIZE
+Tài liệu nội bộ  •  12
+NEXT GEN AI  /  R&D PROGRAM 2026
+KẾ HOẠCH THỰC HIỆN
+11. Lộ trình 8 tuần & điểm kiểm tra
+Giai đoạn
+Trọng tâm
+Đầu ra
+Tuần 1–2 · Nghiên cứu
+Khảo sát tối thiểu ba mô hình, so sánh giải pháp,
+phản biện giả thuyết, thử POC rất nhỏ.
+Research Review, Architecture
+Decision, POC và bộ đo ban đầu.
+Tuần 3–4 · MVP
+Xây luồng đầu cuối, xác lập baseline, dữ liệu và
+test case.
+MVP, repo, README, bộ test, số liệu
+baseline.
+Tuần 5–6 · Evaluation
+Chạy kiểm thử nhiều trường hợp, đo lỗi/chi
+phí/chất lượng, cải tiến.
+Evaluation Report, trace, danh sách
+thất bại và phiên bản cải tiến.
+Tuần 7 · Review chéo
+Cho bạn khác hoặc Mentor tự chạy demo, thử
+tích hợp nếu phù hợp.
+Báo cáo thử người dùng và các vấn đề
+tương thích.
+Tuần 8 · Bảo vệ & bàn giao
+Bảo vệ lựa chọn kiến trúc, kết quả đo, giới hạn và
+tiềm năng áp dụng.
+Demo cuối, repo, tài liệu R&D;, test
+suite, đề xuất tiếp tục.
+Bộ tiêu chí nghiệm thu chung
+Tiêu chí
+Bằng chứng cần có
+Hiểu và lựa chọn mô hình
+Nguồn nghiên cứu, bảng so sánh, lý do chọn và loại phương án.
+Kết quả thực nghiệm
+POC/MVP có thể chạy, kịch bản thử nghiệm và kết quả đo.
+Chất lượng & độ tin cậy
+Bộ test, trường hợp thất bại, giới hạn và cách khắc phục.
+Tái sử dụng & bàn giao
+Repo, README, hướng dẫn chạy, người sở hữu, đề xuất phát triển tiếp.
+Văn hóa & phối hợp
+Theo dõi Ownership, chủ động, máu lửa, đồng bộ bằng hành vi và phản hồi hằng
+tuần.
+Vai trò của Mentor trong các checkpoint
+Đặt câu hỏi về nguyên nhân gốc, yêu cầu kiểm chứng thay vì suy đoán; đánh giá chất lượng lập luận và bằng
+chứng; hỗ trợ kết nối đúng nguồn lực, không biến Mentor thành người làm sản phẩm chính.
+
+=== PAGE 13 ===
+APPOTA GROUP  /  AGENTLIZE
+Tài liệu nội bộ  •  13
+NEXT GEN AI  /  R&D PROGRAM 2026
+PHỤ LỤC THỰC THI
+12. Checklist khởi động & lưu ý triển khai
+Việc cần thực hiện trong tuần đầu
+• [ ] Xác nhận môi trường làm việc, tài khoản, quyền truy cập, kho lưu mã nguồn và kênh báo cáo.
+• [ ] Tổ chức phiên giới thiệu tầm nhìn AgentLize và ranh giới với các team/platform hiện có.
+• [ ] Mentor và Intern thống nhất giờ sync hằng ngày và phương thức trao đổi.
+• [ ] Mỗi bạn nghiên cứu cả ba hướng, chọn vấn đề cụ thể, chuẩn bị research brief và câu hỏi phản biện.
+• [ ] Sáng thứ Hai gửi báo cáo vào Lark; 11:00 thứ Hai họp toàn team để review/demo.
+• [ ] Mọi đề tài chọn được owner, định nghĩa hoàn thành, dữ liệu demo và điều kiện đo lường.
+Các nguyên tắc bảo vệ chất lượng chương trình
+• Không đo R&D; bằng demo đẹp: Đề xuất phải kèm nguồn, đánh đổi, kiểm thử và kết luận có chứng cứ.
+• Không mặc định “càng nhiều framework càng tốt”: Chọn mô hình đơn giản nhất giải quyết được bài toán.
+• Không bắt buộc demo phải thành công: Một giả thuyết bị bác bỏ bằng thử nghiệm rõ ràng vẫn là kết quả
+R&D; có giá trị.
+• Không dùng dữ liệu thật trái quyền: Phân biệt dữ liệu công khai, dữ liệu giả lập và tài liệu nội bộ được cho
+phép.
+• Không kết luận năng lực chỉ bằng sản phẩm cuối: Quan sát quá trình tự học, Ownership, phản biện, phối
+hợp và khả năng cải thiện.
+Thông điệp chung: Mục tiêu sau tám tuần không chỉ là bốn demo công nghệ, mà là bốn cá nhân trưởng thành trong tư
+duy nghiên cứu, tinh thần làm chủ và năng lực tạo ra tri thức/tài sản AI có thể tiếp tục phát triển cùng AgentLize.
+Ghi chú: Nội dung phân công Mentor, nhịp làm việc và bốn phẩm chất văn hóa là những nguyên tắc đã thống nhất. Đề tài, mini-project,
+bộ tiêu chí và lịch checkpoint chi tiết là khung triển khai đề xuất, cần Mentor và Intern thống nhất sau giai đoạn khảo sát.
