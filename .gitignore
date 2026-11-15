@@ -1,3 +1,4 @@
-.research/
+dist/
+scratch/
 .lavish/
 *.render.html

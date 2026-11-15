@@ -252,4 +252,4 @@ Xếp theo thứ tự chặn công việc, câu nào trả lời được thì g
 - Sơ đồ có thể là trạng thái đích. Không được dùng nó để khẳng định năng lực hiện có của công ty.
 - Tên "Thổ Thần AI" viết đúng dấu như trên slide. Nếu tên chính thức khác, sửa một lần ở đây và ở mọi chỗ tham chiếu.
 - Ảnh gốc nằm ngoài repo, tại đường dẫn ở đầu file. Chưa đưa vào repo vì đây là tài liệu nội bộ và mục 5 của `AGENTS.md` cấm đưa thông tin nội bộ vào commit khi chưa được phép.
-- File này không thay thế việc đọc báo cáo 11/11. Chỗ nào hai bên nói khác nhau, báo cáo 11/11 là bản đã review, file này là bản nháp.
+- File này không thay thế việc đọc báo cáo 11/11. Chỗ nào hai bên nói khác nhau, báo cáo 11/11 là bản chính thức, file này là bản nháp.

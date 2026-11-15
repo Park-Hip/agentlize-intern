@@ -4,7 +4,7 @@
 - Mentor: Kevin.
 - Phiên bản: 1.0.
 - Ngày cập nhật: 2026-11-13.
-- Trạng thái: đã review ngày 2026-11-13; không phải ADR, chưa chọn stack hoặc kiến trúc, chưa có số đo lab.
+- Trạng thái: không phải ADR, chưa chọn stack hoặc kiến trúc, chưa có số đo lab.
 
 **Nhận định tổng hợp: năm phương pháp giải quyết những vai trò khác nhau, không phải năm kiến trúc hoàn chỉnh thay thế ngang hàng.**
 API/Function Calling kết nối quyết định gọi tool của model với code ứng dụng; MCP chuẩn hóa giao tiếp công cụ; workflow giữ tiến độ; orchestration phân vai và điều khiển; event-driven phân phối sự kiện.
@@ -16,12 +16,12 @@ Báo cáo xác định điều kiện lựa chọn và câu hỏi kiểm chứng
 
 | Điều kiện | Trạng thái phiên bản 1.0 |
 | --- | --- |
-| Phân tích đủ năm phương pháp, cơ chế và bảy trục | Đã điền mục 3; review nội dung ngày 2026-11-13. |
+| Phân tích đủ năm phương pháp, cơ chế và bảy trục | Đã điền mục 3. |
 | Hai bảng tổng hợp truy về phân tích | Đã điền mục 4; không phải benchmark. |
 | Đối chiếu nhu cầu đã xác nhận | Dùng SR1-SR8 và M1-M6 thuộc Phần 3 bước 0. |
 | Có nguồn gốc và trích ngắn | Có danh mục S01-S26, bảng 16 trích ngắn; chưa chạy kiểm nguồn tự động. |
 | Có tiêu chí và câu hỏi mở | Đã điền mục 6-7; không đặt trọng số hoặc ngưỡng mới. |
-| Review con người, thử nghiệm và nghiệm thu | Review con người xong ngày 2026-11-13; thử nghiệm và nghiệm thu lab chưa có. |
+| Thử nghiệm và nghiệm thu | Chưa có; cần lab. |
 
 ## 1. Mục đích và phạm vi so sánh
 
@@ -29,7 +29,7 @@ Báo cáo xác định điều kiện lựa chọn và câu hỏi kiểm chứng
 
 Báo cáo giúp Hiệp và Kevin trả lời mỗi phương pháp cung cấp gì, phải bổ sung gì và trong điều kiện nào đáng khảo sát.
 Đây là đầu ra bước 02 Compare, không thay bước Question hoặc quyết định Propose/ADR.
-Chương trình yêu cầu so sánh ưu/nhược, mở rộng, chi phí, bảo mật, bảo trì và độ phù hợp trước khi chọn phương án ([S01](../program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt), trang 5, dòng 151-197).
+Chương trình yêu cầu so sánh ưu/nhược, mở rộng, chi phí, bảo mật, bảo trì và độ phù hợp trước khi chọn phương án ([S01](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt), trang 5, dòng 151-197).
 
 ### 1.2. Đơn vị so sánh
 
@@ -82,7 +82,7 @@ Không đưa giá tiền ví dụ vì chưa chốt cấu hình Lab và chưa c�
 | M5 - vận hành | Service, cấu hình, deploy steps, điểm sửa policy | Chưa kiểm kê triển khai. |
 | M6 - tái dùng | Người-giờ, dòng code, connector phải sửa khi thêm agent | Chưa đo; gate nguồn: 0 connector sửa. |
 
-100 lần, tăng 10 lần và hai gate trên là từ [S02, mục 3.2](../reports/buoc-0-van-de-mo-hinh-he-thong-va-yeu-cau.md#32-yếu-tố-đánh-giá), không phải ngưỡng mới.
+100 lần, tăng 10 lần và hai gate trên là từ [S02, mục 3.2](../00-frame/prd-ai-platform.md#32-yếu-tố-đánh-giá), không phải ngưỡng mới.
 Latency, success rate và cost mục tiêu vẫn chờ baseline.
 
 ## 3. Phân tích từng phương pháp
@@ -111,7 +111,7 @@ Tính cả lỗi/retry vào chi phí trên thay đổi thành công; **Lab chưa
 
 **f. Bảo mật.**
 `strict: true` ràng buộc function schema theo giới hạn OpenAI, không xác thực actor hay cấp quyền sửa task.
-App phải kiểm actor/action/resource, lọc row/field và buộc approval tại nơi thực thi ([S03](https://platform.openai.com/docs/guides/function-calling), Strict mode; [S02, SR1-SR5](../reports/buoc-0-van-de-mo-hinh-he-thong-va-yeu-cau.md#31-yêu-cầu-bắt-buộc)).
+App phải kiểm actor/action/resource, lọc row/field và buộc approval tại nơi thực thi ([S03](https://platform.openai.com/docs/guides/function-calling), Strict mode; [S02, SR1-SR5](../00-frame/prd-ai-platform.md#31-yêu-cầu-bắt-buộc)).
 
 **g. Bảo trì - suy luận.**
 API nghiệp vụ đổi thì adapter/test contract đổi; provider đổi có thể ảnh hưởng schema/dispatch, không nhất thiết policy nếu tách tốt.
@@ -306,7 +306,7 @@ Mọi tổng chi phí, throughput, latency và độ ổn định Lab vẫn chư
 
 ## 5. Đối chiếu với nhu cầu của hệ thống
 
-Từng yêu cầu dưới đây lấy từ [S02, Phần 3, mục 3.1, dòng 220-229](../reports/buoc-0-van-de-mo-hinh-he-thong-va-yeu-cau.md#31-yêu-cầu-bắt-buộc).
+Từng yêu cầu dưới đây lấy từ [S02, Phần 3, mục 3.1, dòng 220-229](../00-frame/prd-ai-platform.md#31-yêu-cầu-bắt-buộc).
 SR áp cho tổ hợp, không đòi từng cơ chế đứng riêng đáp ứng tất cả; **chưa SR nào được đánh dấu đạt**.
 
 | Yêu cầu | Đóng góp cơ chế | App/hệ thống đích còn phải làm | Nguồn và phép kiểm chưa thực hiện |
@@ -339,7 +339,7 @@ Gate áp cho phương án triển khai sau này, không loại một cơ chế v
 | Trace nối quyết định-effect-cost | SR7 | Run có lỗi/resume, đối chiếu usage | Chưa đủ giải trình/đánh giá. |
 | Agent thứ hai reuse quyền riêng | SR8 | Hai quyền khác, không sửa connector | Chưa có reusable asset an toàn. |
 
-M2 gate 0 duplicate/0 lost và M6 gate 0 connector sửa giữ đúng [S02, mục 3.2](../reports/buoc-0-van-de-mo-hinh-he-thong-va-yeu-cau.md#32-yếu-tố-đánh-giá), không tuyên bố đạt chỉ vì có key/interface.
+M2 gate 0 duplicate/0 lost và M6 gate 0 connector sửa giữ đúng [S02, mục 3.2](../00-frame/prd-ai-platform.md#32-yếu-tố-đánh-giá), không tuyên bố đạt chỉ vì có key/interface.
 
 ### 6.2. Tiêu chí phân biệt
 
@@ -411,8 +411,8 @@ Nguồn live chưa có snapshot/commit; MCP ghim 2026-07-28.
 
 | Mã | Nguồn gốc | Phiên bản/phạm vi và vị trí |
 | --- | --- | --- |
-| S01 | [Chương trình TXT](../program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt), [PDF](../program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.pdf) | Trang 5-6, dòng 151-240; Compare/Track 01/Lab/nghiệm thu. |
-| S02 | [Bước 0, Phần 3](../reports/buoc-0-van-de-mo-hinh-he-thong-va-yeu-cau.md#phần-3---yêu-cầu-và-đánh-giá) | Chỉ Phần 3 đã review, dòng 203-253; không dùng Phần 2. |
+| S01 | [Chương trình TXT](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt) | Trang 5-6, dòng 151-240; Compare/Track 01/Lab/nghiệm thu. |
+| S02 | [Bước 0, Phần 3](../00-frame/prd-ai-platform.md#phần-3---yêu-cầu-và-đánh-giá) | Chỉ Phần 3 đã review, dòng 203-253; không dùng Phần 2. |
 | S03 | [OpenAI Function Calling](https://platform.openai.com/docs/guides/function-calling) | Live; tool flow, strict, formatting, token usage. |
 | S04 | [MCP Architecture](https://modelcontextprotocol.io/specification/2026-07-28/architecture) | 2026-07-28; components/stateless/capabilities/design. |
 | S05 | [MCP Tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) | 2026-07-28; list/call/schema/state/errors/security. |

@@ -6,7 +6,7 @@ AI Operations Connector Lab dự kiến có hai hệ thống giả lập: danh b
 Một agent cần đọc dữ liệu, kiểm tra quyền, đề xuất cập nhật và chỉ ghi sau khi được xác nhận.
 Lab cũng cần so sánh hai cách tích hợp và chứng minh agent thứ hai có thể dùng lại công cụ.
 
-Tài liệu này so sánh năm phương pháp cần khảo sát theo [chương trình R&D, trang 5-6](../program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt).
+Tài liệu này so sánh năm phương pháp cần khảo sát theo [chương trình R&D, trang 5-6](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt).
 Chúng giải quyết những vai trò khác nhau, không nhất thiết là năm kiến trúc hoàn chỉnh thay thế nhau.
 Ví dụ, một phương án có thể dùng MCP để cung cấp tool và dùng workflow để quản lý các bước chờ duyệt.
 
@@ -142,7 +142,7 @@ Khi so sánh các phương án, ưu tiên độ đúng, sự đơn giản, độ
 
 ## 5. Nguồn đọc thêm
 
-- [Chương trình R&D, trang 5-6](../program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt): framework, năm phương pháp và mục tiêu Lab.
+- [Chương trình R&D, trang 5-6](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt): framework, năm phương pháp và mục tiêu Lab.
 - [OpenAI - Function calling](https://platform.openai.com/docs/guides/function-calling): ví dụ luồng model đề xuất gọi function và ứng dụng thực thi.
 - [Model Context Protocol - Architecture](https://modelcontextprotocol.io/docs/learn/architecture): kiến trúc MCP client/server và các khả năng liên quan.
 - [AWS - What is Step Functions?](https://docs.aws.amazon.com/step-functions/latest/dg/welcome.html): ví dụ về workflow engine.

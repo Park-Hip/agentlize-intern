@@ -6,9 +6,7 @@
 - Ngày cập nhật: 2026-11-14.
 - Vị trí: bước 03 Question, sau Compare và trước Propose.
 - Phạm vi: AI Operations Connector Lab với danh bạ nhân viên và danh sách công việc giả lập.
-- Trạng thái: cấu trúc sửa lại đã được người sở hữu duyệt trong hội thoại; nội dung phiên bản này chưa review.
 
-> **CHƯA REVIEW NỘI DUNG.**
 > Đây là kế hoạch kiểm chứng, không phải kết quả thực nghiệm, quyết định chọn kiến trúc hay bộ test đã chạy.
 
 ## 1. Mục đích và cách sử dụng
@@ -203,7 +201,7 @@ Khi thiết kế POC, mỗi dòng sẽ được chuyển thành các ca cụ th�
 ## 4. Cách đo và sử dụng bằng chứng
 
 Tuần 1 cần thiết kế cách đo, chưa cần có số đo.
-Các chỉ số dưới đây nối trực tiếp với [Bước 0, mục 3.2](../reports/buoc-0-van-de-mo-hinh-he-thong-va-yeu-cau.md#32-yếu-tố-đánh-giá).
+Các chỉ số dưới đây nối trực tiếp với [Bước 0, mục 3.2](../00-frame/prd-ai-platform.md#32-yếu-tố-đánh-giá).
 
 | Đại lượng | Cách đo dự kiến | Cách sử dụng |
 | --- | --- | --- |
@@ -250,9 +248,8 @@ Nếu sau này đề xuất thêm phân vai hoặc phát sự kiện sau ghi, c�
 
 ## Tài liệu đầu vào
 
-1. [Bước 02 - Bảng so sánh và tiêu chí lựa chọn](07-khung-bang-so-sanh-va-tieu-chi-lua-chon.md): cơ sở về vai trò, đánh đổi và câu hỏi mở; không phải kết quả lab.
-2. [Bước 0 - Phần 3: Yêu cầu và đánh giá](../reports/buoc-0-van-de-mo-hinh-he-thong-va-yeu-cau.md#phần-3---yêu-cầu-và-đánh-giá): yêu cầu SR1-SR8 và cách đo M1-M6; không dùng Phần 2 đang chờ review làm kiến trúc bắt buộc.
-3. [Sổ trạng thái review](../REVIEW-STATUS.md): trạng thái của các tài liệu trong repository.
-4. Yêu cầu và hướng sửa được người sở hữu duyệt trong hội thoại ngày 2026-11-14: phạm vi Doc 3, cách trình bày và mối liên hệ với Propose.
+1. [Bước 02 - Bảng so sánh và tiêu chí lựa chọn](../02-compare/comparison-framework.md): cơ sở về vai trò, đánh đổi và câu hỏi mở; không phải kết quả lab.
+2. [Bước 0 - Phần 3: Yêu cầu và đánh giá](../00-frame/prd-ai-platform.md#phần-3---yêu-cầu-và-đánh-giá): yêu cầu SR1-SR8 và cách đo M1-M6; không dùng Phần 2 đang chờ review làm kiến trúc bắt buộc.
+3. Yêu cầu và hướng sửa được người sở hữu duyệt trong hội thoại ngày 2026-11-14: phạm vi Doc 3, cách trình bày và mối liên hệ với Propose.
 
-Các giả thuyết và kịch bản mới trong tài liệu này là đề xuất cần review và kiểm chứng, không phải bằng chứng đã thu được.
+Các giả thuyết và kịch bản mới trong tài liệu này là đề xuất cần kiểm chứng, không phải bằng chứng đã thu được.

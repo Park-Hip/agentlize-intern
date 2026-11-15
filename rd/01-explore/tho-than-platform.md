@@ -1,8 +1,7 @@
-> **CHƯA REVIEW - KHÔNG TIN HOÀN TOÀN.** Bản nháp v0.1 do agent soạn, chưa được Phạm Bách Hiệp review.
+> Bản nháp v0.1 do agent soạn.
 > Toàn bộ quan sát dưới đây làm ngày 2026-11-13, không đăng nhập, chỉ dùng dữ liệu công khai mà máy chủ trả về.
 > Hai mươi mốt câu trích đã được kiểm chéo bằng script, kết quả 21 PASS, 0 MISS, 0 BLOCKED; lệnh và kết quả ghi ở mục 11.
 > Không có số đo hiệu năng, không chọn kiến trúc, không phải ADR.
-> Trạng thái: chưa review; `docs/REVIEW-STATUS.md` hiện không có trong worktree.
 
 # Thổ Thần: cùng một cái tên, bốn thứ khác nhau
 
@@ -12,7 +11,7 @@ Owner: Phạm Bách Hiệp. Ngày: 2026-11-13. Revision: 0.1.
 
 Câu hỏi của file này hẹp: khi repo này nói "chạy trên Thổ Thần AI", thực thể nào đang thực sự tồn tại, cái nào chạy thật, cái nào chỉ là tài liệu, và có chỗ nào cắm được một tool hoặc MCP server của lab vào hay không.
 
-Nguồn gốc câu hỏi: [`../context/appota-ai-ecosystem.md`](../context/appota-ai-ecosystem.md) đặt Thổ Thần AI vào vai AI Execution Plane, nhưng ghi rõ đó là bản chép từ ảnh chụp chưa ai xác nhận.
+Nguồn gốc câu hỏi: [`../context/appota-ai-ecosystem.md`](../../docs/context/appota-ai-ecosystem.md) đặt Thổ Thần AI vào vai AI Execution Plane, nhưng ghi rõ đó là bản chép từ ảnh chụp chưa ai xác nhận.
 Báo cáo MCP để mở ba câu hỏi đúng vào chỗ này: Tool/MCP Runtime đã có chưa, duyệt người trước khi ghi nằm ở đâu, và telemetry có đủ trường không.
 
 Ngoài phạm vi: chọn nơi chạy cho lab, xếp hạng phương án, báo giá, đo độ trễ.
@@ -27,7 +26,7 @@ Sáu bước, tất cả chạy lại được:
 3. Tải năm ảnh trong `screenshots/` của manifest và xem trực tiếp.
 4. Đọc bộ tài liệu ở `docs-srd.appota.ai/tho-than`: `sitemap-pages.xml`, `llms.txt`, `llms-full.txt` (78.220 byte), và từng trang `.md`.
 5. Gửi yêu cầu JSON-RPC vào endpoint MCP của bộ tài liệu để bắt tay và liệt kê tool.
-6. Viết script `checks/verify-sources-09.sh` mở lại từng nguồn và so khớp nguyên văn câu trích, gồm một hàm riêng cho redirect, một cho header, một cho bắt tay MCP.
+6. Viết script `checks/tho-than-platform.sh` mở lại từng nguồn và so khớp nguyên văn câu trích, gồm một hàm riêng cho redirect, một cho header, một cho bắt tay MCP.
 
 Không tạo tài khoản, không đăng nhập, không gửi dữ liệu nào vào hệ thống.
 
@@ -273,8 +272,7 @@ GET vào cùng đường dẫn trả 405, nên một lần kiểm bằng trình 
 Kiểm chéo tự động:
 
 ```bash
-# Script đã bị xóa khỏi worktree; lệnh giữ lại làm bản ghi
-bash docs/research/checks/verify-sources-09.sh
+bash rd/01-explore/checks/tho-than-platform.sh
 ```
 
 Kết quả ngày 2026-11-13: 21 PASS, 0 MISS, 0 BLOCKED, mã thoát 0.

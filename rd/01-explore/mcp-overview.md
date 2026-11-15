@@ -7,7 +7,7 @@
 **Mentor:** Kevin.
 **Ngày:** 2026-11-12.
 **Revision:** 0.1.
-**Trạng thái:** bản nháp do agent soạn, chưa được review.
+**Trạng thái:** bản nháp do agent soạn.
 
 **Phạm vi:** tổng hợp những gì đã research về MCP trong repo, đối chiếu lại với đặc tả gốc, viết thành một tài liệu đọc được cho mentor.
 **Không phải:** ADR, quyết định chọn stack, hoặc bản thay thế báo cáo chính thức ngày 11/11/2026.
@@ -41,10 +41,10 @@ Báo cáo dùng năm nhãn để người đọc biết một câu được ki�
 | `[Spec]` | Câu lấy từ đặc tả MCP 2026-07-28, JSON-RPC, JSON Schema, OAuth hoặc RFC. | Mở URL ở mục 13, đối chiếu đúng revision. |
 | `[Số đo]` | Con số lấy từ nghiên cứu hoặc tài liệu vendor, có URL và ngày truy cập. | Mở lại nguồn, đọc đúng đoạn chứa số. |
 | `[Khuyến nghị]` | Kết luận kỹ thuật do người viết tổng hợp, không phải câu chữ của đặc tả. | Kiểm bằng lập luận và thực nghiệm trên lab. |
-| `[Nội bộ]` | Nội dung lấy từ bản nháp trong repo, chưa review, không dùng làm bằng chứng. | Chỉ dùng như giả thuyết hoặc ghi chú thiết kế. |
+| `[Nội bộ]` | Nội dung lấy từ bản nháp trong repo, không dùng làm bằng chứng. | Chỉ dùng như giả thuyết hoặc ghi chú thiết kế. |
 | `[Chưa xác minh]` | Chưa mở được nguồn gốc hoặc phụ thuộc môi trường chưa kiểm. | Phải kiểm trước khi dùng trong quyết định. |
 
-Mọi tài liệu Markdown trong `docs/` hiện là bản nháp chưa review, trừ báo cáo chính thức ngày 11/11/2026.
+Mọi tài liệu Markdown trong `rd/` là bản nháp, trừ báo cáo chính thức ngày 11/11/2026.
 Vì vậy báo cáo này không trích số liệu từ các bản nháp nội bộ như bằng chứng.
 Các bản nháp chỉ được dùng để xác định câu hỏi, cấu trúc và những gì cần đối chiếu lại.
 
@@ -66,10 +66,10 @@ Các bản nháp chỉ được dùng để xác định câu hỏi, cấu trúc
 
 | Nguồn nội bộ | Nội dung chính | Cách dùng trong báo cáo |
 | --- | --- | --- |
-| `docs/artifacts/mcp-ky-thuat.html` | Sổ tay MCP 13 mục: kiến trúc, wire, transport, tool contract, MRTR, auth, bảo mật, test. | Dùng làm khung; các claim về giao thức đã đối chiếu lại với đặc tả, phần thiết kế lab giữ nhãn `[Nội bộ]` hoặc `[Khuyến nghị]`. |
-| `docs/artifacts/mcp-request-flow.html` | Sequence diagram cho một yêu cầu ghi có phê duyệt và vị trí control plane. | Dùng cho mục 2 và mục 6. |
+| `rd/01-explore/mcp-technical-guide.html` | Sổ tay MCP 13 mục: kiến trúc, wire, transport, tool contract, MRTR, auth, bảo mật, test. | Dùng làm khung; các claim về giao thức đã đối chiếu lại với đặc tả, phần thiết kế lab giữ nhãn `[Nội bộ]` hoặc `[Khuyến nghị]`. |
+| `rd/01-explore/mcp-request-flow.html` | Sequence diagram cho một yêu cầu ghi có phê duyệt và vị trí control plane. | Dùng cho mục 2 và mục 6. |
 | `docs/research/04-khao-sat-5-mo-hinh.md` (đã xóa) | Định vị năm mô hình theo tầng và tiêu chí riêng từng tầng. | Dùng cho mục 1.3; bản nháp đã bị xóa khỏi worktree. |
-| `docs/reports/buoc-0-van-de-mo-hinh-he-thong-va-yeu-cau.md` | Vấn đề trung tâm, SR1-SR8, M1-M6. | Dùng cho mục 11; đây là tài liệu đang review lại. |
+| `rd/00-frame/prd-ai-platform.md` | Vấn đề trung tâm, SR1-SR8, M1-M6. | Dùng cho mục 11. |
 | `.lavish/research/fc-lane-1-spec.md`, `fc-lane-2-practice.md`, `fc-lane-3-risk.md` | Ghi chú research về function calling, tool design và rủi ro. | Đối chiếu chéo mục 1.5 và mục 8; không phải tài liệu của repo. |
 | `docs/context/appota-ai-ecosystem.md` | Sơ đồ hệ sinh thái AI Appota và các câu hỏi về Tool/MCP Runtime. | Dùng cho mục 11.3 và 11.4; chưa xác nhận với Kevin. |
 
@@ -903,11 +903,11 @@ Chúng được dùng để xác định câu hỏi, cấu trúc và những gì
 
 | Tài liệu | Trạng thái | Dùng cho |
 | --- | --- | --- |
-| [`../reports/buoc-0-van-de-mo-hinh-he-thong-va-yeu-cau.md`](../reports/buoc-0-van-de-mo-hinh-he-thong-va-yeu-cau.md) | Đang review | SR1-SR8, vấn đề trung tâm, định nghĩa M1-M6. |
-| [`../artifacts/mcp-ky-thuat.html`](../artifacts/mcp-ky-thuat.html) | Chưa review | Cấu trúc sổ tay MCP, checklist, gợi ý thiết kế lab. |
-| [`../artifacts/mcp-request-flow.html`](../artifacts/mcp-request-flow.html) | Chưa review | Luồng request và vị trí control plane. |
+| [`../00-frame/prd-ai-platform.md`](../00-frame/prd-ai-platform.md) | Nguồn yêu cầu | SR1-SR8, vấn đề trung tâm, định nghĩa M1-M6. |
+| [`mcp-technical-guide.html`](mcp-technical-guide.html) | Sổ tay | Cấu trúc sổ tay MCP, checklist, gợi ý thiết kế lab. |
+| [`mcp-request-flow.html`](mcp-request-flow.html) | Sơ đồ | Luồng request và vị trí control plane. |
 | `../research/04-khao-sat-5-mo-hinh.md` (đã xóa) | Đã xóa | Cách định vị năm mô hình theo tầng. |
-| [`../context/appota-ai-ecosystem.md`](../context/appota-ai-ecosystem.md) | Chưa review | Câu hỏi mở về Tool/MCP Runtime và AgentLize. |
+| [`../../docs/context/appota-ai-ecosystem.md`](../../docs/context/appota-ai-ecosystem.md) | Ngữ cảnh | Câu hỏi mở về Tool/MCP Runtime và AgentLize. |
 | `.lavish/research/fc-lane-1-spec.md`, `fc-lane-2-practice.md`, `fc-lane-3-risk.md` | File tạm, không tính vào repo | Ghi chú research về function calling, dùng để đối chiếu chéo. |
 
 ### 13.3. Điều chưa xác minh

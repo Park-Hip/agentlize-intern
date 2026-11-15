@@ -4,9 +4,9 @@ Guidance for agents working in this repository.
 
 ## 1. Context
 
-R&amp;D repository for **AgentLize Next Gen AI 2026** (Appota Group), an 8 week internship program starting 09/11/2026.
+R&D repository for **AgentLize Next Gen AI 2026** (Appota Group), an 8 week internship program starting 09/11/2026.
 
-- Chosen track: **Track 01 - AI Platform &amp; MCP**. The other two tracks are out of scope here.
+- Chosen track: **Track 01 - AI Platform & MCP**. The other two tracks are out of scope here.
 - Central question: how can AI connect to, use and coordinate business tools and systems in a way that is safe, observable and reusable?
 - Delivery vehicle: the **AI Operations Connector Lab** mini project. Two simulated systems (an employee directory and a task list), one agent that reads data, checks permission, proposes an update and only writes after confirmation, plus two integration approaches built side by side for comparison.
 
@@ -14,7 +14,7 @@ Authoritative sources:
 
 - `docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt`: extracted text for fast grep and citation.
 
-Read the  TXT for the full acceptance criteria, the R&amp;D framework and the week by week plan.
+Read the  TXT for the full acceptance criteria, the R&D framework and the week by week plan.
 
 ## 2. Current state
 
@@ -61,13 +61,26 @@ Every artifact needs an owner, a definition of done and verifiable evidence.
 ## 6. Commands
 
 Render a Markdown document to A4 PDF. Requires Node/npx, Python 3, and Chrome or Edge.
-The PDF is written next to the Markdown file unless an output path is given.
+The PDF is written to `dist/<name>.pdf` (git-ignored) unless an output path is given.
 
 ```
-bash docs/render/render.sh docs/research/06-so-do-giai-phap.md
+bash tools/render/render.sh rd/04-propose/solution-candidates.md
 ```
 
-The step 01 source-check script (`docs/research/checks/verify-sources-08.sh`) is not in the working tree, so the 68 quote checks cannot be rerun until it is restored.
+Check that every relative link in the docs resolves, no em dash slipped in, and file names follow section 8.
+Run it before every commit.
+
+```
+python tools/check-docs.py
+```
+
+Re-run the source quote checks (they open the cited URLs, so they need network).
+
+```
+bash rd/00-frame/checks/prd-quotes.sh
+bash rd/01-explore/checks/real-system-architectures.sh
+bash rd/01-explore/checks/tho-than-platform.sh
+```
 
 ## 7. Writing conventions
 
@@ -92,5 +105,39 @@ Write so the non-technical reader gets the point and the engineer loses nothing.
 - **No talking about the document itself.** Cut sentences such as "phần này không trả lời...", "đọc như giả thuyết", "sai phạm trù". Say the point directly.
 - **Hedge once, not everywhere.** Put the status (draft, not measured, not decided) on one line at the top. Inside the body, use "có thể" or "tùy" only when the condition is named.
 - **Every section ends with "so what".** A conclusion, a decision, or a concrete next check. A section that only lists considerations is not finished.
-- **One set of criteria across documents.** All comparisons and proposals judge against the same requirements (currently SR1-SR8 in `docs/reports/prd-ai-platform.md`). Do not invent a parallel list. If the set changes, update it at the source.
+- **One set of criteria across documents.** All comparisons and proposals judge against the same requirements (currently SR1-SR8 in `rd/00-frame/prd-ai-platform.md`). Do not invent a parallel list. If the set changes, update it at the source.
 - **Readability check before submitting.** A non-technical reader should be able to read "Đọc nhanh" in 2 minutes and answer the three questions above. An engineer should be able to trace every claim to a source, a number or a test.
+
+## 8. Repository layout and naming
+
+```
+README.md        map of the repo
+AGENTS.md        this file
+docs/
+  program/       the official program document, read only
+  context/       company context (ecosystem, track comparison)
+  adr/           one file per decision: adr-0001-<slug>.md
+rd/              the R&D work, one folder per step of section 3
+  00-frame/      problem, users, requirements (PRD)
+  01-explore/    surveys of existing solutions and real systems
+  02-compare/    trade-off tables and selection criteria
+  03-question/   open questions and testable hypotheses
+  04-propose/    candidate solutions, the chosen approach
+  05-build/ 06-evaluate/ 07-package/   created when the step starts
+  <step>/checks/ scripts that re-verify claims made in that step
+lab/             POC code, created after the first ADR
+submitted/       PDFs handed in to the program, never edited afterwards
+tools/           render and doc-check scripts
+dist/            generated PDFs (git-ignored)
+scratch/         agent working files and raw captures (git-ignored)
+```
+
+Rules:
+
+- Put a document in the folder of the step it belongs to. The step folder carries the order, so file names carry no number.
+- File names are lowercase ASCII kebab-case with a short English slug, for example `option-comparison.md`. Content stays Vietnamese.
+- Two exceptions allow a number or date: `adr-0001-<slug>.md` (never renumbered) and `YYYY-MM-DD-<slug>.pdf` in `submitted/` (the submission date).
+- No version or draft markers in file names (`v2`, `final`, `old`). Version history is git. A document that is replaced is deleted, not kept beside the new one.
+- A summary page for a document sits next to it with the same slug (`appota-cases.md` and `appota-cases.html`).
+- Every claim that rests on an external quote has a script in `<step>/checks/` that can re-verify it.
+- Generated files are not committed, except a PDF that was handed in: copy it to `submitted/` at that moment.

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Render a Markdown document to A4 PDF.
-# Usage: bash docs/render/render.sh <file.md> [out.pdf]
+# Usage: bash tools/render/render.sh <file.md> [out.pdf]
+# Default output: dist/<name>.pdf at the repo root (dist/ is git-ignored).
 # Requires: node/npx (marked is fetched on first run), Python 3, Chrome or Edge.
 set -euo pipefail
 # Unicode file names must survive the Python calls below on Windows consoles (cp1252).
@@ -9,13 +10,14 @@ export PYTHONIOENCODING=utf-8
 
 SRC="${1:-}"
 if [ -z "$SRC" ]; then
-  echo "usage: bash docs/render/render.sh <file.md> [out.pdf]" >&2
+  echo "usage: bash tools/render/render.sh <file.md> [out.pdf]" >&2
   exit 2
 fi
 [ -f "$SRC" ] || { echo "not found: $SRC" >&2; exit 1; }
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OUT="${2:-${SRC%.md}.pdf}"
+ROOT="$(cd "$DIR/../.." && pwd)"
+OUT="${2:-$ROOT/dist/$(basename "${SRC%.md}").pdf}"
 TMP_HTML="${SRC%.md}.render.html"
 
 command -v npx >/dev/null 2>&1 || { echo "npx not found" >&2; exit 1; }

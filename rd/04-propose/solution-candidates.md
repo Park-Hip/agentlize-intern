@@ -1,6 +1,6 @@
 # Sơ đồ giải pháp ứng viên
 
-Trạng thái: bản nháp, chưa review và chưa chọn kiến trúc.
+Trạng thái: bản nháp, chưa chọn kiến trúc.
 
 ## 5.1. Ứng viên A - Gọi hàm trực tiếp
 
@@ -287,9 +287,8 @@ C không loại trừ B, nên cần chốt tổ hợp cụ thể và điều ki�
 ## 9. Trạng thái và quản lý tài liệu
 
 - Chủ sở hữu: Phạm Bách Hiệp.
-- Người review: chưa xác định.
-- Trạng thái: bản nháp, chưa review.
-- Định nghĩa hoàn thành: các sơ đồ và giả định được người review xác nhận phạm vi; câu hỏi mở có cách kiểm chứng; kết quả so sánh và quyết định kiến trúc được ghi ở tài liệu tương ứng sau khi có bằng chứng.
+- Trạng thái: bản nháp.
+- Định nghĩa hoàn thành: các sơ đồ và giả định được xác nhận phạm vi; câu hỏi mở có cách kiểm chứng; kết quả so sánh và quyết định kiến trúc được ghi ở tài liệu tương ứng sau khi có bằng chứng.
 - Bằng chứng: sơ đồ và kịch bản trong tài liệu này là đề xuất thiết kế, chưa có kết quả chạy hoặc đo.
-- Nguồn căn cứ: [yêu cầu chương trình](../program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt) và các tiêu chí, điều kiện cần kiểm chứng được ghi trực tiếp ở mục 8.
+- Nguồn căn cứ: [yêu cầu chương trình](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt) và các tiêu chí, điều kiện cần kiểm chứng được ghi trực tiếp ở mục 8.
 - Cập nhật 2026-11-13: tạo bản nháp cho ba ứng viên, luồng chung, bảng đối chiếu và câu hỏi kiểm chứng.

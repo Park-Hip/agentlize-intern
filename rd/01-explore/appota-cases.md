@@ -8,7 +8,7 @@ Mentor: Kevin.
 Ngày: 2026-11-10.
 Trạng thái: research note, chưa phải ADR.
 
-Bản tóm tắt một trang cho phần cần chú ý: [`../artifacts/appota-cases-attention.html`](../artifacts/appota-cases-attention.html).
+Bản tóm tắt một trang cho phần cần chú ý: [`appota-cases.html`](appota-cases.html).
 
 ## 0. Tóm tắt
 
@@ -774,7 +774,7 @@ Nguồn 18 là tệp trong repo, không phải nguồn web.
 15. [Appota - job CSKH game](https://appota.com/en/careers/jobs/8699a842-7862-4bbb-8283-29fd9cf8215e). Phạm vi công việc CSKH. E3.
 16. [Gamota - hướng dẫn giftcode](https://ahxd.gamota.com/huong-dan-nhan-va-su-dung-giftcode-tai-trang-gc-gamota-com/). Cổng đổi mã theo game, server, nhân vật. E2.
 17. [Hướng dẫn giftcode bên thứ ba](https://download.vn/tong-hop-giftcode-va-cach-nhap-code-tho-san-quy-gamota-59830). Quy tắc một mã một tài khoản. E3.
-18. [Chương trình R&D 8 tuần](../program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt). Track 01, năm mô hình, tiêu chí nghiệm thu, dòng 200 đến 240.
+18. [Chương trình R&D 8 tuần](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt). Track 01, năm mô hình, tiêu chí nghiệm thu, dòng 200 đến 240.
 
 ## 12. Bằng chứng kiểm lại được
 
@@ -789,7 +789,7 @@ python -c "import csv; rows=list(csv.DictReader(open('docs/research/appota-test-
 python -c "import csv; rows=list(csv.DictReader(open('docs/research/appota-test-matrix.csv', encoding='utf-8'))); print(sum(1 for r in rows if r['tier']=='core'))"
 
 # Không có em dash trong tài liệu
-grep -n $'\u2014' docs/research/01-appota-cases.md || echo "khong co em dash"
+grep -n $'\u2014' rd/01-explore/appota-cases.md || echo "khong co em dash"
 ```
 
 Khi POC bắt đầu, mỗi nhóm test phải có một lệnh chạy duy nhất và in ra bảng đạt hoặc không đạt.
