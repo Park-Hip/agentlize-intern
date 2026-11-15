@@ -2,7 +2,7 @@
 > Mọi câu trích đều có URL trong mục 8, nhưng chỉ những dòng ghi `có` ở cột "tự kiểm" mới được tôi mở lại và khớp nguyên văn.
 > Trong 65 nguồn, 47 nguồn đã được mở lại; 1 trang bị chặn và bị loại khỏi kết luận.
 > Chưa có số đo nào trên lab, chưa chọn kiến trúc, không phải ADR.
-> Trạng thái: [`../REVIEW-STATUS.md`](../REVIEW-STATUS.md).
+> Trạng thái: chưa review; `docs/REVIEW-STATUS.md` hiện không có trong worktree.
 
 # Kiến trúc ứng viên rút từ hệ thống thật
 
@@ -13,8 +13,8 @@ Câu hỏi của file này hẹp: khi một agent phải đọc dữ liệu nghi
 Phạm vi: kiến trúc của hệ thống thật và các tổ hợp kiến trúc rút ra từ đó.
 Ngoài phạm vi: chọn sản phẩm, chọn model, đo hiệu năng, viết ADR.
 
-File này không thay thế [`05-kien-truc-tich-hop-ai-operations.md`](05-kien-truc-tich-hop-ai-operations.md).
-File 05 giữ vai trò khung đo (tám ràng buộc, sáu đại lượng M1-M6).
+File này không thay thế `05-kien-truc-tich-hop-ai-operations.md`, đã bị xóa khỏi worktree.
+File 05 cũ giữ vai trò khung đo (tám ràng buộc, sáu đại lượng M1-M6).
 File này bổ sung thứ mà 05 thiếu: trục so sánh lấy từ hệ thống thật, không lấy từ suy luận.
 
 ## 1. Cách làm
@@ -33,7 +33,7 @@ Mỗi nhánh bị ràng buộc sáu luật: chỉ nguồn gốc, mỗi khẳng �
 
 Tôi kiểm chéo lại 51 câu và khẳng định trọng yếu bằng `curl` cộng so khớp chuỗi, không tin bản tóm tắt của nhánh.
 Kết quả: 50 khớp nguyên văn, 1 trang trả về `Access Denied` và bị loại khỏi mọi kết luận (Salesforce, S52).
-Lệnh kiểm nằm ở [`checks/verify-sources.sh`](checks/verify-sources.sh), chạy lại được và tự in bảng kết quả.
+Lệnh kiểm nằm ở `checks/verify-sources.sh`; script đã bị xóa khỏi worktree nên không chạy lại được, bảng kết quả dưới đây chỉ là bản ghi.
 
 Ba điều cố ý không làm:
 
@@ -90,7 +90,7 @@ Hai kết luận rút ra:
 2. Chống ghi trùng không đi kèm cơ chế duyệt ở bất kỳ hệ thống nào.
    Nó chỉ có ở tầng thấp hơn: idempotency key ở HTTP, outbox ở DB, hoặc dedupe theo id sự kiện ở consumer.
 
-Điều này có nghĩa ràng buộc SR4 của file 05, "hash của đúng tham số", không mua được từ sản phẩm.
+Điều này có nghĩa ràng buộc SR4 của file 05 cũ, "hash của đúng tham số", không mua được từ sản phẩm.
 Nó phải nằm trong executor do lab tự viết, và đây là một trong ít chỗ lab thật sự phải tự làm.
 
 ### 3.2. Nơi duyệt và nơi kiểm quyền là hai chỗ khác nhau, và gateway không phải chỗ duyệt
@@ -207,11 +207,11 @@ Luồng: người dùng lấy token; token được đổi ở mỗi hop qua tok
 - Yếu: cần identity provider thật; debug khó vì một hành động có nhiều danh tính; lab dùng dữ liệu giả lập nên phải tự dựng.
 - Hỏng ở đâu: nếu một hop dùng credential dịch vụ thay vì token uỷ quyền, chuỗi đứt và mọi tầng sau mất thông tin người yêu cầu.
 
-### 4.1. Quan hệ với ba kiến trúc A, B, C của file 05
+### 4.1. Quan hệ với ba kiến trúc A, B, C của file 05 cũ
 
 Đối chiếu thẳng:
 
-| File 05 | Thực chất là gì theo file này |
+| File 05 cũ | Thực chất là gì theo file này |
 | --- | --- |
 | A, executor tự viết | P1, và không có tầng policy riêng |
 | B, MCP server cộng executor | P1 với bước liệt kê tool đổi từ mã ứng dụng sang `tools/list` |
@@ -221,8 +221,8 @@ Nghĩa là A và B khác nhau đúng một biến: công cụ được phát hi�
 Chúng không khác nhau ở chỗ ai quyết định cho ghi, nên so A với B không trả lời được SR1, SR2, SR4, SR5.
 Trục quyết định theo bằng chứng ở mục 3 là: nơi đặt cổng duyệt, nơi đặt phán quyết, và danh tính được mang theo kiểu gì.
 
-Đề nghị giữ nguyên file 05 làm khung đo, và dùng P1 đến P5 làm đơn vị so sánh khi viết ADR.
-Việc này không sửa file 05.
+Đề nghị giữ nguyên file 05 cũ làm khung đo, và dùng P1 đến P5 làm đơn vị so sánh khi viết ADR.
+Việc này không sửa file 05 cũ.
 
 ## 5. So sánh tradeoff
 
@@ -254,7 +254,7 @@ Mỗi giả thuyết dưới đây phải trả lời được bằng một lầ
 | H3 | Khoá idempotency đặt ở executor chống trùng tốt hơn đặt ở client | Cắt phản hồi sau khi ghi, retry 10 lần, đếm bản ghi | Đúng một bản ghi, ở mọi lần chạy |
 | H4 | Hai agent dùng chung một connector có credential tĩnh sẽ thừa hưởng quyền của nhau | Cho agent B không có quyền gọi tool mà agent A đã dùng | B bị từ chối, hoặc ta đo được là B lọt |
 | H5 | Chờ duyệt bằng durable workflow rẻ hơn giữ process khi thời gian chờ vượt vài phút | Tính chi phí 1.000 lần chờ 24 giờ theo giá niêm yết, so với giữ máy | Chênh lệch lớn hơn sai số cấu hình |
-| H6 | Thêm gateway và policy làm tăng p95 nhưng không làm tăng tỉ lệ chọn sai hàm | Đo M1 và M4 của file 05 trên cùng bộ 30 tool, có và không có tầng policy | Chênh lệch p95 nằm trong ngưỡng đặt trước ngày chạy |
+| H6 | Thêm gateway và policy làm tăng p95 nhưng không làm tăng tỉ lệ chọn sai hàm | Đo M1 và M4 của file 05 cũ trên cùng bộ 30 tool, có và không có tầng policy | Chênh lệch p95 nằm trong ngưỡng đặt trước ngày chạy |
 | H7 | Không thể đạt SR7 bằng chuẩn OTel mặc định vì thiếu định danh người dùng cuối | Dựng một trace đầy đủ rồi thử trả lời "ai đã yêu cầu" chỉ bằng attribute chuẩn | Trả lời được, hoặc phải thêm attribute tự định nghĩa |
 
 H7 là giả thuyết đáng kiểm nhất trước khi viết ADR, vì nó quyết định SR7 có cần thành phần thứ tám hay không.
@@ -379,7 +379,7 @@ Tôi mở lại thì nhận `Access Denied`, nên toàn bộ phần Salesforce b
 | 3 | Dựng policy engine tối giản đọc từ file, có test riêng | Sửa prompt không đổi quyết định, sửa policy thì đổi |
 | 4 | Chạy H1 đến H7, ghi số | Mỗi số truy được về một lệnh |
 | 5 | Viết ADR chọn P, kèm lý do các P khác thua | Mỗi lựa chọn trỏ được về một số đo, không trỏ về tài liệu |
-| 6 | Cập nhật file 05 nếu trục so sánh thay đổi | Có ghi chú revision trong file 05 |
+| 6 | Cập nhật file 05 cũ nếu trục so sánh thay đổi | Có ghi chú revision trong file 05 cũ |
 
 ## Nhật ký revision
 

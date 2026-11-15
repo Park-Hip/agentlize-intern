@@ -3,6 +3,9 @@
 # Usage: bash docs/render/render.sh <file.md> [out.pdf]
 # Requires: node/npx (marked is fetched on first run), Python 3, Chrome or Edge.
 set -euo pipefail
+# Unicode file names must survive the Python calls below on Windows consoles (cp1252).
+export PYTHONUTF8=1
+export PYTHONIOENCODING=utf-8
 
 SRC="${1:-}"
 if [ -z "$SRC" ]; then

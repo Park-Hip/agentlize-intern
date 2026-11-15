@@ -1,6 +1,5 @@
-> **CHƯA REVIEW - KHÔNG TIN HOÀN TOÀN.** Bản này do agent soạn, chưa được Phạm Bách Hiệp review.
+> **RESEARCH NOTE - KHÔNG PHẢI ADR.** Bản này do agent soạn.
 > Coi mọi số liệu, trích dẫn và kết luận trong đây là giả thuyết phải kiểm lại. Không dùng làm nguồn học, không trích dẫn lại, không ra quyết định.
-> Trạng thái: [`../REVIEW-STATUS.md`](../REVIEW-STATUS.md).
 
 # Agent Skills của AppotaPay: tầng kiến thức, không phải tầng năng lực
 
@@ -341,5 +340,5 @@ Hai lệnh cuối cần mạng và Node 18 trở lên.
 Kiểm tra tài liệu này không có em dash:
 
 ```bash
-grep -n $'\u2014' docs/research/03-appotapay-skills.md || echo "khong co em dash"
+grep -n $'\u2014' docs/research/02-appotapay-skills.md || echo "khong co em dash"
 ```

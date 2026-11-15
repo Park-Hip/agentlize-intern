@@ -1,6 +1,5 @@
-> **CHƯA REVIEW - KHÔNG TIN HOÀN TOÀN.** Bản này do agent chép và diễn giải từ một ảnh chụp slide nội bộ, chưa được Phạm Bách Hiệp review.
+> **BẢN CHÉP NGỮ CẢNH - KHÔNG PHẢI ĐẶC TẢ.** Bản này do agent chép và diễn giải từ một ảnh chụp slide nội bộ.
 > Coi mọi cách hiểu, cách ánh xạ và kết luận trong đây là giả thuyết phải kiểm lại với Kevin. Không dùng làm nguồn học, không trích dẫn lại, không ra quyết định.
-> Trạng thái: [`../REVIEW-STATUS.md`](../REVIEW-STATUS.md).
 
 # Hệ sinh thái AI Appota Group - ngữ cảnh nơi dự án sẽ chạy
 

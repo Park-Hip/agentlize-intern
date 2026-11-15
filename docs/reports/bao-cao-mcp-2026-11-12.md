@@ -1,6 +1,5 @@
-> **CHƯA REVIEW - KHÔNG TIN HOÀN TOÀN.** Bản này do agent soạn, chưa được Phạm Bách Hiệp review.
+> **BÁO CÁO TỔNG HỢP - KHÔNG PHẢI ADR.** Bản này do agent soạn.
 > Các khẳng định kỹ thuật đã được mở lại đặc tả gốc và nguồn ngoài ghi ở mục 13, trừ phần có nhãn `[Nội bộ]`, `[Khuyến nghị]` hoặc `[Chưa xác minh]`.
-> Trạng thái: [`../REVIEW-STATUS.md`](../REVIEW-STATUS.md).
 
 # MCP: báo cáo tổng hợp cho Track 01 - AI Platform & MCP
 
@@ -69,7 +68,7 @@ Các bản nháp chỉ được dùng để xác định câu hỏi, cấu trúc
 | --- | --- | --- |
 | `docs/artifacts/mcp-ky-thuat.html` | Sổ tay MCP 13 mục: kiến trúc, wire, transport, tool contract, MRTR, auth, bảo mật, test. | Dùng làm khung; các claim về giao thức đã đối chiếu lại với đặc tả, phần thiết kế lab giữ nhãn `[Nội bộ]` hoặc `[Khuyến nghị]`. |
 | `docs/artifacts/mcp-request-flow.html` | Sequence diagram cho một yêu cầu ghi có phê duyệt và vị trí control plane. | Dùng cho mục 2 và mục 6. |
-| `docs/research/04-khao-sat-5-mo-hinh.md` | Định vị năm mô hình theo tầng và tiêu chí riêng từng tầng. | Dùng cho mục 1.3; đây là bản nháp chưa review. |
+| `docs/research/04-khao-sat-5-mo-hinh.md` (đã xóa) | Định vị năm mô hình theo tầng và tiêu chí riêng từng tầng. | Dùng cho mục 1.3; bản nháp đã bị xóa khỏi worktree. |
 | `docs/reports/buoc-0-van-de-mo-hinh-he-thong-va-yeu-cau.md` | Vấn đề trung tâm, SR1-SR8, M1-M6. | Dùng cho mục 11; đây là tài liệu đang review lại. |
 | `.lavish/research/fc-lane-1-spec.md`, `fc-lane-2-practice.md`, `fc-lane-3-risk.md` | Ghi chú research về function calling, tool design và rủi ro. | Đối chiếu chéo mục 1.5 và mục 8; không phải tài liệu của repo. |
 | `docs/context/appota-ai-ecosystem.md` | Sơ đồ hệ sinh thái AI Appota và các câu hỏi về Tool/MCP Runtime. | Dùng cho mục 11.3 và 11.4; chưa xác nhận với Kevin. |
@@ -113,7 +112,7 @@ Track 01 phải khảo sát năm mô hình trước khi chọn cách làm.
 Năm mô hình này không cùng một tầng, nên không chấm điểm chung và không xếp hạng. `[Nội bộ]`
 
 Cách phân tầng lấy từ báo cáo chính thức ngày 11/11/2026.
-Các cột câu hỏi chi tiết lấy từ bản khảo sát chưa review `04-khao-sat-5-mo-hinh.md`, nên phải kiểm lại. `[Nội bộ]`
+Các cột câu hỏi chi tiết lấy từ bản khảo sát chưa review `04-khao-sat-5-mo-hinh.md` (đã xóa), nên phải kiểm lại. `[Nội bộ]`
 
 | Mô hình | Tầng | Trả lời câu hỏi | Không trả lời câu hỏi |
 | --- | --- | --- | --- |
@@ -907,7 +906,7 @@ Chúng được dùng để xác định câu hỏi, cấu trúc và những gì
 | [`../reports/buoc-0-van-de-mo-hinh-he-thong-va-yeu-cau.md`](../reports/buoc-0-van-de-mo-hinh-he-thong-va-yeu-cau.md) | Đang review | SR1-SR8, vấn đề trung tâm, định nghĩa M1-M6. |
 | [`../artifacts/mcp-ky-thuat.html`](../artifacts/mcp-ky-thuat.html) | Chưa review | Cấu trúc sổ tay MCP, checklist, gợi ý thiết kế lab. |
 | [`../artifacts/mcp-request-flow.html`](../artifacts/mcp-request-flow.html) | Chưa review | Luồng request và vị trí control plane. |
-| [`../research/04-khao-sat-5-mo-hinh.md`](../research/04-khao-sat-5-mo-hinh.md) | Chưa review | Cách định vị năm mô hình theo tầng. |
+| `../research/04-khao-sat-5-mo-hinh.md` (đã xóa) | Đã xóa | Cách định vị năm mô hình theo tầng. |
 | [`../context/appota-ai-ecosystem.md`](../context/appota-ai-ecosystem.md) | Chưa review | Câu hỏi mở về Tool/MCP Runtime và AgentLize. |
 | `.lavish/research/fc-lane-1-spec.md`, `fc-lane-2-practice.md`, `fc-lane-3-risk.md` | File tạm, không tính vào repo | Ghi chú research về function calling, dùng để đối chiếu chéo. |
 

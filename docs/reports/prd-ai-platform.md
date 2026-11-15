@@ -1,12 +1,4 @@
-# Bước 0 - Vấn đề, mô hình hệ thống và yêu cầu
-
-**Người:** Phạm Bách Hiệp. **Track:** 01 - AI Platform & MCP. **Mentor:** Kevin.  
-**Vị trí:** bước 0, trước bước 01 Explore của khung bảy bước.  
-**Trạng thái:** đã review ngày 11.11.2026. Phần 2 viết lại ngày 13.11.2026 theo cách cắt bảy thành phần, chờ review lại phần đã sửa; Phần 1 và Phần 3 giữ nguyên.
-
-Khung R&D của chương trình có bảy bước, từ 01 Explore tới 07 Package.
-Mục tiêu của file này không nằm trong bảy bước đó: nó chốt vấn đề, mô hình hệ thống và yêu cầu trước khi bước 01 bắt đầu.
-Vì vậy file được đánh số bước 0 và không thay thế bước nào.
+# PRD - AI Platform
 
 ## 0. Tóm tắt
 
@@ -195,8 +187,6 @@ Nó không được suy ra từ tên sản phẩm, chỉ từ việc mỗi ngu�
 | 6   | Registry            | Google, Agent Gateway overview       | "Access rules that link an agent's identity to approved tools and endpoints in Agent Registry. By default, all connections are blocked unless an explicit IAM policy grants access." | https://docs.cloud.google.com/gemini-enterprise-agent-platform/govern/gateways/agent-gateway-overview.md.txt |
 | 7   | Observability       | AgentCore, observability             | "AgentCore emits telemetry data in a standardized OpenTelemetry (OTEL)-compatible format"                                                                                            | https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html                             |
 | 7   | Observability       | OTel GenAI, span `execute_tool`      | `gen_ai.tool.call.arguments` là `Opt-In`, nên tham số có thể không có trong trace chuẩn                                                                                              | https://raw.githubusercontent.com/open-telemetry/semantic-conventions-genai/main/docs/gen-ai/execute-tool.md |
-
-Chín phép kiểm ở [`../research/checks/verify-report-2.sh`](../research/checks/verify-report-2.sh) khớp nguyên văn ngày 2026-11-13.
 
 # Phần 3 - Yêu cầu và đánh giá
 

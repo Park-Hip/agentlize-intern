@@ -2,7 +2,7 @@
 > Toàn bộ quan sát dưới đây làm ngày 2026-11-13, không đăng nhập, chỉ dùng dữ liệu công khai mà máy chủ trả về.
 > Hai mươi mốt câu trích đã được kiểm chéo bằng script, kết quả 21 PASS, 0 MISS, 0 BLOCKED; lệnh và kết quả ghi ở mục 11.
 > Không có số đo hiệu năng, không chọn kiến trúc, không phải ADR.
-> Trạng thái: [`../REVIEW-STATUS.md`](../REVIEW-STATUS.md).
+> Trạng thái: chưa review; `docs/REVIEW-STATUS.md` hiện không có trong worktree.
 
 # Thổ Thần: cùng một cái tên, bốn thứ khác nhau
 
@@ -273,6 +273,7 @@ GET vào cùng đường dẫn trả 405, nên một lần kiểm bằng trình 
 Kiểm chéo tự động:
 
 ```bash
+# Script đã bị xóa khỏi worktree; lệnh giữ lại làm bản ghi
 bash docs/research/checks/verify-sources-09.sh
 ```
 

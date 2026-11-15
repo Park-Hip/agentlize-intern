@@ -1,6 +1,5 @@
-> **CHƯA REVIEW - KHÔNG TIN HOÀN TOÀN.** Bản này do agent soạn, chưa được Phạm Bách Hiệp review.
+> **RESEARCH NOTE - KHÔNG PHẢI ADR.** Bản này do agent soạn.
 > Coi mọi số liệu, trích dẫn và kết luận trong đây là giả thuyết phải kiểm lại. Không dùng làm nguồn học, không trích dẫn lại, không ra quyết định.
-> Trạng thái: [`../REVIEW-STATUS.md`](../REVIEW-STATUS.md).
 
 # Appota Group - tình huống thực tế dùng được cho Track 01
 
@@ -492,7 +491,7 @@ Chứng minh: A1, A2, A3, A4, O1.
 
 ## 6. Bộ test bao quát
 
-Bộ test đầy đủ nằm ở [`appota-test-matrix.csv`](./appota-test-matrix.csv).
+Bộ test đầy đủ nằm ở `appota-test-matrix.csv`, file đã bị xóa khỏi worktree.
 Tệp có 57 dòng test, mỗi dòng là một khẳng định nhị phân.
 
 ### 6.1 Phân bố
@@ -782,6 +781,7 @@ Nguồn 18 là tệp trong repo, không phải nguồn web.
 Các lệnh sau kiểm tra artifact, không kiểm tra giả thuyết.
 
 ```bash
+# appota-test-matrix.csv đã bị xóa khỏi worktree, nên hai lệnh đầu chỉ còn là bản ghi
 # Số dòng test, phải là 57
 python -c "import csv; rows=list(csv.DictReader(open('docs/research/appota-test-matrix.csv', encoding='utf-8'))); print(len(rows))"
 
@@ -789,7 +789,7 @@ python -c "import csv; rows=list(csv.DictReader(open('docs/research/appota-test-
 python -c "import csv; rows=list(csv.DictReader(open('docs/research/appota-test-matrix.csv', encoding='utf-8'))); print(sum(1 for r in rows if r['tier']=='core'))"
 
 # Không có em dash trong tài liệu
-grep -n $'\u2014' docs/research/01-appota-cases.md docs/research/appota-test-matrix.csv || echo "khong co em dash"
+grep -n $'\u2014' docs/research/01-appota-cases.md || echo "khong co em dash"
 ```
 
 Khi POC bắt đầu, mỗi nhóm test phải có một lệnh chạy duy nhất và in ra bảng đạt hoặc không đạt.
