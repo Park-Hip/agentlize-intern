@@ -134,6 +134,7 @@ rd/              the R&D work, one folder per step of section 3
   <step>/checks/ scripts that re-verify claims made in that step
 lab/             POC code, created after the first ADR
 submitted/       PDFs handed in to the program, never edited afterwards
+  weekly-report/ weekly reports sent to Lark: Markdown source and its PDF
 tools/           render and doc-check scripts
 dist/            generated PDFs (git-ignored)
 scratch/         agent working files and raw captures (git-ignored)
@@ -144,6 +145,7 @@ Rules:
 - Put a document in the folder of the step it belongs to. The step folder carries the order, so file names carry no number.
 - File names are lowercase ASCII kebab-case with a short English slug, for example `option-comparison.md`. Content stays Vietnamese.
 - Two exceptions allow a number or date: `adr-0001-<slug>.md` (never renumbered) and `YYYY-MM-DD-<slug>.pdf` in `submitted/` (the submission date).
+  A weekly report keeps its Markdown source next to its PDF, both named `YYYY-MM-DD-week-<n>` after the Monday it is sent.
 - No version or draft markers in file names (`v2`, `final`, `old`). Version history is git. A document that is replaced is deleted, not kept beside the new one.
 - A summary page for a document sits next to it with the same slug (`appota-cases.md` and `appota-cases.html`).
 - Every claim that rests on an external quote has a script in `<step>/checks/` that can re-verify it.

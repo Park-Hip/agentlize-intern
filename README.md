@@ -20,7 +20,7 @@ Other places:
 
 - [docs/program](docs/program): the official 8 week program text.
 - [docs/context](docs/context): Appota AI ecosystem and track comparison.
-- [submitted](submitted): PDFs already handed in.
+- [submitted](submitted): PDFs already handed in, and [weekly reports](submitted/weekly-report) sent to Lark.
 
 ## Commands
 
