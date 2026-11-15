@@ -5,7 +5,7 @@
 
 # Kiến trúc ứng viên rút từ hệ thống thật
 
-Owner: Phạm Bách Hiệp. Ngày: 2026-11-12. Revision: 0.1.
+Ngày: 2026-11-12. Trạng thái: bản nháp do agent soạn.
 
 Câu hỏi của file này hẹp: khi một agent phải đọc dữ liệu nghiệp vụ, kiểm quyền, đề xuất thay đổi và chỉ ghi sau khi có người xác nhận, thì các hệ thống đã chạy thật chia trách nhiệm đó cho những thành phần nào?
 
@@ -379,9 +379,3 @@ Tôi mở lại thì nhận `Access Denied`, nên toàn bộ phần Salesforce b
 | 4 | Chạy H1 đến H7, ghi số | Mỗi số truy được về một lệnh |
 | 5 | Viết ADR chọn P, kèm lý do các P khác thua | Mỗi lựa chọn trỏ được về một số đo, không trỏ về tài liệu |
 | 6 | Cập nhật file 05 cũ nếu trục so sánh thay đổi | Có ghi chú revision trong file 05 cũ |
-
-## Nhật ký revision
-
-| Ngày | Người | Thay đổi | Trạng thái |
-| --- | --- | --- | --- |
-| 2026-11-12 | Agent (Pi) | Tạo file. Sáu nhánh research, 44 mục khảo sát, 65 nguồn, 51 lần kiểm chéo, năm tổ hợp kiến trúc P1 đến P5, bảy giả thuyết H1 đến H7. Không có số đo, không chọn kiến trúc | Chưa review |

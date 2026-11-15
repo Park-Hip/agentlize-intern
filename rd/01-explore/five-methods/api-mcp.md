@@ -1,5 +1,7 @@
 # API/Function Calling và MCP cho AI Operations Connector Lab
 
+Ngày: 2026-11-13. Trạng thái: ghi chú nghiên cứu, chưa được mentor review.
+
 ## 1. Cơ chế và ranh giới trách nhiệm khác nhau thế nào?
 
 ### Takeaway
@@ -96,5 +98,4 @@ MCP có yêu cầu bảo mật rõ trong đặc tả nhưng authorization là t�
 ### Gaps
 - Chưa chứng minh triển khai nào thực sự enforce confirmation, policy theo bản ghi, chống ghi trùng hoặc audit đầy đủ.
 - Chỉ dùng bốn nguồn gốc đã mở lại trực tiếp trong phiên này; không dùng repo draft làm evidence, không khảo sát sâu SDK/product, không kết luận kiến trúc thắng và không lập ADR.
-- Owner: researcher API/MCP, bàn giao cho phiên điều phối; trạng thái: ghi chú nghiên cứu chưa được mentor review.
 - Definition of done của ghi chú: có cơ chế, tradeoff, scaling, cost drivers, security, maintenance, suitability, giới hạn bằng chứng và trích ngắn gắn URL để kiểm tra lặp lại.

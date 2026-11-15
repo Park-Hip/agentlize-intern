@@ -1,6 +1,6 @@
 # Sơ đồ giải pháp ứng viên
 
-Trạng thái: bản nháp, chưa chọn kiến trúc.
+Ngày: 2026-11-15. Trạng thái: bản nháp, chưa chọn kiến trúc.
 
 ## 5.1. Ứng viên A - Gọi hàm trực tiếp
 
@@ -131,7 +131,7 @@ Danh tính người dùng và agent phải được xác thực và truyền t�
 
 ### Giả thuyết cần kiểm chứng
 
-- Agent thứ hai có thể khám phá và dùng lại công cụ mà không thừa hưởng quyền của agent thứ nhất.
+- Nơi gọi thứ hai có thể khám phá và dùng lại công cụ, và quyền vẫn lấy theo người yêu cầu chứ không theo nơi gọi.
 - Danh tính và quyền được kiểm tra đúng qua ranh giới client, server và bộ thực thi.
 - Cùng một tình huống cho phép đối chiếu việc tích hợp và tái sử dụng công cụ với ứng viên A.
 - Việc gián đoạn kết nối hoặc gửi lại lời gọi không làm mất xác nhận hay gây ghi trùng.
@@ -197,7 +197,7 @@ Workflow lưu trạng thái đề xuất và điểm chờ xác nhận trong thi
 - Workflow có thể khôi phục trạng thái chờ và tiếp tục đúng lượt chạy sau gián đoạn.
 - Nội dung được ghi luôn khớp với nội dung đã được người có thẩm quyền xác nhận.
 - Cơ chế chạy lại kết hợp với bộ thực thi hoặc hệ thống đích không gây ghi trùng.
-- Agent thứ hai có thể dùng lại năng lực tích hợp mà không thừa hưởng quyền của agent đầu tiên.
+- Nơi gọi thứ hai có thể dùng lại năng lực tích hợp, và quyền vẫn lấy theo người yêu cầu.
 
 ## 6. Sơ đồ trình tự cho tình huống chung
 
@@ -264,7 +264,7 @@ Sơ đồ không khẳng định hệ thống đích đã có khả năng này.
 | Giao diện tích hợp | Hàm ứng dụng gọi bộ thực thi. | MCP client gọi tool qua server. | Chưa chốt, có thể kết hợp hàm trực tiếp hoặc MCP. |
 | Quyền và xác nhận | Bộ thực thi kiểm quyền và đối chiếu xác nhận. | Bộ thực thi giữ trách nhiệm tương tự, cần bảo vệ ngữ cảnh qua server. | Bộ thực thi kiểm quyền và xác nhận, workflow quản lý điểm chờ. |
 | Lỗi và chạy lại | Ứng dụng và bộ thực thi cần quản lý trạng thái và chống ghi lặp. | Cần xử lý thêm gián đoạn qua kết nối MCP, chống ghi lặp vẫn cần kiểm chứng. | Workflow quản lý trạng thái lượt chạy, nhưng bước ghi vẫn cần chống ghi lặp. |
-| Agent thứ hai | Cần thử dùng lại hợp đồng hàm và bộ thực thi với quyền riêng. | Cần thử dùng lại công cụ qua MCP với quyền riêng. | Cần xác định giao diện tích hợp rồi thử dùng lại với quyền riêng. |
+| Nơi gọi thứ hai | Cần thử dùng lại hợp đồng hàm và bộ thực thi, quyền theo người yêu cầu. | Cần thử dùng lại công cụ qua MCP, quyền theo người yêu cầu. | Cần xác định giao diện tích hợp rồi thử dùng lại, quyền theo người yêu cầu. |
 | Mở rộng | Cần khảo sát thay đổi khi thêm hệ thống hoặc hàm. | Cần khảo sát thay đổi khi thêm server hoặc công cụ. | Cần khảo sát thay đổi khi thêm bước và hệ thống. |
 | Vận hành và bảo trì | Cần xác định thành phần và quy trình vận hành. | Cần xác định thêm vận hành client và server. | Cần xác định thêm vận hành workflow và kho trạng thái. |
 | Chi phí | Chưa đo. | Chưa đo. | Chưa đo. |
@@ -276,18 +276,16 @@ C không loại trừ B, nên cần chốt tổ hợp cụ thể và điều ki�
 
 | Câu hỏi | Cách kiểm tra dự kiến | Bằng chứng cần thu |
 | --- | --- | --- |
-| Agent thứ hai có dùng lại công cụ mà không nhận quyền của agent đầu tiên? | Chạy cùng tác vụ với hai agent có quyền khác nhau. | Cấu hình quyền, yêu cầu và kết quả cho phép hoặc từ chối. |
+| Nơi gọi thứ hai có dùng lại công cụ mà quyền vẫn theo người yêu cầu? | Chạy cùng bộ ca với cùng người từ hai nơi gọi. | Cấu hình quyền, yêu cầu và kết quả cho phép hoặc từ chối ở hai nơi. |
 | Có thể bỏ qua nơi kiểm quyền để đọc hoặc ghi trực tiếp không? | Thử các đường truy cập ngoài bộ thực thi trong môi trường giả lập. | Cấu hình ranh giới và kết quả các lần thử. |
 | Xác nhận có gắn đúng người và đúng nội dung không? | Thử thay đổi tham số, dùng xác nhận hết hạn hoặc dùng người xác nhận không hợp lệ. | Đề xuất, trạng thái xác nhận và kết quả từ chối. |
 | Điều gì xảy ra khi mất phản hồi sau khi gửi lệnh ghi? | Gây lỗi tại ranh giới ghi và gửi lại cùng định danh. | Nhật ký thao tác, trạng thái hệ đích và số thay đổi thực tế. |
 | Workflow có tiếp tục đúng nội dung đã duyệt sau gián đoạn không? | Ngắt và khôi phục lượt chạy trước hoặc sau xác nhận. | Trạng thái lượt chạy, nội dung duyệt và nội dung ghi. |
-| A và B khác nhau thế nào khi thêm agent? | Tích hợp cùng agent thứ hai với cùng kịch bản và quyền. | Hợp đồng tích hợp, cấu hình, thay đổi cần thiết và kết quả chạy. |
+| A và B khác nhau thế nào khi thêm nơi gọi? | Tích hợp nơi gọi thứ hai với cùng kịch bản và quyền. | Hợp đồng tích hợp, cấu hình, thay đổi cần thiết và kết quả chạy. |
 | Độ trễ, độ ổn định và chi phí của các tổ hợp là bao nhiêu? | Thiết lập baseline và kịch bản đo trước khi chạy thử. | Cấu hình, phương pháp đo, kết quả thô và giới hạn phép đo. |
 
-## 9. Trạng thái và quản lý tài liệu
+## 9. Định nghĩa hoàn thành và bằng chứng
 
-- Chủ sở hữu: Phạm Bách Hiệp.
-- Trạng thái: bản nháp.
 - Định nghĩa hoàn thành: các sơ đồ và giả định được xác nhận phạm vi; câu hỏi mở có cách kiểm chứng; kết quả so sánh và quyết định kiến trúc được ghi ở tài liệu tương ứng sau khi có bằng chứng.
 - Bằng chứng: sơ đồ và kịch bản trong tài liệu này là đề xuất thiết kế, chưa có kết quả chạy hoặc đo.
 - Nguồn căn cứ: [yêu cầu chương trình](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt) và các tiêu chí, điều kiện cần kiểm chứng được ghi trực tiếp ở mục 8.

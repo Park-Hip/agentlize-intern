@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Kiểm nguồn cho mục 2.3 của rd/00-frame/prd-ai-platform.md.
+# Kiểm nguồn cho Phụ lục của rd/00-frame/prd-ai-platform.md.
 #
 # Mỗi dòng kiểm một câu trích trong báo cáo bằng cách tải trang gốc và so khớp
 # nguyên văn (không phân biệt hoa thường). In MATCH hoặc NOMATCH cho từng câu.

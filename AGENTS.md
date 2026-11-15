@@ -67,6 +67,9 @@ The PDF is written to `dist/<name>.pdf` (git-ignored) unless an output path is g
 bash tools/render/render.sh rd/04-propose/solution-candidates.md
 ```
 
+The render step drops the metadata line (date and status), so a handed-in PDF never carries it.
+It then reads the PDF back with `pypdf` and fails if the line survived (`python -m pip install pypdf`, otherwise that check is skipped with a warning).
+
 Check that every relative link in the docs resolves, no em dash slipped in, and file names follow section 8.
 Run it before every commit.
 
@@ -99,11 +102,15 @@ Write so the non-technical reader gets the point and the engineer loses nothing.
   Use another domain (payments, refunds) only when the Lab cannot show the point, and say why.
 - **Explain every term on first use** with one everyday sentence, keeping the English term in parentheses.
   Example: "chống ghi trùng (idempotency): gửi lại cùng một lệnh thì hệ thống không làm thêm lần nữa".
-  Prefer the Vietnamese wording after that. Keep shared terms in `docs/glossary.md` and reuse them across reports.
+  Prefer the Vietnamese wording after that. Keep shared terms in `rd/00-frame/glossary.md` and reuse them across reports.
 - **Codes always carry a name.** Write "SR6 (không ghi trùng)", never a bare "SR6". Do not use a code before the section that defines it.
 - **One sentence, one idea.** Aim for at most about 25 words. Name who does what ("agent gửi lệnh", "người duyệt bấm duyệt"), and avoid abstract nouns as the subject.
 - **No talking about the document itself.** Cut sentences such as "phần này không trả lời...", "đọc như giả thuyết", "sai phạm trù". Say the point directly.
-- **Hedge once, not everywhere.** Put the status (draft, not measured, not decided) on one line at the top. Inside the body, use "có thể" or "tùy" only when the condition is named.
+- **Hedge once, not everywhere.** Inside the body, use "có thể" or "tùy" only when the condition is named.
+- **One metadata line under the title.** Every report carries exactly one line, `Ngày: YYYY-MM-DD. Trạng thái: <một câu ngắn>.`, placed under the title and before the first section.
+  `Ngày` is the day the content was last revised, not the day the file was touched.
+  Do not add an owner, mentor, revision or version line: the intern owns every artifact, and git holds the history.
+  `python tools/check-docs.py` rejects those lines, and the render step drops the metadata line so a PDF handed in never carries it.
 - **Every section ends with "so what".** A conclusion, a decision, or a concrete next check. A section that only lists considerations is not finished.
 - **One set of criteria across documents.** All comparisons and proposals judge against the same requirements (currently SR1-SR8 in `rd/00-frame/prd-ai-platform.md`). Do not invent a parallel list. If the set changes, update it at the source.
 - **Readability check before submitting.** A non-technical reader should be able to read "Đọc nhanh" in 2 minutes and answer the three questions above. An engineer should be able to trace every claim to a source, a number or a test.

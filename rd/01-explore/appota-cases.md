@@ -3,10 +3,7 @@
 
 # Appota Group - tình huống thực tế dùng được cho Track 01
 
-Owner: Phạm Bách Hiệp.
-Mentor: Kevin.
-Ngày: 2026-11-10.
-Trạng thái: research note, chưa phải ADR.
+Ngày: 2026-11-10. Trạng thái: research note, chưa phải ADR.
 
 Bản tóm tắt một trang cho phần cần chú ý: [`appota-cases.html`](appota-cases.html).
 

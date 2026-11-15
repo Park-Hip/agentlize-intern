@@ -3,11 +3,7 @@
 
 # MCP: báo cáo tổng hợp cho Track 01 - AI Platform & MCP
 
-**Owner:** Phạm Bách Hiệp.
-**Mentor:** Kevin.
-**Ngày:** 2026-11-12.
-**Revision:** 0.1.
-**Trạng thái:** bản nháp do agent soạn.
+Ngày: 2026-11-12. Trạng thái: bản nháp do agent soạn.
 
 **Phạm vi:** tổng hợp những gì đã research về MCP trong repo, đối chiếu lại với đặc tả gốc, viết thành một tài liệu đọc được cho mentor.
 **Không phải:** ADR, quyết định chọn stack, hoặc bản thay thế báo cáo chính thức ngày 11/11/2026.
@@ -28,7 +24,6 @@
 11. Áp dụng vào lab
 12. Việc tiếp theo
 13. Nguồn
-14. Nhật ký revision
 
 ## 0. Cách đọc báo cáo
 
@@ -917,9 +912,3 @@ Chúng được dùng để xác định câu hỏi, cấu trúc và những gì
 - Chưa đo latency, chi phí và tỷ lệ ghi trùng trên lab; mọi ngưỡng số chưa chốt. `[Chưa xác minh]`
 - Chưa kiểm quan sát về AppotaPay Agent Skills và việc không có MCP server công khai. `[Chưa xác minh]`
 - Chưa kiểm xem policy của AgentLize có API truy vấn lúc chạy hay không. `[Chưa xác minh]`
-
-## 14. Nhật ký revision
-
-| Ngày | Người | Thay đổi | Trạng thái |
-| --- | --- | --- | --- |
-| 2026-11-12 | Agent (Pi) | Tạo bản 0.1: tổng hợp từ các bản nháp MCP trong repo, đối chiếu lại với đặc tả 2026-07-28, thêm phần SR1-SR8, đo lường, khi nào MCP sai và câu hỏi mở. | Chưa review |

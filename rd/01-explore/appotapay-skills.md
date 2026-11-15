@@ -3,10 +3,8 @@
 
 # Agent Skills của AppotaPay: tầng kiến thức, không phải tầng năng lực
 
-Owner: Phạm Bách Hiệp. Mentor: Kevin.
-Ngày: 2026-11-10.
-Revision khảo sát: commit `cb8df1f`, đẩy lên 2026-11-09.
-Trạng thái: research note, chưa phải ADR.
+Ngày: 2026-11-10. Trạng thái: research note, chưa phải ADR.
+Mốc khảo sát: commit `cb8df1f`, đẩy lên ngày 2026-11-09.
 Phạm vi: đầu vào cho phần khảo sát mô hình và báo cáo chính thức. Không thay ADR, không thay khảo sát năm mô hình.
 Các mã S1 đến S4, O1, R1 và F5 trong tài liệu này thuộc khung đánh giá cũ gồm sáu yêu cầu và sáu yếu tố, đã gỡ khỏi repository.
 Giữ nguyên để đối chiếu lịch sử; báo cáo chính thức dùng SR1 đến SR8.

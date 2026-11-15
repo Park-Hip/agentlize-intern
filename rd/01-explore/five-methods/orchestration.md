@@ -1,5 +1,7 @@
 # Agent Orchestration - ghi chú nguồn cho bước Compare
 
+Ngày: 2026-11-13. Trạng thái: ghi chú nghiên cứu chưa duyệt, phục vụ Compare, không phải ADR hay đề xuất chọn stack.
+
 ## 1. Cơ chế là gì và bằng chứng nào thực sự thuộc SDK?
 
 ### Takeaway
@@ -7,9 +9,6 @@
 Agent orchestration điều phối agent nào chạy, theo thứ tự nào và ai quyết định bước tiếp theo; có thể do LLM quyết định, do code quyết định, hoặc kết hợp hai cách [O1](https://openai.github.io/openai-agents-python/multi_agent/).
 Đây là lớp điều phối, không tự thay thế giao diện công cụ, bộ thực thi phân quyền hay cơ chế chống ghi trùng; các API cụ thể dưới đây là bằng chứng về OpenAI Agents SDK Python, không phải bảo đảm của mọi hệ orchestration [O1](https://openai.github.io/openai-agents-python/multi_agent/), [O2](https://openai.github.io/openai-agents-python/human_in_the_loop/).
 
-- Ngày nghiên cứu: 2026-11-13.
-- Owner ghi chú: researcher Agent Orchestration; người tổng hợp và người duyệt báo cáo được session cha xác định.
-- Trạng thái: ghi chú nghiên cứu chưa duyệt, phục vụ Compare, không phải ADR hay đề xuất chọn stack.
 - Definition of done: cơ chế, bảy trục so sánh, SR1-SR8, giới hạn và trích dẫn nguyên văn đều có nguồn gốc đã mở; không có số đo lab giả định.
 - Phương pháp: mở trực tiếp bảy trang tài liệu gốc của nhà phát triển; không dùng draft trong repository làm chứng cứ.
 - Giới hạn thời gian: URL là tài liệu sống tại lần truy cập, không phải bản phát hành SDK hay commit đã ghim.

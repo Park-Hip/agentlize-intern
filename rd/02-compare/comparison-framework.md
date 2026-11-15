@@ -1,10 +1,6 @@
 # Bước 02 - Bảng so sánh và tiêu chí lựa chọn
 
-- Chủ sở hữu: Phạm Bách Hiệp.
-- Mentor: Kevin.
-- Phiên bản: 1.0.
-- Ngày cập nhật: 2026-11-13.
-- Trạng thái: không phải ADR, chưa chọn stack hoặc kiến trúc, chưa có số đo lab.
+Ngày: 2026-11-13. Trạng thái: bản nháp, không phải ADR, chưa chọn stack hoặc kiến trúc, chưa có số đo lab.
 
 **Nhận định tổng hợp: năm phương pháp giải quyết những vai trò khác nhau, không phải năm kiến trúc hoàn chỉnh thay thế ngang hàng.**
 API/Function Calling kết nối quyết định gọi tool của model với code ứng dụng; MCP chuẩn hóa giao tiếp công cụ; workflow giữ tiến độ; orchestration phân vai và điều khiển; event-driven phân phối sự kiện.
@@ -82,7 +78,7 @@ Không đưa giá tiền ví dụ vì chưa chốt cấu hình Lab và chưa c�
 | M5 - vận hành | Service, cấu hình, deploy steps, điểm sửa policy | Chưa kiểm kê triển khai. |
 | M6 - tái dùng | Người-giờ, dòng code, connector phải sửa khi thêm agent | Chưa đo; gate nguồn: 0 connector sửa. |
 
-100 lần, tăng 10 lần và hai gate trên là từ [S02, mục 3.2](../00-frame/prd-ai-platform.md#32-yếu-tố-đánh-giá), không phải ngưỡng mới.
+100 lần, tăng 10 lần và hai gate trên là từ [S02, mục 7.3](../00-frame/prd-ai-platform.md#73-sáu-chỉ-số-đo), không phải ngưỡng mới.
 Latency, success rate và cost mục tiêu vẫn chờ baseline.
 
 ## 3. Phân tích từng phương pháp
@@ -111,7 +107,7 @@ Tính cả lỗi/retry vào chi phí trên thay đổi thành công; **Lab chưa
 
 **f. Bảo mật.**
 `strict: true` ràng buộc function schema theo giới hạn OpenAI, không xác thực actor hay cấp quyền sửa task.
-App phải kiểm actor/action/resource, lọc row/field và buộc approval tại nơi thực thi ([S03](https://platform.openai.com/docs/guides/function-calling), Strict mode; [S02, SR1-SR5](../00-frame/prd-ai-platform.md#31-yêu-cầu-bắt-buộc)).
+App phải kiểm actor/action/resource, lọc row/field và buộc approval tại nơi thực thi ([S03](https://platform.openai.com/docs/guides/function-calling), Strict mode; [S02, SR1-SR5](../00-frame/prd-ai-platform.md#6-yêu-cầu-bắt-buộc)).
 
 **g. Bảo trì - suy luận.**
 API nghiệp vụ đổi thì adapter/test contract đổi; provider đổi có thể ảnh hưởng schema/dispatch, không nhất thiết policy nếu tách tốt.
@@ -162,7 +158,7 @@ Không nên dùng chỉ vì nhãn chuẩn khi không cần liên thông, runtime
 
 **i. Bằng chứng và khoảng trống.**
 S04-S06 là đặc tả, chưa chứng minh SDK/host cụ thể tương thích 2026-07-28.
-Chưa thử confirmation cưỡng chế, quyền theo catalog, revocation, ghi trùng hoặc reuse tách quyền.
+Chưa thử confirmation cưỡng chế, quyền theo catalog, revocation, ghi trùng hoặc reuse với quyền theo người.
 
 ### 3.3. Workflow Engine
 
@@ -234,7 +230,7 @@ Trace không tự là audit chống sửa; usage khi resume phải tránh tính 
 
 **h. Phù hợp - suy luận.**
 Đáng khảo sát khi phân vai/routing thực sự cần thiết, có thể nằm phía trên API hoặc MCP tools.
-Agent thứ hai trong SR8 phải có quyền riêng, không chỉ specialist dùng chung quyền manager ([S17](https://openai.github.io/openai-agents-python/context/); S02).
+SR8 không cần nhiều agent: một agent gọi từ hai nơi, quyền lấy theo người yêu cầu; chia vai specialist và manager không tự tách quyền ([S17](https://openai.github.io/openai-agents-python/context/); S02).
 
 **i. Bằng chứng và khoảng trống.**
 S12-S18 là một SDK chưa ghim release, không phổ quát hóa approval/guardrail/tracing semantics.
@@ -306,7 +302,7 @@ Mọi tổng chi phí, throughput, latency và độ ổn định Lab vẫn chư
 
 ## 5. Đối chiếu với nhu cầu của hệ thống
 
-Từng yêu cầu dưới đây lấy từ [S02, Phần 3, mục 3.1, dòng 220-229](../00-frame/prd-ai-platform.md#31-yêu-cầu-bắt-buộc).
+Từng yêu cầu dưới đây lấy từ [S02, mục 6](../00-frame/prd-ai-platform.md#6-yêu-cầu-bắt-buộc).
 SR áp cho tổ hợp, không đòi từng cơ chế đứng riêng đáp ứng tất cả; **chưa SR nào được đánh dấu đạt**.
 
 | Yêu cầu | Đóng góp cơ chế | App/hệ thống đích còn phải làm | Nguồn và phép kiểm chưa thực hiện |
@@ -318,7 +314,7 @@ SR áp cho tổ hợp, không đòi từng cơ chế đứng riêng đáp ứng 
 | SR5 - fail-closed | Đường lỗi, SDK manual approval khi arguments không đọc an toàn | Không effect khi identity/policy/approval thiếu hoặc không xác định | S05/S13/S18; policy timeout/snapshot giả không ghi, không fallback quyền rộng. |
 | SR6 - không effect thứ hai | Retry/resume/dedup ở các lớp khác nhau | Phân biệt chưa gọi/unknown, key ý định ổn định, atomic dedup/mutation, kết quả cũ hoặc reconcile | S07/S13/S22/S26; mất response sau commit, concurrent retry, key cũ payload mới, replay muộn. |
 | SR7 - trace xuyên suốt | SDK trace/usage, workflow history, call/error/correlation | Nối actor-decision-approval-effect-cost, giữ coverage và bảo vệ dữ liệu | S03/S05/S07/S14/S16; truy ai/vì sao/kết quả/chi phí sau resume, không lộ trường cấm. |
-| SR8 - reuse tách quyền | MCP contract, API library, agent gọi cùng tool | Context/quyền riêng, không copy connector hoặc thừa hưởng approval | S03/S04/S13/S17; A ghi được, B chỉ đọc, B không dùng state/approval A để ghi. |
+| SR8 - dùng lại, quyền theo người | MCP contract, API library, nhiều nơi gọi cùng tool | Nơi gọi không mang quyền riêng, không copy connector, không mang approval sang phiên khác | S03/S04/S13/S17; cùng người cho cùng kết quả ở hai nơi gọi. |
 
 Snapshot integrity, consumption single-use và idempotent external effect là ba trách nhiệm riêng; đúng một lớp chưa chứng minh hai lớp kia ([S13](https://openai.github.io/openai-agents-python/human_in_the_loop/)).
 Key và mutation cần nguyên tử tại đích nếu muốn chống effect thứ hai; lookup không thấy kết quả chưa đủ chứng minh retry an toàn ([S26](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/); S13).
@@ -337,9 +333,9 @@ Gate áp cho phương án triển khai sau này, không loại một cơ chế v
 | Không biết quyền thì không ghi | SR5 | Policy timeout, thiếu identity, snapshot lỗi | Không fallback quyền rộng. |
 | Retry không effect thứ hai | SR6 | Mất response sau commit, double submit/resume | Sửa hợp đồng đích/recovery trước. |
 | Trace nối quyết định-effect-cost | SR7 | Run có lỗi/resume, đối chiếu usage | Chưa đủ giải trình/đánh giá. |
-| Agent thứ hai reuse quyền riêng | SR8 | Hai quyền khác, không sửa connector | Chưa có reusable asset an toàn. |
+| Nơi gọi thứ hai reuse | SR8 | Quyền theo người ở cả hai nơi, không sửa connector | Chưa có reusable asset an toàn. |
 
-M2 gate 0 duplicate/0 lost và M6 gate 0 connector sửa giữ đúng [S02, mục 3.2](../00-frame/prd-ai-platform.md#32-yếu-tố-đánh-giá), không tuyên bố đạt chỉ vì có key/interface.
+M2 gate 0 duplicate/0 lost và M6 gate 0 connector sửa giữ đúng [S02, mục 7.3](../00-frame/prd-ai-platform.md#73-sáu-chỉ-số-đo), không tuyên bố đạt chỉ vì có key/interface.
 
 ### 6.2. Tiêu chí phân biệt
 
@@ -362,8 +358,8 @@ Chi phí phải cùng ranh giới model/dịch vụ/hạ tầng/retry/log trên 
 ### 7.1. Phát hiện - tổng hợp của người viết
 
 **Finding 1: reuse giao diện khác reuse quyền.**
-MCP contract và API library đều có thể tái dùng, nhưng SR8 đòi agent thứ hai có quyền riêng, không chỉ đổi tên agent.
-Tiền đề là mục 3.1/3.2/3.4 và SR8, chưa có thử nghiệm hai agent.
+MCP contract và API library đều có thể tái dùng, nhưng SR8 đòi nơi gọi thứ hai không cầm khóa quyền riêng và vẫn qua cùng cổng.
+Tiền đề là mục 3.1/3.2/3.4 và SR8, chưa có thử nghiệm hai nơi gọi.
 
 **Finding 2: có điểm dừng chưa phải approval đúng SR4.**
 Confirmation SHOULD, workflow callback và SDK approval là primitive khác nhau; hash/TTL và binding actor/action vẫn cần app cưỡng chế.
@@ -389,7 +385,7 @@ Không thêm workflow chỉ để dispatch đơn giản, multi-agent khi chưa c
 
 | Câu hỏi/giả thuyết | Thiếu bằng chứng | Ảnh hưởng | Kiểm dự kiến, chưa chạy |
 | --- | --- | --- | --- |
-| H1: host/agent thứ hai reuse không sửa connector? | Compatibility/quyền riêng | Giá trị API/MCP | Cùng fixtures/policy, đo M6. |
+| H1: nơi gọi thứ hai reuse không sửa connector? | Compatibility/quyền theo người | Giá trị API/MCP | Cùng fixtures/policy, đo M6. |
 | H2: API/MCP khác latency/cost thế nào khi cùng gate? | Model/transport/config | Tránh đoán thứ hạng | Cùng task/backend, M1-M3, tách discovery/cache. |
 | H3: đổi quyền sau approval chặn effect? | Hash/TTL/revocation | SR2/SR4/SR5 | Thu hồi quyền, đổi args/version, approval quá hạn. |
 | H4: timeout sau commit không effect thứ hai? | Atomic dedup/reconcile | SR6 | Mất response, crash trước checkpoint, concurrent retry, key cũ payload khác. |
@@ -412,7 +408,7 @@ Nguồn live chưa có snapshot/commit; MCP ghim 2026-07-28.
 | Mã | Nguồn gốc | Phiên bản/phạm vi và vị trí |
 | --- | --- | --- |
 | S01 | [Chương trình TXT](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt) | Trang 5-6, dòng 151-240; Compare/Track 01/Lab/nghiệm thu. |
-| S02 | [Bước 0, Phần 3](../00-frame/prd-ai-platform.md#phần-3---yêu-cầu-và-đánh-giá) | Chỉ Phần 3 đã review, dòng 203-253; không dùng Phần 2. |
+| S02 | [Bước 0, mục 6 và 7.3](../00-frame/prd-ai-platform.md#6-yêu-cầu-bắt-buộc) | Chỉ dùng phần yêu cầu SR1-SR8 và chỉ số M1-M6; không dùng phụ lục thiết kế. |
 | S03 | [OpenAI Function Calling](https://platform.openai.com/docs/guides/function-calling) | Live; tool flow, strict, formatting, token usage. |
 | S04 | [MCP Architecture](https://modelcontextprotocol.io/specification/2026-07-28/architecture) | 2026-07-28; components/stateless/capabilities/design. |
 | S05 | [MCP Tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) | 2026-07-28; list/call/schema/state/errors/security. |

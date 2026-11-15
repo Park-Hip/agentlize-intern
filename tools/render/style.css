@@ -31,6 +31,10 @@ h1 {
   page-break-after: avoid;
 }
 
+* + h1 {
+  margin-top: 30px;
+}
+
 h2 {
   font-size: 14pt;
   color: #14486e;
@@ -59,6 +63,13 @@ p {
   margin: 0 0 8px;
   orphans: 3;
   widows: 3;
+}
+
+/* Giữ câu dẫn với danh sách hoặc bảng ngay sau nó. */
+p:has(+ ol),
+p:has(+ ul),
+p:has(+ table) {
+  break-after: avoid;
 }
 
 table {
@@ -95,6 +106,12 @@ thead {
   display: table-header-group;
 }
 
+/* Tránh để một dòng đầu nằm lẻ cuối trang, hoặc một dòng cuối sang trang mới. */
+tbody tr:first-child,
+tbody tr:nth-last-child(2) {
+  break-after: avoid;
+}
+
 tr {
   page-break-inside: avoid;
 }
@@ -126,6 +143,15 @@ code {
   padding: 0 2px;
 }
 
+code.nowrap,
+td.nowrap {
+  white-space: nowrap;
+}
+
+table.keep {
+  break-inside: avoid;
+}
+
 pre {
   background: #f0f5fb;
   border: 1px solid #cfe0f0;
@@ -140,6 +166,10 @@ ul,
 ol {
   margin: 4px 0 8px;
   padding-left: 20px;
+}
+
+ol {
+  break-inside: avoid;
 }
 
 li {

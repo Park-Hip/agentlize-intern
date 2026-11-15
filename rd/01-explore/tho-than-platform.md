@@ -5,7 +5,7 @@
 
 # Thổ Thần: cùng một cái tên, bốn thứ khác nhau
 
-Owner: Phạm Bách Hiệp. Ngày: 2026-11-13. Revision: 0.1.
+Ngày: 2026-11-13. Trạng thái: bản nháp do agent soạn, chưa có số đo hiệu năng.
 
 ## 0. Câu hỏi
 

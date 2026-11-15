@@ -66,4 +66,9 @@ trap 'rm -f "$TMP_HTML"' EXIT
   "$URI" >/dev/null 2>&1
 
 [ -s "$OUT" ] || { echo "PDF not written: $OUT" >&2; exit 1; }
+
+# Bản nộp không mang dòng ngày và trạng thái: kiểm lại trên chính file PDF vừa in.
+# Cần pypdf (python -m pip install pypdf); không có thì script tự báo và bỏ qua.
+python "$DIR/check-pdf.py" "$OUT" || { echo "PDF check failed: $OUT" >&2; exit 1; }
+
 echo "$OUT"

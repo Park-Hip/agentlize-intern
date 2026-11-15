@@ -3,11 +3,8 @@
 
 # Hệ sinh thái AI Appota Group - ngữ cảnh nơi dự án sẽ chạy
 
-Owner: Phạm Bách Hiệp.
-Mentor: Kevin.
-Ngày đọc ảnh: 2026-11-12.
-Nguồn: `C:\Users\Hiep\OneDrive\Pictures\Screenshots\Screenshot 2026-11-09 114409.png`, ảnh chụp ngày 2026-11-09 lúc 11:44:09.
-Trạng thái: ghi chú ngữ cảnh nội bộ, chưa phải đặc tả, chưa phải ADR.
+Ngày: 2026-11-12. Trạng thái: ghi chú ngữ cảnh nội bộ, chưa phải đặc tả, chưa phải ADR.
+Nguồn: `C:\Users\Hiep\OneDrive\Pictures\Screenshots\Screenshot 2026-11-09 114409.png`, ảnh chụp ngày 2026-11-09 lúc 11:44:09, đọc lại ngày 2026-11-12.
 
 ## 0. Tóm tắt
 

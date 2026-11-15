@@ -10,12 +10,19 @@ from pathlib import Path
 from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parent.parent
-SKIP_DIRS = {".git", ".lavish", "scratch", "dist", "node_modules"}
+SKIP_DIRS = {".git", ".claude", ".lavish", "scratch", "dist", "node_modules", "__pycache__"}
 LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 NAME_OK = re.compile(r"^(?:\d{4}-\d{2}-\d{2}-)?[a-z0-9]+(?:-[a-z0-9]+)*\.[a-z0-9]+$")
 NAME_EXEMPT = {"README.md", "AGENTS.md", "CLAUDE.md", "CHANGELOG.md"}
 NAME_EXEMPT_DIRS = {"program"}  # original program documents keep their official names
 EM_DASH = "—"
+META_LINE = re.compile(r"^Ngày: \d{4}-\d{2}-\d{2}\. Trạng thái: \S")
+META_FORBIDDEN = re.compile(
+    r"^(?:[-*>]\s*)?(?:\*\*)?"
+    r"(?:Owner|Mentor|Revision|Phiên bản|Người phụ trách|Chủ sở hữu|Ngày cập nhật|Ngày kiểm tra|Ngày nghiên cứu|Ngày đọc ảnh)"
+    r"(?:\*\*)?\s*:"
+)
+META_WINDOW = 20  # the metadata line lives in this many first lines, under the title
 
 
 def files():
@@ -51,6 +58,20 @@ def main() -> int:
         text = p.read_text(encoding="utf-8")
         if EM_DASH in text:
             problems.append(f"{rel}: contains an em dash")
+        parts = set(p.relative_to(ROOT).parts)
+        if ("rd" in parts or "docs" in parts) and "program" not in parts:
+            head = text.splitlines()[:META_WINDOW]
+            found = sum(1 for line in head if META_LINE.match(line))
+            if found != 1:
+                problems.append(
+                    f"{rel}: needs exactly one 'Ngày: YYYY-MM-DD. Trạng thái: ...' line in the first {META_WINDOW} lines, found {found}"
+                )
+            for n, line in enumerate(head, 1):
+                bad = META_FORBIDDEN.match(line)
+                if bad:
+                    problems.append(
+                        f"{rel}:{n}: drop the {bad.group(0).strip()} line, keep only one 'Ngày: ... Trạng thái: ...' line"
+                    )
         in_code = False
         for n, line in enumerate(text.splitlines(), 1):
             if line.lstrip().startswith("```"):

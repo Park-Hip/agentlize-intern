@@ -1,8 +1,6 @@
 # Workflow Engine và Event-driven Integration cho AI Operations Connector Lab
 
-Ngày kiểm tra: 2026-11-13.
-Owner: phiên nghiên cứu Workflow/Event được giao bởi phiên tổng hợp; người phụ trách artifact của Lab: Phạm Bách Hiệp.
-Trạng thái: ghi chú nghiên cứu để tổng hợp, chưa phải quyết định kiến trúc hoặc kết quả thực nghiệm.
+Ngày: 2026-11-13. Trạng thái: ghi chú nghiên cứu để tổng hợp, chưa phải quyết định kiến trúc hoặc kết quả thực nghiệm.
 Definition of done: đủ bảy trục so sánh, nguồn gốc đã mở trực tiếp, phân biệt loại workflow và loại bus, không suy diễn bảo đảm ghi nghiệp vụ từ bảo đảm thực thi.
 Phạm vi: AWS Step Functions và Amazon EventBridge là ví dụ cụ thể để kiểm tra mô hình, không đại diện mọi workflow engine hoặc event broker.
 Không dùng bản thảo chưa duyệt trong repository làm bằng chứng.
