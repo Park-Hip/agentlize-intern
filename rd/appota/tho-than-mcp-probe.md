@@ -1,14 +1,14 @@
 # Cắm MCP probe vào Thổ Thần: kịch bản đo P1-P5
 
-Ngày: 2026-11-16. Trạng thái: bản chờ chạy, chưa có kết quả; phần giao diện phải do người có tài khoản Thổ Thần làm.
+Ngày: 2026-11-16. Trạng thái: đã chạy đủ năm câu hỏi, còn thiếu tài khoản thứ hai, bearer và HTTPS từ xa.
 
 ## Đọc nhanh
 
-- Vấn đề: trước khi chốt kiến trúc, ta phải biết Thổ Thần gửi gì sang công cụ, có hỏi người duyệt không, có tự gọi lại khi lỗi không và hiển thị kết quả ra sao.
-- Cách làm: một server thử nghiệm nhỏ ghi lại mọi thứ, cắm vào Thổ Thần desktop, rồi chạy năm kịch bản đo.
-- Phần của agent đã xong: server, bộ tự kiểm tra và cách đọc log.
-- Phần của người dùng: cắm server vào giao diện, bấm đúng các bước, điền bảng kết quả và lưu ảnh chụp.
-- Kết quả dùng để sửa khảo sát Thổ Thần và viết bản ghi quyết định, chưa dùng để chốt kiến trúc ngay.
+- Nối trực tiếp trong app thì gọi được công cụ; nối qua địa chỉ web chỉ kiểm tra được kết nối, còn khi chat thì báo lỗi và server không nhận lệnh.
+- Server không biết ai đang yêu cầu; chỉ thấy tên ứng dụng, không thấy tài khoản.
+- App không hỏi duyệt trước khi ghi, kể cả khi đặt chế độ duyệt tay; không có biểu mẫu hỏi người dùng; link trong kết quả bấm được.
+- Công cụ lỗi không được tự gọi lại; mỗi lần gọi là một tiến trình mới; app cắt sau 60 giây và nút dừng không hủy ngay.
+- Dữ liệu có cấu trúc không hiện, không có mã vết hay chi phí token; bước tiếp theo là cập nhật khảo sát rồi viết bản ghi quyết định.
 
 ## 1. Năm câu hỏi và lý do phải đo
 
@@ -38,7 +38,7 @@ Một số từ được dùng lại trong cả tài liệu:
 SR1-SR8 là tám yêu cầu bắt buộc trong PRD của lab.
 Phép đo này không thay đổi tám yêu cầu, chỉ cho biết Thổ Thần làm sẵn được phần nào.
 
-**Kết luận:** nếu chưa có kết quả cho P2 (danh tính) và P3 (kênh duyệt) thì chưa được viết ADR-0001.
+**Kết luận:** P2 (danh tính) và P3 (kênh duyệt) đã có kết quả, và cả hai đều thiếu ở host; vì vậy ADR-0001 phải giả định lab tự dựng danh tính và kênh duyệt, không chờ host làm sẵn.
 
 ## 2. Chuẩn bị
 
@@ -113,7 +113,7 @@ node tools/mcp-probe/dist/summarize.js scratch/mcp-probe/log-20261116-150000-123
 
 Cần tài khoản A và tài khoản B, ví dụ tài khoản của bạn và một tài khoản thử của người khác.
 Không nhập mật khẩu, token hay dữ liệu thật vào bất kỳ ô nào của probe.
-Nếu không có tài khoản thứ hai, ghi rõ P2 (danh tính) chỉ có một mẫu và đánh dấu độ tin cậy thấp.
+Nếu không có tài khoản thứ hai, ghi rõ P2 (danh tính) chỉ có một mẫu và đánh dấu độ tin cậy trung bình.
 Không tự tạo tài khoản giả trên hệ thống công ty khi chưa được phép.
 
 ### 2.6. Cách ghi bằng chứng
@@ -242,11 +242,17 @@ Kết quả "không thấy" chỉ có nghĩa là chưa thử được, không ph
 
 | Chế độ | Kết nối được? | `protocolVersion` trong log | Xác thực quan sát được | Bằng chứng (file:dòng) | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| Streamable HTTP localhost, không bearer |  |  |  |  |  |
-| stdio |  |  |  |  |  |
-| Streamable HTTP localhost, bearer |  |  |  |  |  |
-| HTTPS từ xa qua tunnel |  |  |  |  |  |
-| OAuth2 |  |  |  |  |  |
+| Streamable HTTP localhost, không bearer | Test connection: có. Chat: không, báo `fetch failed`, server không nhận request. | 2025-11-25 | Không có Authorization; `user-agent: node` | `log-20261116-194146-662.jsonl:12` (initialize), `:8-21` (Test connection); ảnh `p1-09`, `p1-11`, `p2-01`; log IPv6 `log-20261116-201053-131.jsonl` | Chat có thể đi qua cloud nên không tới localhost; giả thuyết, cần xác minh với Kevin. |
+| stdio | Có, chat gọi được đủ 7 tool. | 2025-11-25 | Không có header (stdio). | `log-20261116-203102-671.jsonl:4` (initialize), `:8` (whoami); ảnh `p1-13`, `p2-02` | Mỗi lần gọi tool là một tiến trình mới, PID khác nhau. |
+| Streamable HTTP localhost, bearer | Chưa thử. | - | No auth đã thử; API Key chưa gửi. | ảnh `p1-06`; `log-20261116-194146-662.jsonl:5` (no_auth_header) | Không tắt probe HTTP đang chạy để thử token. |
+| HTTPS từ xa qua tunnel | Chưa thử. | - | - | - | Cần tunnel và Kevin đồng ý; chưa mở. |
+| OAuth2 | Không có lựa chọn trong UI. | - | - | ảnh `p1-06` | UI chỉ có No auth và API Key. |
+
+Kết quả P1 (giao thức và xác thực): H1 đúng, instance có mục MCP và cài được skill tùy chỉnh (ảnh `p1-01` đến `p1-08`).
+HTTP Test connection chạy tại máy và liệt kê đủ 7 tool, nhưng lời gọi lúc chat không tới server.
+Log HTTP chỉ có initialize và tools/list của Test connection, không có `tools/call`; log IPv6 cũng chỉ có 3 dòng khởi động.
+Điều này khớp với giả thuyết lời gọi chat đi qua máy chủ Thổ Thần ở cloud, còn Test connection chạy cục bộ.
+Chưa thử bearer, HTTPS từ xa hay OAuth2.
 
 ### 4.7. Cách kết luận P1 (giao thức và xác thực)
 
@@ -254,7 +260,9 @@ Một chế độ được coi là chạy được khi log có `session_init` c�
 Không coi là chạy được nếu chỉ thấy kết nối TCP mà không có initialize.
 Nếu nhiều chế độ cùng chạy, ghi rõ chế độ nào dễ cấu hình nhất cho người dùng cuối.
 
-**Kết luận:** chưa chốt được chế độ nối cho lab cho đến khi bảng 4.6 có ít nhất một dòng có bằng chứng `session_init` và `tool_call`.
+**Kết luận:** chế độ nối duy nhất gọi được tool trong chat là stdio.
+HTTP localhost chỉ dùng được cho Test connection, chưa dùng được cho chat; muốn thử tiếp phải có URL công khai và Kevin đồng ý.
+Bearer, HTTPS từ xa và OAuth2 chưa có bằng chứng.
 
 ## 5. P2 (danh tính): server biết gì về người đang yêu cầu?
 
@@ -279,16 +287,21 @@ Nếu phải khởi động lại app, ghi lại vì mã phiên sẽ đổi.
 
 | Trường | Tài khoản A | Tài khoản B | Giống nhau? | Bằng chứng (file:dòng) |
 | --- | --- | --- | --- | --- |
-| `clientInfo` (tên và phiên bản app) |  |  |  |  |
-| `capabilities` |  |  |  |  |
-| `protocolVersion` |  |  |  |  |
-| Header Authorization (đã che) |  |  |  |  |
-| Header Cookie (đã che) |  |  |  |  |
-| Header dạng `x-user-*`, `x-forwarded-*` |  |  |  |  |
-| Địa chỉ nguồn (`remoteAddress`) |  |  |  |  |
-| Mã phiên (`sessionId`) |  |  |  |  |
-| `_meta` của lần gọi tool |  |  |  |  |
-| Trường lạ trong `_meta` (`extra_meta`) |  |  |  |  |
+| `clientInfo` (tên và phiên bản app) | `thothan-desktop-mcp-client` 1.0.0 | Chưa có tài khoản B | Không so sánh được | `log-20261116-203102-671.jsonl:4`, `log-20261116-194146-662.jsonl:12` |
+| `capabilities` | `{}` | Chưa có | Không so sánh được | hai dòng trên |
+| `protocolVersion` | 2025-11-25 | Chưa có | Không so sánh được | hai dòng trên |
+| Header Authorization (đã che) | Không có | Chưa có | Không so sánh được | `log-20261116-194146-662.jsonl:5` (no_auth_header) |
+| Header Cookie (đã che) | Không có ở client MCP; chỉ trình duyệt khi bấm link, đã che | Chưa có | Không so sánh được | `log-20261116-194146-662.jsonl:8` (không cookie), `:29-30` (cookie trình duyệt) |
+| Header dạng `x-user-*`, `x-forwarded-*` | Không có | Chưa có | Không so sánh được | `log-20261116-194146-662.jsonl:12`, `log-20261116-203102-671.jsonl:4` |
+| Địa chỉ nguồn (`remoteAddress`) | 127.0.0.1 khi HTTP Test connection; stdio không có | Chưa có | Không so sánh được | `log-20261116-194146-662.jsonl:8` |
+| Mã phiên (`sessionId`) | HTTP có UUID; stdio là null | Chưa có | Không so sánh được | `log-20261116-194146-662.jsonl:12`, `log-20261116-203102-671.jsonl:4` |
+| `_meta` của lần gọi tool | null | Chưa có | Không so sánh được | `log-20261116-203102-671.jsonl:8` |
+| Trường lạ trong `_meta` (`extra_meta`) | Không có | Chưa có | Không so sánh được | không có dòng `extra_meta` trong log |
+
+Kết quả P2 (danh tính): server chỉ thấy `clientInfo` là tên ứng dụng, không thấy tài khoản.
+Không có Authorization, không có header người dùng, không có `_meta`.
+Cookie chỉ xuất hiện ở lượt trình duyệt mở link duyệt, không phải ở client MCP.
+Chưa có tài khoản B nên độ tin cậy trung bình; nếu có tài khoản thứ hai, chạy lại `whoami` để xác nhận hai tài khoản trông giống nhau.
 
 ### 5.4. Cách đọc kết quả
 
@@ -307,7 +320,9 @@ Ba khả năng và cách ghi:
 Không dùng ảnh chụp màn hình làm bằng chứng duy nhất.
 Luôn kèm dòng log và tên trường cụ thể.
 
-**Kết luận:** nếu bảng 5.3 không có dòng nào khác nhau giữa hai tài khoản thì lab phải cấp danh tính giả cho từng nhân vật và ghi rõ đây là giả lập, đúng như phương án dự phòng trong `rd/findings.md`.
+**Kết luận:** server không nhận được danh tính người dùng.
+Lab phải cấp danh tính giả cho từng nhân vật và ghi rõ đây là giả lập, đúng như phương án dự phòng trong `rd/findings.md`; báo Kevin vì đây là giới hạn của nền tảng.
+Độ tin cậy trung bình vì chỉ có một tài khoản; nếu có tài khoản thứ hai, chạy lại `whoami` để xác nhận hai tài khoản vẫn giống nhau ở phía server.
 
 ## 6. P3 (kênh duyệt): host có hỏi trước khi ghi?
 
@@ -386,15 +401,21 @@ Nếu link bấm được nhưng trang không mở, ghi rõ lỗi của trình d
 
 | Bài thử | Kết quả quan sát | Bằng chứng (file:dòng) | Ghi chú |
 | --- | --- | --- | --- |
-| `whoami` có hỏi duyệt trước khi chạy? |  |  |  |
-| `fake_write` có hỏi duyệt trước khi chạy? |  |  |  |
-| Thời điểm `tool_call` so với lúc bấm duyệt |  |  |  |
-| Tắt được duyệt trong cài đặt? |  |  |  |
-| `ask_confirm` hiện biểu mẫu? |  |  |  |
-| Nhánh elicitation trong log |  |  |  |
-| Link Markdown bấm được? |  |  |  |
-| Trang duyệt mở được? |  |  |  |
-| `approve_visit` có User-Agent và Referer? |  |  |  |
+| `whoami` có hỏi duyệt trước khi chạy? | Không | `p2-02`, `log-20261116-203102-671.jsonl:8` | Không có hộp thoại. |
+| `fake_write` có hỏi duyệt trước khi chạy? | Không, cả Auto Approve lẫn Manual, cả topic mới | `p3-02`, `p3-03`; `log-20261116-203315-739.jsonl:8`, `log-20261116-203504-441.jsonl:8`, `log-20261116-203739-177.jsonl:8` | Tool chạy ngay, không có bước bấm duyệt. |
+| Thời điểm `tool_call` so với lúc bấm duyệt | Không có bước bấm duyệt; `tool_call` ngay sau câu lệnh | các dòng trên | Không có mốc duyệt để so. |
+| Tắt được duyệt trong cài đặt? | Có menu Auto Approve, Allow List, Manual, Bypass Security; Manual vẫn không hỏi | `p3-01`, `p3-03` | Manual không chặn MCP tool. |
+| `ask_confirm` hiện biểu mẫu? | Không | `p3-04` | Trả về text "không hỗ trợ". |
+| Nhánh elicitation trong log | `unsupported`, capabilities `{}` | `log-20261116-203857-876.jsonl:9` | Host không khai báo elicitation. |
+| Link Markdown bấm được? | Có, chữ xanh, mở trình duyệt | `p3-05` | So với URL thô trong khối code. |
+| Trang duyệt mở được? | Có, trang giả lập mở trong Zen | `p3-06` | Do probe HTTP ở cổng 8787 phục vụ. |
+| `approve_visit` có User-Agent và Referer? | UA Firefox 159; Referer null; cookie đã che | `log-20261116-194146-662.jsonl:30` | Trình duyệt gửi cookie, không phải client MCP. |
+
+Kết quả P3 (kênh duyệt): host không có điểm dừng trước tool ghi.
+Auto Approve và Manual đều gọi `fake_write` ngay; thử lại trong topic mới vẫn vậy.
+Tool card chỉ hiện tên và tham số, không cảnh báo `destructiveHint`.
+`ask_confirm` nhận capabilities `{}` nên trả về nhánh unsupported, không có biểu mẫu.
+Link Markdown bấm được và mở trang duyệt; `approve_visit` ghi UA Firefox, Referer null.
 
 ### 6.6. Cách kết luận P3 (kênh duyệt)
 
@@ -402,7 +423,9 @@ Một kênh duyệt chỉ được tính là có nếu nó chặn được lện
 Link bấm được chứng minh khả năng hiển thị, không chứng minh đó là kênh duyệt an toàn.
 Elicitation là kênh duyệt đúng nghĩa nếu host hiện biểu mẫu và chỉ gửi câu trả lời sau khi người dùng bấm gửi.
 
-**Kết luận:** nếu host không có điểm dừng trước `fake_write` và cũng không hỗ trợ elicitation thì lab phải tự dựng kênh duyệt ngoài host, rồi ghi lại bằng chứng này cho SR4 (điểm dừng rủi ro).
+**Kết luận:** host không có kênh duyệt cho MCP tool.
+Lab phải tự dựng cổng duyệt ngoài host cho SR4 (điểm dừng rủi ro); link Markdown chỉ là kênh hiển thị, không phải kênh duyệt an toàn.
+Elicitation không dùng được vì host không khai báo và không hiện biểu mẫu.
 
 ## 7. P4 (thử lại và thời gian chờ): host có tự gọi lại, và cắt sau bao lâu?
 
@@ -439,7 +462,7 @@ Nếu model dừng đúng như dặn, ghi nhận là chưa thấy host tự th�
 Gõ đúng câu:
 
 ```
-Gọi tool slow của server mcp-probe với seconds=300 và báo tôi khi xong.
+Gọi tool slow của server mcp-probe với seconds=30 và báo tôi khi xong.
 ```
 
 Bấm đồng hồ khi gửi câu lệnh.
@@ -448,7 +471,7 @@ Trong log, tìm `slow_start` của lần đó.
 
 Bốn kết quả có thể gặp:
 
-- Có `slow_end` với `cancelled: false`: host chờ đủ 300 giây.
+- Có `slow_end` với `cancelled: false`: host chờ đủ số giây đã xin.
 - Có `tool_cancelled`: host gửi yêu cầu hủy trước khi hết giờ.
 - Có `http_client_disconnect`: host đóng kết nối HTTP giữa chừng.
 - Không có `slow_end` và cũng không có hai dòng trên: có thể server vẫn đang chờ, hãy đợi thêm rồi xem lại.
@@ -456,26 +479,37 @@ Bốn kết quả có thể gặp:
 Không kết luận vội khi mới thấy `slow_start`: nếu chưa đủ số giây đã xin, server vẫn đang chờ và chưa ghi `slow_end`.
 `http_client_disconnect` có thể xuất hiện khi client đóng cả phiên, nên đọc kèm thời điểm `tool_cancelled` hoặc `slow_end` thay vì dùng một mình.
 
-Nếu 300 giây quá lâu, thử lại với `seconds=30`, rồi `seconds=60`, để tìm ngưỡng gần đúng.
+Kết quả đo cho thấy host cắt ở 60 giây; để xác nhận, thử thêm `seconds=60` và `seconds=120`.
 Ghi lại cả thời gian chờ thực tế của giao diện, không chỉ giá trị trong tham số.
 
 ### 7.3. Kiểm tra nút dừng
 
-Trong một lần gọi `slow` với `seconds=300`, bấm nút dừng của giao diện sau khoảng 10 giây.
+Trong một lần gọi `slow` với `seconds=120`, bấm nút dừng của giao diện sau khoảng 10 giây.
 Xem log có `notifications/cancelled` và `tool_cancelled` không.
-Nếu có, host biết hủy đúng cách.
+Đối chiếu mốc hủy với mốc bấm dừng: nếu lệch nhiều thì nút dừng không gửi hủy ngay.
+Nếu có hủy đúng lúc, host biết hủy đúng cách.
 Nếu không, host chỉ bỏ mặc kết nối.
 
 ### 7.4. Bảng kết quả P4 (thử lại và thời gian chờ)
 
 | Bài thử | Hành vi quan sát | Số lần hoặc số giây | Bằng chứng (file:dòng) | Ghi chú |
 | --- | --- | --- | --- | --- |
-| `flaky` lần 1 |  |  |  |  |
-| `flaky` có dặn đừng gọi lại |  |  |  |  |
-| `slow` 300 giây |  |  |  |  |
-| Ngưỡng cắt gần đúng |  |  |  |  |
-| Bấm nút dừng |  |  |  |  |
-| Có `notifications/cancelled` |  |  |  |  |
+| `flaky` lần 1 | `isError: true`, model không tự gọi lại | 1 lần | `log-20261116-204146-204.jsonl:9` (attempt 1), `:10` (isError true); `p4-01` | Model nói rõ không retry. |
+| `flaky` có dặn đừng gọi lại | Dừng đúng như dặn, chỉ 1 lần | 1 lần | `log-20261116-205848-488.jsonl:9` (attempt 1), `:10` (isError true); `p4-09` | Key `thu-nghiem-2`. |
+| `flaky` lần 2 cùng key | Vẫn attempt 1 vì tiến trình mới, `isError: true` | 1 lần | `log-20261116-204240-153.jsonl:9`; PID ở `:1`; `p4-02` | PID 38324 khác PID 4760 ở `log-20261116-204146-204.jsonl:1`. |
+| `slow` 30 giây | Xong sau 30.278 giây, không timeout | 30 giây | `log-20261116-204458-659.jsonl:9-10`; `p4-03` | Không có progressToken. |
+| `slow` 60 giây | Bị hủy ở 60.013 giây; UI hiện X đỏ, lượt chat treo đến khi bấm dừng | 60 giây | `log-20261116-204645-611.jsonl:11-13`; `p4-04`, `p4-06` | Host gửi `notifications/cancelled`. |
+| `slow` 120 giây | Bị hủy ở 60.008 giây, cùng ngưỡng | 60 giây | `log-20261116-205049-979.jsonl:11-13`; `p4-07` | Ngưỡng cố định 60 giây. |
+| Ngưỡng cắt gần đúng | 60 giây | 60 giây | hai dòng trên | 30 xong, 60 và 120 bị cắt ở 60. |
+| Bấm nút dừng | UI "Interrupted" ngay; log chỉ nhận hủy ở 60.009 giây; tiến trình vẫn sống lúc 14 giây | 60 giây | `log-20261116-205304-745.jsonl:11-13`; `p4-08` | Nút dừng không hủy ngay. |
+| Có `notifications/cancelled` | Có, ở mốc 60 giây; không có progress | - | các log trên | Không có `tool_progress`. |
+| ProgressToken | Không có | 0 | `slow_start.progressToken=null` ở cả bốn lần | Host không gửi `_meta.progressToken`. |
+
+Kết quả P4 (thử lại và thời gian chờ): host không tự gọi lại khi tool trả `isError`.
+Mỗi lần gọi stdio là một tiến trình mới, nên bộ đếm `flaky` reset; vì vậy lần gọi lại cùng key vẫn là "lần 1".
+Host cắt mọi tool ở 60 giây: `slow` 30 xong, `slow` 60 và 120 bị hủy ở khoảng 60 giây.
+Nút dừng chỉ đổi giao diện; log không nhận hủy cho đến mốc 60 giây.
+Host không gửi progressToken.
 
 ### 7.5. Cách kết luận P4 (thử lại và thời gian chờ)
 
@@ -485,7 +519,8 @@ Không suy ra ngưỡng của mọi tool từ một lần đo; đây chỉ là m
 
 Kết quả này chỉ nói về lỗi ở tầng tool (`isError`); lỗi mạng hoặc lỗi giao thức có thể được host xử lý khác.
 
-**Kết luận:** nếu host tự gọi lại tool lỗi thì mọi tool ghi dữ liệu của lab phải có mã chống ghi trùng ở phía server, vì host có thể gửi cùng một lệnh hai lần.
+**Kết luận:** lab phải có timeout riêng dưới 60 giây, mã chống ghi trùng cho SR6 (không ghi trùng), và không dựa vào state trong bộ nhớ vì mỗi lần gọi stdio là một tiến trình mới.
+Không được dựa vào nút dừng của host để hủy tool.
 
 ## 8. P5 (hiển thị và dấu vết): kết quả hiện ra sao và có vết không?
 
@@ -537,15 +572,20 @@ Số token trên giao diện thường do nhà cung cấp model trả về, khô
 
 | Nội dung | Cách host hiển thị | Có trong log? | Bằng chứng (file:dòng) | Ghi chú |
 | --- | --- | --- | --- | --- |
-| `structuredContent` |  |  |  |  |
-| Text đi kèm |  |  |  |  |
-| `isError` |  |  |  |  |
-| `traceparent` trong header |  |  |  |  |
-| `traceparent` trong `_meta` |  |  |  |  |
-| `x-request-id` hoặc tên tương tự |  |  |  |  |
-| Số token trên giao diện |  |  |  |  |
-| Chi phí trên giao diện |  |  |  |  |
-| Khóa chi phí trong `_meta` |  |  |  |  |
+| `structuredContent` | Không hiện; chỉ hiện text | Có | `p5-01`; `log-20261116-204407-340.jsonl:9` | Host nhận nhưng không hiển thị. |
+| Text đi kèm | Hiện nguyên câu text | Có | `p5-01` | Không có bảng hay JSON. |
+| `isError` | Không hiện rõ; tool card `flaky` vẫn có dấu check xanh, model tự giải thích | Có | `p4-01`; `log-20261116-204146-204.jsonl:10` | X đỏ của `slow` là timeout của host, không phải `isError` của server. |
+| `traceparent` trong header | Không có | Không | `log-20261116-194146-662.jsonl:12` | Không có trong request của client. |
+| `traceparent` trong `_meta` | Không có | Không | `log-20261116-194146-662.jsonl:12`, `:8` | Không có dòng `extra_meta`. |
+| `x-request-id` hoặc tên tương tự | Không có | Không | các dòng trên | Không có `x-correlation-id`, `baggage`. |
+| Số token trên giao diện | Không hiện; chỉ có "Deeply Thought" và thời gian | Không | `p4-01`, `p5-01` | Không có số token vào/ra. |
+| Chi phí trên giao diện | Tài khoản tính credit (FREE 500/kỳ), không phải token | Không có trong log | ghi chú bàn giao P1-P5 | Không chụp Profile vì có email thật. |
+| Khóa chi phí trong `_meta` | Không có | Không | không có `extra_meta` | Không có `usage`, `cost`, `token`. |
+
+Kết quả P5 (hiển thị và dấu vết): `structuredContent` có trong log nhưng không hiện; giao diện chỉ hiện text.
+`isError: true` của `flaky` không được đánh dấu lỗi; tool card vẫn có dấu check xanh.
+Không có `traceparent`, `tracestate`, `x-request-id` trong header hay `_meta`.
+Không có token hay chi phí trong log; tài khoản tính credit.
 
 ### 8.6. Cách kết luận P5 (hiển thị và dấu vết)
 
@@ -553,19 +593,20 @@ Hiển thị đẹp không thay thế dữ liệu đúng.
 Điều cần biết là host có giữ nguyên `structuredContent` hay chỉ hiển thị text, và lỗi có phân biệt được với kết quả bình thường không.
 Nếu không có mã vết, lab phải tự sinh mã vết ở cổng kiểm soát để đạt SR7 (vết xuyên suốt).
 
-**Kết luận:** nếu host không gửi và không hiển thị mã vết thì phần vết của lab phải bắt đầu từ cổng, không thể trông vào host.
+**Kết luận:** lab phải tự sinh mã vết ở cổng cho SR7 (vết xuyên suốt), không thể trông vào host.
+Không nên dựa vào `structuredContent` để hiển thị, vì host không hiển thị nó cho người dùng; và phải tự phân biệt lỗi vì host không đánh dấu `isError`.
 
 ## 9. Bảng tổng hợp để bàn giao
 
-Điền bảng này sau khi chạy xong, mỗi dòng một câu kết luận ngắn.
+Bảng này tổng hợp kết quả đã đo ngày 2026-11-16.
 
 | Câu hỏi | Kết luận một dòng | Độ tin cậy | Bằng chứng chính |
 | --- | --- | --- | --- |
-| P1 (giao thức và xác thực) |  |  |  |
-| P2 (danh tính) |  |  |  |
-| P3 (kênh duyệt) |  |  |  |
-| P4 (thử lại và thời gian chờ) |  |  |  |
-| P5 (hiển thị và dấu vết) |  |  |  |
+| P1 (giao thức và xác thực) | Chỉ stdio gọi tool được trong chat; HTTP chỉ qua Test connection, chat báo `fetch failed`. | Cao | `p1-11`, `p2-01`, `log-20261116-194146-662.jsonl`, `log-20261116-201053-131.jsonl` |
+| P2 (danh tính) | Không có danh tính người dùng; chỉ có `clientInfo` của app. | Trung bình | `log-20261116-203102-671.jsonl:4`, `log-20261116-194146-662.jsonl:12` |
+| P3 (kênh duyệt) | Không hỏi duyệt cả Auto lẫn Manual; không elicitation; link bấm được. | Cao | `p3-01` đến `p3-06`, các log `203315`, `203504`, `203739`, `203857`, `203939` |
+| P4 (thử lại và thời gian chờ) | Không auto retry; cắt ở 60 giây; mỗi call là process mới; nút dừng không hủy ngay. | Cao | `p4-01` đến `p4-09`, các log `204146`, `204240`, `204458`, `204645`, `205049`, `205304` |
+| P5 (hiển thị và dấu vết) | `structuredContent` không hiện; `isError` không hiện rõ; không trace, không cost. | Trung bình | `p5-01`, `p4-01`, `log-20261116-204407-340.jsonl:9` |
 
 Ba mức độ tin cậy:
 
@@ -573,26 +614,38 @@ Ba mức độ tin cậy:
 - Trung bình: có log nhưng chỉ một lần chạy.
 - Thấp: chỉ có quan sát giao diện, không có log tương ứng.
 
-**Kết luận:** chỉ những dòng có mức tin cậy cao hoặc trung bình mới được dùng để sửa khảo sát Thổ Thần và viết ADR-0001.
+**Kết luận:** kết quả đủ để sửa khảo sát Thổ Thần và viết ADR-0001.
+Riêng P2 (danh tính) cần thêm tài khoản thứ hai nếu có, để nâng từ trung bình lên cao.
 
 ## 10. Sau khi chạy
 
-1. Cập nhật mục 3.4 và mục 8 của `rd/appota/tho-than-platform.md` bằng kết quả thật, kèm tham chiếu log, đặc biệt giả thuyết H1.
-2. Ghi lại chế độ nối đã dùng và chế độ chưa thử được.
-3. Nếu P2 (danh tính) cho kết quả "không có danh tính", báo Kevin và ghi vào phần giả định của lab.
-4. Nếu P3 (kênh duyệt) cho kết quả "không có điểm dừng", đưa kết luận đó vào phần lý do của ADR-0001.
-5. Chỉ sau đó mới viết ADR-0001.
-6. Giữ log và ảnh trong `scratch/`; không commit, không dán token hay dữ liệu thật lên kênh công khai.
+Đã xong:
 
-Nếu giao diện chặn ở bước nào, ghi đúng lỗi và dừng, không tự suy ra kết quả.
-Một kết quả "chưa thử được" vẫn có giá trị hơn một kết luận đoán.
+1. Cài và chạy được cả hai skill: `mcp-probe` (HTTP) và `mcp-probe-stdio`.
+2. Chạy đủ năm câu hỏi P1-P5 (giao thức, danh tính, duyệt, thử lại, hiển thị) trên stdio, ghi log và ảnh vào `scratch/mcp-probe/`.
+3. Ghi phát hiện HTTP chat `fetch failed` vào P1 (giao thức và xác thực), mục 4.6.
+4. Điền bảng kết quả của năm câu hỏi và bảng tổng hợp mục 9.
 
-**Kết luận:** bằng chứng của buổi đo phải đủ để người khác mở lại đúng file log và đọc đúng dòng, không cần hỏi lại người chạy.
+Còn phải làm:
+
+5. Cập nhật mục 3.4 và mục 8 của `rd/appota/tho-than-platform.md` trong nhánh chính, kèm tham chiếu log, đặc biệt giả thuyết H1.
+6. Báo Kevin hai điểm: HTTP chat `fetch failed` (cần xác minh lời gọi đi qua cloud) và chưa có quyền mở tunnel HTTPS.
+7. Nếu có tài khoản Thổ Thần thứ hai, chạy lại `whoami` bằng tài khoản đó để nâng độ tin cậy P2 (danh tính).
+8. Chỉ sau các bước trên mới viết ADR-0001.
+9. Giữ log và ảnh trong `scratch/`; không commit, không dán token hay dữ liệu thật lên kênh công khai.
+10. Không gỡ skill khỏi tài khoản trừ khi người dùng yêu cầu.
+
+**Kết luận:** bàn giao đủ khi người sau mở được đúng file log và ảnh, và biết đúng ba việc còn thiếu: tài khoản thứ hai, HTTPS từ xa, cập nhật khảo sát Thổ Thần.
 
 ## 11. Giới hạn của kịch bản này
 
-- Agent không mở được giao diện Thổ Thần, nên mọi kết quả của năm câu hỏi phải do người dùng điền.
 - Kết quả gắn với phiên bản 2.1.56 tại thời điểm đo; bản triển khai sau có thể khác.
+- Chỉ có một tài khoản Thổ Thần, nên P2 (danh tính) chưa so sánh được hai tài khoản.
+- Chưa thử bearer/API Key, HTTPS từ xa hay OAuth2; UI chỉ có No auth và API Key.
+- Giả thuyết lời gọi chat đi qua cloud là suy luận từ việc server không nhận request, chưa phải kiến trúc đã xác minh.
+- Kết luận "mỗi lần gọi stdio là một tiến trình mới" dựa trên PID khác nhau trong từng log, chưa đọc mã nguồn host.
+- Lần bấm nút dừng chỉ chạy một lần; mốc hủy 60 giây khớp với timeout nên chưa tách được hoàn toàn khỏi timeout.
+- Thông tin credit (FREE 500/kỳ) lấy từ bàn giao, không có ảnh vì trang Profile chứa email thật.
 - Chỉ dùng dữ liệu giả lập, không đụng dữ liệu thật của công ty.
 - Probe không chạy máy chủ OAuth và không chạy transport SSE cũ, nên không thử được hai chế độ đó.
 - Chỉ có một máy và một mạng, chưa đo được ảnh hưởng của mạng chậm.
@@ -611,5 +664,15 @@ Một kết quả "chưa thử được" vẫn có giá trị hơn một kết l
 - Đặc tả MCP, elicitation: https://modelcontextprotocol.io/specification/2025-06-18/client/elicitation
 - Khảo sát Thổ Thần (bản trong nhánh chính): `rd/appota/tho-than-platform.md`.
 - Tổng hợp phát hiện (bản trong nhánh chính): `rd/findings.md`.
+
+Bằng chứng đo, tất cả nằm trong `scratch/mcp-probe/` (đã git bỏ qua):
+
+| Câu hỏi | Log chính | Ảnh chính |
+| --- | --- | --- |
+| P1 (giao thức và xác thực) | `log-20261116-194146-662.jsonl` (HTTP Test connection), `log-20261116-201053-131.jsonl` (thử IPv6) | `p1-09`, `p1-11`, `p1-12`, `p1-13`, `p1-14`, `p2-01` |
+| P2 (danh tính) | `log-20261116-203102-671.jsonl` (whoami stdio), `log-20261116-194146-662.jsonl` (HTTP) | `p2-02` |
+| P3 (kênh duyệt) | `log-20261116-203315-739.jsonl`, `log-20261116-203504-441.jsonl`, `log-20261116-203739-177.jsonl`, `log-20261116-203857-876.jsonl`, `log-20261116-203939-773.jsonl`, `log-20261116-194146-662.jsonl` (approve) | `p3-01` đến `p3-06` |
+| P4 (thử lại và thời gian chờ) | `log-20261116-204146-204.jsonl`, `log-20261116-204240-153.jsonl`, `log-20261116-204458-659.jsonl`, `log-20261116-204645-611.jsonl`, `log-20261116-205049-979.jsonl`, `log-20261116-205304-745.jsonl`, `log-20261116-205848-488.jsonl` | `p4-01` đến `p4-09` |
+| P5 (hiển thị và dấu vết) | `log-20261116-204407-340.jsonl`, `log-20261116-204146-204.jsonl`, `log-20261116-194146-662.jsonl` | `p5-01`, `p4-01` |
 
 **Kết luận:** mọi bằng chứng trong tài liệu này trỏ tới một file trong repo hoặc một trang đặc tả công khai, nên người sau mở lại được.
