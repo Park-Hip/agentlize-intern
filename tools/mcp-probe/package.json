@@ -1,0 +1,28 @@
+{
+  "name": "mcp-probe",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "mcp-probe": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "selftest": "npm run build && node dist/selftest.js",
+    "summarize": "node dist/summarize.js",
+    "inspector:stdio": "npx --yes @modelcontextprotocol/inspector@2.15.0 --cli --method tools/list node dist/index.js --stdio",
+    "inspector:http": "npx --yes @modelcontextprotocol/inspector@2.15.0 --cli --transport http --server-url http://127.0.0.1:8787/mcp --method tools/list"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.0"
+  }
+}
