@@ -242,7 +242,7 @@ Kết quả "không thấy" chỉ có nghĩa là chưa thử được, không ph
 
 | Chế độ | Kết nối được? | `protocolVersion` trong log | Xác thực quan sát được | Bằng chứng (file:dòng) | Ghi chú |
 | --- | --- | --- | --- | --- | --- |
-| Streamable HTTP localhost, không bearer | Test connection: có. Chat: không, báo `fetch failed`, server không nhận request. | 2025-11-25 | Không có Authorization; `user-agent: node` | `log-20261116-194146-662.jsonl:12` (initialize), `:8-21` (Test connection); ảnh `p1-09`, `p1-11`, `p2-01`; log IPv6 `log-20261116-201053-131.jsonl` | Chat có thể đi qua cloud nên không tới localhost; giả thuyết, cần xác minh với Kevin. |
+| Streamable HTTP localhost, không bearer | Test connection: có. Chat: không, báo `fetch failed`, server không nhận request. | 2025-11-25 | Không có Authorization; `user-agent: node` | `log-20261116-194146-662.jsonl:12` (initialize), `:8-21` (Test connection), `:24` (7 tool); ảnh `p1-09`, `p1-11`, `p2-01`; log IPv6 `log-20261116-201053-131.jsonl` | Chat có thể đi qua cloud nên không tới localhost; giả thuyết, cần xác minh với Kevin. |
 | stdio | Có, chat gọi được đủ 7 tool. | 2025-11-25 | Không có header (stdio). | `log-20261116-203102-671.jsonl:4` (initialize), `:8` (whoami); ảnh `p1-13`, `p2-02` | Mỗi lần gọi tool là một tiến trình mới, PID khác nhau. |
 | Streamable HTTP localhost, bearer | Chưa thử. | - | No auth đã thử; API Key chưa gửi. | ảnh `p1-06`; `log-20261116-194146-662.jsonl:5` (no_auth_header) | Không tắt probe HTTP đang chạy để thử token. |
 | HTTPS từ xa qua tunnel | Chưa thử. | - | - | - | Cần tunnel và Kevin đồng ý; chưa mở. |
