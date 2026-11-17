@@ -3,7 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/lib.js",
+  "exports": {
+    ".": "./dist/lib.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build -w @lab/shared && npm run build && node --no-experimental-strip-types --test"

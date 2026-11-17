@@ -2,7 +2,7 @@ import { readPublicBaseUrl, readServiceKey, startService, type RunningService } 
 import { createGatewayHandler } from './app.js';
 import { openGatewayDatabase, resolveDataDir } from './database.js';
 import { ApiKeyIdentity, KeyStore } from './identity/index.js';
-import { createPolicyEngine } from './policy/index.js';
+import { createPolicyEngine, resolveRulesPath, seedRulesFile } from './policy/index.js';
 import { ProposalStore, type ProposalExecutor } from './proposals/index.js';
 import { HttpSystems, systemUrl, type Systems } from './systems.js';
 import { PROPOSE_TOOLS } from './tools/propose-tools.js';
@@ -17,7 +17,7 @@ export interface GatewayOptions {
   readonly env?: NodeJS.ProcessEnv;
   /** Replaces the HTTP clients of the two fake systems. Tests use it to inject a failure. */
   readonly systems?: Systems;
-  /** Path of the rule file; defaults to `gateway/policy/rules.json`. */
+  /** Path of the rule file, overriding `LAB_RULES_PATH` and the file in the data folder. Tests use it. */
   readonly rulesPath?: string;
   /** Replaces the clock. Tests use it to pass the 30 minutes of a proposal and the 15 minutes of a login. */
   readonly now?: () => Date;
@@ -37,8 +37,16 @@ export interface RunningGateway extends RunningService {
 export async function startGateway(options: GatewayOptions = {}): Promise<RunningGateway> {
   const env = options.env ?? process.env;
   const serviceKey = readServiceKey(env);
+  const dataDir = resolveDataDir(env);
 
-  const db = openGatewayDatabase(resolveDataDir(env));
+  // The committed rule file is the base copy; the gateway reads the operator's copy in the data folder.
+  // A test that passes its own path keeps full control of that file, so it is not seeded or overwritten.
+  const rulesPath = options.rulesPath ?? resolveRulesPath(dataDir, env);
+  if (options.rulesPath === undefined && seedRulesFile(rulesPath)) {
+    console.log(`[gateway] copied the base rule file to ${rulesPath}`);
+  }
+
+  const db = openGatewayDatabase(dataDir);
   try {
     const keys = new KeyStore(db);
     const now = options.now ?? ((): Date => new Date());
@@ -66,7 +74,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
       ...(options.port === undefined ? {} : { port: options.port }),
       handler: createGatewayHandler({
         identity: new ApiKeyIdentity(keys),
-        policy: createPolicyEngine(options.rulesPath === undefined ? {} : { rulesPath: options.rulesPath }),
+        policy: createPolicyEngine({ rulesPath }),
         systems,
         trace,
         tools: [...READ_TOOLS, ...PROPOSE_TOOLS],

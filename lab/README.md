@@ -39,6 +39,12 @@ Mọi dịch vụ chỉ nghe ở `127.0.0.1`.
 `LAB_DATA_DIR` đổi thư mục dữ liệu, mặc định là `lab/.data` và bị bỏ qua trong git.
 `LAB_SERVICE_KEY` là khoá cổng dùng khi gọi hai hệ thống giả; `npm start` sinh khoá mới nếu biến này chưa có.
 `LAB_TEST_HOOKS=1` mở các đường `/admin/*` của hai hệ thống giả cho phép thử; để trống thì các đường đó trả 404. `npm start` không bật biến này.
+`LAB_RULES_PATH` đổi đường dẫn file luật; mặc định là `<LAB_DATA_DIR>/rules.json`.
+
+File luật gốc là `lab/gateway/policy/rules.json`, chỉ đổi qua PR.
+Lần khởi động đầu, cổng chép bản gốc sang đường dẫn ở trên khi file đó chưa có, và không đụng vào file đã có.
+Bộ luật đọc lại file ở mỗi lần quyết định, nên sửa file đó áp dụng ngay ở lời gọi sau mà không cần khởi động lại; file hỏng thì mọi lời gọi bị từ chối với `POLICY_UNAVAILABLE`.
+Cơ sở dữ liệu `gateway.sqlite` bật chế độ ghi nhật ký trước (WAL) và chờ khoá 5 giây, để tiến trình khác đọc được trong lúc cổng đang ghi.
 
 ## Danh bạ giả
 
