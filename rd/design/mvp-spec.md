@@ -1,6 +1,6 @@
 # Spec bản thử đầu: cổng kiểm soát cắm vào Thổ Thần
 
-Ngày: 2026-11-17. Trạng thái: đã chốt phạm vi và thiết kế cho mốc 0 tới mốc 2; các quyết định ở mục 11 chờ ghi thành ADR, bốn câu hỏi Kevin không chặn việc dựng.
+Ngày: 2026-11-17. Trạng thái: đã chốt phạm vi và thiết kế cho mốc 0 tới mốc 2; quyết định 2 ở mục 11 chờ ghi thành ADR-0004, bốn câu hỏi Kevin không chặn việc dựng.
 
 ## Đọc nhanh
 
@@ -357,13 +357,15 @@ Năm ADR, theo [tổng hợp, mục 8](../findings.md#8-bước-tiếp-theo):
 2. Nơi chạy và cách nối: chương trình nối stdio trên máy người dùng, cổng chạy cục bộ, đường `/mcp` để dành cho bản web; hoặc cổng ở một máy chủ chung với `/mcp` qua HTTPS.
    Phép đo ngày 2026-11-17 cho thấy cách thứ hai chạy được cho cả web lẫn desktop; còn chờ Kevin về địa chỉ công khai lâu dài.
 3. Danh tính: khoá riêng cho từng người, kiểm ở cổng, thu hồi được; cổng nhận người theo mã nhân viên, không theo email; module danh tính thay được.
-   Đây là cách tạm; xem lại khi Thổ Thần chuyển được danh tính người dùng.
+   Đã chốt ở [ADR-0005](../../docs/adr/adr-0005-requester-identity.md): khoá là danh tính chính; `x-user-id` của Thổ Thần chưa dùng để cấp quyền, kể cả làm lớp kiểm thứ hai, vì ba điều kiện ở ADR-0005 mục 3 chưa đạt.
+   Xem lại khi Kevin trả lời câu 2 và 3 dưới đây, hoặc khi Thổ Thần cấp được danh tính có chữ ký.
 4. Đọc và ghi an toàn: chỉ trả trường đã khai; ngoài phạm vi thì "không tìm thấy"; mã lý do cho mọi lần từ chối; dữ liệu nguồn trong khối có nhãn; trang của cổng ngoài cuộc hội thoại; dấu vân tay; mã chống ghi trùng cố định; số phiên bản để phát hiện dữ liệu đích đã đổi.
 5. Công nghệ: TypeScript trên Node 22, vì probe và SDK MCP chính thức đều là TypeScript và giới hạn 60 giây đã đo trên SDK này.
    ADR này chốt thêm ba điều: SQLite có sẵn trong Node (`node:sqlite`, đã chạy được trên máy Lab với Node 22.21 nhưng còn gắn nhãn thử nghiệm) hay thư viện `better-sqlite3`; hai hệ thống giả là dịch vụ riêng (mục 4.2); bộ luật quyền tự viết, đọc file luật dạng bảng, và vì sao chưa dùng OPA hay Cedar.
 
 Quyết định 1, 4 và 5 đã ghi thành [ADR-0001](../../docs/adr/adr-0001-self-built-thin-gateway.md), [ADR-0002](../../docs/adr/adr-0002-safe-read-and-write.md) và [ADR-0003](../../docs/adr/adr-0003-technology-stack.md); ADR-0003 chọn `better-sqlite3`.
-Quyết định 2 và 3 vẫn để mở: phép đo HTTPS ngày 2026-11-17 đã trả lời S3, S4 và S6 ([khảo sát Thổ Thần, mục 3.6](../appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17), [kịch bản đo, mục 4.8](../appota/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6)), nên việc còn lại là chọn đường chính và cách kiểm người gọi khi `x-user-id` có thể do người gọi tự đặt.
+Quyết định 3 đã ghi thành [ADR-0005](../../docs/adr/adr-0005-requester-identity.md).
+Quyết định 2 vẫn để mở: phép đo HTTPS ngày 2026-11-17 đã trả lời S3, S4 và S6 ([khảo sát Thổ Thần, mục 3.6](../appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17), [kịch bản đo, mục 4.8](../appota/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6)), nên việc còn lại là chọn đường chính.
 
 Để sau, không chặn mốc 0 tới mốc 2:
 

@@ -1,20 +1,36 @@
-/**
- * The seven fake people the lab issues keys for (spec section 2.1).
- * Employee codes are fixed so the directory seed and the key seed agree.
- * The guest has a valid key but no entry in the directory.
- */
+export const DEPARTMENTS = ['Vận hành', 'Kinh doanh'] as const;
+
+export type Department = (typeof DEPARTMENTS)[number];
+
+/** Roles from the permission matrix in PRD section 3.2. */
+export const ROLES = ['intern', 'staff', 'lead', 'hr'] as const;
+
+export type EmployeeRole = (typeof ROLES)[number];
+
+/** Employee codes look like `NV-07`. The gateway identifies people by this code, never by email. */
+export const EMPLOYEE_ID_PATTERN = /^NV-\d{2}$/;
+
 export interface Persona {
-  readonly slug: string;
   readonly employeeId: string;
-  readonly label: string;
+  readonly fullName: string;
+  readonly department: Department;
+  readonly role: EmployeeRole;
 }
 
-export const PERSONAS: readonly Persona[] = [
-  { slug: 'hoa', employeeId: 'NV-07', label: 'Chị Hoa (nhân viên Vận hành)' },
-  { slug: 'nam', employeeId: 'NV-12', label: 'Nam (thực tập sinh)' },
-  { slug: 'quang', employeeId: 'NV-03', label: 'Anh Quang (trưởng nhóm Vận hành)' },
-  { slug: 'nhung', employeeId: 'NV-05', label: 'Chị Nhung (nhân sự)' },
-  { slug: 'lan', employeeId: 'NV-09', label: 'Chị Lan (người bị chuyển việc)' },
-  { slug: 'minh', employeeId: 'NV-11', label: 'Anh Minh (người nhận việc)' },
-  { slug: 'khach', employeeId: 'NV-99', label: 'Khách (có khoá, không có trong danh bạ)' },
-];
+/**
+ * The six named characters of the lab scenarios (spec section 2.1).
+ * Their codes are fixed so the gateway, the tests and the fake systems agree
+ * without looking anyone up by name.
+ * Nhung works in Vận hành on purpose: the read-only key test needs a task in
+ * her own department while her full key can still change it.
+ */
+export const PERSONAS = {
+  hoa: { employeeId: 'NV-02', fullName: 'Nguyễn Thị Hoa', department: 'Vận hành', role: 'staff' },
+  nam: { employeeId: 'NV-05', fullName: 'Lê Hoàng Nam', department: 'Vận hành', role: 'intern' },
+  quang: { employeeId: 'NV-01', fullName: 'Trần Văn Quang', department: 'Vận hành', role: 'lead' },
+  nhung: { employeeId: 'NV-06', fullName: 'Phạm Thị Nhung', department: 'Vận hành', role: 'hr' },
+  lan: { employeeId: 'NV-03', fullName: 'Đỗ Thị Lan', department: 'Vận hành', role: 'staff' },
+  minh: { employeeId: 'NV-04', fullName: 'Vũ Quốc Minh', department: 'Vận hành', role: 'staff' },
+} as const satisfies Record<string, Persona>;
+
+export type PersonaName = keyof typeof PERSONAS;

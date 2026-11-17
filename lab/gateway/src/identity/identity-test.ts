@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test, { after } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { DATA_DIR_ENV, KEY_PREFIX_LENGTH, PERSONAS, maskKey } from '@lab/shared';
+import { DATA_DIR_ENV, KEY_PREFIX_LENGTH, maskKey } from '@lab/shared';
 import { runKeysCli, UsageError } from '../cli/keys.js';
-import { seedKeys } from '../cli/seed-keys.js';
+import { SEED_IDENTITIES, seedKeys } from '../cli/seed-keys.js';
 import { GATEWAY_DB_FILE, openGatewayDatabase, resolveDataDir } from '../database.js';
 import {
   ApiKeyIdentity,
@@ -162,8 +162,8 @@ test('identity: readBearerKey accepts one Bearer header in any letter case', () 
 
 test('identity: scanning the SQLite files finds the hash but never a raw key', () => {
   const f = fixture();
-  const rawKeys = PERSONAS.map(
-    (persona) => f.store.issue({ employeeId: persona.employeeId, caller: 'tho-than-desktop' }).rawKey,
+  const rawKeys = SEED_IDENTITIES.map(
+    (identity) => f.store.issue({ employeeId: identity.employeeId, caller: 'tho-than-desktop' }).rawKey,
   );
   const sample = f.store.issue({ employeeId: 'NV-07', caller: 'test' });
   f.store.revoke(sample.record.keyId);
@@ -261,29 +261,30 @@ test('identity: seed-keys issues one key per persona plus the guest, once, and r
 
   seedKeys(f.store, io);
   const rows = lines.filter((line) => line.includes('lab_'));
-  assert.equal(rows.length, PERSONAS.length);
-  assert.ok(PERSONAS.some((persona) => persona.slug === 'khach'));
-  assert.equal(new Set(f.store.list().map((record) => record.employeeId)).size, PERSONAS.length);
+  assert.equal(rows.length, 7);
+  assert.equal(SEED_IDENTITIES.length, 7);
+  assert.ok(SEED_IDENTITIES.some((identity) => identity.name === 'khach'));
+  assert.equal(new Set(f.store.list().map((record) => record.employeeId)).size, 7);
 
   const printed = new Map<string, string>();
   for (const row of rows) {
     const [slug, , , key] = row.split('  ');
     printed.set(slug ?? '', key ?? '');
   }
-  for (const persona of PERSONAS) {
-    const result = await f.provider.authenticate(bearer(printed.get(persona.slug) ?? ''));
-    assert.equal(result.ok && result.identity.employeeId, persona.employeeId);
+  for (const identity of SEED_IDENTITIES) {
+    const result = await f.provider.authenticate(bearer(printed.get(identity.name) ?? ''));
+    assert.equal(result.ok && result.identity.employeeId, identity.employeeId);
   }
 
   assert.throws(() => seedKeys(f.store, io), /--rotate/);
-  assert.equal(f.store.list().length, PERSONAS.length);
+  assert.equal(f.store.list().length, 7);
 
   seedKeys(f.store, { out: () => undefined }, { rotate: true });
   assert.deepEqual(await f.provider.authenticate(bearer(printed.get('hoa') ?? '')), {
     ok: false,
     reason: 'KEY_REVOKED',
   });
-  assert.equal(f.store.list().length, PERSONAS.length * 2);
+  assert.equal(f.store.list().length, 14);
   f.close();
 });
 

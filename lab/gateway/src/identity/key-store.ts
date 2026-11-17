@@ -1,11 +1,10 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { KEY_PREFIX_LENGTH } from '@lab/shared';
+import { EMPLOYEE_ID_PATTERN, KEY_PREFIX_LENGTH } from '@lab/shared';
 import type { GatewayDatabase } from '../database.js';
 import { CALLERS, SCOPES, isCaller, isScope, type Caller, type Scope } from './types.js';
 
 export const KEY_PREFIX = 'lab_';
 const KEY_RANDOM_BYTES = 32;
-const EMPLOYEE_ID_PATTERN = /^NV-\d{2,}$/;
 
 export interface KeyRecord {
   readonly keyId: string;
