@@ -8,7 +8,7 @@ Chưa có logic nghiệp vụ nào; các gói giữ chỗ cho phần dựng ở 
 | Gói | Vai trò |
 | --- | --- |
 | `shared` | Cổng mạng, mã lý do, câu từ chối, kiểu danh mục tool và phản hồi tool |
-| `gateway` | Cổng kiểm soát, hiện chỉ có `GET /health` |
+| `gateway` | Cổng kiểm soát: `GET /health` và module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`) |
 | `mcp-adapter` | Chỗ đặt chương trình nối stdio, chưa có tool |
 | `fake-directory` | Danh bạ giả, hiện chỉ có `GET /health` |
 | `fake-tasks` | Danh sách task giả, hiện chỉ có `GET /health` |

@@ -109,6 +109,19 @@ Override the ports with `LAB_GATEWAY_PORT`, `LAB_DIRECTORY_PORT` and `LAB_TASKS_
 `npm test` builds, then runs every `*-test.js` file in the workspace, including a smoke test that starts the three services on temporary ports and checks `/health`.
 `npm run lint` type-checks the whole workspace with `tsc --noEmit`.
 
+Per-person keys live in the `api_keys` table of `lab/.data/gateway.sqlite` (hash only).
+Run the identity tests alone with `npm test -w gateway -- --test-name-pattern identity`.
+
+```
+npm run keys -- issue --employee NV-07 --caller tho-than-desktop [--scope read_only]
+npm run keys -- revoke --key-id <key-id>
+npm run keys -- list
+npm run seed-keys [-- --rotate]
+```
+
+`issue` and `seed-keys` print each raw key once and never write it to disk; `list` shows only the first six characters.
+`seed-keys` issues one key per persona plus the guest, and refuses to run again until `--rotate` revokes the old ones.
+
 ### MCP probe for Thổ Thần
 
 The probe in `tools/mcp-probe` records what Thổ Thần sends as an MCP host.
