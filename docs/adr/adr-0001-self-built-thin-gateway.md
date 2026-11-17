@@ -24,7 +24,7 @@ Bằng chứng đã có:
 - Thổ Thần không hỏi duyệt trước khi ghi và cắt lời gọi sau 60 giây ([tổng hợp phát hiện, mục 4](../../rd/findings.md#4-thổ-thần)).
 - Thổ Thần chưa cho Lab một danh tính người dùng kiểm chứng được.
   Nối trên máy (stdio), server chỉ thấy tên ứng dụng, không thấy tài khoản.
-  Nối qua địa chỉ HTTPS công khai, máy chủ Thổ Thần gắn thêm header `x-user-id` và `x-user-email`, nhưng mới đo một tài khoản và chưa biết người dùng có giả được header đó không ([khảo sát Thổ Thần, mục 3.6](../../rd/appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
+  Nối qua địa chỉ HTTPS công khai, máy chủ Thổ Thần gắn thêm header `x-user-id` và `x-user-email`, nhưng mới đo một tài khoản, và ai có khoá gọi thẳng địa chỉ của server cũng tự đặt được `x-user-id` ([tổng hợp phát hiện, mục 4](../../rd/findings.md#4-thổ-thần), [khảo sát Thổ Thần, mục 3.6](../../rd/appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
 
 Mục tiêu của Lab là bằng chứng chạy lại được và số đo so sánh, không phải đưa vào vận hành.
 
