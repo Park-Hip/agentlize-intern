@@ -1,15 +1,14 @@
 # Lab - AI Operations Connector
 
 Khung mã của bản thử: ba dịch vụ chạy trên máy, một lệnh khởi động và một lệnh chạy phép thử.
-Danh sách task giả, danh bạ giả và đường đọc của cổng đã có logic; các gói còn lại là chỗ giữ cho phần dựng ở các mốc sau.
+Danh sách task giả, danh bạ giả, đường đọc của cổng và cửa `/mcp` đã có logic; các phần còn lại là chỗ giữ cho phần dựng ở các mốc sau.
 
 ## Gói
 
 | Gói | Vai trò |
 | --- | --- |
 | `shared` | Cổng mạng, mã lý do, câu từ chối, kiểu danh mục tool và phản hồi tool, sáu nhân vật cố định, kiểm khoá dịch vụ, che khoá trong log |
-| `gateway` | Cổng kiểm soát: `GET /health`, module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`), bộ luật quyền (`src/policy/`), ba tool đọc (`src/tools/`) và bảng vết (`src/trace/`, lệnh `npm run trace`) |
-| `mcp-adapter` | Chỗ đặt chương trình nối stdio, chưa có tool |
+| `gateway` | Cổng kiểm soát: `GET /health`, cửa `/mcp` (`src/mcp.ts`), module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`), bộ luật quyền (`src/policy/`), ba tool đọc (`src/tools/`) và bảng vết (`src/trace/`, lệnh `npm run trace`) |
 | `fake-directory` | Danh bạ giả 20 nhân viên, xem mục Danh bạ giả |
 | `fake-tasks` | Danh sách task giả: 100 task nạp cố định, đọc, ghi có mã chống ghi trùng và số phiên bản |
 | `tests` | Phép thử `node:test`, gồm phép thử khói ba dịch vụ |
@@ -138,10 +137,34 @@ Thử tay sau `npm start` và `npm run seed-keys`:
 curl -s -X POST http://127.0.0.1:8790/v1/tools/find_employee -H "Authorization: Bearer <khoá của chị Hoa>" -H "Content-Type: application/json" -d '{"name":"Minh"}'
 ```
 
+## Cửa `/mcp`
+
+`POST http://127.0.0.1:8790/mcp` là cửa MCP qua HTTP (Streamable HTTP, `@modelcontextprotocol/sdk` 1.32.2) cho Thổ Thần và mọi client MCP.
+Nó mở đúng ba tool của `GET /v1/tools`, cùng mô tả, cùng lược đồ tham số, cùng khoá `lab_` và cùng đường kiểm quyền; mã dùng chung nằm ở `gateway/src/call.ts`.
+Cửa vẫn chỉ nghe ở `127.0.0.1`; mở ra ngoài là việc của issue riêng sau ADR-0004.
+
+- Khoá nằm ở header `Authorization: Bearer <khoá>` của mọi request.
+  Thiếu, sai hoặc bị thu hồi thì cổng trả 401 kèm câu `CHƯA THỰC HIỆN [KEY_INVALID]` hoặc `[KEY_REVOKED]` và ghi một dòng vết.
+- Cổng không giữ phiên.
+  Mỗi request dựng một server MCP mới rồi bỏ; cổng không cấp `mcp-session-id` và bỏ qua mã mà host gửi.
+  Chỉ `POST` được phục vụ; `GET` và `DELETE` trả 405.
+- Kết quả gọi tool có `content[0].text` giống hệt `text` của `POST /v1/tools/<tên>`, và `_meta` mang `reason_code` cùng `trace_id`.
+  Từ chối và lỗi tham số đặt `isError: true`; "không tìm thấy" là một câu trả lời nên `isError: false`.
+- Header `x-user-id` do Thổ Thần gắn được ghi vào cột `host_user` của vết, che như khoá (`user_0...(len=29)`), ở cả hai cửa.
+  Cổng chưa dùng nó để quyết định quyền, theo ADR-0005.
+
+Thử bằng MCP Inspector sau `npm start` và `npm run seed-keys`:
+
+```
+npx --yes @modelcontextprotocol/inspector@2.15.0 --cli --transport http --server-url http://127.0.0.1:8790/mcp --header "Authorization: Bearer <khoá của chị Hoa>" --method tools/list
+```
+
+Phép thử nghiệm thu đọc (`tests/src/gateway-read-test.ts`) chạy cùng một bộ ca qua hai cửa `http` và `mcp-http`; `npm test -w @lab/gateway -- --test-name-pattern mcp` chạy riêng phép thử của cửa này.
+
 ## Bảng vết
 
 Bảng `trace` nằm trong `LAB_DATA_DIR/gateway.sqlite` và chỉ ghi thêm: hai trigger của SQLite chặn mọi UPDATE và DELETE.
-Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi theo khoá, cửa vào, tool, mã đối tượng, kết quả, mã lý do, mã luật, phiên bản luật và thời gian xử lý.
+Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi theo khoá, cửa vào (`http` hoặc `mcp`), tool, mã đối tượng, kết quả, mã lý do, mã luật, phiên bản luật, `x-user-id` đã che (nếu host gửi) và thời gian xử lý.
 Bảng không có cột nào cho tên, email, số điện thoại, địa chỉ hay khoá, nên các giá trị đó không ghi vào được.
 
 ```
