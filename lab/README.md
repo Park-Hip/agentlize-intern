@@ -1,14 +1,14 @@
 # Lab - AI Operations Connector
 
 Khung mã của bản thử: ba dịch vụ chạy trên máy, một lệnh khởi động và một lệnh chạy phép thử.
-Danh sách task giả, danh bạ giả, đường đọc của cổng và cửa `/mcp` đã có logic; các phần còn lại là chỗ giữ cho phần dựng ở các mốc sau.
+Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/mcp`, đường soạn đề xuất và đường ghi sau khi bấm Gửi đã có logic.
 
 ## Gói
 
 | Gói | Vai trò |
 | --- | --- |
 | `shared` | Cổng mạng, mã lý do, câu từ chối, kiểu danh mục tool và phản hồi tool, sáu nhân vật cố định, kiểm khoá dịch vụ, che khoá trong log |
-| `gateway` | Cổng kiểm soát: `GET /health`, cửa `/mcp` (`src/mcp.ts`), module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`), bộ luật quyền (`src/policy/`), ba tool đọc (`src/tools/`) và bảng vết (`src/trace/`, lệnh `npm run trace`) |
+| `gateway` | Cổng kiểm soát: `GET /health`, cửa `/mcp` (`src/mcp.ts`), module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`), bộ luật quyền (`src/policy/`), ba tool đọc (`src/tools/`), đường soạn đề xuất và đường ghi (`src/proposals/`, `src/writes/`), bảng vết (`src/trace/`, lệnh `npm run trace`) |
 | `fake-directory` | Danh bạ giả 20 nhân viên, xem mục Danh bạ giả |
 | `fake-tasks` | Danh sách task giả: 100 task nạp cố định, đọc, ghi có mã chống ghi trùng và số phiên bản |
 | `tests` | Phép thử `node:test`, gồm phép thử khói ba dịch vụ |
@@ -161,10 +161,32 @@ npx --yes @modelcontextprotocol/inspector@2.15.0 --cli --transport http --server
 
 Phép thử nghiệm thu đọc (`tests/src/gateway-read-test.ts`) chạy cùng một bộ ca qua hai cửa `http` và `mcp-http`; `npm test -w @lab/gateway -- --test-name-pattern mcp` chạy riêng phép thử của cửa này.
 
+## Đường ghi
+
+Ba bước: AI soạn đề xuất, người yêu cầu bấm Gửi trên trang của cổng, cổng gửi một lệnh ghi tới danh sách task.
+
+- `propose_task_change` đọc task, hỏi bộ luật quyền, lưu đề xuất cùng số phiên bản của task lúc soạn và một dấu vân tay nội dung; chưa ghi gì vào task.
+- Bấm Gửi kiểm lại khoá, người trong danh bạ, luật, hạn 30 phút và dấu vân tay.
+  Đề xuất sang `confirmed` bằng một câu lệnh chỉ đổi khi trạng thái còn `awaiting_confirmation`, nên hai lần bấm cùng lúc chỉ một lần thắng.
+- Trong cùng giao dịch đó, cổng tạo một dòng ở bảng `write_commands`: mã lệnh, đề xuất, task, số thứ tự 1, mã chống ghi trùng `<mã đề xuất>:1`, số phiên bản mong đợi, trạng thái `not_sent`, số lần gửi 0.
+- Trước mỗi lần PATCH, cổng ghi `sent_unknown` và tăng số lần gửi.
+  2xx thì `done`; 409 hoặc 404 thì `failed` với `TARGET_CHANGED`; 422 thì `failed` với `CONTENT_CHANGED`; lỗi mạng, hết giờ hoặc 5xx thì giữ `sent_unknown` và gửi lại, tối đa ba lần gửi lại, với đúng mã cũ.
+- Khi khởi động, mọi lệnh `not_sent` hoặc `sent_unknown` được gửi lại với đúng mã cũ.
+  Danh sách task kiểm mã trước số phiên bản, nên lần gửi lại sau khi đã ghi nhận đúng phản hồi cũ chứ không nhận 409.
+- Trang xác nhận và `get_request_status` đọc bảng này: đã ghi ở lần gửi thứ mấy, chưa biết kết quả, hay `CHƯA THỰC HIỆN [<mã>]` kèm câu nói vì sao.
+  Với `TARGET_CHANGED`, cả hai nhắc nhờ AI soạn lại với dữ liệu mới.
+
+Lệnh ghi chỉ có một bước ghi thật vì bản này chỉ soạn thay đổi cho một task.
+Bảng đã có cột số thứ tự để đề xuất hàng loạt dùng lại, mỗi task một lệnh và một mã riêng.
+
+Phép thử của đường ghi nằm ở `gateway/src/write-test.ts` và chạy trên hệ thống giả trong bộ nhớ.
+Phép thử đầu cuối `tests/src/gateway-write-test.ts` chạy ba dịch vụ thật, làm rơi phản hồi bằng `POST /admin/faults` và đếm bằng `GET /admin/write-count`.
+
 ## Bảng vết
 
 Bảng `trace` nằm trong `LAB_DATA_DIR/gateway.sqlite` và chỉ ghi thêm: hai trigger của SQLite chặn mọi UPDATE và DELETE.
-Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi theo khoá, cửa vào (`http` hoặc `mcp`), tool, mã đối tượng, kết quả, mã lý do, mã luật, phiên bản luật, `x-user-id` đã che (nếu host gửi) và thời gian xử lý.
+Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi theo khoá, cửa vào (`http`, `mcp` hoặc `web`), tool, mã đối tượng, kết quả, mã lý do, mã luật, phiên bản luật, `x-user-id` đã che (nếu host gửi) và thời gian xử lý.
+Dòng của một lệnh ghi thêm mã chống ghi trùng và số lần gửi.
 Bảng không có cột nào cho tên, email, số điện thoại, địa chỉ hay khoá, nên các giá trị đó không ghi vào được.
 
 ```

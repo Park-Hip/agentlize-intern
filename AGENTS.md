@@ -19,7 +19,7 @@ Read the  TXT for the full acceptance criteria, the R&D framework and the week b
 ## 2. Current state
 
 The research phase is done and summarized in `rd/findings.md`: the five integration models, real systems and the 2026 market were surveyed, and no product covers the Lab's problem end to end.
-The `lab/` scaffold runs three local services with health checks; the fake task list (100 seeded tasks, idempotency keys, version checks) is built, the other services have no business logic yet.
+The `lab/` scaffold runs three local services with health checks; the fake task list (100 seeded tasks, idempotency keys, version checks), the fake directory, and the gateway's read, draft and write paths have business logic.
 `tools/mcp-probe` is a throwaway MCP server that recorded how Thổ Thần web and desktop behave as an MCP host; its results are in `rd/appota/tho-than-mcp-probe.md`, and it is not part of the lab.
 The current goal is a first prototype that plugs into Thổ Thần AI as an MCP server: the intern has a Thổ Thần account, and both the web and desktop apps connect to MCP servers.
 Host facts that constrain the design are summarized in `rd/findings.md` section 4: chat can call tools over stdio or over Streamable HTTP when the server has a public HTTPS address, chat calls in both web and desktop go through the Thổ Thần server, the host attaches identity headers but the Bearer key is set by whoever adds the skill, there is no approval step, and calls are cut at 60 seconds.
@@ -93,7 +93,7 @@ bash rd/checks/mausbot.sh
 ### Lab POC
 
 The lab is an npm workspace in `lab/`. It needs Node 22 or newer.
-It starts three local services; the fake task list, the fake employee directory and the gateway's read path (`find_employee`, `get_task`, `list_tasks`, `/v1/tools`, and the same tools at `/mcp`) and its draft path (`propose_task_change`, `get_request_status`, the login and confirmation pages) have business logic.
+It starts three local services; the fake task list, the fake employee directory and the gateway's read path (`find_employee`, `get_task`, `list_tasks`, `/v1/tools`, and the same tools at `/mcp`), its draft path (`propose_task_change`, `get_request_status`, the login and confirmation pages) and its write path (the write command behind Gửi) have business logic.
 
 ```
 cd lab
@@ -133,9 +133,12 @@ npm run seed-keys [-- --rotate]
 `seed-keys` issues one key per persona plus the guest, and refuses to run again until `--rotate` revokes the old ones.
 
 A person confirms a draft in a browser: open the link a draft returns (`<base>/xac-nhan/<proposal code>`), pick the character and paste that character's key on `/dang-nhap` (a simulated login, 15 minutes), then press Gửi or Sửa.
-In this version Gửi only hands the proposal to an executor that acknowledges it and writes nothing; the real write comes with issue #12.
+Gửi checks the key, the person, the rule file, the deadline and the content again, then turns the proposal into one write command with the fixed key `<proposal code>:1` and the task version read at drafting.
+The gateway saves the command as `sent_unknown` before the PATCH; a 2xx makes it `done`, a 409 makes it `failed` with `TARGET_CHANGED`, and a lost answer is sent again up to three times with the same key.
+Every command left `not_sent` or `sent_unknown` is sent again, with its old key, when the gateway starts.
 
-Every gateway call, and every press of Gửi or Sửa, leaves one line in the append-only `trace` table of the same database; print it as a table (the lines hold no personal data and no key).
+Every gateway call, every press of Gửi or Sửa, and every write command a press sends leaves one line in the append-only `trace` table of the same database; print it as a table (the lines hold no personal data and no key).
+The line of a write command carries its idempotency key and how many times it was sent.
 
 ```
 npm run trace -- --employee <NV-xx>

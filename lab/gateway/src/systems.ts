@@ -1,5 +1,6 @@
 import { LOOPBACK_HOST, resolvePort, type ServiceName } from '@lab/shared';
 import { z } from 'zod';
+import type { Changes } from './proposals/fingerprint.js';
 
 /** A fake system did not answer in a way the gateway can use. */
 export class SystemUnavailableError extends Error {
@@ -42,12 +43,33 @@ export interface TaskSearch {
   readonly status?: string | undefined;
 }
 
+/** One write as the task list takes it: the four changeable fields, the version seen and one fixed key. */
+export interface TaskPatch {
+  readonly taskId: string;
+  readonly idempotencyKey: string;
+  readonly expectedVersion: number;
+  readonly changes: Changes;
+}
+
+/**
+ * What the task list said about one write. `unavailable` means the answer never
+ * arrived, so the write may or may not have happened; only a resend with the
+ * same key can settle it.
+ */
+export type TaskPatchResult =
+  | { readonly kind: 'written'; readonly task: TaskRecord; readonly replayed: boolean }
+  | { readonly kind: 'conflict'; readonly currentVersion: number | null }
+  | { readonly kind: 'not_found' }
+  | { readonly kind: 'rejected'; readonly status: number; readonly error: string }
+  | { readonly kind: 'unavailable'; readonly detail: string };
+
 /** What the gateway needs from the two fake systems. Tests may replace it. */
 export interface Systems {
   getEmployee(employeeId: string): Promise<EmployeeRecord | undefined>;
   findEmployees(search: EmployeeSearch): Promise<EmployeeRecord[]>;
   getTask(taskId: string): Promise<TaskRecord | undefined>;
   listTasks(search: TaskSearch): Promise<TaskRecord[]>;
+  patchTask(input: TaskPatch): Promise<TaskPatchResult>;
 }
 
 export interface HttpSystemsOptions {
@@ -96,6 +118,58 @@ export class HttpSystems implements Systems {
     return this.parse('tasks', taskListSchema, body).tasks;
   }
 
+  /**
+   * One PATCH with the fixed key. A dropped connection, a timeout or a 5xx
+   * answer is `unavailable`: the gateway must keep the command and try again
+   * with the same key rather than guess.
+   */
+  async patchTask(input: TaskPatch): Promise<TaskPatchResult> {
+    let response: Response;
+    let text: string;
+    try {
+      response = await this.doFetch(`${this.options.tasksUrl}/tasks/${encodeURIComponent(input.taskId)}`, {
+        method: 'PATCH',
+        headers: {
+          authorization: `Bearer ${this.options.serviceKey}`,
+          'content-type': 'application/json',
+          'idempotency-key': input.idempotencyKey,
+        },
+        body: JSON.stringify({ changes: input.changes, expected_version: input.expectedVersion }),
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+      text = await response.text();
+    } catch (error) {
+      const reason = error instanceof Error ? error.name : 'error';
+      return { kind: 'unavailable', detail: `request failed (${reason})` };
+    }
+
+    if (response.status === 409) {
+      let currentVersion: number | null = null;
+      try {
+        const body = JSON.parse(text) as { current_version?: unknown };
+        if (typeof body.current_version === 'number') currentVersion = body.current_version;
+      } catch {
+        // The conflict is still a conflict; the version is only extra detail.
+      }
+      return { kind: 'conflict', currentVersion };
+    }
+    if (response.status === 404) return { kind: 'not_found' };
+    if (response.status >= 500) return { kind: 'unavailable', detail: `HTTP ${response.status}` };
+    if (response.status < 200 || response.status >= 300) {
+      return { kind: 'rejected', status: response.status, error: errorText(text) };
+    }
+
+    let body: unknown;
+    try {
+      body = JSON.parse(text) as unknown;
+    } catch {
+      return { kind: 'unavailable', detail: 'reply is not JSON' };
+    }
+    const task = taskSchema.safeParse((body as { task?: unknown }).task);
+    if (!task.success) return { kind: 'unavailable', detail: 'reply has an unexpected shape' };
+    return { kind: 'written', task: task.data, replayed: response.headers.get('idempotent-replayed') === 'true' };
+  }
+
   /** Returns the JSON body, or undefined for a status listed in `absent`. Anything else that is not 200 throws. */
   private async get(system: 'directory' | 'tasks', path: string, absent: readonly number[] = []): Promise<unknown> {
     const base = system === 'directory' ? this.options.directoryUrl : this.options.tasksUrl;
@@ -125,6 +199,16 @@ export class HttpSystems implements Systems {
     const parsed = schema.safeParse(body);
     if (!parsed.success) throw new SystemUnavailableError(system, 'reply has an unexpected shape');
     return parsed.data;
+  }
+}
+
+/** The `error` field of a refusal from the task list, for the command's saved result. */
+function errorText(body: string): string {
+  try {
+    const parsed = JSON.parse(body) as { error?: unknown };
+    return typeof parsed.error === 'string' ? parsed.error : 'unexpected_reply';
+  } catch {
+    return 'unexpected_reply';
   }
 }
 

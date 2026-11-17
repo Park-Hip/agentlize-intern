@@ -4,6 +4,7 @@ import type { ProposalStore } from '../proposals/index.js';
 import type { Systems } from '../systems.js';
 import type { TraceOutcome } from '../trace/index.js';
 import type { Identity } from '../identity/index.js';
+import type { CommandStore } from '../writes/command-store.js';
 
 /** The asker as the gateway knows them for this one call: the key's person, with role and department read fresh. */
 export interface Actor {
@@ -18,6 +19,8 @@ export interface ToolContext {
   readonly systems: Systems;
   readonly policy: PolicyEngine;
   readonly proposals: ProposalStore;
+  /** Write commands, so `get_request_status` can say what happened after Gửi. */
+  readonly commands: CommandStore;
   /** Address of the gateway as people open it, without a trailing slash. Read at the moment of the call. */
   readonly publicBaseUrl: string;
   readonly now: () => Date;

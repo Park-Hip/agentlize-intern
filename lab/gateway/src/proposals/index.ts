@@ -1,7 +1,6 @@
-export { AcknowledgingExecutor } from './executor.js';
-export type { ExecutionReceipt, ProposalExecutor } from './executor.js';
 export { CHANGE_FIELDS, fingerprintOf } from './fingerprint.js';
 export type { ChangeField, Changes } from './fingerprint.js';
+export type { ExecutionReceipt, ProposalExecutor } from './executor.js';
 export {
   effectiveStatus,
   PROPOSAL_ID_PATTERN,

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { IdentityHeaders, IdentityProvider, IdentityResult, KeyStore } from './identity/index.js';
 import { RULE_IDS, type PolicyEngine } from './policy/index.js';
 import type { ProposalExecutor, ProposalStore } from './proposals/index.js';
+import type { CommandStore } from './writes/index.js';
 import { SystemUnavailableError, type Systems } from './systems.js';
 import type { RegisteredTool, ToolResult } from './tools/types.js';
 import type { SessionStore } from './web/session-store.js';
@@ -30,6 +31,8 @@ export interface GatewayDeps {
   readonly keys: KeyStore;
   readonly proposals: ProposalStore;
   readonly sessions: SessionStore;
+  /** The write commands a confirmed proposal turns into. Read by `get_request_status` and the page. */
+  readonly commands: CommandStore;
   /** Takes a proposal once its owner has pressed Gửi. */
   readonly executor: ProposalExecutor;
   /** The address people open the links on; asked at the moment of use because the port may be known only after listening. */
@@ -150,6 +153,7 @@ async function answerCall(
       systems: deps.systems,
       policy: deps.policy,
       proposals: deps.proposals,
+      commands: deps.commands,
       publicBaseUrl: deps.publicBaseUrl(),
       now: deps.now,
       rules,
