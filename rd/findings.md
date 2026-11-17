@@ -87,18 +87,14 @@ Lỗi `fetch failed` ở `localhost` đã có lời giải thích khớp phép �
 
 **Kết luận:** Thổ Thần là nơi chạy bản thử, và đã chạy được qua cả stdio lẫn Streamable HTTP có địa chỉ công khai.
 Hai câu chặn thiết kế đã có lời đáp: Thổ Thần không có bước duyệt đáng tin, và không có danh tính người dùng mà Lab kiểm chứng được, nên cổng của Lab làm cả hai.
-Việc duyệt không thể giao cho Thổ Thần: công cụ MCP không khai báo chính sách duyệt, và còn một chế độ ẩn cho chạy không hỏi.
-Việc danh tính cũng vậy: header `x-user-id` do Thổ Thần gắn chỉ là lớp kiểm thứ hai, và chỉ dùng được sau khi ba phép kiểm H9 (ghi đè `x-user-id`), H10 (phiên tách theo người dùng) và H11 (`execAgent` mặc định không hỏi duyệt) có kết quả ([khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được)).
+Việc duyệt không thể giao cho Thổ Thần: công cụ MCP không khai báo chính sách duyệt, và còn một chế độ ẩn cho chạy không hỏi; H11 kiểm xem API có chạy được công cụ ghi mà không hỏi không.
+Việc danh tính cũng vậy: header `x-user-id` do Thổ Thần gắn chỉ là lớp kiểm thứ hai, và chỉ dùng được sau khi H9 (ghi đè `x-user-id`) và H10 (phiên tách theo người dùng) có kết quả ([khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được)).
 Bản thử cấp mỗi nhân vật giả một khoá riêng và ghi rõ đây là giả lập.
 Khoá chỉ chứng minh "người cài công cụ này", không phải một lần đăng nhập; vì vậy cổng tự kiểm khoá, thu hồi được khoá, và che khoá trong log.
 Ô biến môi trường của stdio không hiện sẵn trong form cài; người dùng phải thêm qua "Import JSON config", nên hướng dẫn cài của Lab phải ghi rõ bước này.
 Bốn điểm cần báo Kevin: người dùng thật ở web hay desktop, header danh tính có được máy chủ ký không, skill do từng người thêm hay chia sẻ cho cả tổ chức, và Lab có địa chỉ công khai lâu dài không.
 
 ## 5. Làm gì bây giờ
-
-Một đồng nghiệp đã làm bản R&D "AgentLize Gateway" cho cùng bài toán, và Kevin đã review bản đó.
-Lab vẫn tự dựng cổng riêng và tự quyết thiết kế; bản R&D đó chỉ là nguồn tham khảo.
-Nó xác nhận các quyết định lõi của Lab, và gợi ý hai chỗ vá cho spec: chỉ trả trường đã khai, và dừng khi dữ liệu đích đã đổi trong lúc chờ duyệt ([bản R&D AgentLize Gateway, mục 3](appota/agentlize-gateway.md#3-điều-lab-chép-hoặc-sửa-lại)).
 
 Mục tiêu: trong Thổ Thần, chị Hoa gõ "chuyển T-12 cho anh Minh".
 AI đề xuất, người có quyền duyệt ở chỗ AI không tự bấm được, hệ thống ghi đúng một lần và để lại vết.
@@ -143,9 +139,9 @@ Chuyển 30 task cần anh Quang duyệt là kịch bản thứ tư, làm khi ba
 | Q2. MCP tiết kiệm bao nhiêu công so với gọi hàm? | Gần bằng nhau khi Lab viết cả hai nơi gọi | Thêm trợ lý AI thứ hai cho từng cách, đếm giờ công | Bước đánh giá |
 | Nhân viên thật dùng Thổ Thần trên điện thoại, web hay desktop? | Điện thoại hoặc web, vì PRD Skill Studio thiết kế cho điện thoại trước; khi đó stdio không tới được người dùng thật | Hỏi Kevin; mở thử app điện thoại | Tuần 2, quyết định cách nối từ mốc 2 |
 | Hook của AgentLize chạy ở đâu, và danh tính người dùng đi tiếp tới cổng thế nào? | Chưa ai dựng; nếu có, Hook chạy trong Thổ Thần vì chỉ ở đó có phiên đăng nhập. Mã LobeHub 2.1.56 không gắn danh tính vào lời gọi MCP, nhưng Thổ Thần có gắn header ở đường HTTPS | Hỏi Kevin; mã LobeHub đã đọc ([mục 6.2](appota/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt)), phần còn lại là H9 | Tuần 2, không chặn mốc 1 |
-| H9 (ghi đè `x-user-id`): Thổ Thần ghi đè header `x-user-id` người dùng tự đặt, hay nối thêm? | Ghi đè; chưa chứng minh | Thêm header `x-user-id: spoof-test` vào skill, gọi `whoami`, xem probe nhận giá trị nào | Trước ADR-0005 |
-| H10 (phiên tách theo người dùng): hai người cùng cấu hình có chung phiên MCP không? | Không chung; chưa chứng minh | Hai tài khoản cùng skill, so `mcp-session-id` và `x-user-id` | Khi có tài khoản thứ hai |
-| H11 (`execAgent` mặc định không hỏi duyệt): gọi `execAgent` không kèm cấu hình duyệt có chạy công cụ ghi mà không hỏi không? | Có, vì mã mặc định `headless`; mới đọc mã, chưa đo | Gọi API với công cụ ghi giả lập, xem có bản ghi chờ duyệt không | Trước ADR-0005, cần Kevin |
+| H9 (ghi đè `x-user-id`): Thổ Thần ghi đè header `x-user-id` người dùng tự đặt, hay nối thêm? | Ghi đè; chưa chứng minh | Thêm header `x-user-id: spoof-test` vào skill, gọi `whoami`, xem probe nhận giá trị nào | Trước khi bật lớp thứ hai của ADR-0005 |
+| H10 (phiên tách theo người dùng): hai người cùng cấu hình có chung phiên MCP không? | Không chung; chưa chứng minh | Hai tài khoản cùng skill, so `mcp-session-id` và `x-user-id` | Trước khi bật lớp thứ hai của ADR-0005; cần tài khoản thứ hai |
+| H11 (`execAgent` mặc định không hỏi duyệt): gọi `execAgent` không kèm cấu hình duyệt có chạy công cụ ghi mà không hỏi không? | Có, vì mã mặc định `headless`; mới đọc mã, chưa đo | Gọi API với công cụ ghi giả lập, xem có bản ghi chờ duyệt không | Khi đo kênh duyệt của Thổ Thần, cần Kevin |
 
 Q1 và Q2 chi tiết ở [câu hỏi kiểm chứng](design/research-questions-and-validation-plan.md).
 Ba câu H9 tới H11 chi tiết ở [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được).
@@ -153,7 +149,7 @@ Hai câu về thiết bị và Hook, cùng mọi mối nối giữa Appota, Agen
 
 Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã có lời đáp ở mục 4; câu khoá riêng hay dùng chung vẫn mở.
 
-**Kết luận:** không câu nào còn chặn việc viết ADR; câu địa chỉ web đã có lời đáp, còn hai câu về chia sẻ khoá và nguồn header danh tính quyết định cách cổng kiểm người gọi.
+**Kết luận:** không câu nào còn chặn việc viết ADR; câu chia sẻ khoá quyết định mô hình khoá có dùng được trong thực tế không, còn câu nguồn header quyết định có bật lớp kiểm thứ hai không.
 
 ## 7. Đo thế nào là thành công
 
@@ -171,7 +167,7 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 | Xong 2026-11-16 | Kiểm khoá riêng mỗi người qua stdio và khoá API | [Kịch bản đo, mục 5.5](appota/tho-than-mcp-probe.md#55-khoá-riêng-của-từng-người-h8) |
 | Xong 2026-11-17 | Đo qua HTTPS công khai và đọc mã LobeHub 2.1.56 về danh tính và duyệt | [Khảo sát Thổ Thần, mục 3.6](appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17) và [mục 6](appota/tho-than-platform.md#6-đọc-mã-lobehub-2156-danh-tính-và-duyệt-công-cụ) |
 | Đầu tuần 2 | Báo Kevin bốn điểm ở mục 4; xoá khoá thử khỏi cấu hình hai skill thử | Câu trả lời của Kevin ghi vào mục 4 |
-| Tuần 2, trước ADR về danh tính | Chạy H9, H10 và H11 (mục 6) | Kết quả ghi vào cột cuối của bảng H trong [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được) |
+| Tuần 2, trước khi bật lớp thứ hai của ADR-0005 | Chạy H9 và H10; H11 phục vụ kênh duyệt (mục 6) | Kết quả ghi vào cột cuối của bảng H trong [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được) |
 | Tuần 2 | Viết các ADR đầu: dựng cổng mỏng cắm vào Thổ Thần, nơi chạy và cách nối, danh tính người hỏi, kênh duyệt và chống ghi trùng, công nghệ; rồi viết spec bản thử | `docs/adr/adr-0001-<slug>.md` trở đi, `rd/design/mvp-spec.md` |
 | Tuần 2 | Dựng hai hệ thống giả lập, cổng kiểm soát, MCP server và tám phép thử | `lab/` chạy được bằng một lệnh; ba kịch bản ở 5.2 chạy trong Thổ Thần |
 | Tuần 3-4 | Thêm cửa gọi hàm, kịch bản 30 task, trả lời Q1, đo lần đầu | Số đo baseline |
@@ -187,6 +183,5 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 - [MausBot](research/mausbot.md): ứng dụng agent mã nguồn mở, ứng viên nơi chạy thứ hai cho bộ công cụ của Lab; đứng ở lớp thực thi cạnh Thổ Thần desktop và trùng vai một phần với AgentLize.
 - [Khảo sát Thổ Thần](appota/tho-than-platform.md), [kịch bản đo MCP trong Thổ Thần](appota/tho-than-mcp-probe.md), [tình huống Appota](appota/appota-cases.md), [skill của AppotaPay](appota/appotapay-skills.md).
 - [Spec bản thử đầu](design/mvp-spec.md): bản thử chứng minh gì, kiến trúc, phép thử và bốn mốc.
-- [Bản R&D AgentLize Gateway của đồng nghiệp](appota/agentlize-gateway.md): điều Lab xác nhận, chép, mượn phép thử và bỏ qua từ một bản R&D cùng bài toán; Lab vẫn tự dựng.
 - [Bản đồ hệ thống](design/system-map.md) và [bản vẽ](design/system-map.html): năm mảnh ghép nối với nhau thế nào, mối nối nào đã đo, điều gì chưa biết và cách kiểm.
 - [Giải pháp ứng viên](design/solution-candidates.md) và [câu hỏi kiểm chứng](design/research-questions-and-validation-plan.md).

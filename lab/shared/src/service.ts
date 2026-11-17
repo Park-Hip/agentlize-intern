@@ -1,5 +1,6 @@
-import { createServer, type Server, type ServerResponse } from 'node:http';
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { readServiceKey } from './env.js';
+import { sendJson } from './http.js';
 import { LOOPBACK_HOST, resolvePort, type ServiceName } from './ports.js';
 
 export interface HealthResponse {
@@ -12,7 +13,14 @@ export interface StartServiceOptions {
   /** Explicit port, used by tests with 0. Defaults to the port environment variable. */
   readonly port?: number;
   readonly env?: NodeJS.ProcessEnv;
+  /**
+   * Replaces the default `/health`-only handler. A service that sets this owns
+   * every route, including `/health`, and decides how to authenticate them.
+   */
+  readonly handler?: RequestHandler;
 }
+
+export type RequestHandler = (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
 
 export interface RunningService {
   readonly service: ServiceName;
@@ -21,30 +29,34 @@ export interface RunningService {
   close(): Promise<void>;
 }
 
-function json(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
-  res.writeHead(status, {
-    'content-type': 'application/json; charset=utf-8',
-    'cache-control': 'no-store',
-    ...headers,
-  });
-  res.end(`${JSON.stringify(body)}\n`);
-}
-
 export function createHealthServer(service: ServiceName): Server {
   return createServer((req, res) => {
     const path = new URL(req.url ?? '/', `http://${LOOPBACK_HOST}`).pathname;
 
     if (path === '/health') {
       if (req.method !== 'GET') {
-        json(res, 405, { error: 'method_not_allowed' }, { allow: 'GET' });
+        sendJson(res, 405, { error: 'method_not_allowed' }, { allow: 'GET' });
         return;
       }
       const body: HealthResponse = { status: 'ok', service };
-      json(res, 200, body);
+      sendJson(res, 200, body);
       return;
     }
 
-    json(res, 404, { error: 'not_found' });
+    sendJson(res, 404, { error: 'not_found' });
+  });
+}
+
+function createHandlerServer(handler: RequestHandler): Server {
+  return createServer((req, res) => {
+    Promise.resolve(handler(req, res)).catch((error: unknown) => {
+      console.error(`request failed: ${error instanceof Error ? error.message : String(error)}`);
+      if (!res.headersSent) {
+        sendJson(res, 500, { error: 'internal_error' });
+      } else {
+        res.destroy();
+      }
+    });
   });
 }
 
@@ -57,7 +69,8 @@ export async function startService(options: StartServiceOptions): Promise<Runnin
   readServiceKey(env);
 
   const port = options.port ?? resolvePort(options.service, env);
-  const server = createHealthServer(options.service);
+  const server =
+    options.handler === undefined ? createHealthServer(options.service) : createHandlerServer(options.handler);
 
   await new Promise<void>((resolve, reject) => {
     const onError = (error: Error): void => {

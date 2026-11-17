@@ -450,7 +450,7 @@ Cách kết luận:
 - Mọi trường giống nhau hoặc không có: cổng đóng vai mô hình lặp lại lỗi tài khoản dùng chung, dừng hướng này và ghi rõ trong ADR.
 
 **Kết luận:** kết quả còn trống vì cần một phiên tunnel và tài khoản thứ hai.
-Khi đo xong, điền bảng này và câu trả lời vào mục 5 của [bài học từ bản R&D AgentLize](agentlize-gateway.md#5-một-cách-nối-thổ-thần-thứ-ba-để-so-cổng-đóng-vai-mô-hình-ai).
+Khi đo xong, điền bảng này và dẫn kết quả vào [khảo sát Thổ Thần, mục 6.3](tho-than-platform.md#63-lời-gọi-model-có-danh-tính-nhưng-trong-body), nơi đang kết luận từ mã nguồn rằng lời gọi model có trường `user`.
 
 ## 6. P3 (kênh duyệt): host có hỏi trước khi ghi?
 

@@ -19,7 +19,7 @@ Read the  TXT for the full acceptance criteria, the R&D framework and the week b
 ## 2. Current state
 
 The research phase is done and summarized in `rd/findings.md`: the five integration models, real systems and the 2026 market were surveyed, and no product covers the Lab's problem end to end.
-The `lab/` scaffold now runs three local services with health checks; it has no business logic yet.
+The `lab/` scaffold runs three local services with health checks; the fake task list (100 seeded tasks, idempotency keys, version checks) is built, the other services have no business logic yet.
 `tools/mcp-probe` is a throwaway MCP server that recorded how Thổ Thần web and desktop behave as an MCP host; its results are in `rd/appota/tho-than-mcp-probe.md`, and it is not part of the lab.
 The current goal is a first prototype that plugs into Thổ Thần AI as an MCP server: the intern has a Thổ Thần account, and both the web and desktop apps connect to MCP servers.
 Host facts that constrain the design are summarized in `rd/findings.md` section 4: chat can call tools over stdio or over Streamable HTTP when the server has a public HTTPS address, chat calls in both web and desktop go through the Thổ Thần server, the host attaches identity headers but the Bearer key is set by whoever adds the skill, there is no approval step, and calls are cut at 60 seconds.
@@ -58,6 +58,8 @@ Every artifact needs an owner, a definition of done and verifiable evidence.
 
 - Use simulated data, public data, or sources that are explicitly permitted.
 - Never put sensitive internal information, real credentials or customer data into the POC, logs, test fixtures or commits.
+- Never mention a colleague's R&D (their prototypes, documents or results) in docs, ADRs, issues, PRs or commits.
+  Every design choice stands on the Lab's own evidence: the program document, public sources, the Lab's probes and tests, or the mentor's review.
 
 ## 6. Commands
 
@@ -91,7 +93,7 @@ bash rd/checks/mausbot.sh
 ### Lab POC
 
 The lab is an npm workspace in `lab/`. It needs Node 22 or newer.
-It starts three local services and has no business logic yet.
+It starts three local services; so far the fake task list and the fake employee directory have business logic.
 
 ```
 cd lab
@@ -106,6 +108,15 @@ The key is passed to the three processes through the environment and is never pr
 Override the ports with `LAB_GATEWAY_PORT`, `LAB_DIRECTORY_PORT` and `LAB_TASKS_PORT`, and the data folder with `LAB_DATA_DIR`.
 `npm test` builds, then runs every `*-test.js` file in the workspace, including a smoke test that starts the three services on temporary ports and checks `/health`.
 `npm run lint` type-checks the whole workspace with `tsc --noEmit`.
+`npm test -w fake-directory` runs only the directory tests.
+The fake directory answers every path, `/health` included, with 401 unless the request carries `Authorization: Bearer <LAB_SERVICE_KEY>`; `LAB_TEST_HOOKS=1` turns on its `/admin/*` test routes.
+
+Run only the gateway tests, for example the policy engine tests (the rule file is `lab/gateway/policy/rules.json`):
+
+```
+cd lab
+npm test -w gateway -- --test-name-pattern policy
+```
 
 ### MCP probe for Thổ Thần
 
@@ -128,7 +139,7 @@ npm run summarize -- <log-file-or-directory>   # print the facts needed for the 
 
 The provider mode returns one fixed answer and never calls a model.
 It logs the OpenAI `user` field and the identity headers (`x-user-id`, `x-user-email`, `x-agent-id`, `x-executor-id`) with keys redacted like the other modes.
-It measures the third architecture candidate in `rd/appota/agentlize-gateway.md` section 5; it is not a Lab component.
+It measures the third architecture candidate in `rd/design/mvp-spec.md`, using the model-call identity finding in `rd/appota/tho-than-platform.md` section 6.3; it is not a Lab component.
 
 The self-test must print a `SELFTEST PASSED: <n> checks` line.
 Build, run and troubleshooting details are in `tools/mcp-probe/README.md`.

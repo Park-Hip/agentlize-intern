@@ -1,9 +1,7 @@
-import { startService } from '@lab/shared';
-
-const SERVICE = 'directory';
+import { startDirectory } from './server.js';
 
 try {
-  const running = await startService({ service: SERVICE });
+  const running = await startDirectory();
   console.log(`[fake-directory] listening on ${running.url}`);
 
   const shutdown = (): void => {

@@ -21,8 +21,8 @@ Những gì đã biết:
 - Thổ Thần không hỏi duyệt trước khi gọi tool ghi, không có biểu mẫu hỏi người dùng, cắt lời gọi sau 60 giây, nhưng link trong kết quả bấm được ([tổng hợp phát hiện, mục 4](../../rd/findings.md#4-thổ-thần)).
 - Lời duyệt phải khoá vào đúng nội dung và đi qua kênh mà agent không giả được ([bài học từ thị trường, mục 3.4](../../rd/research/market-lessons.md#34-lời-duyệt-phải-khóa-vào-đúng-nội-dung-và-đi-qua-kênh-agent-không-giả-được)).
 - Không sản phẩm nào chống ghi trùng ở hệ đích ([bài học từ thị trường, mục 3.5](../../rd/research/market-lessons.md#35-chống-ghi-trùng-không-ai-bán-ở-tầng-agent)).
-- Bản R&D của một đồng nghiệp gợi ý ba mẫu mà spec chưa có: chỉ trả trường đã khai, dừng khi dữ liệu đích đã đổi, và gắn nhãn dữ liệu nguồn ([bản R&D AgentLize Gateway, mục 3](../../rd/appota/agentlize-gateway.md#3-điều-lab-chép-hoặc-sửa-lại)).
-  Lab xét từng mẫu dưới đây và tự quyết.
+- Che dữ liệu theo người hỏi đã là tính năng bán được, và SR5 (không chắc thì chặn) đòi trường chưa khai thì không ra khỏi cổng ([bài học từ thị trường, mục 3.3](../../rd/research/market-lessons.md#33-che-dữ-liệu-theo-người-hỏi-đã-là-tính-năng-bán-được), [PRD, mục 6](../../rd/problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc)).
+- Kết quả tool có thể chứa câu lệnh cài sẵn (prompt injection); cách giảm là coi kết quả là dữ liệu và gắn nhãn nguồn ([tổng quan MCP, mục 8](../../rd/research/mcp-overview.md#8-mô-hình-mối-đe-dọa)).
 
 **Kết luận:** mọi kiểm soát phải nằm ở cổng, và việc ghi không được xảy ra bên trong một lời gọi tool.
 

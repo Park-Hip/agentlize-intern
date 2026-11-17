@@ -1,3 +1,6 @@
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 /** Name of the shared secret the gateway uses when it calls a fake system. */
 export const SERVICE_KEY_ENV = 'LAB_SERVICE_KEY';
 
@@ -20,4 +23,24 @@ export function readServiceKey(env: NodeJS.ProcessEnv = process.env): string {
     throw new Error(`${SERVICE_KEY_ENV} must be set and at least ${SERVICE_KEY_MIN_LENGTH} characters long`);
   }
   return key;
+}
+
+/** Set to `1` to open the `/admin/*` routes the tests use. Anything else keeps them closed. */
+export const TEST_HOOKS_ENV = 'LAB_TEST_HOOKS';
+
+export function testHooksEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env[TEST_HOOKS_ENV] === '1';
+}
+
+/**
+ * Folder for the SQLite files: `LAB_DATA_DIR` when set, otherwise `lab/.data`.
+ * The default is found from this file (`lab/shared/dist`), so it does not
+ * depend on the folder the process was started from.
+ */
+export function resolveDataDir(env: NodeJS.ProcessEnv = process.env): string {
+  const configured = env[DATA_DIR_ENV];
+  if (configured !== undefined && configured.trim() !== '') {
+    return resolve(configured);
+  }
+  return resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '.data');
 }
