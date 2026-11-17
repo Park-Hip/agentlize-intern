@@ -131,10 +131,11 @@ function main(): void {
   console.log("== Tổng quan ==");
   for (const file of files) console.log(`File log: ${file}`);
   for (const start of starts) {
-    console.log(`Server bắt đầu: ${start.ts} | transport=${start.transport} | pid=${start.pid} | node=${start.node}`);
+    const mode = (start.config as { mode?: unknown } | undefined)?.mode ?? start.transport;
+    console.log(`Server bắt đầu: ${start.ts} | mode=${String(mode)} | pid=${start.pid} | node=${start.node}`);
     console.log(`Cấu hình: ${short(start.config, 400)}`);
   }
-  for (const item of ready) console.log(`Sẵn sàng: ${item.ts} | endpoint=${item.endpoint ?? "stdio"}`);
+  for (const item of ready) console.log(`Sẵn sàng: ${item.ts} | mode=${String(item.mode ?? item.transport ?? "?")} | endpoint=${item.endpoint ?? "stdio"}`);
   console.log(`Số dòng log: ${entries.length}`);
   console.log(`HTTP: ${httpRequests.length} request, ${httpResponses.length} response`);
   console.log(`JSON-RPC: ${incoming.length} vào, ${outgoing.length} ra`);
@@ -162,10 +163,10 @@ function main(): void {
   printCounts("Kết quả kiểm Authorization:", countBy(authEvents, (entry) => `${entry.ok ? "nhận" : "từ chối"} | ${entry.reason}`));
   const headerCounts = headerNamesFromHttp(entries);
   const identityLike = [...headerCounts.keys()].filter((name) =>
-    /(auth|cookie|session|user|email|trace|request-id|correlation|forwarded|origin|referer|user-agent)/.test(name),
+    /(auth|cookie|session|user|email|trace|request-id|correlation|forwarded|origin|referer|user-agent|agent-id|executor)/.test(name),
   );
   console.log(`Header giống danh tính đã thấy: ${identityLike.length ? identityLike.join(", ") : "(không có)"}`);
-  for (const name of ["authorization", "cookie", "x-user-id", "x-user-email", "x-forwarded-user", "x-forwarded-email"]) {
+  for (const name of ["authorization", "cookie", "x-user-id", "x-user-email", "x-forwarded-user", "x-forwarded-email", "x-agent-id", "x-executor-id"]) {
     if (headerCounts.has(name)) console.log(`  ${name}: có trong ${headerCounts.get(name)} request`);
   }
   const authSamples = entries
@@ -175,6 +176,47 @@ function main(): void {
   const extraMeta = entries.filter((entry) => entry.kind === "extra_meta");
   console.log(`_meta có khóa lạ: ${extraMeta.length === 0 ? "(không có)" : ""}`);
   for (const entry of extraMeta) console.log(`  ${entry.method}: ${short(entry.meta, 300)}`);
+
+  const openAiRequests = entries.filter((entry) => entry.kind === "openai_request");
+  console.log("\n== Nhà cung cấp mô hình kiểu OpenAI (P2) ==");
+  if (openAiRequests.length === 0) {
+    console.log("  (không có lời gọi mô hình trong log)");
+  } else {
+    const streamCount = openAiRequests.filter((entry) => entry.stream === true).length;
+    console.log(`  Lời gọi mô hình: ${openAiRequests.length}, trong đó ${streamCount} dạng luồng`);
+    printCounts(
+      "  Trường user:",
+      countBy(openAiRequests, (entry) => (entry.userPresent ? short(entry.user, 80) : "(không có trường user)")),
+    );
+    for (const request of openAiRequests) {
+      const ids = (request.identityHeaders ?? {}) as Record<string, unknown>;
+      const safeIds = ["x-user-id", "x-agent-id", "x-executor-id", "x-forwarded-user"]
+        .filter((name) => ids[name] !== undefined)
+        .map((name) => `${name}=${short(ids[name], 80)}`);
+      if (ids["x-user-email"] !== undefined || ids["x-forwarded-email"] !== undefined) {
+        safeIds.push("email=có (không in giá trị)");
+      }
+      const authorization = ids.authorization !== undefined ? ` | authorization=${short(ids.authorization, 40)}` : "";
+      console.log(
+        `  ${request.ts} | model=${String(request.model ?? "?")} | stream=${request.stream === true} | user=${
+          request.userPresent ? short(request.user, 80) : "(không có)"
+        }${authorization}`,
+      );
+      console.log(`    header danh tính: ${safeIds.length ? safeIds.join(", ") : "(không có)"}`);
+      console.log(
+        `    messages=${String(request.messageCount ?? "?")} | roles=${short(request.messageRoles, 120)} | bodyBytes=${String(request.bodyBytes ?? "?")}`,
+      );
+    }
+    const openAiResponses = entries.filter((entry) => entry.kind === "openai_response");
+    if (openAiResponses.length) {
+      console.log("  Phản hồi của provider giả lập:");
+      for (const response of openAiResponses) {
+        console.log(
+          `    ${response.ts} | ${String(response.endpoint)} | stream=${response.stream === true} | ${String(response.statusCode)} | ${String(response.durationMs)} ms | hoàn tất=${response.completed === true}`,
+        );
+      }
+    }
+  }
 
   console.log("\n== Dấu vết và chi phí (P5) ==");
   const traceHeaders = new Set<string>();

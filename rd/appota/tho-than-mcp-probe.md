@@ -1,6 +1,6 @@
 # Cắm MCP probe vào Thổ Thần: kịch bản đo P1-P5
 
-Ngày: 2026-11-17. Trạng thái: đã chạy đủ năm câu hỏi, kiểm khoá riêng và đo đường HTTPS công khai (mục 4.8); còn thiếu tài khoản thứ hai.
+Ngày: 2026-11-17. Trạng thái: đã chạy đủ năm câu hỏi, kiểm khoá riêng và đo đường HTTPS công khai (mục 4.8); còn thiếu tài khoản thứ hai và phép đo cổng đóng vai mô hình (mục 5.6).
 
 ## Đọc nhanh
 
@@ -60,13 +60,13 @@ Hướng dẫn đầy đủ về build và tham số nằm ở [README của pro
 
 ### 2.2. Thêm server vào Thổ Thần
 
-Các bước chi tiết nằm ở mục 5 của README.
+Các bước chi tiết nằm ở mục 6 của README.
 Tóm tắt: mở Cài đặt, tìm mục MCP server, thêm server tùy chỉnh, chọn Streamable HTTP với URL `http://localhost:8787/mcp`, hoặc chọn stdio với command và args ở mục 3 của README.
 Đặt tên `mcp-probe`, lưu, rồi bật server này cho agent đang dùng.
 Danh sách đúng phải có 8 tool.
 Nếu form chỉ có SSE, ghi lại làm bằng chứng P1 (giao thức và xác thực) và dừng, vì probe không chạy SSE cũ.
 
-**Kết luận:** chỉ chuyển sang bước đo khi danh sách 8 tool hiện ra trong giao diện; nếu không hiện thì xử lý theo bảng lỗi ở mục 9 của README trước.
+**Kết luận:** chỉ chuyển sang bước đo khi danh sách 8 tool hiện ra trong giao diện; nếu không hiện thì xử lý theo bảng lỗi ở mục 10 của README trước.
 
 ### 2.3. Chọn thứ tự thử
 
@@ -411,6 +411,47 @@ Phép đo chỉ dùng một tài khoản và một skill, nên chưa biết kho�
 Cổng của Lab cấp mỗi nhân vật giả một khoá riêng, tự kiểm khoá, thu hồi được và che khoá trong log; khoá chỉ chứng minh "người cài công cụ", không phải một lần đăng nhập.
 Độ tin cậy của phần "host không gửi danh tính" vẫn trung bình vì chỉ có một tài khoản; báo Kevin vì đây là giới hạn của nền tảng.
 
+### 5.6. Cổng đóng vai nhà cung cấp mô hình: lời gọi mô hình có danh tính không?
+
+Đây là câu hỏi cho mô hình kiến trúc thứ ba: quản trị khai cổng là một nhà cung cấp mô hình trong Thổ Thần, và Thổ Thần gửi câu hỏi tới cổng như gửi tới một mô hình.
+Nếu mỗi lời gọi mô hình mang theo danh tính người dùng, cách này giữ được quyền theo người.
+Nếu không, nó lặp lại lỗi tài khoản dùng chung và không đáng dựng.
+
+Chuẩn bị:
+
+1. Mở một tunnel tới cổng 8787 như mục 4.4 và lấy địa chỉ HTTPS.
+2. Chạy probe ở chế độ provider với một khoá thử và địa chỉ tunnel:
+   ```bash
+   node dist/index.js --openai-provider --port 8787 --bearer khoa-thu-nghiem --public-url https://ten-mien-tunnel.example
+   ```
+3. Trong Thổ Thần web, thêm nhà cung cấp mô hình kiểu OpenAI-compatible với base URL `https://<tên-miền-tunnel>/v1`, API key là khoá trên, model `mcp-probe-fixed`.
+4. Đăng nhập tài khoản A, mở một chat mới dùng nhà cung cấp đó, gửi một câu, ví dụ `Xin chào, đây là dữ liệu giả lập.`
+5. Nếu có tài khoản B, lặp lại bước 4 với tài khoản B mà không đổi cấu hình.
+6. Đọc log:
+   ```bash
+   node tools/mcp-probe/dist/summarize.js scratch/mcp-probe/
+   ```
+
+Bảng cần điền:
+
+| Trường | Ý nghĩa | Tài khoản A | Tài khoản B | Kết luận |
+| --- | --- | --- | --- | --- |
+| `openai_request.user` | trường `user` chuẩn của OpenAI, nếu host gửi | chưa đo | chưa đo | |
+| `openai_request.userPresent` | host có gửi trường này không | chưa đo | chưa đo | |
+| `identityHeaders.authorization` | khoá đã che, chỉ để biết host có gửi hay không | chưa đo | chưa đo | |
+| `identityHeaders.x-user-id` | mã người dùng do máy chủ Thổ Thần gắn | chưa đo | chưa đo | |
+| `identityHeaders.x-user-email` | email, không chép giá trị vào tài liệu | chưa đo | chưa đo | |
+| `identityHeaders.x-agent-id` | mã agent | chưa đo | chưa đo | |
+| `identityHeaders.x-executor-id` | mã nơi chạy | chưa đo | chưa đo | |
+
+Cách kết luận:
+
+- `user` hoặc `x-user-id` khác nhau giữa hai tài khoản: lời gọi mô hình có danh tính, đủ để đưa cách thứ ba vào phần so sánh ở bước đánh giá.
+- Mọi trường giống nhau hoặc không có: cổng đóng vai mô hình lặp lại lỗi tài khoản dùng chung, dừng hướng này và ghi rõ trong ADR.
+
+**Kết luận:** kết quả còn trống vì cần một phiên tunnel và tài khoản thứ hai.
+Khi đo xong, điền bảng này và câu trả lời vào mục 5 của [bài học từ bản R&D AgentLize](agentlize-gateway.md#5-một-cách-nối-thổ-thần-thứ-ba-để-so-cổng-đóng-vai-mô-hình-ai).
+
 ## 6. P3 (kênh duyệt): host có hỏi trước khi ghi?
 
 ### 6.1. Kiểm tra duyệt trước khi gọi tool nguy hiểm
@@ -697,6 +738,8 @@ Bảng này tổng hợp kết quả đã đo ngày 2026-11-16.
 | P4 (thử lại và thời gian chờ) | Không auto retry; cắt ở 60 giây; mỗi call là process mới; nút dừng không hủy ngay. | Cao | `p4-01` đến `p4-09`, các log `204146`, `204240`, `204458`, `204645`, `205049`, `205304` |
 | P5 (hiển thị và dấu vết) | `structuredContent` không hiện; `isError` không hiện rõ; không trace, không cost. | Trung bình | `p5-01`, `p4-01`, `log-20261116-204407-340.jsonl:9` |
 
+Cách nối thứ ba (cổng đóng vai mô hình) có kịch bản riêng ở mục 5.6; chưa có kết quả nên chưa đưa vào bảng này.
+
 Ba mức độ tin cậy:
 
 - Cao: có log, có ảnh chụp, lặp lại được hai lần.
@@ -722,11 +765,12 @@ Còn phải làm:
 6. Báo Kevin: lời gọi chat đi qua máy chủ Thổ Thần đã xác nhận; cần hỏi người dùng thật ở web hay desktop, header danh tính có được máy chủ ký không, skill do từng người tự thêm hay chia sẻ cho cả tổ chức, và Lab có địa chỉ công khai lâu dài không.
 7. Xoá `LAB_USER_KEY` khỏi skill `mcp-probe-stdio` và API Key khỏi skill `mcp-probe` khi không cần đo thêm (khoá riêng đã kiểm xong ở mục 5.5).
 8. Nếu có tài khoản Thổ Thần thứ hai, chạy lại `whoami` bằng tài khoản đó để nâng độ tin cậy P2 (danh tính).
-9. Khi viết bản ghi quyết định về nơi chạy và danh tính, dẫn kết quả ở mục 4.8.
-10. Giữ log và ảnh trong `scratch/`; không commit, không dán token hay dữ liệu thật lên kênh công khai.
-11. Không gỡ skill khỏi tài khoản trừ khi người dùng yêu cầu.
+9. Chạy phép đo cổng đóng vai mô hình ở mục 5.6 qua tunnel trên Thổ Thần web, rồi điền bảng và câu trả lời.
+10. Khi viết bản ghi quyết định về nơi chạy và danh tính, dẫn kết quả ở mục 4.8.
+11. Giữ log và ảnh trong `scratch/`; không commit, không dán token hay dữ liệu thật lên kênh công khai.
+12. Không gỡ skill khỏi tài khoản trừ khi người dùng yêu cầu.
 
-**Kết luận:** bàn giao đủ khi người sau mở được đúng file log và ảnh, và biết đúng ba việc còn thiếu: tài khoản thứ hai, một địa chỉ công khai lâu dài, và thử khoá bị thu hồi.
+**Kết luận:** bàn giao đủ khi người sau mở được đúng file log và ảnh, và biết đúng bốn việc còn thiếu: tài khoản thứ hai, một địa chỉ công khai lâu dài, thử khoá bị thu hồi, và phép đo cổng đóng vai mô hình.
 
 ## 11. Giới hạn của kịch bản này
 
@@ -741,6 +785,7 @@ Còn phải làm:
 - Thông tin credit (FREE 500/kỳ) lấy từ bàn giao, không có ảnh vì trang Profile chứa email thật.
 - Chỉ dùng dữ liệu giả lập, không đụng dữ liệu thật của công ty.
 - Probe không chạy máy chủ OAuth và không chạy transport SSE cũ, nên không thử được hai chế độ đó.
+- Chế độ provider chỉ trả một câu cố định và chỉ có hai endpoint, nên kết quả chỉ nói về danh tính trong lời gọi mô hình, không nói về chất lượng mô hình hay function calling.
 - Chỉ có một máy và một mạng, chưa đo được ảnh hưởng của mạng chậm.
 - Số lần chạy nhỏ, không dùng để nói về độ ổn định dài hạn.
 - Việc phân biệt host tự gọi lại và model tự gọi lại cần quan sát giao diện, log một mình không đủ.
@@ -749,8 +794,9 @@ Còn phải làm:
 
 ## 12. Nguồn và công cụ
 
-- Server, cách chạy và cách đọc log: [README của probe](../../tools/mcp-probe/README.md).
+- Server, cách chạy và cách đọc log: [README của probe](../../tools/mcp-probe/README.md), mục 5 cho chế độ nhà cung cấp mô hình.
 - Mã tool và chú thích: `tools/mcp-probe/src/server.ts`.
+- Mã chế độ provider: `tools/mcp-probe/src/openai.ts`.
 - Bộ tự kiểm tra: `tools/mcp-probe/src/selftest.ts`.
 - Đặc tả MCP, transports: https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
 - Đặc tả MCP, tools và annotations: https://modelcontextprotocol.io/specification/2025-06-18/server/tools

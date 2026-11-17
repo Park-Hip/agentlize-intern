@@ -12,6 +12,9 @@ const SENSITIVE_HEADERS = new Set([
   "cookie",
   "set-cookie",
   "x-api-key",
+  "api-key",
+  "x-auth-token",
+  "x-goog-api-key",
 ]);
 
 export type HeaderBag = Record<string, string | string[] | number | undefined>;
@@ -61,6 +64,17 @@ export function redactRawHeaders(raw: string[] | undefined): string[] | undefine
     out.push(name, SENSITIVE_HEADERS.has(name.toLowerCase()) ? redactSecret(value) : value);
   }
   return out;
+}
+
+/** Header names that usually carry who is calling, reused by whoami, the logs and the summarizer. */
+const IDENTITY_HEADER_PATTERN =
+  /(auth|cookie|session|user|email|trace|request-id|correlation|forwarded|origin|referer|user-agent|agent-id|executor)/i;
+
+export function identityHeaders(headers: Record<string, unknown> | undefined): Record<string, unknown> {
+  if (!headers) return {};
+  return Object.fromEntries(
+    Object.entries(headers).filter(([name]) => IDENTITY_HEADER_PATTERN.test(name)),
+  );
 }
 
 /** Walk up from a directory until the repo root (AGENTS.md or .git) is found. */

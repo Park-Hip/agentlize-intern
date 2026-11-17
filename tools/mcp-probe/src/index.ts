@@ -2,9 +2,12 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { parseCli, sanitizedConfig, USAGE } from "./args.js";
 import type { ProbeContext } from "./context.js";
-import { startHttpProbe, type HttpProbeHandle } from "./http.js";
+import type { HttpHandle } from "./http-common.js";
+import { startHttpProbe } from "./http.js";
 import { ProbeLogger } from "./log.js";
-import { createProbeServer, PROBE_VERSION, TOOL_NAMES } from "./server.js";
+import { PROBE_VERSION } from "./meta.js";
+import { PROVIDER_MODEL_ID, startOpenAiProvider } from "./openai.js";
+import { createProbeServer, TOOL_NAMES } from "./server.js";
 import { hookTransport } from "./transport-log.js";
 
 async function main(): Promise<void> {
@@ -23,7 +26,7 @@ async function main(): Promise<void> {
 
   const startedAt = Date.now();
   const logger = new ProbeLogger({
-    transport: options.transport,
+    transport: options.transport === "stdio" ? "stdio" : "http",
     logDir: options.logDir,
     config: sanitizedConfig(options),
   });
@@ -37,7 +40,7 @@ async function main(): Promise<void> {
   process.on("unhandledRejection", (error) => fail("unhandled_rejection", error));
 
   let closing = false;
-  const closeAndExit = async (signal: string, handle?: HttpProbeHandle, closeStdio?: () => Promise<void>): Promise<void> => {
+  const closeAndExit = async (signal: string, handle?: HttpHandle, closeStdio?: () => Promise<void>): Promise<void> => {
     if (closing) return;
     closing = true;
     logger.write({ kind: "server_stop", reason: signal, uptimeSeconds: Math.round((Date.now() - startedAt) / 1000) });
@@ -77,6 +80,35 @@ async function main(): Promise<void> {
         await transport.close();
       });
     };
+    process.on("SIGINT", () => shutdown("SIGINT"));
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    return;
+  }
+
+  if (options.transport === "openai-provider") {
+    const handle = await startOpenAiProvider({
+      host: options.host,
+      port: options.port,
+      bearer: options.bearer,
+      publicUrl: options.publicUrl,
+      tlsCert: options.tlsCert,
+      tlsKey: options.tlsKey,
+      logger,
+      startedAt,
+    });
+    logger.write({
+      kind: "server_ready",
+      transport: "http",
+      mode: "openai-provider",
+      version: PROBE_VERSION,
+      model: PROVIDER_MODEL_ID,
+      endpoint: `${handle.publicBaseUrl}/v1/chat/completions`,
+      endpoints: {
+        models: `${handle.publicBaseUrl}/v1/models`,
+        chatCompletions: `${handle.publicBaseUrl}/v1/chat/completions`,
+      },
+    });
+    const shutdown = (signal: string) => void closeAndExit(signal, handle);
     process.on("SIGINT", () => shutdown("SIGINT"));
     process.on("SIGTERM", () => shutdown("SIGTERM"));
     return;

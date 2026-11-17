@@ -1,6 +1,6 @@
 # Bản R&D "AgentLize Gateway" của đồng nghiệp: điều Lab tham khảo
 
-Ngày: 2026-11-17. Trạng thái: đã đọc tài liệu, ảnh, video demo và bản review của Kevin; chưa chạy thử; các mẫu Lab chọn chép chờ chốt trong ADR.
+Ngày: 2026-11-17. Trạng thái: đã đọc tài liệu, ảnh, video demo và bản review của Kevin; đã thêm chế độ đo cho cách nối thứ ba; chưa chạy thử; các mẫu Lab chọn chép chờ chốt trong ADR.
 
 **Đây là bản R&D của một đồng nghiệp, không phải sản phẩm hay quyết định của Lab.**
 Lab vẫn tự dựng cổng riêng theo [spec bản thử](../design/mvp-spec.md), và tự quyết mọi lựa chọn thiết kế.
@@ -120,7 +120,13 @@ Bản review của Kevin còn đòi cách này phải có phiên bản, quay lui
 Với Lab, đây là ứng viên cho mô hình thứ ba cần so (định nghĩa xong của Track 01 đòi ít nhất ba): MCP qua stdio, gọi hàm, và cổng đóng vai mô hình.
 Lab tự kiểm câu danh tính bằng probe của mình: thêm chế độ đóng vai nhà cung cấp mô hình kiểu OpenAI, khai vào Thổ Thần, và xem mỗi lời gọi có mang mã người dùng (trường `user` hay header) không.
 
-**Kết luận:** Lab không đổi cách nối chính; Lab thêm một phép đo độc lập cho cách thứ ba, và chỉ dựng cách đó nếu Thổ Thần gửi được danh tính người dùng.
+Lab đã thêm chế độ đó vào probe ngày 2026-11-17.
+`--openai-provider` mở `GET /v1/models` và `POST /v1/chat/completions` (cả trả một lần và luồng), trả một câu cố định và không gọi mô hình thật.
+Mỗi lời gọi ghi trường `user`, các header `x-user-id`, `x-user-email`, `x-agent-id`, `x-executor-id`, và mọi khoá đã che như các chế độ khác.
+`npm run selftest` có ca cho chế độ này; cách chạy nằm ở mục 5 của [README probe](../../tools/mcp-probe/README.md).
+Kết quả đo trên Thổ Thần web chưa có, vì cần một phiên tunnel; câu trả lời sẽ được ghi ở mục 5.6 của [runbook probe](tho-than-mcp-probe.md#56-cổng-đóng-vai-nhà-cung-cấp-mô-hình-lời-gọi-mô-hình-có-danh-tính-không).
+
+**Kết luận:** Lab không đổi cách nối chính; Lab đã có chế độ đo cho cách thứ ba và chỉ dựng cách đó nếu Thổ Thần gửi được danh tính người dùng.
 
 ## 6. Điều Lab không chép, và vì sao
 
@@ -149,6 +155,6 @@ Lab tự kiểm câu danh tính bằng probe của mình: thêm chế độ đó
 | --- | --- |
 | Đưa mẫu 1 và 2 ở mục 3 vào ADR xác nhận, duyệt và chống ghi trùng; quyết mẫu 5, 6, 9 trong cùng ADR | ADR ghi rõ chọn hay bỏ từng mẫu, kèm lý do của Lab |
 | Thêm sáu phép thử ở 4.1 vào danh sách phép thử của [spec bản thử, mục 8](../design/mvp-spec.md#8-kiểm-thử-và-đo) | Spec có sáu ca mới, gắn với SR |
-| Thêm chế độ đóng vai nhà cung cấp mô hình vào `tools/mcp-probe` và đo trên Thổ Thần | Log cho biết lời gọi mô hình có mang danh tính người dùng không |
+| Đo chế độ đóng vai nhà cung cấp mô hình (đã thêm vào probe) trên Thổ Thần web | Log có dòng `openai_request` cho biết lời gọi mô hình có trường `user` hay header danh tính không |
 
 **Kết luận:** cả ba việc nằm trong kế hoạch tự dựng của Lab; không việc nào phụ thuộc vào bản R&D của đồng nghiệp.
