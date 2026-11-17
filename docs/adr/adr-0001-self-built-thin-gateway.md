@@ -21,8 +21,10 @@ Bằng chứng đã có:
 
 - Mười một sản phẩm chấm theo tám yêu cầu, không sản phẩm nào đạt đủ; mỗi mảnh khó chỉ một sản phẩm làm, và không ai chống ghi trùng ở hệ đích ([tổng hợp phát hiện, mục 3](../../rd/findings.md#3-thị-trường-2026)).
 - Preloop là mã nguồn mở nhưng thiếu đúng SR1 (danh tính) và SR6, nên dựng trên nó vẫn phải viết lại phần lõi ([khảo sát thị trường, mục 6.2](../../rd/research/market-landscape.md#62-sản-phẩm-có-giải-bài-toán-của-lab-không)).
-- Thổ Thần desktop không chuyển danh tính người dùng, không hỏi duyệt trước khi ghi, và cắt lời gọi sau 60 giây ([tổng hợp phát hiện, mục 4](../../rd/findings.md#4-thổ-thần)).
-- Một đồng nghiệp đã làm bản R&D cùng bài toán; bản đó xác nhận hướng đi lõi của Lab nhưng chưa có bộ phép thử hay số đo ([bản R&D AgentLize Gateway](../../rd/appota/agentlize-gateway.md)).
+- Thổ Thần không hỏi duyệt trước khi ghi và cắt lời gọi sau 60 giây ([tổng hợp phát hiện, mục 4](../../rd/findings.md#4-thổ-thần)).
+- Thổ Thần chưa cho Lab một danh tính người dùng kiểm chứng được.
+  Nối trên máy (stdio), server chỉ thấy tên ứng dụng, không thấy tài khoản.
+  Nối qua địa chỉ HTTPS công khai, máy chủ Thổ Thần gắn thêm header `x-user-id` và `x-user-email`, nhưng mới đo một tài khoản và chưa biết người dùng có giả được header đó không ([khảo sát Thổ Thần, mục 3.6](../../rd/appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
 
 Mục tiêu của Lab là bằng chứng chạy lại được và số đo so sánh, không phải đưa vào vận hành.
 
@@ -34,12 +36,11 @@ Mục tiêu của Lab là bằng chứng chạy lại được và số đo so s
 | --- | --- | --- | --- |
 | A. Mua hoặc dùng một sản phẩm (Liyagent, StackOne, Kong) làm nền | Có sẵn một phần kiểm soát | Vẫn phải tự viết phần gộp SR3, SR4, SR6; hộp đen, khó đo từng phần | Loại; giữ làm mốc "mua" khi đánh giá |
 | B. Dựng trên Preloop (mã nguồn mở) | Đọc được mã, có luồng duyệt | Thiếu SR1 và SR6, tức phần lõi | Loại; chỉ đọc mã luồng duyệt khi dựng phần duyệt, tối đa nửa ngày |
-| C. Dựa vào tính năng của Thổ Thần | Không phải dựng | Thổ Thần không có danh tính, không có duyệt cho tool (đã đo) | Loại |
+| C. Dựa vào tính năng của Thổ Thần | Không phải dựng | Không có duyệt cho tool (đã đo); danh tính chỉ có qua header HTTPS chưa kiểm chứng | Loại |
 | D. Dựng trên công cụ chạy quy trình (workflow engine) | Chạy tiếp sau sập có sẵn | Thêm một hệ thống phải vận hành, khi chưa biết có cần không | Để dành; xem lại theo Q1 |
-| E. Nhập vào bản R&D của đồng nghiệp | Có sẵn nhiều phần | Lab phải tự quyết và tự có bằng chứng; phụ thuộc vào hệ thống và quyền truy cập của người khác | Loại; chỉ tham khảo mẫu thiết kế |
-| F. Tự dựng một cổng mỏng | Kiểm soát đủ tám yêu cầu; đo được từng phần; không phụ thuộc nơi gọi | Tự viết và tự giữ mã; an toàn của mã tự viết chỉ dựa vào phép thử | **Chọn** |
+| E. Tự dựng một cổng mỏng | Kiểm soát đủ tám yêu cầu; đo được từng phần; không phụ thuộc nơi gọi | Tự viết và tự giữ mã; an toàn của mã tự viết chỉ dựa vào phép thử | **Chọn** |
 
-**Kết luận:** phương án F là cách duy nhất cho Lab vừa đủ tám yêu cầu vừa đo được từng phần.
+**Kết luận:** phương án E là cách duy nhất cho Lab vừa đủ tám yêu cầu vừa đo được từng phần.
 
 ## 3. Quyết định
 
@@ -57,7 +58,7 @@ Lab tự dựng một cổng kiểm soát mỏng, theo [spec bản thử](../../
 
 - Lab giữ toàn bộ mã của cổng, nên bộ phép thử SR1-SR8 là điều kiện bắt buộc trước mọi khẳng định về an toàn.
 - Mỗi mảnh của cổng đo được riêng: thời gian của bộ luật quyền, của cửa vào, của lệnh ghi.
-- Kết quả của Lab so được với sản phẩm trên thị trường và với các bản R&D khác bằng cùng tám phép thử.
+- Kết quả của Lab so được với sản phẩm trên thị trường bằng cùng tám phép thử.
 - Lab chịu chi phí tự viết phần chạy tiếp sau sập; Q1 đo xem chi phí đó có đáng không.
 
 **Kết luận:** cái giá của việc tự dựng là phải có phép thử trước, và cái giá đó đã nằm trong spec.
@@ -68,7 +69,7 @@ Lab tự dựng một cổng kiểm soát mỏng, theo [spec bản thử](../../
 | --- | --- |
 | Q1 cho thấy phần chạy tiếp tự viết sót, trùng hoặc quá rối | Viết ADR mới cho công cụ chạy quy trình ([Q1](../../rd/design/research-questions-and-validation-plan.md#21-q1-đang-chuyển-30-task-thì-ứng-dụng-sập-chạy-lại-có-đủ-và-không-trùng-không)) |
 | Một sản phẩm công bố đủ che trường theo người, duyệt khoá nội dung và chống ghi trùng | Chạy tám phép thử của Lab vào sản phẩm đó với dữ liệu giả |
-| Thổ Thần thêm bước duyệt hoặc gửi danh tính người dùng | Bỏ phần tương ứng của cổng, giữ phép thử |
+| Thổ Thần thêm bước duyệt, hoặc header danh tính qua HTTPS vượt qua H9 (ghi đè `x-user-id`) và H10 (phiên tách theo người dùng) ([khảo sát Thổ Thần, mục 9](../../rd/appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được)) | Dùng header làm lớp kiểm thứ hai hoặc bỏ phần tương ứng của cổng; giữ phép thử |
 | Mục tiêu đổi từ nghiên cứu sang vận hành | Chạy thử sản phẩm theo [bài học từ thị trường, mục 5.3](../../rd/research/market-lessons.md#53-khi-nào-xem-lại-quyết-định-này) |
 
 **Kết luận:** quyết định đúng cho giai đoạn nghiên cứu, và có tín hiệu rõ để xem lại.

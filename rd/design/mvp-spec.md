@@ -152,7 +152,7 @@ Phép thử tự động kiểm điều này bằng cách đọc danh sách tool
 ### 4.4. Cổng trả lời thế nào
 
 Bốn quy ước dưới đây áp cho mọi tool, ở cả hai cửa.
-Ba quy ước đầu lấy ý từ [bản R&D AgentLize Gateway của một đồng nghiệp](../appota/agentlize-gateway.md#3-điều-lab-chép-hoặc-sửa-lại); Lab chọn và điều chỉnh theo cách của mình.
+Lý do của từng quy ước nằm ở [ADR-0002, mục 2](../../docs/adr/adr-0002-safe-read-and-write.md#2-quyết-định-về-đọc).
 
 1. **Chỉ trả trường đã khai.**
    Luật khai cho mỗi vai danh sách trường được trả.
@@ -354,7 +354,6 @@ Lệnh cụ thể ghi vào `AGENTS.md` mục 6 khi có code.
 Năm ADR, theo [tổng hợp, mục 8](../findings.md#8-bước-tiếp-theo):
 
 1. Dựng một cổng mỏng của Lab, cắm vào Thổ Thần, không dựa vào sản phẩm có sẵn.
-   Lab tự dựng và tự quyết; [bản R&D AgentLize Gateway của một đồng nghiệp](../appota/agentlize-gateway.md) chỉ là nguồn tham khảo.
 2. Nơi chạy và cách nối: chương trình nối stdio trên máy người dùng, cổng chạy cục bộ, đường `/mcp` để dành cho bản web; hoặc cổng ở một máy chủ chung với `/mcp` qua HTTPS.
    Phép đo ngày 2026-11-17 cho thấy cách thứ hai chạy được cho cả web lẫn desktop; còn chờ Kevin về địa chỉ công khai lâu dài.
 3. Danh tính: khoá riêng cho từng người, kiểm ở cổng, thu hồi được; cổng nhận người theo mã nhân viên, không theo email; module danh tính thay được.
@@ -370,7 +369,7 @@ Quyết định 2 và 3 vẫn để mở: phép đo HTTPS ngày 2026-11-17 đã 
 
 - Mức dữ liệu tối đa theo từng nơi gọi: xem lại sau mốc 4, vì chưa có yêu cầu SR nào đòi.
 - Model cho trợ lý gọi hàm: chọn ở mốc 4.
-- Cách nối thứ ba, cổng đóng vai một mô hình AI cho Thổ Thần: chỉ đo bằng probe, chưa dựng ([bản R&D AgentLize Gateway, mục 5](../appota/agentlize-gateway.md#5-một-cách-nối-thổ-thần-thứ-ba-để-so-cổng-đóng-vai-mô-hình-ai)).
+- Cách nối thứ ba, cổng đóng vai một mô hình AI cho Thổ Thần: chỉ đo bằng probe, chưa dựng; mã LobeHub gửi mã người dùng trong lời gọi tới mô hình, nên đường này có thể mang danh tính ([khảo sát Thổ Thần, mục 6.3](../appota/tho-than-platform.md#63-lời-gọi-model-có-danh-tính-nhưng-trong-body)).
 
 Bốn câu hỏi Kevin:
 

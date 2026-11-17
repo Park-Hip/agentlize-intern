@@ -58,6 +58,8 @@ Every artifact needs an owner, a definition of done and verifiable evidence.
 
 - Use simulated data, public data, or sources that are explicitly permitted.
 - Never put sensitive internal information, real credentials or customer data into the POC, logs, test fixtures or commits.
+- Never mention a colleague's R&D (their prototypes, documents or results) in docs, ADRs, issues, PRs or commits.
+  Every design choice stands on the Lab's own evidence: the program document, public sources, the Lab's probes and tests, or the mentor's review.
 
 ## 6. Commands
 
