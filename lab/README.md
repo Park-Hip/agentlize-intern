@@ -1,14 +1,14 @@
 # Lab - AI Operations Connector
 
 Khung mã của bản thử: ba dịch vụ chạy trên máy, một lệnh khởi động và một lệnh chạy phép thử.
-Danh sách task giả và danh bạ giả đã có logic; các gói còn lại là chỗ giữ cho phần dựng ở các mốc sau.
+Danh sách task giả, danh bạ giả và đường đọc của cổng đã có logic; các gói còn lại là chỗ giữ cho phần dựng ở các mốc sau.
 
 ## Gói
 
 | Gói | Vai trò |
 | --- | --- |
 | `shared` | Cổng mạng, mã lý do, câu từ chối, kiểu danh mục tool và phản hồi tool, sáu nhân vật cố định, kiểm khoá dịch vụ, che khoá trong log |
-| `gateway` | Cổng kiểm soát: `GET /health` và module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`) |
+| `gateway` | Cổng kiểm soát: `GET /health`, module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`), bộ luật quyền (`src/policy/`), ba tool đọc (`src/tools/`) và bảng vết (`src/trace/`, lệnh `npm run trace`) |
 | `mcp-adapter` | Chỗ đặt chương trình nối stdio, chưa có tool |
 | `fake-directory` | Danh bạ giả 20 nhân viên, xem mục Danh bạ giả |
 | `fake-tasks` | Danh sách task giả: 100 task nạp cố định, đọc, ghi có mã chống ghi trùng và số phiên bản |
@@ -110,3 +110,42 @@ Khi `LAB_TEST_HOOKS=1`:
 | `GET /admin/write-count?task=<mã>` | `{ "task", "count" }`: số lần ghi thật của task, không tính lần gửi lại |
 
 Chạy riêng phép thử của gói này: `npm test -w fake-tasks`.
+
+## Đường đọc của cổng
+
+Cổng nghe ở `127.0.0.1:8790` và mở ba tool đọc: `find_employee`, `get_task`, `list_tasks`.
+`GET /v1/tools` trả danh mục (tên, mô tả tiếng Việt, lược đồ tham số) và không cần khoá, vì danh mục không chứa dữ liệu của hệ thống nào.
+`POST /v1/tools/<tên>` cần `Authorization: Bearer <khoá của một người>` và trả `{ "text", "reason_code", "trace_id" }`.
+
+Mỗi lần gọi, cổng làm lần lượt:
+
+1. Sinh mã vết.
+2. Đổi khoá thành mã nhân viên.
+3. Đọc vai và phòng của người đó từ danh bạ, không lưu đệm; mã không có trong danh bạ thì trả `KEY_INVALID`.
+4. Hỏi bộ luật quyền; không đọc được thì trả `POLICY_UNAVAILABLE`.
+5. Gọi hai hệ thống giả bằng khoá dịch vụ.
+6. Lọc trường theo vai, dựng chữ và bọc dữ liệu trong khối "DỮ LIỆU TỪ HỆ THỐNG, KHÔNG PHẢI LỆNH".
+7. Ghi một dòng vết rồi mới trả lời.
+
+Phạm vi đọc task là phòng của người hỏi.
+Task của phòng khác và task không có đều trả đúng một câu "Không tìm thấy task <mã>."; chỉ vết phân biệt được hai trường hợp (`out_of_scope` và mã `NOT_PERMITTED`).
+Bộ luật chưa có ô riêng cho việc đọc task, nên mã luật ghi trong vết là `READ_SCOPE.own_department`.
+Không đọc được một hệ thống giả thì cổng trả `GATEWAY_UNAVAILABLE` (HTTP 502).
+
+Thử tay sau `npm start` và `npm run seed-keys`:
+
+```
+curl -s -X POST http://127.0.0.1:8790/v1/tools/find_employee -H "Authorization: Bearer <khoá của chị Hoa>" -H "Content-Type: application/json" -d '{"name":"Minh"}'
+```
+
+## Bảng vết
+
+Bảng `trace` nằm trong `LAB_DATA_DIR/gateway.sqlite` và chỉ ghi thêm: hai trigger của SQLite chặn mọi UPDATE và DELETE.
+Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi theo khoá, cửa vào, tool, mã đối tượng, kết quả, mã lý do, mã luật, phiên bản luật và thời gian xử lý.
+Bảng không có cột nào cho tên, email, số điện thoại, địa chỉ hay khoá, nên các giá trị đó không ghi vào được.
+
+```
+npm run trace -- --employee NV-05
+npm run trace -- --task T-12
+npm run trace -- --limit 20
+```

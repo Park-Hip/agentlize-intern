@@ -28,7 +28,8 @@
     "test": "npm run build && node --test \"shared/dist/**/*-test.js\" \"gateway/dist/**/*-test.js\" \"fake-directory/dist/**/*-test.js\" \"fake-tasks/dist/**/*-test.js\" \"mcp-adapter/dist/**/*-test.js\" \"tests/dist/**/*-test.js\"",
     "start": "npm run build && node dist/scripts/start.js",
     "keys": "npm run build:shared && npm run build:gateway && node gateway/dist/cli/keys-main.js",
-    "seed-keys": "npm run build:shared && npm run build:gateway && node gateway/dist/cli/seed-keys-main.js"
+    "seed-keys": "npm run build:shared && npm run build:gateway && node gateway/dist/cli/seed-keys-main.js",
+    "trace": "npm run build:shared && npm run build:gateway && node gateway/dist/cli/trace-main.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",

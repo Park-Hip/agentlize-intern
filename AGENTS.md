@@ -93,7 +93,7 @@ bash rd/checks/mausbot.sh
 ### Lab POC
 
 The lab is an npm workspace in `lab/`. It needs Node 22 or newer.
-It starts three local services; so far the fake task list and the fake employee directory have business logic.
+It starts three local services; the fake task list, the fake employee directory and the gateway's read path (`find_employee`, `get_task`, `list_tasks`, `/v1/tools`) have business logic.
 
 ```
 cd lab
@@ -130,6 +130,13 @@ npm run seed-keys [-- --rotate]
 
 `issue` and `seed-keys` print each raw key once and never write it to disk; `list` shows only the first six characters.
 `seed-keys` issues one key per persona plus the guest, and refuses to run again until `--rotate` revokes the old ones.
+
+Every gateway call leaves one line in the append-only `trace` table of the same database; print it as a table (the lines hold no personal data and no key).
+
+```
+npm run trace -- --employee <NV-xx>
+npm run trace -- --task <T-n>
+```
 
 ### MCP probe for Thổ Thần
 
