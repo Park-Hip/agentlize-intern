@@ -103,7 +103,9 @@ flowchart LR
     TT["Thổ Thần desktop"] -->|"máy chủ Thổ Thần gọi /mcp, HTTPS + khoá riêng"| GW["Cổng kiểm soát (máy chủ chung)"]
     WEB["Thổ Thần web"] -->|"máy chủ Thổ Thần gọi /mcp, HTTPS + khoá riêng"| GW
     FC["Trợ lý gọi hàm của Lab (nơi gọi thứ hai)"] -->|"HTTP + khoá riêng"| GW
-    U["Người dùng trên trình duyệt"] -->|"trang xác nhận, duyệt, tra vết"| GW
+    U["Người dùng trên trình duyệt"] -->|"trang đăng nhập, xác nhận, duyệt"| GW
+    OP["Người vận hành trên máy chạy cổng"] -->|"127.0.0.1"| CON["Trang điều khiển"]
+    CON -->|"gọi thử bằng khoá của nhân vật"| GW
     GW --> DS["Danh bạ giả"]
     GW --> TS["Danh sách task giả"]
 ```
@@ -114,9 +116,10 @@ flowchart LR
 | --- | --- | --- |
 | Danh bạ giả | API đọc và sửa nhân viên; dữ liệu riêng trong SQLite; mỗi bản ghi có số phiên bản | Không kiểm quyền; ai gọi được API thì được trả lời, nên chỉ cổng được gọi |
 | Danh sách task giả | API đọc và sửa task; mỗi task có số phiên bản; nhận mã chống ghi trùng (idempotency key) và phiên bản mong đợi ở mỗi lệnh ghi; trả lại kết quả cũ khi gặp mã đã thấy, trả "xung đột" khi phiên bản đã đổi | Không kiểm quyền |
-| Cổng kiểm soát | Đổi khoá thành người qua một module danh tính thay được; hỏi bộ luật quyền; chỉ trả trường đã khai; lưu đề xuất, lời xác nhận, lời duyệt; chạy lệnh ghi; ghi vết; phục vụ ba trang web | Không gọi model, không đoán ý người dùng |
+| Cổng kiểm soát | Đổi khoá thành người qua một module danh tính thay được; hỏi bộ luật quyền; chỉ trả trường đã khai; lưu đề xuất, lời xác nhận, lời duyệt; chạy lệnh ghi; ghi vết; phục vụ trang đăng nhập, xác nhận và duyệt | Không gọi model, không đoán ý người dùng |
 | Bộ luật quyền | Một module trong cổng, đọc file luật dạng bảng có số phiên bản, trả "được", "không được" hoặc "cần duyệt", luôn kèm mã lý do | Không ghi, không gọi hệ thống |
 | Cửa `/mcp` của cổng | Streamable HTTP, không giữ trạng thái phiên; xác thực bằng `Authorization: Bearer <khoá>`; danh mục tool lấy từ cùng nguồn với `GET /v1/tools` | Không có tool nào ngoài những gì cổng khai báo |
+| Trang điều khiển | Chỉ mở được trên máy chạy cổng; cho xem tool, sửa luật và trường được xem, gọi thử tool dưới tên từng nhân vật qua cổng, xem dữ liệu gốc và vết ([ADR-0006](../../docs/adr/adr-0006-operator-console.md)) | Không ra Internet; không sửa dữ liệu nghiệp vụ; không gọi thẳng bộ luật hay hai hệ thống giả khi gọi thử |
 | Trợ lý gọi hàm | Chương trình chat dòng lệnh của Lab, gọi model với định nghĩa tool lấy từ cùng danh mục của cổng | Không có đường tắt tới hai hệ thống giả |
 
 Bảy thành phần ở [PRD, Phụ lục A](../problem/prd-ai-platform.md#phụ-lục-a---bảy-thành-phần-và-ranh-giới) nằm như sau: bộ luật quyền, danh tính, danh mục tool và sổ ghi vết là module của cổng.
@@ -360,6 +363,7 @@ Năm ADR, theo [tổng hợp, mục 8](../findings.md#8-bước-tiếp-theo):
 
 Quyết định 1, 4 và 5 đã ghi thành [ADR-0001](../../docs/adr/adr-0001-self-built-thin-gateway.md), [ADR-0002](../../docs/adr/adr-0002-safe-read-and-write.md) và [ADR-0003](../../docs/adr/adr-0003-technology-stack.md); ADR-0003 chọn `better-sqlite3`.
 Quyết định 2 đã ghi thành [ADR-0004](../../docs/adr/adr-0004-shared-gateway-over-https.md), quyết định 3 thành [ADR-0005](../../docs/adr/adr-0005-requester-identity.md).
+Trang điều khiển của Lab, thêm sau năm quyết định trên, ghi ở [ADR-0006](../../docs/adr/adr-0006-operator-console.md).
 
 Để sau, không chặn mốc 0 tới mốc 2:
 
