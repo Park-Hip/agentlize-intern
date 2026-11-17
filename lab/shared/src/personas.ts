@@ -34,3 +34,10 @@ export const PERSONAS = {
 } as const satisfies Record<string, Persona>;
 
 export type PersonaName = keyof typeof PERSONAS;
+
+/**
+ * The guest has a valid key but no entry in the directory (spec section 2.1).
+ * The console shows it beside the six characters so the overview covers every
+ * identity the lab issues a key for.
+ */
+export const GUEST = { name: 'khach', employeeId: 'NV-99' } as const;

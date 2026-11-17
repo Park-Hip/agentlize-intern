@@ -27,10 +27,26 @@ test('read: the catalog lists the three read tools and the two proposal tools, i
     const response = await fetch(`${f.gateway.url}/v1/tools`);
     assert.equal(response.status, 200);
     const body = (await response.json()) as {
-      tools: { name: string; description: string; input_schema: { properties: Record<string, unknown> } }[];
+      tools: {
+        name: string;
+        description: string;
+        kind: string;
+        input_schema: { properties: Record<string, unknown> };
+      }[];
     };
 
     assert.deepEqual(body.tools.map((tool) => tool.name), ['find_employee', 'get_task', 'list_tasks', 'propose_task_change', 'get_request_status']);
+    // Only propose_task_change drafts a change; get_request_status reads a proposal like the other read tools.
+    assert.deepEqual(
+      Object.fromEntries(body.tools.map((tool) => [tool.name, tool.kind])),
+      {
+        find_employee: 'read',
+        get_task: 'read',
+        list_tasks: 'read',
+        propose_task_change: 'propose',
+        get_request_status: 'read',
+      },
+    );
     for (const tool of body.tools) {
       assert.ok(tool.description.length > 40, `${tool.name} needs a real description`);
       assert.match(tool.description, /[ăâđêôơư]/i, `${tool.name} description is Vietnamese`);

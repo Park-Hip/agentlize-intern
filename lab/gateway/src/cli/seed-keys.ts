@@ -1,9 +1,8 @@
-import { PERSONAS } from '@lab/shared';
+import { GUEST, PERSONAS } from '@lab/shared';
 import { KeyStore } from '../identity/key-store.js';
 import type { CliIo } from './keys.js';
 
-/** The guest has a valid key but no entry in the directory (spec section 2.1). */
-export const GUEST = { name: 'khach', employeeId: 'NV-99' } as const;
+export { GUEST };
 
 /** Every identity that gets a key: the six named characters, then the guest. */
 export const SEED_IDENTITIES: readonly { readonly name: string; readonly employeeId: string }[] = [

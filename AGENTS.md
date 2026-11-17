@@ -19,7 +19,7 @@ Read the  TXT for the full acceptance criteria, the R&D framework and the week b
 ## 2. Current state
 
 The research phase is done and summarized in `rd/findings.md`: the five integration models, real systems and the 2026 market were surveyed, and no product covers the Lab's problem end to end.
-The `lab/` scaffold runs three local services with health checks; the fake task list (100 seeded tasks, idempotency keys, version checks), the fake directory, and the gateway's read, draft and write paths have business logic.
+The `lab/` scaffold runs four local services with health checks; the fake task list (100 seeded tasks, idempotency keys, version checks), the fake directory, the gateway's read, draft and write paths, and the first two screens of the operator console have business logic.
 `tools/mcp-probe` is a throwaway MCP server that recorded how Thổ Thần web and desktop behave as an MCP host; its results are in `rd/appota/tho-than-mcp-probe.md`, and it is not part of the lab.
 The current goal is a first prototype that plugs into Thổ Thần AI as an MCP server: the intern has a Thổ Thần account, and both the web and desktop apps connect to MCP servers.
 Host facts that constrain the design are summarized in `rd/findings.md` section 4: chat can call tools over stdio or over Streamable HTTP when the server has a public HTTPS address, chat calls in both web and desktop go through the Thổ Thần server, the host attaches identity headers but the Bearer key is set by whoever adds the skill, there is no approval step, and calls are cut at 60 seconds.
@@ -27,7 +27,7 @@ Host facts that constrain the design are summarized in `rd/findings.md` section 
 The company ecosystem the lab plugs into is recorded in `docs/context/appota-ai-ecosystem.md` (AgentLize control plane, Thổ Thần AI execution plane, Kdata infrastructure, business data owners).
 It is context for where the work lands, not a decision on stack or architecture, and it needs Kevin to confirm it.
 
-Stack, architecture and prototype scope are recorded in ADR-0001 to ADR-0003 and the prototype spec.
+Stack, architecture and prototype scope are recorded in ADR-0001 to ADR-0003, ADR-0006 and the prototype spec.
 Read them before adding business logic.
 
 Setup, run and test commands are in section 6.
@@ -93,7 +93,7 @@ bash rd/checks/mausbot.sh
 ### Lab POC
 
 The lab is an npm workspace in `lab/`. It needs Node 22 or newer.
-It starts three local services; the fake task list, the fake employee directory and the gateway's read path (`find_employee`, `get_task`, `list_tasks`, `/v1/tools`, and the same tools at `/mcp`), its draft path (`propose_task_change`, `get_request_status`, the login and confirmation pages) and its write path (the write command behind Gửi) have business logic.
+It starts four local services; the fake task list, the fake employee directory and the gateway's read path (`find_employee`, `get_task`, `list_tasks`, `/v1/tools`, and the same tools at `/mcp`), its draft path (`propose_task_change`, `get_request_status`, the login and confirmation pages), its write path (the write command behind Gửi) and the console's overview and tool screens have business logic.
 
 ```
 cd lab
@@ -103,17 +103,18 @@ npm test
 npm start
 ```
 
-`npm start` builds the workspace, generates a random service key when `LAB_SERVICE_KEY` is not set, starts the fake directory on 127.0.0.1:8791 and the fake task list on 127.0.0.1:8792, waits for both `/health` endpoints to return 200, then opens the gateway on 127.0.0.1:8790.
-The key is passed to the three processes through the environment and is never printed.
-Override the ports with `LAB_GATEWAY_PORT`, `LAB_DIRECTORY_PORT` and `LAB_TASKS_PORT`, and the data folder with `LAB_DATA_DIR`.
+`npm start` builds the workspace, generates a random service key when `LAB_SERVICE_KEY` is not set, starts the fake directory on 127.0.0.1:8791 and the fake task list on 127.0.0.1:8792, waits for both `/health` endpoints to return 200, then opens the gateway on 127.0.0.1:8790, and finally the console on 127.0.0.1:8793.
+The key is passed to the four processes through the environment and is never printed.
+Override the ports with `LAB_GATEWAY_PORT`, `LAB_DIRECTORY_PORT`, `LAB_TASKS_PORT` and `LAB_CONSOLE_PORT`, and the data folder with `LAB_DATA_DIR`.
 `LAB_RULES_PATH` points at the rule file the gateway reads; by default that is `rules.json` in the data folder.
 At startup the gateway copies `lab/gateway/policy/rules.json` there when the file is missing and never overwrites a file that already exists; the engine reads it on every decision, so an edit applies to the next call without a restart.
 The committed `lab/gateway/policy/rules.json` stays the base copy.
 The acceptance tests point `LAB_RULES_PATH` at a temporary copy, so a deliberately broken file never touches the repository.
 Set `LAB_PUBLIC_BASE_URL` (for example the HTTPS address of a tunnel) to change the address in the confirmation links that `propose_task_change` returns; without it the links use `http://127.0.0.1:<gateway port>`.
-`npm test` builds, then runs every `*-test.js` file in the workspace, including a smoke test that starts the three services on temporary ports and checks `/health`.
+`npm test` builds, then runs every `*-test.js` file in the workspace, including a smoke test that starts the four services on temporary ports and checks `/health`.
 `npm run lint` type-checks the whole workspace with `tsc --noEmit`.
 `npm test -w fake-directory` runs only the directory tests.
+`npm test -w console` runs only the console tests, including the foreign `Host` refusal and a service turned off.
 The fake directory answers every path, `/health` included, with 401 unless the request carries `Authorization: Bearer <LAB_SERVICE_KEY>`; `LAB_TEST_HOOKS=1` turns on its `/admin/*` test routes.
 
 Run only the gateway tests, for example the policy engine tests (the rule file is `lab/gateway/policy/rules.json`):

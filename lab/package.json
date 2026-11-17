@@ -2,7 +2,7 @@
   "name": "agentlize-lab",
   "version": "0.0.0",
   "private": true,
-  "description": "AI Operations Connector Lab: gateway, fake systems, MCP adapter and tests",
+  "description": "AI Operations Connector Lab: gateway, fake systems, operator console, MCP adapter and tests",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
@@ -12,18 +12,20 @@
     "gateway",
     "fake-directory",
     "fake-tasks",
+    "console",
     "tests"
   ],
   "scripts": {
-    "build": "npm run build:shared && npm run build:fake-directory && npm run build:fake-tasks && npm run build:gateway && npm run build:tests && npm run build:scripts",
+    "build": "npm run build:shared && npm run build:fake-directory && npm run build:fake-tasks && npm run build:gateway && npm run build:console && npm run build:tests && npm run build:scripts",
     "build:shared": "npm run build -w @lab/shared",
     "build:gateway": "npm run build -w @lab/gateway",
     "build:fake-directory": "npm run build -w @lab/fake-directory",
     "build:fake-tasks": "npm run build -w @lab/fake-tasks",
+    "build:console": "npm run build -w @lab/console",
     "build:tests": "npm run build -w @lab/tests",
     "build:scripts": "tsc -p tsconfig-scripts.json",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test \"shared/dist/**/*-test.js\" \"gateway/dist/**/*-test.js\" \"fake-directory/dist/**/*-test.js\" \"fake-tasks/dist/**/*-test.js\" \"tests/dist/**/*-test.js\" \"dist/scripts/**/*-test.js\"",
+    "test": "npm run build && node --test \"shared/dist/**/*-test.js\" \"gateway/dist/**/*-test.js\" \"fake-directory/dist/**/*-test.js\" \"fake-tasks/dist/**/*-test.js\" \"console/dist/**/*-test.js\" \"tests/dist/**/*-test.js\" \"dist/scripts/**/*-test.js\"",
     "start": "npm run build && node dist/scripts/start.js",
     "tunnel": "npm run build && node dist/scripts/tunnel.js",
     "keys": "npm run build:shared && npm run build:gateway && node gateway/dist/cli/keys-main.js",

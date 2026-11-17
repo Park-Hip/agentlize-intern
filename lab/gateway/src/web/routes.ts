@@ -9,7 +9,7 @@ import { SystemUnavailableError, type EmployeeRecord, type TaskRecord } from '..
 import type { KeyRecord } from '../identity/index.js';
 import type { ToolResult } from '../tools/types.js';
 import { checkWrite, type WriteRefusal } from '../writes/index.js';
-import { cardPage, loginPage, messagePage } from './html.js';
+import { cardPage, loginPage, messagePage, PAGE_SECURITY_HEADERS } from './html.js';
 import { readForm } from './form.js';
 import { SESSION_TTL_MS, type Session } from './session-store.js';
 
@@ -28,11 +28,7 @@ function sendHtml(res: ServerResponse, status: number, html: string, headers: Re
   res.writeHead(status, {
     'content-type': 'text/html; charset=utf-8',
     'cache-control': 'no-store',
-    // The pages load nothing from outside and post only to themselves; they cannot be framed.
-    'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
-    'x-content-type-options': 'nosniff',
-    'x-frame-options': 'DENY',
-    'referrer-policy': 'no-referrer',
+    ...PAGE_SECURITY_HEADERS,
     ...headers,
   });
   res.end(html);

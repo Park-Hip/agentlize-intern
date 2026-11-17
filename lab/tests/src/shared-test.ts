@@ -45,10 +45,12 @@ test('shared: tool response carries text, reason_code and trace_id', () => {
 });
 
 test('shared: ports have defaults and can be overridden', () => {
-  assert.deepEqual(DEFAULT_PORTS, { gateway: 8790, directory: 8791, tasks: 8792 });
+  assert.deepEqual(DEFAULT_PORTS, { gateway: 8790, directory: 8791, tasks: 8792, console: 8793 });
   assert.equal(resolvePort('gateway', {}), 8790);
   assert.equal(resolvePort('directory', {}), 8791);
+  assert.equal(resolvePort('console', {}), 8793);
   assert.equal(resolvePort('tasks', { [PORT_ENV.tasks]: '9912' }), 9912);
+  assert.equal(resolvePort('console', { [PORT_ENV.console]: '9913' }), 9913);
   assert.throws(() => resolvePort('tasks', { [PORT_ENV.tasks]: '0' }), /LAB_TASKS_PORT/);
   assert.throws(() => resolvePort('gateway', { [PORT_ENV.gateway]: 'http' }), /LAB_GATEWAY_PORT/);
 });

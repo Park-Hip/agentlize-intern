@@ -12,6 +12,18 @@ export function esc(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
+/**
+ * The headers every page of the lab sends: nothing loads from outside, nothing
+ * can be framed, and the browser does not guess a content type. The console
+ * sends the same set (ADR-0006 section 3.1).
+ */
+export const PAGE_SECURITY_HEADERS = {
+  'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+  'x-content-type-options': 'nosniff',
+  'x-frame-options': 'DENY',
+  'referrer-policy': 'no-referrer',
+} as const;
+
 const STYLE = `
 :root{color-scheme:light dark;--bg:#f6f7f9;--panel:#fff;--text:#1b1f24;--muted:#5b6570;--line:#d8dde3;--accent:#0b5fff;--accent-text:#fff;--warn-bg:#fff4d6;--warn-line:#e3b341;--ok-bg:#e4f6e9;--ok-line:#3fa65f;--bad-bg:#fde8e8;--bad-line:#d65454}
 @media (prefers-color-scheme:dark){:root{--bg:#14171a;--panel:#1d2126;--text:#e8ebee;--muted:#9aa5b1;--line:#343b43;--accent:#5b92ff;--accent-text:#0a0f1a;--warn-bg:#3a3017;--warn-line:#8a6d1c;--ok-bg:#172a1d;--ok-line:#2f7a47;--bad-bg:#3a1c1c;--bad-line:#9c3d3d}}

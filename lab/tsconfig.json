@@ -13,6 +13,7 @@
     "gateway/src/**/*.ts",
     "fake-directory/src/**/*.ts",
     "fake-tasks/src/**/*.ts",
+    "console/src/**/*.ts",
     "tests/src/**/*.ts",
     "scripts/**/*.ts"
   ]

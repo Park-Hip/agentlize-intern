@@ -4,27 +4,30 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { DATA_DIR_ENV, LOOPBACK_HOST, PORT_ENV, SERVICE_KEY_ENV, type ServiceName } from '@lab/shared';
+import { DATA_DIR_ENV, LOOPBACK_HOST, PORT_ENV, RULES_PATH_ENV, SERVICE_KEY_ENV, type ServiceName } from '@lab/shared';
 import { freePorts, spawnBuiltService, stopChild, waitForHealth, type SpawnedService } from './process.js';
 
-test('smoke: three services start on temporary ports and answer /health', async (t) => {
+test('smoke: four services start on temporary ports and answer /health', async (t) => {
   const key = randomBytes(32).toString('base64url');
   const dataDir = await mkdtemp(join(tmpdir(), 'agentlize-lab-'));
-  const [directoryPort, tasksPort, gatewayPort] = await freePorts(3);
+  const [directoryPort, tasksPort, gatewayPort, consolePort] = await freePorts(4);
 
   const ports: Readonly<Record<ServiceName, number>> = {
     directory: directoryPort ?? 0,
     tasks: tasksPort ?? 0,
     gateway: gatewayPort ?? 0,
+    console: consolePort ?? 0,
   };
 
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     [SERVICE_KEY_ENV]: key,
     [DATA_DIR_ENV]: dataDir,
+    [RULES_PATH_ENV]: join(dataDir, 'rules.json'),
     [PORT_ENV.directory]: String(ports.directory),
     [PORT_ENV.tasks]: String(ports.tasks),
     [PORT_ENV.gateway]: String(ports.gateway),
+    [PORT_ENV.console]: String(ports.console),
   };
 
   const started: SpawnedService[] = [];
@@ -45,9 +48,14 @@ test('smoke: three services start on temporary ports and answer /health', async 
   started.push(gateway);
   await waitForHealth(gateway, ports.gateway, key);
 
+  const consoleService = spawnBuiltService('console', env);
+  started.push(consoleService);
+  await waitForHealth(consoleService, ports.console, key);
+
   const expected: ReadonlyArray<[ServiceName, number]> = [
     ['tasks', ports.tasks],
     ['gateway', ports.gateway],
+    ['console', ports.console],
   ];
 
   for (const [service, port] of expected) {
@@ -66,6 +74,28 @@ test('smoke: three services start on temporary ports and answer /health', async 
   const authorized = await fetch(directoryUrl, { headers: { authorization: `Bearer ${key}` } });
   assert.equal(authorized.status, 200);
   assert.deepEqual(await authorized.json(), { status: 'ok', service: 'directory' });
+
+  // The console opens with the real services behind it, so its two screens prove the wiring end to end.
+  const consoleUrl = `http://${LOOPBACK_HOST}:${ports.console}`;
+  const overview = await fetch(`${consoleUrl}/`);
+  assert.equal(overview.status, 200);
+  const overviewHtml = await overview.text();
+  assert.match(overviewHtml, /<h1>Tổng quan<\/h1>/);
+  assert.match(overviewHtml, /Phiên bản 1/);
+  assert.match(overviewHtml, /Trần Văn Quang/);
+  assert.match(overviewHtml, /Khách/);
+  assert.match(overviewHtml, /Đang chạy/);
+
+  const toolPage = await fetch(`${consoleUrl}/tools`);
+  assert.equal(toolPage.status, 200);
+  const toolHtml = await toolPage.text();
+  assert.match(toolHtml, /find_employee/);
+  assert.match(toolHtml, /propose_task_change/);
+  assert.match(toolHtml, /Chỉ đọc/);
+  assert.match(toolHtml, /Soạn đề xuất/);
+  assert.match(toolHtml, /task_id/);
+  assert.equal(overviewHtml.includes(key), false, 'the console pages must never hold the service key');
+  assert.equal(toolHtml.includes(key), false, 'the console pages must never hold the service key');
 
   const logs = started.map((service) => service.output()).join('\n');
   assert.equal(logs.includes(key), false, 'the service key must never appear in service output');

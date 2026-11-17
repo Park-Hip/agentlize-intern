@@ -38,13 +38,14 @@ async function freePorts(count: number): Promise<number[]> {
   return ports;
 }
 
-test('stack: starts the three services, answers health and stops every child', async (t) => {
+test('stack: starts the four services, answers health and stops every child', async (t) => {
   const dataDir = await mkdtemp(join(tmpdir(), 'agentlize-stack-'));
-  const [gatewayPort, directoryPort, tasksPort] = await freePorts(3);
+  const [gatewayPort, directoryPort, tasksPort, consolePort] = await freePorts(4);
   const ports = {
     gateway: gatewayPort ?? 0,
     directory: directoryPort ?? 0,
     tasks: tasksPort ?? 0,
+    console: consolePort ?? 0,
   };
   const env: NodeJS.ProcessEnv = {
     ...process.env,
@@ -53,6 +54,7 @@ test('stack: starts the three services, answers health and stops every child', a
     [PORT_ENV.gateway]: String(ports.gateway),
     [PORT_ENV.directory]: String(ports.directory),
     [PORT_ENV.tasks]: String(ports.tasks),
+    [PORT_ENV.console]: String(ports.console),
   };
   const output: string[] = [];
   const stack = await startStack({
@@ -70,14 +72,52 @@ test('stack: starts the three services, answers health and stops every child', a
   assert.equal(stack.gatewayUrl, `http://127.0.0.1:${ports.gateway}`);
   assert.equal(stack.dataDir, dataDir);
   assert.equal(output.some((line) => line.includes('[start] gateway ready')), true);
+  assert.equal(output.some((line) => line.includes('[start] console ready')), true);
 
   const health = await fetch(`${stack.gatewayUrl}/health`);
   assert.equal(health.status, 200);
   assert.deepEqual(await health.json(), { status: 'ok', service: 'gateway' });
 
+  const consoleHealth = await fetch(`http://127.0.0.1:${ports.console}/health`);
+  assert.equal(consoleHealth.status, 200);
+  assert.deepEqual(await consoleHealth.json(), { status: 'ok', service: 'console' });
+
   await stack.stop();
   await stack.stop();
   await assert.rejects(fetch(`${stack.gatewayUrl}/health`, { signal: AbortSignal.timeout(1_000) }));
+  await assert.rejects(fetch(`http://127.0.0.1:${ports.console}/health`, { signal: AbortSignal.timeout(1_000) }));
+});
+
+test('stack: the tunnel mode starts the three services and leaves the console off', async (t) => {
+  const dataDir = await mkdtemp(join(tmpdir(), 'agentlize-stack-no-console-'));
+  const [gatewayPort, directoryPort, tasksPort, consolePort] = await freePorts(4);
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    [SERVICE_KEY_ENV]: randomBytes(32).toString('base64url'),
+    [DATA_DIR_ENV]: dataDir,
+    [PORT_ENV.gateway]: String(gatewayPort),
+    [PORT_ENV.directory]: String(directoryPort),
+    [PORT_ENV.tasks]: String(tasksPort),
+    [PORT_ENV.console]: String(consolePort),
+  };
+  const output: string[] = [];
+  const stack = await startStack({
+    env,
+    includeConsole: false,
+    log: (line) => output.push(line),
+    error: (line) => output.push(line),
+  });
+
+  t.after(async () => {
+    await stack.stop();
+    await rm(dataDir, { recursive: true, force: true });
+  });
+
+  assert.equal(output.some((line) => line.includes('[start] console ready')), false);
+  await assert.rejects(fetch(`http://127.0.0.1:${consolePort}/health`, { signal: AbortSignal.timeout(1_000) }));
+  const health = await fetch(`${stack.gatewayUrl}/health`);
+  assert.equal(health.status, 200);
+  await health.text();
 });
 
 test('stack: a service that cannot bind does not leave the earlier services running', async (t) => {
