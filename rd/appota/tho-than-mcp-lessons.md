@@ -1,6 +1,6 @@
 # Thổ Thần khi AI gọi công cụ: bài học cho bản thử
 
-Ngày: 2026-11-17. Trạng thái: đã đo đủ năm câu trên Thổ Thần desktop; còn thiếu tài khoản thứ hai và địa chỉ HTTPS từ xa.
+Ngày: 2026-11-17. Trạng thái: đã đo đủ năm câu trên Thổ Thần desktop và đo đường HTTPS công khai; còn thiếu tài khoản thứ hai.
 
 Cách đo, bảng kết quả từng câu và dòng log cho mỗi kết luận nằm ở [báo cáo đo đầy đủ](tho-than-mcp-probe.md).
 Bài này chỉ giữ điều Lab học được và điều Lab quyết định.
@@ -11,15 +11,15 @@ Bài này chỉ giữ điều Lab học được và điều Lab quyết định
 - Lab cắm một chương trình thử vào Thổ Thần desktop, chỉ dùng dữ liệu giả lập, và ghi lại mọi thứ Thổ Thần gửi sang.
 - Câu trả lời là không cho cả hai câu. Thổ Thần còn cắt mọi việc sau 60 giây, không tự làm lại khi lỗi và không ghi vết.
 - Vì vậy bản thử đặt mọi kiểm soát ở một cổng riêng của Lab. Người dùng bấm xác nhận trên trang của cổng, không phải trong khung chat.
-- Tiếp theo: hỏi Kevin ba câu ở mục 5 và viết bản ghi quyết định đầu tiên; không câu nào chặn bản thử.
+- Tiếp theo: hỏi Kevin bốn câu ở mục 5 và viết bản ghi quyết định đầu tiên; không câu nào chặn bản thử.
 
 ## 1. Lab đã đo gì
 
 Bản thử của Lab chạy trong Thổ Thần, nên phải biết Thổ Thần thật sự làm gì, không đoán.
 Lab viết một chương trình thử (probe) đóng vai máy chủ công cụ (MCP server): chương trình cung cấp các công cụ để AI gọi, ví dụ "chuyển task".
-Probe có bảy công cụ giả, trong đó có một lệnh ghi giả "chuyển T-12 cho Minh", một công cụ cố ý báo lỗi và một công cụ chạy chậm theo số giây cho trước.
+Probe có tám công cụ giả, trong đó có một lệnh ghi giả "chuyển T-12 cho Minh", một công cụ cố ý báo lỗi và một công cụ chạy chậm theo số giây cho trước.
 Mỗi lần Thổ Thần gọi, probe ghi một dòng log; mỗi kết quả còn có ảnh chụp màn hình.
-Lab đo ngày 2026-11-16 trên Thổ Thần desktop 2.1.56, bằng một tài khoản.
+Lab đo ngày 2026-11-16 trên Thổ Thần desktop 2.1.56, bằng một tài khoản, rồi đo tiếp ngày 2026-11-17 qua một địa chỉ HTTPS công khai trên cả web lẫn desktop.
 
 | Mã | Câu hỏi | Quyết định phần nào của thiết kế |
 | --- | --- | --- |
@@ -40,8 +40,8 @@ Trung bình nghĩa là mới có một lần chạy hoặc một tài khoản.
 
 | Câu hỏi | Thổ Thần làm gì | Lab phải làm gì | Tin cậy |
 | --- | --- | --- | --- |
-| P1 (cách nối) | Trong chat chỉ chạy được khi Thổ Thần tự mở chương trình trên máy người dùng (stdio). Nối qua địa chỉ web thì nút "Test connection" chạy, nhưng khi chat lại báo `fetch failed` và server không nhận gì. | Bản thử dùng stdio, qua một chương trình nối nhỏ chỉ chuyển lời gọi sang cổng. | Cao |
-| P2 (danh tính) | Server chỉ thấy tên ứng dụng, không thấy tài khoản. Khoá riêng mà người dùng đặt vào cấu hình thì tới được server, và đổi khoá có hiệu lực ngay. | Mỗi nhân vật giả có một khoá riêng; cổng đổi khoá thành người hỏi, thu hồi được khoá và che khoá trong log. | Trung bình; cao với khoá riêng |
+| P1 (cách nối) | Chat gọi được tool qua stdio và qua Streamable HTTP có địa chỉ HTTPS công khai. Nối tới `localhost` thì `Test connection` chạy nhưng chat báo `fetch failed`, vì lời gọi đi qua máy chủ Thổ Thần. | Bản thử dùng stdio, qua một chương trình nối nhỏ chỉ chuyển lời gọi sang cổng; cổng cũng có thể ở máy chủ chung, chờ chốt chỗ chạy. | Cao |
+| P2 (danh tính) | Client chỉ gửi tên ứng dụng, không gửi tài khoản. Trong chat, máy chủ Thổ Thần gắn thêm `x-user-id` và email. Khoá do người thêm skill đặt thì tới được server, nhưng phép đo chỉ dùng một tài khoản nên chưa biết khoá riêng hay dùng chung. | Mỗi nhân vật giả có một khoá riêng; cổng đổi khoá thành người hỏi, thu hồi được khoá và che khoá trong log; chỉ tin `x-user-id` khi biết chắc nguồn gửi. | Trung bình |
 | P3 (kênh duyệt) | Lệnh "chuyển T-12 cho Minh" chạy ngay, kể cả ở chế độ duyệt tay. Không có biểu mẫu để server hỏi người dùng trong chat (elicitation). Link trong kết quả bấm được. | AI chỉ soạn đề xuất; người dùng xác nhận trên trang của cổng, mở bằng link. | Cao |
 | P4 (lỗi và thời gian chờ) | Công cụ báo lỗi thì không ai tự gọi lại. Mọi lời gọi bị cắt ở 60 giây. Nút dừng không hủy ngay. Mỗi lần gọi là một chương trình mới, không nhớ gì từ lần trước. | Lời gọi công cụ không bao giờ ghi; mọi trạng thái lưu ở cổng. | Cao |
 | P5 (hiển thị và vết) | Chỉ hiện chữ; dữ liệu có cấu trúc gửi kèm không hiện. Kết quả lỗi vẫn có dấu tích xanh. Không có mã vết, không có số token. | Lỗi và từ chối ghi rõ bằng chữ; cổng tự sinh mã vết. | Trung bình |
@@ -85,8 +85,8 @@ Chi tiết ở [spec bản thử](../design/mvp-spec.md).
 
 - **Đủ bằng chứng để viết bản ghi quyết định (ADR) đầu tiên.** Hai câu từng chặn thiết kế là danh tính và kênh duyệt đã có lời đáp.
 - **MCP chỉ mang lời gọi, không mang an toàn.** Trong Thổ Thần hiện tại, chuẩn MCP không cho biết ai đang hỏi và không có bước duyệt. Đây là bằng chứng đầu tiên, đo trên host thật, cho câu "khi nào MCP là lựa chọn sai" mà Track 01 phải trả lời ở cuối kỳ.
-- **Cổng không phụ thuộc Thổ Thần.** Nếu sau này Thổ Thần chuyển được danh tính người dùng hoặc nối được bằng địa chỉ web, cổng giữ nguyên và chỉ đổi cách nối. Trợ lý AI thứ hai cũng dùng lại đúng cổng này cho SR8 (dùng lại, quyền theo người).
-- **Ba giới hạn của nền tảng cần báo Kevin:** không chuyển danh tính người dùng, không có bước duyệt cho công cụ ghi, và nối bằng địa chỉ web thì lỗi khi chat.
+- **Cổng không phụ thuộc Thổ Thần.** Nếu sau này Thổ Thần chuyển được danh tính người dùng hoặc đổi cách nối, cổng giữ nguyên và chỉ đổi đường vào. Trợ lý AI thứ hai cũng dùng lại đúng cổng này cho SR8 (dùng lại, quyền theo người).
+- **Bốn câu cần báo Kevin:** người dùng thật ở web hay desktop, header danh tính của máy chủ có được ký không, skill do từng người thêm hay chia sẻ cho cả tổ chức, và Lab có địa chỉ công khai lâu dài không. Không có bước duyệt cho công cụ ghi là giới hạn đã rõ.
 
 **Kết luận:** phần đáng giá nhất của Lab nằm ở cổng chứ không ở Thổ Thần, nên mọi công sức đo và kiểm thử dồn vào cổng.
 
@@ -95,18 +95,21 @@ Chi tiết ở [spec bản thử](../design/mvp-spec.md).
 | Chưa biết | Cách trả lời | Chặn bản thử? |
 | --- | --- | --- |
 | Hai tài khoản có trông giống nhau ở phía server không | Chạy lại phép thử danh tính bằng tài khoản Thổ Thần thứ hai | Không, vì bản thử dùng khoá riêng |
-| Vì sao nối bằng địa chỉ web thì chat lỗi | Đoán là lời gọi trong chat đi qua máy chủ Thổ Thần nên không tới được máy người dùng. Hỏi Kevin, rồi thử qua địa chỉ HTTPS công khai khi được phép | Không; chỉ chặn việc chạy cổng ở máy chủ chung |
-| Server từ chối khoá sai thì chat hiện gì | Thử khi cổng có bước kiểm khoá | Không; thuộc phép thử của cổng ở mốc 1 |
+| Khoá là riêng từng người hay cả tổ chức dùng chung | Hỏi Kevin; thử hai tài khoản với cùng một skill | Không; quyết định cách cấp khoá |
+| Máy chủ Thổ Thần có ký header danh tính và gọi ra từ dải IP cố định không | Hỏi Kevin; thử gửi header giả và so IP gọi ra | Không; quyết định có dùng `x-user-id` làm lớp thứ hai |
+| Server từ chối khoá sai thì chat hiện gì | S5 mới thử ở Test connection; thử lại khi cổng có bước kiểm khoá trong chat | Không; thuộc phép thử của cổng ở mốc 1 |
 | Đăng nhập ủy quyền (OAuth2) | Màn hình cấu hình chỉ có "không xác thực" và "khoá API"; hỏi Kevin có kế hoạch hỗ trợ không | Không |
+| Địa chỉ HTTPS công khai lâu dài | Hỏi Kevin; hiện chỉ có tunnel tạm | Không; chặn việc chạy cổng ở máy chủ chung lâu dài |
 
 Giới hạn chung: kết quả gắn với phiên bản 2.1.56, một máy, một tài khoản và số lần chạy nhỏ.
 Đây là bằng chứng định tính cho thiết kế, chưa phải số đo hiệu năng hay chi phí.
 
-Ba câu hỏi gửi Kevin:
+Bốn câu hỏi gửi Kevin:
 
 1. Người dùng thật sẽ dùng Thổ Thần web hay desktop?
-2. Thổ Thần có kế hoạch chuyển danh tính người dùng sang server MCP không?
-3. Lab có được mở một địa chỉ HTTPS công khai tạm thời để thử bản web không?
+2. Thổ Thần có kế hoạch chuyển danh tính người dùng sang server MCP không, và có ký header danh tính không?
+3. Skill do từng người tự thêm hay quản trị viên chia sẻ cho cả tổ chức?
+4. Lab có địa chỉ HTTPS công khai lâu dài để chạy cổng không?
 
-**Kết luận:** không điểm nào còn thiếu chặn bản thử stdio.
-Câu 1 và câu 3 chỉ quyết định có dời trọng tâm sang Thổ Thần web ở mốc 3 hay không ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)).
+**Kết luận:** không điểm nào còn thiếu chặn bản thử.
+Hai câu về chia sẻ khoá và nguồn header danh tính quyết định cách cổng kiểm người gọi; câu về địa chỉ công khai quyết định chỗ chạy lâu dài ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)).

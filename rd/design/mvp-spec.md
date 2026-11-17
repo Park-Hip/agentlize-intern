@@ -1,6 +1,6 @@
 # Spec bản thử đầu: cổng kiểm soát cắm vào Thổ Thần
 
-Ngày: 2026-11-17. Trạng thái: đã chốt phạm vi và thiết kế cho mốc 0 tới mốc 2; các quyết định ở mục 11 chờ ghi thành ADR, ba câu hỏi Kevin không chặn việc dựng.
+Ngày: 2026-11-17. Trạng thái: đã chốt phạm vi và thiết kế cho mốc 0 tới mốc 2; các quyết định ở mục 11 chờ ghi thành ADR, bốn câu hỏi Kevin không chặn việc dựng.
 
 ## Đọc nhanh
 
@@ -78,19 +78,19 @@ Kịch bản D thay cho kịch bản "mạng đứt" của PRD ở phần chạy
 
 ## 3. Thổ Thần buộc thiết kế phải theo những gì
 
-Các điểm dưới đây đã đo trên Thổ Thần desktop ngày 2026-11-16 ([kịch bản đo](../appota/tho-than-mcp-probe.md), [tổng hợp, mục 4](../findings.md#4-thổ-thần)).
+Các điểm dưới đây đã đo trên Thổ Thần desktop ngày 2026-11-16 và qua HTTPS công khai ngày 2026-11-17 ([kịch bản đo, mục 4.8](../appota/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6), [tổng hợp, mục 4](../findings.md#4-thổ-thần)).
 
 | Thổ Thần làm gì | Thiết kế phải làm gì |
 | --- | --- |
-| Trong chat chỉ chạy được kiểu Thổ Thần tự mở chương trình trên máy người dùng (stdio). | Lab có một chương trình nối nhỏ chạy kiểu stdio, chỉ chuyển lời gọi sang cổng. |
+| Chat gọi được tool qua cả stdio và Streamable HTTP; HTTP cần một địa chỉ HTTPS công khai, vì lời gọi đi qua máy chủ Thổ Thần. | Lab có một chương trình nối nhỏ chạy kiểu stdio, chỉ chuyển lời gọi sang cổng; nếu chọn chỗ chạy chung thì thêm cửa `/mcp` qua HTTPS. |
 | Mở một tiến trình mới cho mỗi lần gọi tool. | Chương trình nối không giữ trạng thái; mọi trạng thái nằm ở cổng. |
-| Không gửi danh tính người dùng; khoá đặt qua biến môi trường thì tới được server. | Mỗi nhân vật có một khoá riêng; cổng đổi khoá thành người và kiểm khoá ở mỗi lần gọi. |
+| Client không gửi danh tính người dùng. Khoá do người thêm skill đặt thì tới được server; trong chat, máy chủ Thổ Thần gắn thêm `x-user-id` và email, nhưng ai có token gọi thẳng endpoint cũng tự đặt được `x-user-id`. | Mỗi nhân vật có một khoá riêng; cổng đổi khoá thành người và kiểm khoá ở mỗi lần gọi; `x-user-id` chỉ là lớp thứ hai khi biết chắc nguồn gửi. |
 | Không hỏi trước khi gọi tool ghi, không có biểu mẫu hỏi người dùng (elicitation); link trong kết quả bấm được. | Xác nhận và duyệt nằm trên trang của cổng, mở bằng link. |
 | Cắt mọi lời gọi sau 60 giây; không tự gọi lại. | Lời gọi tool chỉ đọc hoặc soạn đề xuất, không ghi; việc ghi chạy khi người bấm trên trang. |
 | Không hiện dữ liệu có cấu trúc; lỗi vẫn có dấu tích xanh. | Kết quả viết bằng chữ; lỗi và từ chối mở đầu bằng "CHƯA THỰC HIỆN". |
 | Không có số token hay mã vết. | Cổng tự sinh mã vết; chi phí phía Thổ Thần chỉ đo được bằng số credit. |
 
-Kết quả sơ bộ ngày 2026-11-17 trên Thổ Thần web khớp với giả thuyết H7 (lời gọi đi qua máy chủ Thổ Thần): web chỉ cho nối bằng địa chỉ web, và thử nối tới `localhost` thì báo `fetch failed` mà server không nhận được request nào.
+Kết quả ngày 2026-11-17 xác nhận H7: chat web và chat desktop đều gọi được tool qua một địa chỉ HTTPS công khai, và lời gọi đi qua máy chủ Thổ Thần. Nối tới `localhost` vẫn báo `fetch failed` vì lời gọi không xuất phát từ máy người dùng. Số dòng log và header máy chủ gắn ở [kịch bản đo, mục 4.8](../appota/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6).
 
 **Kết luận:** việc ghi không bao giờ xảy ra bên trong một lời gọi tool; nhờ vậy giới hạn 60 giây và việc thiếu bước duyệt của Thổ Thần không còn chạm tới phần ghi.
 
@@ -355,8 +355,8 @@ Năm ADR, theo [tổng hợp, mục 8](../findings.md#8-bước-tiếp-theo):
 
 1. Dựng một cổng mỏng của Lab, cắm vào Thổ Thần, không dựa vào sản phẩm có sẵn.
    Lab tự dựng và tự quyết; [bản R&D AgentLize Gateway của một đồng nghiệp](../appota/agentlize-gateway.md) chỉ là nguồn tham khảo.
-2. Nơi chạy và cách nối: chương trình nối stdio trên máy người dùng, cổng chạy cục bộ, đường `/mcp` để dành cho bản web.
-   Xem lại khi Kevin cho biết người dùng thật ở web hay điện thoại.
+2. Nơi chạy và cách nối: chương trình nối stdio trên máy người dùng, cổng chạy cục bộ, đường `/mcp` để dành cho bản web; hoặc cổng ở một máy chủ chung với `/mcp` qua HTTPS.
+   Phép đo ngày 2026-11-17 cho thấy cách thứ hai chạy được cho cả web lẫn desktop; còn chờ Kevin về địa chỉ công khai lâu dài.
 3. Danh tính: khoá riêng cho từng người, kiểm ở cổng, thu hồi được; cổng nhận người theo mã nhân viên, không theo email; module danh tính thay được.
    Đây là cách tạm; xem lại khi Thổ Thần chuyển được danh tính người dùng.
 4. Đọc và ghi an toàn: chỉ trả trường đã khai; ngoài phạm vi thì "không tìm thấy"; mã lý do cho mọi lần từ chối; dữ liệu nguồn trong khối có nhãn; trang của cổng ngoài cuộc hội thoại; dấu vân tay; mã chống ghi trùng cố định; số phiên bản để phát hiện dữ liệu đích đã đổi.
@@ -364,7 +364,7 @@ Năm ADR, theo [tổng hợp, mục 8](../findings.md#8-bước-tiếp-theo):
    ADR này chốt thêm ba điều: SQLite có sẵn trong Node (`node:sqlite`, đã chạy được trên máy Lab với Node 22.21 nhưng còn gắn nhãn thử nghiệm) hay thư viện `better-sqlite3`; hai hệ thống giả là dịch vụ riêng (mục 4.2); bộ luật quyền tự viết, đọc file luật dạng bảng, và vì sao chưa dùng OPA hay Cedar.
 
 Quyết định 1, 4 và 5 đã ghi thành [ADR-0001](../../docs/adr/adr-0001-self-built-thin-gateway.md), [ADR-0002](../../docs/adr/adr-0002-safe-read-and-write.md) và [ADR-0003](../../docs/adr/adr-0003-technology-stack.md); ADR-0003 chọn `better-sqlite3`.
-Quyết định 2 và 3 chờ phép đo lời gọi trong chat qua HTTPS (S3, S4, S6), vì phép đo HTTPS ngày 2026-11-17 ([khảo sát Thổ Thần, mục 3.6](../appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)) cho thấy máy chủ Thổ Thần gọi ra được địa chỉ công khai và gắn thêm header `x-user-id`.
+Quyết định 2 và 3 vẫn để mở: phép đo HTTPS ngày 2026-11-17 đã trả lời S3, S4 và S6 ([khảo sát Thổ Thần, mục 3.6](../appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17), [kịch bản đo, mục 4.8](../appota/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6)), nên việc còn lại là chọn đường chính và cách kiểm người gọi khi `x-user-id` có thể do người gọi tự đặt.
 
 Để sau, không chặn mốc 0 tới mốc 2:
 
@@ -372,10 +372,11 @@ Quyết định 2 và 3 chờ phép đo lời gọi trong chat qua HTTPS (S3, S4
 - Model cho trợ lý gọi hàm: chọn ở mốc 4.
 - Cách nối thứ ba, cổng đóng vai một mô hình AI cho Thổ Thần: chỉ đo bằng probe, chưa dựng ([bản R&D AgentLize Gateway, mục 5](../appota/agentlize-gateway.md#5-một-cách-nối-thổ-thần-thứ-ba-để-so-cổng-đóng-vai-mô-hình-ai)).
 
-Ba câu hỏi Kevin:
+Bốn câu hỏi Kevin:
 
 1. Người dùng thật sẽ dùng Thổ Thần web hay desktop?
-2. Thổ Thần có kế hoạch chuyển danh tính người dùng sang server MCP (OAuth) không?
-3. Lab có được mở một địa chỉ HTTPS công khai tạm thời để thử bản web không?
+2. Thổ Thần có kế hoạch chuyển danh tính người dùng sang server MCP (OAuth) không, và có ký header danh tính không?
+3. Skill do từng người tự thêm hay quản trị viên chia sẻ cho cả tổ chức?
+4. Lab có địa chỉ HTTPS công khai lâu dài để chạy cổng không?
 
-**Kết luận:** câu trả lời của Kevin không chặn mốc 0 tới mốc 2; câu 1 và 3 quyết định có dời trọng tâm sang Thổ Thần web ở mốc 3 hay không.
+**Kết luận:** câu trả lời của Kevin không chặn mốc 0 tới mốc 2; câu 1 và 4 quyết định có dời trọng tâm sang Thổ Thần web ở mốc 3 hay không.
