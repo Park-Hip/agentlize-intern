@@ -1,9 +1,9 @@
-import { startService } from '@lab/shared';
+import { startGateway } from './server.js';
 
 const SERVICE = 'gateway';
 
 try {
-  const running = await startService({ service: SERVICE });
+  const running = await startGateway();
   console.log(`[${SERVICE}] listening on ${running.url}`);
 
   const shutdown = (): void => {
