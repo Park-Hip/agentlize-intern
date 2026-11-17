@@ -1,9 +1,7 @@
-import { startService } from '@lab/shared';
-
-const SERVICE = 'tasks';
+import { startTasksServer } from './server.js';
 
 try {
-  const running = await startService({ service: SERVICE });
+  const running = await startTasksServer();
   console.log(`[fake-tasks] listening on ${running.url}`);
 
   const shutdown = (): void => {
