@@ -1,6 +1,6 @@
 # Bảng thuật ngữ
 
-Ngày: 2026-11-15. Trạng thái: bảng thuật ngữ dùng chung, cập nhật khi có thuật ngữ mới.
+Ngày: 2026-11-17. Trạng thái: bảng thuật ngữ dùng chung, cập nhật khi có thuật ngữ mới.
 
 Thuật ngữ dùng chung cho mọi tài liệu trong repo.
 Trong bài viết, ưu tiên tên tiếng Việt; tên tiếng Anh để trong ngoặc ở lần dùng đầu.
@@ -30,3 +30,4 @@ Trong bài viết, ưu tiên tên tiếng Việt; tên tiếng Anh để trong n
 | Tài khoản dịch vụ           | Service account                    | Tài khoản cấp cho một chương trình, không cho người, ví dụ `svc-agent`.                                |
 | Quyền thực tế               | Effective permission               | Quyền của người yêu cầu khi agent làm thay; nếu tác vụ tự khai báo phạm vi hẹp hơn thì lấy phần chung. |
 | Nơi gọi                     | Host                               | Phần mềm người dùng mở để nói chuyện với agent, ví dụ khung chat Thổ Thần hay một công cụ lập trình.  |
+| Trang điều khiển            | Console                            | Trang chỉ mở trên máy chạy cổng, để người vận hành xem tool, sửa quyền, gọi thử và xem vết.          |
