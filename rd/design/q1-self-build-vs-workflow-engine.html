@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#06080d" />
+<title>Q1: tự build hay dùng công cụ chạy quy trình | AgentLize R&amp;D 2026</title>
+<style>
+  :root{
+    --bg:#06080d;
+    --panel:#0d1119;
+    --panel-2:#121724;
+    --panel-3:#171d2b;
+    --line:#1f2634;
+    --line-2:#28303f;
+    --line-3:#3a4456;
+
+    --text:#e8edf7;
+    --text-2:#c3cbdd;
+    --muted:#8b95ab;
+    --faint:#66718a;
+
+    --intent:#22d3ee;
+    --cap:#a78bfa;
+    --auth:#f5b942;
+    --good:#34d399;
+    --bad:#fb7185;
+
+    --r:14px;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;background:var(--bg)}
+  body{
+    margin:0;
+    min-width:1180px;
+    background:
+      radial-gradient(1200px 620px at 8% -10%, rgba(34,211,238,.08), transparent 62%),
+      radial-gradient(1000px 560px at 94% -6%, rgba(167,139,250,.07), transparent 64%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.68;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  a{color:var(--intent);text-decoration:none}
+  ::selection{background:rgba(34,211,238,.26)}
+
+  .wrap{max-width:1160px;margin:0 auto;padding:0 28px}
+
+  .topbar{
+    position:sticky;top:0;z-index:30;
+    background:rgba(6,8,13,.84);
+    backdrop-filter:blur(14px) saturate(1.2);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-in{
+    max-width:1160px;margin:0 auto;padding:0 28px;height:54px;
+    display:flex;align-items:center;justify-content:space-between;gap:20px;
+  }
+  .brand{
+    display:flex;align-items:center;gap:9px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-2);
+    white-space:nowrap;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--intent);box-shadow:0 0 0 3px rgba(34,211,238,.14);flex:none}
+
+  .hero{padding:60px 0 40px;border-bottom:1px solid var(--line)}
+  .kicker{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.17em;text-transform:uppercase;color:var(--muted);
+    display:flex;align-items:center;gap:10px;margin-bottom:20px;
+  }
+  .kicker b{color:var(--intent);font-weight:600}
+  h1{margin:0 0 18px;font-size:40px;line-height:1.12;letter-spacing:-.02em;font-weight:650;max-width:920px}
+  .lede{font-size:16px;line-height:1.7;color:var(--text-2);max-width:860px;margin:0}
+  .lede b{color:var(--text);font-weight:600}
+
+  section{padding:40px 0;border-bottom:1px solid var(--line)}
+  h2{margin:0 0 6px;font-size:22px;letter-spacing:-.01em;font-weight:620}
+  h2 .q{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--faint);
+    display:block;margin-bottom:8px;text-transform:uppercase;font-weight:500;
+  }
+  .sub{margin:8px 0 0;color:var(--muted);font-size:13.5px;max-width:860px}
+
+  .figbox{
+    margin-top:26px;
+    border:1px solid var(--line-2);
+    border-radius:var(--r);
+    background:linear-gradient(180deg, var(--panel-2), var(--panel));
+    padding:18px;
+    overflow-x:auto;
+  }
+  .figbox svg{width:100%;height:auto;display:block;min-width:1040px}
+
+  .svg-frame{fill:var(--panel-2);stroke:var(--line-2);stroke-width:1.2}
+  .svg-chip{fill:var(--panel-3);stroke:var(--line-2);stroke-width:1}
+  .svg-lbl{fill:var(--text);font-family:var(--sans);font-size:12px;font-weight:600}
+  .svg-sub{fill:var(--muted);font-family:var(--sans);font-size:10.5px;font-weight:400}
+  .svg-mono{fill:var(--faint);font-family:var(--mono);font-size:8.5px;font-weight:500;letter-spacing:.15em}
+  .edge{fill:none;stroke:var(--line-3);stroke-width:1.4}
+  .edge-dash{stroke-dasharray:5 5}
+  .dead{stroke-dasharray:4 4}
+  .tick-on{fill:rgba(52,211,153,.85);stroke:none}
+  .tick-off{fill:#171d2b;stroke:#3a4456;stroke-width:1}
+
+  figcaption{margin-top:14px;color:var(--muted);font-size:12.8px;line-height:1.6;max-width:1000px}
+  figcaption b{color:var(--text);font-weight:600}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:22px}
+  .lg{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .lg i{width:20px;height:3px;border-radius:2px;flex:none}
+
+  .notes{display:grid;gap:10px;margin-top:24px}
+  .note{
+    display:grid;grid-template-columns:26px 1fr;gap:14px;align-items:start;
+    background:var(--panel);border:1px solid var(--line-2);border-radius:var(--r);
+    padding:16px 18px;
+  }
+  .note .n{
+    width:24px;height:24px;border-radius:8px;display:grid;place-items:center;
+    font-family:var(--mono);font-size:11px;font-weight:600;
+    color:var(--intent);border:1px solid rgba(34,211,238,.35);background:rgba(34,211,238,.06);
+  }
+  .note .n.warn{color:var(--auth);border-color:rgba(245,185,66,.35);background:rgba(245,185,66,.07)}
+  .note p{margin:0;font-size:13.6px;color:var(--text-2);line-height:1.66}
+  .note p b{color:var(--text);font-weight:600}
+  .note code{font-family:var(--mono);font-size:12px;color:var(--intent);background:rgba(34,211,238,.08);padding:1px 6px;border-radius:5px}
+
+  .tbl-wrap{margin-top:20px;border:1px solid var(--line-2);border-radius:var(--r);overflow:hidden}
+  table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+  table.tbl th,table.tbl td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  table.tbl thead th{background:var(--panel-3);color:var(--text);font-weight:600;font-size:11.5px;letter-spacing:.03em}
+  table.tbl tbody tr:last-child td{border-bottom:0}
+  table.tbl td{color:var(--text-2)}
+  table.tbl td b{color:var(--text);font-weight:600}
+  table.tbl th.a{color:var(--auth)}
+  table.tbl th.b{color:var(--intent)}
+  table.tbl td.same{color:var(--muted)}
+
+  .rule{
+    margin-top:22px;display:grid;grid-template-columns:150px 1fr;gap:20px;align-items:start;
+    background:rgba(34,211,238,.045);border:1px solid rgba(34,211,238,.28);border-radius:var(--r);
+    padding:18px 20px;
+  }
+  .rule .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--intent);padding-top:3px}
+  .rule p{margin:0;font-size:13.6px;color:var(--text-2);line-height:1.66}
+  .rule p + p{margin-top:10px}
+  .rule b{color:var(--text);font-weight:600}
+
+  footer{padding:34px 0 60px;color:var(--faint);font-size:12.5px}
+  footer .cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
+  footer ul{margin:0;padding-left:18px;line-height:1.9}
+  footer a{color:var(--muted)}
+  footer a:hover{color:var(--text)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand"><span class="dot"></span>AgentLize R&amp;D 2026 · Q1 · chạy tiếp khi sập</div>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Track 01 · AI Platform &amp; MCP <b>· sơ đồ so sánh</b></div>
+    <h1>Hai cách nhớ tiến độ khi ứng dụng sập</h1>
+    <p class="lede">
+      Câu hỏi Q1: đang chuyển 30 task mà ứng dụng tắt thì chạy lại có đủ 30 và không task nào bị ghi hai lần không.
+      Hai cách trả lời giống nhau ở phần lớn hệ thống. Chúng chỉ khác nhau một chỗ: <b>ai giữ câu trả lời cho "task nào đã xong"</b>.
+      Sơ đồ dưới vẽ đúng chỗ đó.
+    </p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2><span class="q">Hình 1 · câu hỏi Q1</span>Chỗ hai cách khác nhau</h2>
+    <p class="sub">Cùng một lần tắt, đặt vào cả hai cách. Cách 1A là mốc so sánh, cách 1B là cách dùng công cụ chạy quy trình.</p>
+
+    <div class="figbox">
+      <svg viewBox="0 0 1120 688" role="img" aria-labelledby="fig1-t fig1-d">
+        <title id="fig1-t">Hai cách nhớ tiến độ khi ứng dụng sập giữa lệnh 30 task</title>
+        <desc id="fig1-d">Cách 1A: ứng dụng Lab giữ vòng lặp và ghi tiến độ vào một bảng trong cơ sở dữ liệu; khi khởi động lại, ứng dụng đọc bảng và chạy tiếp từ task 18. Cách 1B: ứng dụng Lab chỉ làm một task rồi báo lại; công cụ chạy quy trình nằm ngoài ứng dụng, giữ lịch sử 30 bước, nên khi ứng dụng tắt thì công cụ vẫn nhớ bước kế tiếp và giao lại cho ứng dụng mới.</desc>
+
+        <defs>
+          <marker id="mGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#3a4456"/>
+          </marker>
+          <marker id="mGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#34d399"/>
+          </marker>
+        </defs>
+
+        <!-- ===== phase headers ===== -->
+        <text x="300" y="24" class="svg-mono" style="font-size:9px" text-anchor="middle">1 · ĐANG CHUYỂN DỞ</text>
+        <text x="300" y="41" class="svg-sub" text-anchor="middle">task 1 đến 17 đã xong</text>
+
+        <text x="600" y="24" class="svg-mono" style="font-size:9px;fill:#fb7185" text-anchor="middle">2 · TẮT ỨNG DỤNG</text>
+        <text x="600" y="41" class="svg-sub" style="font-size:10px;fill:#fb7185" text-anchor="middle">giữa task 17, cùng lúc cho cả hai</text>
+
+        <text x="870" y="24" class="svg-mono" style="font-size:9px" text-anchor="middle">3 · KHỞI ĐỘNG LẠI</text>
+        <text x="870" y="41" class="svg-sub" text-anchor="middle">phải biết chạy tiếp từ đâu</text>
+
+        <!-- ===== lane backgrounds ===== -->
+        <rect x="16" y="58" width="1088" height="292" rx="14" fill="#121724" stroke="#28303f"/>
+        <rect x="16" y="364" width="1088" height="240" rx="14" fill="#121724" stroke="#28303f"/>
+
+        <!-- ===== kill line ===== -->
+        <line x1="600" y1="46" x2="600" y2="610" stroke="#fb7185" stroke-opacity=".55" stroke-width="1.5" stroke-dasharray="5 6"/>
+
+        <!-- ================= LANE A ================= -->
+        <text x="44" y="98" class="svg-mono" style="font-size:22px;font-weight:700;fill:#f5b942;letter-spacing:0">1A</text>
+        <text x="44" y="118" class="svg-sub" style="font-size:10px">Tự build</text>
+        <text x="44" y="134" class="svg-sub" style="font-size:9.5px;fill:#66718a">mốc so sánh</text>
+
+        <rect x="132" y="78" width="428" height="86" rx="10" fill="none" stroke="#fb7185" stroke-opacity=".35" stroke-dasharray="4 4"/>
+        <text x="146" y="96" class="svg-mono" style="font-size:8px">TRONG TIẾN TRÌNH ỨNG DỤNG</text>
+
+        <rect x="146" y="104" width="400" height="52" rx="9" class="svg-chip"/>
+        <text x="160" y="124" class="svg-lbl" style="font-size:11.5px">Vòng lặp chạy 30 task</text>
+        <text x="160" y="141" class="svg-sub" style="font-size:9.8px">Lab tự viết: đang ở task nào, task nào xong</text>
+
+        <line x1="346" y1="156" x2="346" y2="186" class="edge" marker-end="url(#mGray)"/>
+
+        <rect x="146" y="186" width="400" height="52" rx="9" fill="rgba(52,211,153,.06)" stroke="rgba(52,211,153,.4)"/>
+        <text x="160" y="202" class="svg-lbl" style="font-size:11.5px;fill:#34d399">Bảng tiến độ, ghi sau mỗi task</text>
+        <text x="160" y="219" class="svg-sub" style="font-size:9.8px">nằm trong cơ sở dữ liệu, tắt ứng dụng không mất</text>
+
+        <rect x="132" y="250" width="428" height="50" rx="9" fill="rgba(245,185,66,.07)" stroke="rgba(245,185,66,.32)"/>
+        <text x="146" y="270" class="svg-lbl" style="font-size:11px;fill:#f5b942">Sập ngay sau khi task 17 đã ghi xong</text>
+        <text x="146" y="287" class="svg-sub" style="font-size:9.8px">danh sách công việc đã đổi, bảng tiến độ chưa kịp ghi</text>
+
+        <rect x="624" y="148" width="440" height="84" rx="10" class="svg-chip"/>
+        <text x="644" y="174" class="svg-lbl" style="font-size:12.5px">Khởi động lại, đọc bảng tiến độ</text>
+        <text x="644" y="194" class="svg-sub" style="font-size:10.2px">ứng dụng biết task 1 đến 17 đã xong</text>
+        <text x="644" y="212" class="svg-sub" style="font-size:10.2px;fill:#34d399">chạy tiếp task 18 đến 30</text>
+
+        <line x1="546" y1="212" x2="624" y2="212" class="edge" style="stroke:#34d399" marker-end="url(#mGreen)"/>
+        <text x="548" y="196" class="svg-sub" style="font-size:9.2px;fill:#34d399">còn nguyên</text>
+
+        <rect x="132" y="308" width="932" height="34" rx="8" fill="#171d2b" stroke="#28303f"/>
+        <text x="150" y="330" class="svg-mono" style="font-size:9px;letter-spacing:.06em;fill:#c3cbdd">LAB PHẢI VIẾT  ·  vòng lặp 30 task  ·  bảng tiến độ  ·  phần đọc lại khi khởi động</text>
+
+        <!-- ================= LANE B ================= -->
+        <text x="44" y="404" class="svg-mono" style="font-size:22px;font-weight:700;fill:#22d3ee;letter-spacing:0">1B</text>
+        <text x="44" y="424" class="svg-sub" style="font-size:9.5px">Công cụ</text>
+        <text x="44" y="438" class="svg-sub" style="font-size:9.5px">chạy quy trình</text>
+
+        <text x="146" y="396" class="svg-mono" style="font-size:8px">KHÔNG CÒN VÒNG LẶP TRONG ỨNG DỤNG</text>
+
+        <rect x="132" y="426" width="160" height="64" rx="9" fill="rgba(251,113,133,.05)" stroke="rgba(251,113,133,.45)" stroke-dasharray="4 4"/>
+        <text x="146" y="450" class="svg-lbl" style="font-size:11.2px">Ứng dụng Lab</text>
+        <text x="146" y="467" class="svg-sub" style="font-size:9.6px">làm 1 task</text>
+        <text x="146" y="481" class="svg-sub" style="font-size:9.6px">rồi báo lại</text>
+
+        <rect x="828" y="426" width="216" height="64" rx="9" class="svg-chip"/>
+        <text x="842" y="450" class="svg-lbl" style="font-size:11.2px">Ứng dụng Lab (mới)</text>
+        <text x="842" y="467" class="svg-sub" style="font-size:9.6px">nhận bước 18</text>
+        <text x="842" y="481" class="svg-sub" style="font-size:9.6px">làm tiếp đến bước 30</text>
+
+        <rect x="356" y="420" width="408" height="104" rx="12" fill="#121724" stroke="rgba(34,211,238,.5)" stroke-width="1.5"/>
+        <text x="372" y="444" class="svg-lbl" style="font-size:12.4px;fill:#22d3ee">Công cụ chạy quy trình</text>
+        <text x="372" y="460" class="svg-sub" style="font-size:9.8px">nằm ngoài ứng dụng, giữ lịch sử từng bước</text>
+
+        <rect class="tick-on" x="372" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="384.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="397" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="409.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="422" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="434.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="447" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="459.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="472" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="484.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="497" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="509.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="522" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="534.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="547" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="559.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-on" x="572" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-off" x="584.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-off" x="597" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-off" x="609.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-off" x="622" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-off" x="634.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-off" x="647" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-off" x="659.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-off" x="672" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-off" x="684.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-off" x="697" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-off" x="709.5" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-off" x="722" y="472" width="9" height="18" rx="2"/>
+        <rect class="tick-off" x="734.5" y="472" width="9" height="18" rx="2"/>
+
+        <text x="372" y="508" class="svg-sub" style="font-size:9.2px;fill:#34d399">bước 1 đến 17 xong</text>
+        <text x="584.5" y="508" class="svg-sub" style="font-size:9.2px;fill:#f5b942">bước 18</text>
+
+        <line x1="292" y1="465" x2="356" y2="465" class="edge" marker-end="url(#mGray)"/>
+        <text x="324" y="457" class="svg-sub" style="font-size:8.8px" text-anchor="middle">báo xong</text>
+
+        <line x1="764" y1="465" x2="828" y2="465" class="edge" marker-end="url(#mGray)"/>
+        <text x="796" y="457" class="svg-sub" style="font-size:8.8px" text-anchor="middle">giao lại</text>
+
+        <text x="608" y="410" class="svg-mono" style="font-size:8.8px;letter-spacing:.1em;fill:#34d399">CÔNG CỤ VẪN SỐNG</text>
+
+        <rect x="132" y="536" width="452" height="34" rx="8" fill="rgba(34,211,238,.06)" stroke="rgba(34,211,238,.3)"/>
+        <text x="150" y="558" class="svg-mono" style="font-size:9px;letter-spacing:.06em;fill:#c3cbdd">CÔNG CỤ GIỮ  ·  bước nào xong, bước nào chưa</text>
+
+        <rect x="612" y="536" width="452" height="34" rx="8" fill="#171d2b" stroke="#28303f"/>
+        <text x="630" y="558" class="svg-mono" style="font-size:9px;letter-spacing:.06em;fill:#c3cbdd">LAB PHẢI VIẾT  ·  1 hàm xử lý 1 task  ·  1 tệp mô tả quy trình</text>
+
+        <!-- ================= result band ================= -->
+        <rect x="132" y="618" width="932" height="44" rx="10" fill="rgba(34,211,238,.045)" stroke="rgba(34,211,238,.3)"/>
+        <text x="150" y="644" class="svg-lbl" style="font-size:11.2px;fill:#c3cbdd">Cả hai cách phải ra cùng một kết quả: đủ 30 task, không task nào ghi hai lần, nội dung đúng như thẻ duyệt</text>
+        <text x="1046" y="644" class="svg-mono" style="font-size:8.6px;letter-spacing:.12em" text-anchor="end">M2 · SR6</text>
+      </svg>
+    </div>
+
+    <figcaption>
+      <b>Hình 1.</b> Vạch đỏ là lần tắt ứng dụng, đặt cùng một thời điểm cho cả hai cách.
+      Ở cách 1A, thứ sống sót là bảng tiến độ do Lab tự viết, nên Lab phải tự viết luôn phần đọc lại và chạy tiếp.
+      Ở cách 1B, thứ sống sót là công cụ nằm ngoài ứng dụng: nó giữ lịch sử từng bước, nên tắt ứng dụng không làm mất câu trả lời "đang ở bước nào"; Lab chỉ còn một hàm xử lý một task.
+      Ô vàng ở cả hai hình là cùng một chỗ hở: task 17 đã ghi xuống danh sách nhưng chưa kịp báo xong. Không cách nào ở hình này tự xử lý chỗ đó, xem hình 2.
+    </figcaption>
+
+    <div class="legend">
+      <div class="lg"><i style="background:#fb7185"></i>ứng dụng tắt</div>
+      <div class="lg"><i style="background:#34d399"></i>còn lại sau khi tắt</div>
+      <div class="lg"><i style="background:#22d3ee"></i>công cụ chạy quy trình</div>
+      <div class="lg"><i style="background:#f5b942"></i>chỗ cần mã phiếu chống ghi trùng</div>
+      <div class="lg"><i style="background:#3a4456"></i>gọi và báo lại</div>
+    </div>
+
+    <div class="notes">
+      <div class="note">
+        <div class="n">A</div>
+        <p><b>Cách 1A không phải là không có gì.</b> Nó là một vòng lặp cộng một bảng trong cơ sở dữ liệu. Phần khó không phải chỗ lưu, mà là chỗ ghi: sau mỗi task, ứng dụng phải ghi tiến độ đúng một lần, và khi khởi động lại phải đọc đúng chỗ đang dở.</p>
+      </div>
+      <div class="note">
+        <div class="n">B</div>
+        <p><b>Cách 1B đổi chỗ khó, không xoá chỗ khó.</b> Lab thôi viết vòng lặp, nhưng có thêm một dịch vụ phải chạy, và có thêm một nơi giữ "task nào đã xong" (lịch sử của công cụ) có thể nói khác với danh sách công việc. Khi hai nơi lệch nhau, Lab phải có cách đối chiếu.</p>
+      </div>
+      <div class="note">
+        <div class="n warn">!</div>
+        <p><b>Công cụ chạy quy trình không thay mã phiếu.</b> Tài liệu AWS mô tả Standard là chạy quy trình đúng một lần, nhưng cũng ghi một bước có thể chạy lại khi khai báo thử lại. Bài making retries safe giải thích vì sao khi mất phản hồi thì bên gọi không biết lệnh đã ghi hay chưa, và cách chữa nằm ở hệ thống đích: mã do bên gọi cấp, ghi cùng thay đổi trong một bước. Nên chống ghi trùng vẫn nằm ở danh sách công việc, ở cả hai cách (<a href="../research/five-methods/workflow-events.md#1-mô-hình-giải-quyết-việc-gì-và-bảo-đảm-thực-thi-đến-đâu">khảo sát workflow, mục 1</a>).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="q">Hình 2 · phần dùng chung</span>Chỗ hai cách giống nhau</h2>
+    <p class="sub">Mọi lệnh sửa task, do cách nào gửi đi, đều phải qua bốn hộp này. Hộp 1 là chỗ duy nhất hai cách khác nhau.</p>
+
+    <div class="figbox">
+      <svg viewBox="0 0 1120 260" role="img" aria-labelledby="fig2-t fig2-d">
+        <title id="fig2-t">Bốn hộp dùng chung cho cả hai cách</title>
+        <desc id="fig2-d">Lệnh đi từ nơi gửi lệnh qua cổng kiểm soát, qua bước kiểm mã phiếu, rồi mới ghi vào danh sách công việc. Cổng kiểm soát hỏi bộ luật quyền. Chỗ hai cách khác nhau chỉ là hộp đầu tiên: vòng lặp tự viết hoặc công cụ chạy quy trình.</desc>
+
+        <defs>
+          <marker id="mGray2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#3a4456"/>
+          </marker>
+          <marker id="mCyan2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#22d3ee"/>
+          </marker>
+        </defs>
+
+        <path d="M30,28 V16 H270 V28" fill="none" stroke="#f5b942" stroke-opacity=".6" stroke-width="1.2"/>
+        <text x="150" y="11" class="svg-mono" style="font-size:8.6px;fill:#f5b942" text-anchor="middle">CHỖ HAI CÁCH KHÁC NHAU</text>
+
+        <path d="M310,28 V16 H1090 V28" fill="none" stroke="#3a4456" stroke-width="1.2"/>
+        <text x="700" y="11" class="svg-mono" style="font-size:8.6px" text-anchor="middle">CHỖ HAI CÁCH GIỐNG NHAU</text>
+
+        <rect x="30" y="42" width="240" height="84" rx="10" fill="rgba(245,185,66,.05)" stroke="rgba(245,185,66,.4)" stroke-dasharray="5 4"/>
+        <text x="46" y="70" class="svg-lbl" style="font-size:12px">Nơi gửi lệnh</text>
+        <text x="46" y="90" class="svg-sub" style="font-size:9.8px">cách nào cũng phải bắt đầu</text>
+        <text x="46" y="106" class="svg-sub" style="font-size:9.8px">từ một chỗ như thế này</text>
+
+        <rect x="310" y="42" width="240" height="84" rx="10" fill="#171d2b" stroke="#28303f"/>
+        <text x="326" y="70" class="svg-lbl" style="font-size:12px">Cổng kiểm soát</text>
+        <text x="326" y="90" class="svg-sub" style="font-size:9.8px">hỏi luật quyền</text>
+        <text x="326" y="106" class="svg-sub" style="font-size:9.8px">không chắc thì chặn</text>
+
+        <rect x="590" y="42" width="230" height="84" rx="10" fill="#171d2b" stroke="#28303f"/>
+        <text x="606" y="70" class="svg-lbl" style="font-size:12px">Kiểm mã phiếu</text>
+        <text x="606" y="90" class="svg-sub" style="font-size:9.8px">trùng mã thì trả</text>
+        <text x="606" y="106" class="svg-sub" style="font-size:9.8px">kết quả cũ</text>
+
+        <rect x="860" y="42" width="230" height="84" rx="10" fill="#171d2b" stroke="#28303f"/>
+        <text x="876" y="70" class="svg-lbl" style="font-size:12px">Danh sách công việc</text>
+        <text x="876" y="90" class="svg-sub" style="font-size:9.8px">ghi task và mã phiếu</text>
+        <text x="876" y="106" class="svg-sub" style="font-size:9.8px">trong cùng một bước</text>
+
+        <line x1="270" y1="84" x2="310" y2="84" class="edge" marker-end="url(#mGray2)"/>
+        <line x1="550" y1="84" x2="590" y2="84" class="edge" marker-end="url(#mGray2)"/>
+        <line x1="820" y1="84" x2="860" y2="84" class="edge" marker-end="url(#mGray2)"/>
+
+        <line x1="430" y1="126" x2="430" y2="170" class="edge edge-dash" style="stroke:#22d3ee;stroke-opacity:.6" marker-end="url(#mCyan2)"/>
+        <rect x="310" y="170" width="240" height="64" rx="10" fill="rgba(34,211,238,.04)" stroke="rgba(34,211,238,.35)"/>
+        <text x="326" y="194" class="svg-lbl" style="font-size:11.5px;fill:#22d3ee">Bộ luật quyền</text>
+        <text x="326" y="212" class="svg-sub" style="font-size:9.8px">chị Hoa: được chuyển task phòng mình</text>
+        <text x="326" y="226" class="svg-sub" style="font-size:9.8px">Nam: không được chuyển task</text>
+
+        <line x1="150" y1="126" x2="150" y2="170" class="edge edge-dash" style="stroke:#f5b942;stroke-opacity:.6"/>
+        <rect x="30" y="170" width="240" height="64" rx="10" fill="#0d1119" stroke="#3a4456" stroke-dasharray="4 4"/>
+        <text x="46" y="194" class="svg-sub" style="font-size:10px;fill:#f5b942">1A · vòng lặp + bảng tiến độ</text>
+        <text x="46" y="212" class="svg-sub" style="font-size:10px;fill:#22d3ee">1B · 1 hàm + 1 tệp định nghĩa</text>
+        <text x="46" y="226" class="svg-mono" style="font-size:8.2px">CHỈ KHÁC Ở ĐÂY</text>
+      </svg>
+    </div>
+
+    <figcaption>
+      <b>Hình 2.</b> Công cụ chạy quy trình chỉ thay hộp 1. Ba hộp còn lại, và bộ luật quyền bên dưới, Lab vẫn phải tự dựng. Đây là lý do bảng so sánh ở <a href="research-questions-and-validation-plan.md#21-q1-đang-chuyển-30-task-thì-ứng-dụng-sập-chạy-lại-có-đủ-và-không-trùng-không">mục 2.1</a> ghi: công cụ giữ tiến độ, nhưng không thay việc kiểm quyền hay chống ghi trùng.
+    </figcaption>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="q">Bảng so</span>Cái giá và ngưỡng chọn</h2>
+    <p class="sub">Sáu chỉ số M1 đến M6 chỉ có bốn chỉ số bị ảnh hưởng bởi câu này. Cột 1B ghi rõ chỗ phải chốt trước khi đếm được số.</p>
+
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr><th style="width:280px">Hạng mục</th><th class="a" style="width:340px">1A · Lớp tự build</th><th class="b">1B · Công cụ chạy quy trình</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>Số dịch vụ phải chạy</b></td><td>2: ứng dụng, danh sách công việc giả lập</td><td>3: thêm công cụ, cộng cách chạy nó trên máy cá nhân. Tuỳ sản phẩm: Step Functions cần trình giả lập, Temporal có máy chủ local</td></tr>
+          <tr><td><b>Code Lab phải viết cho phần nhớ tiến độ</b></td><td>Vòng lặp, bảng tiến độ, phần đọc lại. Đếm được bằng số dòng</td><td>1 hàm xử lý 1 task, 1 tệp mô tả quy trình. Gần 0 dòng cho phần nhớ</td></tr>
+          <tr><td><b>Số nơi giữ "task nào đã xong"</b></td><td>1: bảng tiến độ</td><td>2: lịch sử của công cụ và danh sách công việc. Lệch nhau thì phải đối chiếu</td></tr>
+          <tr><td><b>Chống ghi trùng ở danh sách công việc</b></td><td>Mã phiếu, Lab tự viết</td><td class="">Mã phiếu, Lab tự viết. Không đổi</td></tr>
+          <tr><td><b>Đổi một luật quyền thì sửa mấy chỗ</b></td><td class="">1, ở bộ luật quyền</td><td class="">1, ở bộ luật quyền. Công cụ không giữ luật nghiệp vụ</td></tr>
+          <tr><td><b>Thời gian và tiền thêm cho mỗi lệnh 30 task</b></td><td>0 hop mạng thêm</td><td>1 hop mạng mỗi bước, cộng phí theo số bước. Ví dụ trên trang giá của AWS cho Standard là 0,000025 USD mỗi bước; đây là giá ví dụ trên nguồn, không phải chi phí của Lab</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="rule">
+      <div class="k">Ngưỡng chọn</div>
+      <div>
+        <p><b>Giữ 1A</b> khi cả ba lần tắt đều ra đủ 30 task, không trùng, và phần chạy tiếp vẫn gọn. Gọn là con số phải chốt sau lần đo đầu, không chốt trước, giống cách Q2 đang xử lý chữ "rõ".</p>
+        <p><b>Chuyển 1B</b> khi 1A sót task, ghi trùng, hoặc phần chạy tiếp vượt ngưỡng gọn. Lúc đó mới đếm lại cùng ba lần tắt và cùng mã phiếu, để phép so không bị lệch.</p>
+        <p><b>Chốt trước khi so:</b> 1B là sản phẩm nào. Chưa chốt thì dòng số dịch vụ và dòng thời gian ở bảng trên không có số, và câu "quá rối" không bao giờ tự kích hoạt.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="cap">Nguồn</div>
+    <ul>
+      <li><a href="research-questions-and-validation-plan.md">Câu hỏi nghiên cứu và kế hoạch kiểm chứng</a>: câu hỏi Q1, ba lần tắt, đối chứng và giới hạn.</li>
+      <li><a href="../problem/prd-ai-platform.md#73-sáu-chỉ-số-đo">PRD, mục 7.3</a>: sáu chỉ số M1 đến M6 và hai ngưỡng bắt buộc.</li>
+      <li><a href="../research/option-comparison.md#3-mỗi-cách-đáp-ứng-tám-yêu-cầu-đến-đâu">So sánh phương án, mục 3</a>: vì sao SR6 (không ghi trùng) cả dòng là "Không" với mọi cách tích hợp.</li>
+      <li><a href="../research/five-methods/workflow-events.md">Workflow Engine và Event-driven Integration</a>: bảo đảm thực thi của công cụ chạy quy trình, và giới hạn của bảo đảm đó.</li>
+    </ul>
+  </div>
+</footer>
+
+</body>
+</html>
