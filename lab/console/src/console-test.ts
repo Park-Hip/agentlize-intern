@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer, request, type IncomingHttpHeaders, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -8,7 +9,8 @@ import { DATA_DIR_ENV, LOOPBACK_HOST, PORT_ENV, RULES_PATH_ENV, SERVICE_KEY_ENV 
 import { DEFAULT_RULES_PATH } from '@lab/gateway';
 import { startConsole } from './server.js';
 
-const SERVICE_KEY = 'test-service-key-0123456789';
+/** A fresh key per test process; no key-like literal sits in the repository. */
+const SERVICE_KEY = randomBytes(32).toString('base64url');
 
 const EMPLOYEES = {
   employees: [
