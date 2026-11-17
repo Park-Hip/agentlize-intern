@@ -1,11 +1,10 @@
-> Bản nháp v0.1 do agent soạn.
-> Toàn bộ quan sát dưới đây làm ngày 2026-11-13, không đăng nhập, chỉ dùng dữ liệu công khai mà máy chủ trả về.
-> Hai mươi mốt câu trích đã được kiểm chéo bằng script, kết quả 21 PASS, 0 MISS, 0 BLOCKED; lệnh và kết quả ghi ở mục 11.
-> Không có số đo hiệu năng, không chọn kiến trúc, không phải ADR.
-
 # Thổ Thần: cùng một cái tên, bốn thứ khác nhau
 
-Ngày: 2026-11-13. Trạng thái: bản nháp do agent soạn, chưa có số đo hiệu năng.
+Ngày: 2026-11-17. Trạng thái: khảo sát công khai ngày 2026-11-13, thêm kết quả cắm MCP thử bằng tài khoản ngày 2026-11-16 (mục 3.5, mục 8).
+
+Khảo sát công khai không đăng nhập, chỉ dùng dữ liệu máy chủ trả về; 21 câu trích kiểm chéo bằng script đều khớp (mục 11).
+Lần cắm thử dùng tài khoản thật của lab nhưng chỉ dữ liệu giả lập; chi tiết và bằng chứng ở [kịch bản đo MCP](tho-than-mcp-probe.md).
+Không có số đo hiệu năng và không chọn kiến trúc.
 
 ## 0. Câu hỏi
 
@@ -102,19 +101,53 @@ Không đăng nhập được nên phần này đọc từ tên gói nội bộ 
 | Đo lường | `@lobechat/observability-otel`, `@lobechat/agent-tracing` | Có OpenTelemetry trong mã |
 | An toàn | `@lobechat/ssrf-safe-fetch`, `builtin-tool-creds` | Có chặn SSRF và có kho thông tin xác thực |
 
-### 3.4 Cái không kiểm được vì không có tài khoản
+### 3.4 Cái không kiểm được khi chưa có tài khoản, và trạng thái sau lần cắm thử
 
-Danh sách này phải giữ nguyên khi trích dẫn file này, để không ai đọc phần trên thành đặc tả.
+Danh sách này phải giữ nguyên khi trích dẫn file này, để không ai đọc mục 3.3 thành đặc tả.
+Cột phải ghi những gì lần cắm thử ngày 2026-11-16 trả lời được (mục 3.5).
 
-- Model nào đang bật, nhà cung cấp nào, định tuyến ra sao.
-- Có bật tính năng MCP hay không, và có bật chợ MCP hay không.
-- Chính sách phân quyền theo vai, theo phòng ban, theo dữ liệu.
-- Có duyệt người trước khi ghi hay không.
-- Log và dấu vết được lưu bao lâu, lưu ở đâu.
-- Chi phí, hạn mức, cách tính token.
-- Nhà cung cấp đăng nhập thật sự được bật.
+| Điều chưa biết | Sau lần cắm thử |
+| --- | --- |
+| Model nào đang bật, nhà cung cấp nào, định tuyến ra sao | Chưa kiểm. |
+| Có bật tính năng MCP hay không, có chợ MCP hay không | Có: bản desktop có Skill Store và nút thêm MCP server tùy chỉnh. |
+| Chính sách phân quyền theo vai, theo phòng ban, theo dữ liệu | Chưa kiểm; server MCP không nhận được thông tin nào về người dùng. |
+| Có duyệt người trước khi ghi hay không | Không có với MCP tool, kể cả ở chế độ duyệt tay. |
+| Log và dấu vết lưu bao lâu, ở đâu | Chưa kiểm; host không gửi mã vết nào sang server MCP. |
+| Chi phí, hạn mức, cách tính token | Tài khoản tính theo credit, gói FREE 500 credit mỗi kỳ; giao diện chat không hiện số token. |
+| Nhà cung cấp đăng nhập thật sự được bật | Chưa kiểm. |
 
 Không có mục nào ở trên được suy ra từ tên gói.
+
+**Kết luận:** lần cắm thử trả lời được ba trên bảy điều chưa biết; bốn điều còn lại cần hỏi người sở hữu sản phẩm.
+
+### 3.5 Lần cắm MCP thử bằng tài khoản (2026-11-16)
+
+Lab cắm một server MCP thử (probe) vào Thổ Thần desktop, gọi bảy tool giả lập và ghi lại mọi thứ host gửi sang.
+Server, log và ảnh chụp nằm ở [kịch bản đo MCP](tho-than-mcp-probe.md); bảng dưới chỉ giữ phần ảnh hưởng thiết kế.
+
+| Câu hỏi | Quan sát | Bằng chứng trong kịch bản đo |
+| --- | --- | --- |
+| Thêm server ở đâu | Cài đặt > Integration > Skill Store > Add > "Add Custom MCP Skill"; có nhập cấu hình JSON | Mục 4.6, ảnh `p1-01` đến `p1-08` |
+| Kiểu nối | Streamable HTTP (không hỗ trợ SSE) và stdio (lệnh, tham số, biến môi trường) | Mục 4.6 |
+| Xác thực | Chỉ "No auth" và "API Key", thêm mục HTTP Headers; không có OAuth2 | Mục 4.6, ảnh `p1-06`, `p1-07` |
+| Gọi tool trong chat qua HTTP localhost | Thất bại, báo `fetch failed`; server không nhận lệnh nào, dù nút Test connection vẫn thành công | Mục 4.6, ảnh `p1-11`, `p1-12` |
+| Gọi tool trong chat qua stdio | Chạy được cả bảy tool; mỗi lần gọi app mở một tiến trình mới | Mục 4.6 và 7.4 |
+| Server biết gì về người gọi | Chỉ tên app `thothan-desktop-mcp-client` 1.0.0; không token, không header người dùng, không `_meta` | Mục 5.3 |
+| Khoá riêng người dùng tự đặt | Tới được server: biến môi trường với stdio (thêm qua "Import JSON config"), header `Authorization: Bearer` với kiểu "API Key"; đổi khoá có hiệu lực ngay | Mục 5.5, ảnh `h8-01` đến `h8-03` |
+| Duyệt trước khi ghi | Không hỏi ở cả hai chế độ đã thử là Auto Approve và Manual; tool đánh dấu nguy hiểm vẫn chạy ngay. Allow List và Bypass Security chưa thử. | Mục 6.5, ảnh `p3-01` đến `p3-03` |
+| Biểu mẫu hỏi người dùng (elicitation) | Không hỗ trợ: app khai báo khả năng rỗng `{}` | Mục 6.5 |
+| Link trong kết quả tool | Bấm được, mở trình duyệt mặc định | Mục 6.5, ảnh `p3-05`, `p3-06` |
+| Tự gọi lại khi tool lỗi | Không | Mục 7.4 |
+| Thời gian chờ | Cắt ở 60 giây với lỗi `-32001 Request timed out`; nút dừng chỉ đổi giao diện, tiến trình vẫn chạy tới mốc 60 giây | Mục 7.4 |
+| Dữ liệu có cấu trúc, cờ lỗi | `structuredContent` không hiện; kết quả `isError` vẫn có dấu tích xanh | Mục 8.5 |
+| Mã vết, chi phí | Không có `traceparent` hay mã yêu cầu; không có token hay chi phí trong giao thức | Mục 8.5 |
+
+Lần đo chỉ có một tài khoản và một máy, nên kết luận về danh tính có độ tin cậy trung bình.
+Lời giải thích cho lỗi `fetch failed` (lời gọi trong chat đi qua máy chủ của Thổ Thần nên không tới được localhost) vẫn là giả thuyết, cần Kevin xác nhận.
+
+**Kết luận:** Thổ Thần chạy được tool của lab ngay hôm nay, nhưng chỉ qua stdio trên máy người dùng.
+Host không cho biết ai đang hỏi, không chặn lệnh ghi và cắt mọi lệnh sau 60 giây, nên cả ba việc này thuộc về cổng của lab.
+Cổng nhận ra người hỏi bằng khoá riêng mà mỗi người đặt vào cấu hình skill.
 
 ## 4. Tài liệu Thổ Thần: mô tả một nền tảng khác
 
@@ -174,12 +207,14 @@ Nó là bằng chứng rằng tổ chức này đã có ít nhất một endpoin
 
 Phía thượng nguồn, LobeHub đã làm MCP client từ RFC 112, và từ commit `85454c5` thì cài được MCP server Streamable HTTP ngay trên bản web, không cần bản desktop.
 Cấu hình nhận ba dạng xác thực: không xác thực, bearer, và OAuth2.
+Bản desktop của Thổ Thần đo ngày 2026-11-16 chỉ hiện "No auth" và "API Key", không có OAuth2 (mục 3.5).
 
 Bản đang chạy là 2.1.56, tức sau mốc đó.
 Trong bundle có tham chiếu `apps/mcp-gateway`, và `mcp-hello-world` chỉ nằm ở `devDependencies`, tức là công cụ kiểm thử của chính monorepo.
 
 Hệ quả có thể dùng được ngay cho lab: nếu instance Thổ Thần web bật phần skill và MCP, thì một MCP server của lab cắm vào được như một skill, và người dùng có thể gọi tool của lab ngay trong giao diện chat của công ty.
-Đây chỉ là điều kiện đủ về phía phần mềm; chưa xác minh được instance đã bật hay chưa.
+Đây chỉ là điều kiện đủ về phía phần mềm.
+Lần cắm thử ở mục 3.5 xác nhận bản desktop đã bật phần này, nhưng trong chat chỉ gọi được server stdio.
 
 ### 5.3 Sản phẩm thứ hai cũng là MCP host
 
@@ -193,12 +228,14 @@ Nghĩa là cùng một tool của lab có thể được khai báo ở hai nơi 
 | --- | --- | --- |
 | Trong sáu ô của Thổ Thần AI, ô nào đã chạy thật? | Chắc chắn có ô giao diện chat, agent runtime, skill, công cụ dựng sẵn, và một MCP host. Không xác minh được ô lớn hơn vì không có tài khoản. | Trung bình |
 | Tool/MCP Runtime đã có chưa? | Có MCP host ở tầng sản phẩm, và có một MCP server chỉ đọc tài liệu. Chưa thấy runtime MCP cho nghiệp vụ. | Trung bình |
-| Duyệt người trước khi ghi nằm ở đâu? | KHÔNG TÌM THẤY trong mọi nguồn công khai đã đọc. | - |
-| Telemetry có đủ trường cho Value Intelligence? | Mã có OpenTelemetry. Chưa biết có bật và có trường nào. | Thấp |
-| Lab đứng độc lập, hay là Tool/MCP Runtime cắm vào Thổ Thần, hay là lớp policy đứng trước runtime? | Chưa chọn. Nhưng lựa chọn thứ hai giờ có một đường cắm cụ thể để thử, thay vì là giả định. | - |
+| Duyệt người trước khi ghi nằm ở đâu? | Không có ở host: lần cắm thử cho thấy tool ghi chạy ngay kể cả ở chế độ duyệt tay (mục 3.5). | Cao |
+| Telemetry có đủ trường cho Value Intelligence? | Mã có OpenTelemetry, nhưng host không gửi mã vết nào sang server MCP (mục 3.5). Chưa biết phía Thổ Thần lưu gì. | Trung bình |
+| Lab đứng độc lập, hay là Tool/MCP Runtime cắm vào Thổ Thần, hay là lớp policy đứng trước runtime? | Chưa chọn. Lựa chọn thứ hai đã chạy được qua stdio (mục 3.5); ADR-0001 sẽ chốt. | - |
 
-Ba câu hỏi trên không được trả lời bởi tài liệu.
-Chúng chỉ trả lời được bằng một tài khoản thật, hoặc bằng một buổi hỏi trực tiếp người sở hữu sản phẩm.
+Lần cắm thử trả lời được câu duyệt và một phần câu telemetry.
+Câu Tool/MCP Runtime dùng chung và câu telemetry phía nền tảng chỉ trả lời được bằng một buổi hỏi trực tiếp người sở hữu sản phẩm.
+
+**Kết luận:** lab không chờ nền tảng làm duyệt hay vết; cổng của lab tự làm, và báo Kevin đây là khoảng trống của nền tảng.
 
 ## 7. Cảnh báo khi dùng tài liệu này
 
@@ -215,25 +252,28 @@ Ba điều dễ làm sai, ghi ra để người sau không mắc lại.
 
 Mỗi giả thuyết kèm cách kiểm và người có thể trả lời.
 
-| ID | Giả thuyết | Cách kiểm | Ai trả lời được |
-| --- | --- | --- | --- |
-| H1 | Instance `thothan.appota.ai` bật tính năng skill và MCP cho người dùng | Đăng nhập, mở Cài đặt, tìm mục thêm MCP server tùy chỉnh; thử cắm một MCP server cục bộ | Người có tài khoản, Kevin |
-| H2 | Có một Tool/MCP Runtime dùng chung cho nghiệp vụ, tách khỏi LobeHub | Hỏi trực tiếp; tìm tên miền nội bộ dạng `mcp.*` hoặc `gateway.*` | Kevin |
-| H3 | Duyệt người trước khi ghi chưa tồn tại ở tầng nền tảng | Hỏi trực tiếp; nếu chưa có thì lab được phép đề xuất đặt ở runtime | Kevin |
-| H4 | Bộ tài liệu 2024 đã bị bỏ, không còn người cập nhật | Gửi `sendFeedback` qua chính MCP server của tài liệu và xem có phản hồi | Phòng SRD, `srd@appota.com` |
-| H5 | Ngôn ngữ mặc định của instance là tiếng Anh, tiếng Việt chỉ là bản dịch có sẵn | Kiểm sau khi đăng nhập, đổi ngôn ngữ, xem chất lượng bản dịch ở màn hình agent và skill | Người có tài khoản |
-| H6 | App mobile AppotaHub nhúng chính trang này qua Capacitor, nên là cùng một phiên đăng nhập | Mở app, kiểm luồng `mobileAuthCallback` | Người có app |
+| ID | Giả thuyết | Cách kiểm | Ai trả lời được | Kết quả ngày 2026-11-16 |
+| --- | --- | --- | --- | --- |
+| H1 | Instance `thothan.appota.ai` bật tính năng skill và MCP cho người dùng | Đăng nhập, mở Cài đặt, tìm mục thêm MCP server tùy chỉnh; thử cắm một MCP server cục bộ | Người có tài khoản, Kevin | Đúng ở bản desktop: cắm được, nhưng trong chat chỉ stdio chạy (mục 3.5). Bản web chưa thử. |
+| H2 | Có một Tool/MCP Runtime dùng chung cho nghiệp vụ, tách khỏi LobeHub | Hỏi trực tiếp; tìm tên miền nội bộ dạng `mcp.*` hoặc `gateway.*` | Kevin | Chưa kiểm. |
+| H3 | Duyệt người trước khi ghi chưa tồn tại ở tầng nền tảng | Hỏi trực tiếp; nếu chưa có thì lab được phép đề xuất đặt ở runtime | Kevin | Đúng ở tầng MCP tool: không có bước duyệt, kể cả chế độ Manual (mục 3.5). Cần Kevin xác nhận không có cơ chế khác. |
+| H4 | Bộ tài liệu 2024 đã bị bỏ, không còn người cập nhật | Gửi `sendFeedback` qua chính MCP server của tài liệu và xem có phản hồi | Phòng SRD, `srd@appota.com` | Chưa kiểm. |
+| H5 | Ngôn ngữ mặc định của instance là tiếng Anh, tiếng Việt chỉ là bản dịch có sẵn | Kiểm sau khi đăng nhập, đổi ngôn ngữ, xem chất lượng bản dịch ở màn hình agent và skill | Người có tài khoản | Một phần: giao diện desktop hiện tiếng Anh; chưa đổi ngôn ngữ. |
+| H6 | App mobile AppotaHub nhúng chính trang này qua Capacitor, nên là cùng một phiên đăng nhập | Mở app, kiểm luồng `mobileAuthCallback` | Người có app | Chưa kiểm. |
+| H7 | Lời gọi tool trong chat qua HTTP đi qua máy chủ Thổ Thần, nên server phải có địa chỉ công khai | Hỏi Kevin; hoặc mở tunnel HTTPS khi được phép rồi gọi lại | Kevin | Mới: suy ra từ lỗi `fetch failed` khi server ở localhost (mục 3.5). |
+| H8 | Khoá riêng của từng người (API Key hoặc biến môi trường stdio) tới được server, nên dùng được để biết ai đang hỏi | Cài lại skill stdio với `LAB_USER_KEY`, gọi `whoami`, xem trường `labEnv` | Người có tài khoản | Đúng: khoá tới server qua biến môi trường stdio và qua `Authorization: Bearer` của kiểu "API Key"; đổi khoá có hiệu lực ngay ([kịch bản đo, mục 5.5](tho-than-mcp-probe.md#55-khoá-riêng-của-từng-người-h8)). |
 
-H1 là giả thuyết quan trọng nhất.
-Nó quyết định lựa chọn "lab là Tool/MCP Runtime cắm vào Thổ Thần" có phải là một thử nghiệm làm được trong tuần hay chỉ là một giả định trên giấy.
+H1 đã đúng, nên "lab là Tool/MCP Runtime cắm vào Thổ Thần" là một thử nghiệm làm được ngay.
+
+**Kết luận:** H1, H3 và H8 đã đúng, đủ để viết ADR; H7 là giả thuyết mở quan trọng nhất, vì nó quyết định cổng có chạy được ở máy chủ chung hay chỉ qua stdio trên máy người dùng.
 
 ## 9. Giới hạn
 
-- Không có tài khoản, nên toàn bộ mục 3.4 là khoảng trắng, không phải kết luận.
-- Chưa mở được giao diện sau đăng nhập, nên chưa có ảnh chụp nào của sản phẩm thật, chỉ có ảnh tiếp thị của LobeChat.
+- Mục 3.1 đến 3.3 viết khi chưa có tài khoản; lần cắm thử ở mục 3.5 chỉ dùng bản desktop, chưa thử bản web.
+- Lần cắm thử dùng một tài khoản và một máy; ảnh chụp sản phẩm thật nằm trong `scratch/` của máy đo, không đưa vào repo.
 - Chưa kiểm phiên bản Dify mà Appota dùng năm 2024; chỉ khẳng định đường dẫn và câu lệnh trong tài liệu khớp Dify 0.15.3.
 - Chưa xác minh quan hệ giữa extension VS Code và nền tảng web; hai bên có thể dùng chung tài khoản hoặc không.
-- Chưa đo gì. Không có số liệu độ trễ, độ ổn định hay chi phí.
+- Chưa đo hiệu năng. Ngưỡng 60 giây ở mục 3.5 là hành vi của host, không phải số đo độ trễ, độ ổn định hay chi phí.
 - Con số phiên bản 2.1.56 đọc từ bundle có thể đổi sau mỗi lần triển khai, vì tên file chunk đổi theo bản dựng.
 
 ## 10. Sổ nguồn

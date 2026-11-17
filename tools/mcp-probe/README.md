@@ -157,7 +157,7 @@ Nếu form chỉ có SSE mà không có Streamable HTTP, ghi lại làm bằng c
 | `flaky` | readOnlyHint | lần đầu trả `isError: true`, lần sau thành công, đếm số lần | P4 |
 | `slow` | readOnlyHint | chờ N giây, gửi tiến độ nếu có progressToken, ghi lúc hủy | P4 |
 | `structured` | readOnlyHint | trả cả text và `structuredContent` có `outputSchema` | P5 |
-| `big_list` | readOnlyHint | trả danh sách task giả dạng JSON, mặc định 100 task, khoảng 15.000 ký tự | P5, K10 (kết quả lớn) ở MausBot |
+| `big_list` | readOnlyHint | trả danh sách task giả dạng JSON, mặc định 100 task, khoảng 15.000 ký tự | P5, K10 (kết quả lớn) ở [MausBot](../../rd/research/mausbot.md) |
 
 Mọi mô tả tool bằng tiếng Việt để thấy host hiển thị chúng thế nào.
 Tên tool giữ tiếng Anh để dễ gọi và dễ grep trong log.
