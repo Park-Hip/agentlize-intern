@@ -5,7 +5,7 @@ import type { CallToolResult, ServerNotification, ServerRequest } from "@modelco
 import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import { z } from "zod";
 import type { ProbeContext } from "./context.js";
-import { redactHeaders } from "./log.js";
+import { labEnv, redactHeaders } from "./log.js";
 
 export const PROBE_VERSION = "0.1.0";
 export const SERVER_NAME = "tho-than-mcp-probe";
@@ -18,7 +18,28 @@ export const TOOL_NAMES = [
   "flaky",
   "slow",
   "structured",
+  "big_list",
 ] as const;
+
+/** Default size of big_list: large enough to pass the 8,000 character budget MausBot puts on stdio results. */
+export const BIG_LIST_DEFAULT_COUNT = 100;
+
+/** Simulated task list for big_list. Deterministic, so two hosts see the same bytes. */
+export function simulatedTasks(count: number) {
+  const people = ["Hoa", "Nam", "Minh", "Quang"];
+  const statuses = ["todo", "doing", "done"] as const;
+  return Array.from({ length: count }, (_, index) => {
+    const n = index + 1;
+    return {
+      id: `T-${String(n).padStart(3, "0")}`,
+      title: `Task giả lập số ${n}`,
+      status: statuses[n % statuses.length],
+      assignee: people[n % people.length],
+      department: n % 2 === 0 ? "Vận hành" : "Kinh doanh",
+      due: `2026-12-${String((n % 28) + 1).padStart(2, "0")}`,
+    };
+  });
+}
 
 /**
  * Simulated directory. Only fictional employees from the Lab brief, and the
@@ -233,6 +254,7 @@ export function createProbeServer(ctx: ProbeContext): McpServer {
         },
         http: httpSnapshot(ctx, extra),
         identityHeaders: identityHeaders(redacted),
+        labEnv: labEnv(),
         trace: traceSnapshot(ctx, extra),
         simulatedData: {
           task: TASK,
@@ -689,6 +711,39 @@ export function createProbeServer(ctx: ProbeContext): McpServer {
         structuredContent: data,
       };
       logToolResult(ctx, "structured", extra, startedAt, result);
+      return result;
+    },
+  );
+
+  server.registerTool(
+    "big_list",
+    {
+      title: "Trả về một danh sách task giả lập dài",
+      description:
+        "Trả về danh sách task giả lập dạng JSON, mặc định 100 task (khoảng 15.000 ký tự), để xem host có cắt, rút gọn hay giữ lại kết quả lớn không. Dữ liệu giả lập.",
+      inputSchema: {
+        count: z
+          .number()
+          .int()
+          .min(1)
+          .max(1000)
+          .default(BIG_LIST_DEFAULT_COUNT)
+          .describe("Số task giả lập cần trả về, từ 1 đến 1000."),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (args, extra: Extra) => {
+      const startedAt = Date.now();
+      logToolCall(ctx, "big_list", args, extra);
+      const text = JSON.stringify({ simulated: true, count: args.count, tasks: simulatedTasks(args.count) });
+      ctx.logger.write({ kind: "big_list", count: args.count, characters: text.length });
+      const result = textResult(text);
+      logToolResult(ctx, "big_list", extra, startedAt, result);
       return result;
     },
   );

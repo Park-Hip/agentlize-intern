@@ -57,6 +57,10 @@ C:\duong-dan-toi-repo\tools\mcp-probe\dist\index.js --stdio
 
 Nếu host không cho tách args, hãy dùng một script `.cmd` gọi đúng hai phần trên.
 
+Biến môi trường có tên bắt đầu bằng `LAB_` được in trong kết quả `whoami` (trường `labEnv`) và trong dòng `server_start`, ở dạng đã che như Authorization.
+Dùng nó để kiểm một khoá riêng của từng người có tới được server không, ví dụ đặt `LAB_USER_KEY=hoa-thu-nghiem-0001` trong ô biến môi trường của form stdio.
+Probe không đọc biến môi trường nào khác, nên không lộ môi trường của máy.
+
 ## 4. Chạy transport Streamable HTTP
 
 ```bash
@@ -135,14 +139,14 @@ Phiên bản Thổ Thần đang dùng là bản đổi nhãn của LobeHub 2.1.5
 3. Bấm thêm MCP server tùy chỉnh.
 4. Chọn Streamable HTTP và nhập `http://localhost:8787/mcp`, hoặc chọn stdio và nhập command cùng args ở mục 3.
 5. Đặt tên `mcp-probe`, lưu lại, rồi chờ danh sách tool hiện ra.
-6. Danh sách đúng phải có 7 tool: `whoami`, `echo_link`, `fake_write`, `ask_confirm`, `flaky`, `slow`, `structured`.
+6. Danh sách đúng phải có 8 tool: `whoami`, `echo_link`, `fake_write`, `ask_confirm`, `flaky`, `slow`, `structured`, `big_list`.
 7. Bật MCP server này cho agent hoặc cuộc chat sẽ dùng, vì LobeHub thường chỉ gắn công cụ vào chat sau khi bật.
 8. Gõ thử: `Gọi tool whoami của MCP server mcp-probe và in nguyên văn kết quả.`
 
 Nếu danh sách tool không hiện, xem log và bảng lỗi thường gặp ở mục 9.
 Nếu form chỉ có SSE mà không có Streamable HTTP, ghi lại làm bằng chứng P1, vì probe này không chạy transport SSE cũ.
 
-## 6. Bảy tool và câu hỏi chúng trả lời
+## 6. Tám tool và câu hỏi chúng trả lời
 
 | Tool | Annotation | Việc làm | Câu hỏi |
 | --- | --- | --- | --- |
@@ -153,6 +157,7 @@ Nếu form chỉ có SSE mà không có Streamable HTTP, ghi lại làm bằng c
 | `flaky` | readOnlyHint | lần đầu trả `isError: true`, lần sau thành công, đếm số lần | P4 |
 | `slow` | readOnlyHint | chờ N giây, gửi tiến độ nếu có progressToken, ghi lúc hủy | P4 |
 | `structured` | readOnlyHint | trả cả text và `structuredContent` có `outputSchema` | P5 |
+| `big_list` | readOnlyHint | trả danh sách task giả dạng JSON, mặc định 100 task, khoảng 15.000 ký tự | P5, K10 (kết quả lớn) ở MausBot |
 
 Mọi mô tả tool bằng tiếng Việt để thấy host hiển thị chúng thế nào.
 Tên tool giữ tiếng Anh để dễ gọi và dễ grep trong log.

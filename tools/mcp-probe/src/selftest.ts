@@ -14,7 +14,7 @@ import { createServer as createNetServer } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { getDefaultEnvironment, StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { findRepoRoot } from "./log.js";
@@ -26,7 +26,9 @@ const SERVER_ENTRY = join(HERE, "index.js");
 const REPO_ROOT = findRepoRoot(HERE);
 const STAMP = new Date().toISOString().replace(/[-:.]/g, "");
 const LOG_ROOT = resolve(REPO_ROOT, "scratch", "mcp-probe", `selftest-${STAMP}`);
-const EXPECTED_TOOLS = ["whoami", "echo_link", "fake_write", "ask_confirm", "flaky", "slow", "structured"];
+/** Simulated per-user key; the probe must only ever show it redacted. */
+const LAB_KEY = "hoa-thu-nghiem-0001";
+const EXPECTED_TOOLS = ["whoami", "echo_link", "fake_write", "ask_confirm", "flaky", "slow", "structured", "big_list"];
 
 let checks = 0;
 const spawned: ChildProcess[] = [];
@@ -158,6 +160,7 @@ async function main(): Promise<void> {
   const stdioTransport = new StdioClientTransport({
     command: process.execPath,
     args: [SERVER_ENTRY, "--stdio", "--log-dir", stdioDir],
+    env: { ...getDefaultEnvironment(), LAB_USER_KEY: LAB_KEY },
     stderr: "pipe",
   });
   let stdioStderr = "";
@@ -174,7 +177,7 @@ async function main(): Promise<void> {
 
   const tools = await stdioClient.listTools();
   const toolNames = tools.tools.map((tool) => tool.name).sort();
-  check("stdio: tools/list returns all seven tools", JSON.stringify(toolNames) === JSON.stringify([...EXPECTED_TOOLS].sort()), toolNames.join(","));
+  check("stdio: tools/list returns every tool", JSON.stringify(toolNames) === JSON.stringify([...EXPECTED_TOOLS].sort()), toolNames.join(","));
   const fakeWrite = tools.tools.find((tool) => tool.name === "fake_write");
   check("stdio: fake_write is annotated destructive", fakeWrite?.annotations?.destructiveHint === true);
   check("stdio: whoami is annotated read-only", tools.tools.find((tool) => tool.name === "whoami")?.annotations?.readOnlyHint === true);
@@ -183,6 +186,8 @@ async function main(): Promise<void> {
   const whoamiText = resultText(whoami);
   check("stdio: whoami sees clientInfo sent by the host", whoamiText.includes("mcp-probe-selftest-stdio"));
   check("stdio: whoami reports the stdio transport", whoamiText.includes('"transport": "stdio"'));
+  check("stdio: whoami reports LAB_ env vars redacted", whoamiText.includes('"LAB_USER_KEY": "hoa-th...(len=19)"'));
+  check("stdio: whoami never shows the full LAB_ value", !whoamiText.includes(LAB_KEY));
 
   const echo = await stdioClient.callTool({ name: "echo_link", arguments: {} });
   const echoText = resultText(echo);
@@ -212,6 +217,12 @@ async function main(): Promise<void> {
   const structuredContent = structured.structuredContent as Record<string, any> | undefined;
   check("stdio: structured returns structuredContent", structuredContent?.task?.id === "T-12" && structuredContent?.employee?.name === "Minh");
   check("stdio: structured returns text content too", resultText(structured).includes("Minh"));
+
+  const bigList = await stdioClient.callTool({ name: "big_list", arguments: {} });
+  const bigListText = resultText(bigList);
+  const bigListData = JSON.parse(bigListText) as { count: number; tasks: Array<{ id: string }> };
+  check("stdio: big_list returns 100 tasks by default", bigListData.count === 100 && bigListData.tasks.length === 100 && bigListData.tasks[99]?.id === "T-100");
+  check("stdio: big_list is larger than 8,000 characters", bigListText.length > 8000, String(bigListText.length));
 
   await stdioClient.close();
 
@@ -321,6 +332,7 @@ async function main(): Promise<void> {
     ["fake_write", { taskId: "T-12", assignee: "Nam" }],
     ["ask_confirm", {}],
     ["structured", {}],
+    ["big_list", { count: 3 }],
   ] as const) {
     const result = (await httpBasic.callTool({ name, arguments: args })) as any;
     check(`http: ${name} responds`, Array.isArray(result.content) && result.content.length > 0);
@@ -387,7 +399,7 @@ async function main(): Promise<void> {
     ),
   );
   check("http: every tool_call has its raw JSON-RPC request line", httpToolCallsCovered);
-  check("http: all seven tools were called over HTTP", EXPECTED_TOOLS.every((name) => callsOf(httpLog, name).length > 0), EXPECTED_TOOLS.filter((name) => callsOf(httpLog, name).length === 0).join(","));
+  check("http: every tool was called over HTTP", EXPECTED_TOOLS.every((name) => callsOf(httpLog, name).length > 0), EXPECTED_TOOLS.filter((name) => callsOf(httpLog, name).length === 0).join(","));
   check("http: a 401 was not returned when no bearer is configured", !httpLog.some((entry) => entry.kind === "http_response" && entry.statusCode === 401));
 
   const summary = execFileSync(process.execPath, [join(HERE, "summarize.js"), httpDir], { encoding: "utf8" });

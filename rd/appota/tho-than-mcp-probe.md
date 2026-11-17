@@ -1,11 +1,11 @@
 # Cắm MCP probe vào Thổ Thần: kịch bản đo P1-P5
 
-Ngày: 2026-11-16. Trạng thái: đã chạy đủ năm câu hỏi, còn thiếu tài khoản thứ hai, bearer và HTTPS từ xa.
+Ngày: 2026-11-17. Trạng thái: đã chạy đủ năm câu hỏi và kiểm khoá riêng của từng người; còn thiếu tài khoản thứ hai và HTTPS từ xa.
 
 ## Đọc nhanh
 
 - Nối trực tiếp trong app thì gọi được công cụ; nối qua địa chỉ web chỉ kiểm tra được kết nối, còn khi chat thì báo lỗi và server không nhận lệnh.
-- Server không biết ai đang yêu cầu; chỉ thấy tên ứng dụng, không thấy tài khoản.
+- Server không tự biết ai đang yêu cầu; nhưng khoá riêng mà mỗi người đặt vào cấu hình thì tới được server.
 - App không hỏi duyệt trước khi ghi, kể cả khi đặt chế độ duyệt tay; không có biểu mẫu hỏi người dùng; link trong kết quả bấm được.
 - Công cụ lỗi không được tự gọi lại; mỗi lần gọi là một tiến trình mới; app cắt sau 60 giây và nút dừng không hủy ngay.
 - Dữ liệu có cấu trúc không hiện, không có mã vết hay chi phí token; bước tiếp theo là cập nhật khảo sát rồi viết bản ghi quyết định.
@@ -320,9 +320,29 @@ Ba khả năng và cách ghi:
 Không dùng ảnh chụp màn hình làm bằng chứng duy nhất.
 Luôn kèm dòng log và tên trường cụ thể.
 
-**Kết luận:** server không nhận được danh tính người dùng.
-Lab phải cấp danh tính giả cho từng nhân vật và ghi rõ đây là giả lập, đúng như phương án dự phòng trong `rd/findings.md`; báo Kevin vì đây là giới hạn của nền tảng.
-Độ tin cậy trung bình vì chỉ có một tài khoản; nếu có tài khoản thứ hai, chạy lại `whoami` để xác nhận hai tài khoản vẫn giống nhau ở phía server.
+### 5.5. Khoá riêng của từng người (H8)
+
+Host không gửi danh tính, nên Lab thử đường thay thế: mỗi người đặt một khoá riêng vào cấu hình skill.
+Probe in các biến môi trường tên bắt đầu bằng `LAB_` vào trường `labEnv`, đã che còn 6 ký tự đầu cộng độ dài.
+Khoá thử là giá trị giả lập, không phải bí mật.
+
+| Đường thử | Có tới server không | Server thấy (đã che) | Đổi khoá có hiệu lực ngay? | Bằng chứng (file:dòng) |
+| --- | --- | --- | --- | --- |
+| stdio, biến môi trường `LAB_USER_KEY=hoa-thu-nghiem-0001` | Có, cả Test connection lẫn gọi trong chat | `hoa-th...(len=19)` | - | `log-20261116-215523-443.jsonl:1` (Test connection), `log-20261116-221252-985.jsonl:1` và `:9` (whoami); ảnh `h8-01`, `h8-02` |
+| stdio, đổi thành `nam-thu-nghiem-0002` | Có | `nam-th...(len=19)` | Có, không mở lại app | `log-20261116-223302-578.jsonl:1`, `log-20261116-224038-918.jsonl:1` và `:9`; `h8-04-stdio-whoami-nam.json` |
+| HTTP, kiểu xác thực "API Key" `hoa-thu-nghiem-0001` | Có, ở Test connection (chat qua HTTP vẫn `fetch failed`) | Header `authorization` = `Bearer...(len=26)`, tức `Bearer ` cộng khoá 19 ký tự | Chưa thử | `log-20261116-194146-662.jsonl:40-41`, `:55-56`, `:59-60`, `:74-75`; ảnh `h8-03` |
+
+Form cài skill stdio ban đầu không hiện ô biến môi trường.
+Pi thêm biến qua "Import JSON config" với khoá `env`; sau đó form hiện mục "MCP server env vars".
+Đổi khoá có hiệu lực ngay vì mỗi lần gọi stdio là một tiến trình mới, đọc lại biến môi trường.
+Ô "API Key" của HTTP thực chất gửi header chuẩn `Authorization: Bearer <khoá>`, không có `x-api-key`.
+
+Chưa thử: server từ chối khoá sai (probe HTTP chạy không `--bearer`), đổi khoá HTTP, và hai tài khoản khác nhau.
+Khoá thử vẫn còn trong cấu hình hai skill `mcp-probe` và `mcp-probe-stdio`, cần xoá sau khi chốt.
+
+**Kết luận:** server không nhận được danh tính người dùng từ host, nhưng khoá riêng do người dùng đặt thì tới được server qua cả hai đường.
+Cổng của Lab cấp mỗi nhân vật giả một khoá riêng, tự kiểm khoá, thu hồi được và che khoá trong log; khoá chỉ chứng minh "người cài công cụ", không phải một lần đăng nhập.
+Độ tin cậy của phần "host không gửi danh tính" vẫn trung bình vì chỉ có một tài khoản; báo Kevin vì đây là giới hạn của nền tảng.
 
 ## 6. P3 (kênh duyệt): host có hỏi trước khi ghi?
 
@@ -508,6 +528,8 @@ Nếu không, host chỉ bỏ mặc kết nối.
 Kết quả P4 (thử lại và thời gian chờ): host không tự gọi lại khi tool trả `isError`.
 Mỗi lần gọi stdio là một tiến trình mới, nên bộ đếm `flaky` reset; vì vậy lần gọi lại cùng key vẫn là "lần 1".
 Host cắt mọi tool ở 60 giây: `slow` 30 xong, `slow` 60 và 120 bị hủy ở khoảng 60 giây.
+Lý do trong lệnh hủy là `MCP error -32001: Request timed out` (`log-20261116-205049-979.jsonl:10`).
+Mã lỗi và con số 60 giây khớp với thời gian chờ mặc định của bộ thư viện MCP chính thức cho TypeScript, nên nhiều khả năng app chưa chỉnh giá trị này; cần đọc mã nguồn LobeHub để xác nhận.
 Nút dừng chỉ đổi giao diện; log không nhận hủy cho đến mốc 60 giây.
 Host không gửi progressToken.
 
@@ -603,7 +625,7 @@ Bảng này tổng hợp kết quả đã đo ngày 2026-11-16.
 | Câu hỏi | Kết luận một dòng | Độ tin cậy | Bằng chứng chính |
 | --- | --- | --- | --- |
 | P1 (giao thức và xác thực) | Chỉ stdio gọi tool được trong chat; HTTP chỉ qua Test connection, chat báo `fetch failed`. | Cao | `p1-11`, `p2-01`, `log-20261116-194146-662.jsonl`, `log-20261116-201053-131.jsonl` |
-| P2 (danh tính) | Không có danh tính người dùng; chỉ có `clientInfo` của app. | Trung bình | `log-20261116-203102-671.jsonl:4`, `log-20261116-194146-662.jsonl:12` |
+| P2 (danh tính) | Host không gửi danh tính, chỉ có `clientInfo` của app; khoá riêng người dùng đặt thì tới server (biến môi trường stdio, `Authorization: Bearer` với API Key). | Trung bình (danh tính), cao (khoá riêng) | `log-20261116-203102-671.jsonl:4`, `log-20261116-224038-918.jsonl:1`, `log-20261116-194146-662.jsonl:40` |
 | P3 (kênh duyệt) | Không hỏi duyệt cả Auto lẫn Manual; không elicitation; link bấm được. | Cao | `p3-01` đến `p3-06`, các log `203315`, `203504`, `203739`, `203857`, `203939` |
 | P4 (thử lại và thời gian chờ) | Không auto retry; cắt ở 60 giây; mỗi call là process mới; nút dừng không hủy ngay. | Cao | `p4-01` đến `p4-09`, các log `204146`, `204240`, `204458`, `204645`, `205049`, `205304` |
 | P5 (hiển thị và dấu vết) | `structuredContent` không hiện; `isError` không hiện rõ; không trace, không cost. | Trung bình | `p5-01`, `p4-01`, `log-20261116-204407-340.jsonl:9` |
@@ -626,16 +648,18 @@ Riêng P2 (danh tính) cần thêm tài khoản thứ hai nếu có, để nâng
 3. Ghi phát hiện HTTP chat `fetch failed` vào P1 (giao thức và xác thực), mục 4.6.
 4. Điền bảng kết quả của năm câu hỏi và bảng tổng hợp mục 9.
 
+5. Cập nhật [khảo sát Thổ Thần](../01-explore/tho-than-platform.md) (mục 3.4, 3.5 và 8) và tổng hợp phát hiện (mục 4, 6, 8).
+
 Còn phải làm:
 
-5. Cập nhật mục 3.4 và mục 8 của `rd/appota/tho-than-platform.md` trong nhánh chính, kèm tham chiếu log, đặc biệt giả thuyết H1.
 6. Báo Kevin hai điểm: HTTP chat `fetch failed` (cần xác minh lời gọi đi qua cloud) và chưa có quyền mở tunnel HTTPS.
-7. Nếu có tài khoản Thổ Thần thứ hai, chạy lại `whoami` bằng tài khoản đó để nâng độ tin cậy P2 (danh tính).
-8. Chỉ sau các bước trên mới viết ADR-0001.
-9. Giữ log và ảnh trong `scratch/`; không commit, không dán token hay dữ liệu thật lên kênh công khai.
-10. Không gỡ skill khỏi tài khoản trừ khi người dùng yêu cầu.
+7. Xoá `LAB_USER_KEY` khỏi skill `mcp-probe-stdio` và API Key khỏi skill `mcp-probe` khi không cần đo thêm (khoá riêng đã kiểm xong ở mục 5.5).
+8. Nếu có tài khoản Thổ Thần thứ hai, chạy lại `whoami` bằng tài khoản đó để nâng độ tin cậy P2 (danh tính).
+9. Chỉ sau các bước trên mới viết ADR-0001.
+10. Giữ log và ảnh trong `scratch/`; không commit, không dán token hay dữ liệu thật lên kênh công khai.
+11. Không gỡ skill khỏi tài khoản trừ khi người dùng yêu cầu.
 
-**Kết luận:** bàn giao đủ khi người sau mở được đúng file log và ảnh, và biết đúng ba việc còn thiếu: tài khoản thứ hai, HTTPS từ xa, cập nhật khảo sát Thổ Thần.
+**Kết luận:** bàn giao đủ khi người sau mở được đúng file log và ảnh, và biết đúng ba việc còn thiếu: tài khoản thứ hai, HTTPS từ xa, và thử server từ chối khoá sai.
 
 ## 11. Giới hạn của kịch bản này
 
@@ -662,15 +686,15 @@ Còn phải làm:
 - Đặc tả MCP, transports: https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
 - Đặc tả MCP, tools và annotations: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
 - Đặc tả MCP, elicitation: https://modelcontextprotocol.io/specification/2025-06-18/client/elicitation
-- Khảo sát Thổ Thần (bản trong nhánh chính): `rd/appota/tho-than-platform.md`.
-- Tổng hợp phát hiện (bản trong nhánh chính): `rd/findings.md`.
+- Khảo sát Thổ Thần: `rd/01-explore/tho-than-platform.md`.
+- Tổng hợp phát hiện: `rd/findings.md`.
 
 Bằng chứng đo, tất cả nằm trong `scratch/mcp-probe/` (đã git bỏ qua):
 
 | Câu hỏi | Log chính | Ảnh chính |
 | --- | --- | --- |
 | P1 (giao thức và xác thực) | `log-20261116-194146-662.jsonl` (HTTP Test connection), `log-20261116-201053-131.jsonl` (thử IPv6) | `p1-09`, `p1-11`, `p1-12`, `p1-13`, `p1-14`, `p2-01` |
-| P2 (danh tính) | `log-20261116-203102-671.jsonl` (whoami stdio), `log-20261116-194146-662.jsonl` (HTTP) | `p2-02` |
+| P2 (danh tính) | `log-20261116-203102-671.jsonl` (whoami stdio), `log-20261116-194146-662.jsonl` (HTTP, cả API Key), `log-20261116-221252-985.jsonl` và `log-20261116-224038-918.jsonl` (khoá riêng stdio) | `p2-02`, `h8-01` đến `h8-04` |
 | P3 (kênh duyệt) | `log-20261116-203315-739.jsonl`, `log-20261116-203504-441.jsonl`, `log-20261116-203739-177.jsonl`, `log-20261116-203857-876.jsonl`, `log-20261116-203939-773.jsonl`, `log-20261116-194146-662.jsonl` (approve) | `p3-01` đến `p3-06` |
 | P4 (thử lại và thời gian chờ) | `log-20261116-204146-204.jsonl`, `log-20261116-204240-153.jsonl`, `log-20261116-204458-659.jsonl`, `log-20261116-204645-611.jsonl`, `log-20261116-205049-979.jsonl`, `log-20261116-205304-745.jsonl`, `log-20261116-205848-488.jsonl` | `p4-01` đến `p4-09` |
 | P5 (hiển thị và dấu vết) | `log-20261116-204407-340.jsonl`, `log-20261116-204146-204.jsonl`, `log-20261116-194146-662.jsonl` | `p5-01`, `p4-01` |

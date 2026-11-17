@@ -22,6 +22,19 @@ export function redactSecret(value: string): string {
   return `${value.slice(0, 6)}...(len=${value.length})`;
 }
 
+/**
+ * Environment variables whose name starts with LAB_, redacted like a secret.
+ * A host that lets each user set their own env var (stdio form) could carry a per-user key this way.
+ * Other variables are never read, so the probe cannot leak the machine's environment.
+ */
+export function labEnv(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [name, value] of Object.entries(process.env)) {
+    if (name.startsWith("LAB_") && typeof value === "string") out[name] = redactSecret(value);
+  }
+  return out;
+}
+
 export function redactHeaders(headers: HeaderBag | Record<string, unknown> | undefined): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (!headers) return out;
@@ -105,6 +118,7 @@ export class ProbeLogger {
       node: process.version,
       platform: process.platform,
       cwd: process.cwd(),
+      labEnv: labEnv(),
       logFile: this.file,
       config: options.config,
     });
