@@ -44,3 +44,26 @@ export function resolveDataDir(env: NodeJS.ProcessEnv = process.env): string {
   }
   return resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '.data');
 }
+
+/** The address people open the confirmation links on. Defaults to the address the gateway listens on. */
+export const PUBLIC_BASE_URL_ENV = 'LAB_PUBLIC_BASE_URL';
+
+/**
+ * The configured public address without a trailing slash, or undefined when it
+ * is not set. A value that is not an http or https address stops the gateway
+ * at startup, so no link in a tool answer points nowhere.
+ */
+export function readPublicBaseUrl(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const configured = env[PUBLIC_BASE_URL_ENV]?.trim();
+  if (configured === undefined || configured === '') return undefined;
+  let url: URL;
+  try {
+    url = new URL(configured);
+  } catch {
+    throw new Error(`${PUBLIC_BASE_URL_ENV} must be an http or https address`);
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error(`${PUBLIC_BASE_URL_ENV} must be an http or https address`);
+  }
+  return configured.replace(/\/+$/, '');
+}

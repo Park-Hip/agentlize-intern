@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { LOOPBACK_HOST, readJsonBody, sendJson, type RequestHandler, type ToolResponse } from '@lab/shared';
 import { catalogEntries, performCall, TraceUnavailableError, type GatewayDeps } from './call.js';
 import { handleMcp } from './mcp.js';
+import { handleWeb } from './web/routes.js';
 
 export type { GatewayDeps };
 
@@ -22,7 +23,7 @@ async function handleToolCall(deps: GatewayDeps, req: IncomingMessage, res: Serv
 }
 
 /**
- * The gateway's HTTP surface: the catalog, the tool calls, the `/mcp` door and a health check.
+ * The gateway's HTTP surface: the catalog, the tool calls, the `/mcp` door, the pages and a health check.
  * Everything a tool call does is in `performCall`; this function only routes.
  */
 export function createGatewayHandler(deps: GatewayDeps): RequestHandler {
@@ -50,6 +51,9 @@ export function createGatewayHandler(deps: GatewayDeps): RequestHandler {
     }
 
     if (path === MCP_PATH) return handleMcp(deps, req, res);
+
+    // The pages people open from a link: login, the confirmation card and its two buttons.
+    if (await handleWeb(deps, req, res, path)) return;
 
     sendJson(res, 404, { error: 'not_found' });
   };

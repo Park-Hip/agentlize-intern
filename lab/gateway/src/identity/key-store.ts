@@ -136,6 +136,12 @@ export class KeyStore {
     return toRecord(row);
   }
 
+  /** The record of a key by its code, or undefined. A page asks this to see whether a login's key is still valid. */
+  findById(keyId: string): KeyRecord | undefined {
+    const row = this.db.prepare('SELECT * FROM api_keys WHERE key_id = ?').get(keyId) as KeyRow | undefined;
+    return row === undefined ? undefined : toRecord(row);
+  }
+
   /** Revoke by key code. Returns false when no such key exists. Revoking twice keeps the first time. */
   revoke(keyId: string): boolean {
     const result = this.db

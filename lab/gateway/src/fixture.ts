@@ -155,7 +155,7 @@ export interface GatewayFixture {
   close(): Promise<void>;
 }
 
-export async function startFixture(options: Pick<GatewayOptions, 'rulesPath'> = {}): Promise<GatewayFixture> {
+export async function startFixture(options: Pick<GatewayOptions, 'rulesPath' | 'now' | 'executor'> = {}): Promise<GatewayFixture> {
   const dir = mkdtempSync(join(tmpdir(), 'lab-gateway-'));
   const env: NodeJS.ProcessEnv = {
     ...process.env,
