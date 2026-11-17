@@ -1,47 +1,46 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { DATA_DIR_ENV, PORT_ENV, SERVICE_KEY_ENV, type ToolResponse } from '@lab/shared';
-import { freePorts, labRoot, spawnBuiltService, stopChild, waitForHealth, type SpawnedService } from './process.js';
+import {
+  DATA_DIR_ENV,
+  PORT_ENV,
+  RULES_PATH_ENV,
+  SERVICE_KEY_ENV,
+  TEST_HOOKS_ENV,
+} from '@lab/shared';
+import { issueKey, keyOf, runCli, traceTable } from './cli.js';
+import { DOORS, type Answer } from './doors.js';
+import { freePorts, killChild, labRoot, spawnBuiltService, stopChild, waitForHealth, type SpawnedService } from './process.js';
 
 const HOA = 'NV-02';
+const DEFAULT_RULES = join(labRoot, 'gateway', 'policy', 'rules.json');
 
 interface ProposalAnswer {
   readonly id: string;
   readonly text: string;
 }
 
+interface Browser {
+  readonly cookie: string;
+  readonly csrf: string;
+}
+
+interface TaskView {
+  readonly id: string;
+  readonly assignee: string;
+  readonly status: string;
+  readonly description: string;
+  readonly department: string;
+  readonly version: number;
+}
+
 function proposalOf(text: string): ProposalAnswer {
   const link = text.split('\n').find((line) => /^http:\/\/127\.0\.0\.1:\d+\/xac-nhan\/dx-[0-9a-f]{16}$/.test(line));
   assert.ok(link !== undefined, `the answer has a confirmation link: ${text}`);
   return { id: link.slice(link.lastIndexOf('/') + 1), text };
-}
-
-function runCli(script: string, args: readonly string[], env: NodeJS.ProcessEnv): string {
-  const result = spawnSync(process.execPath, [join(labRoot, 'gateway', 'dist', 'cli', script), ...args], {
-    cwd: labRoot,
-    env,
-    encoding: 'utf8',
-  });
-  assert.equal(result.status, 0, `${script} failed: ${result.stderr}`);
-  return result.stdout;
-}
-
-/** `seed-keys` prints `persona employee key_id key`; read the key of one persona. */
-function keyOf(table: string, persona: string): string {
-  const line = table.split('\n').find((candidate) => candidate.startsWith(`${persona}  `));
-  const key = line?.trim().split(/\s+/).at(-1);
-  assert.ok(key !== undefined && key.startsWith('lab_'), `no key for ${persona}`);
-  return key;
-}
-
-interface Browser {
-  readonly cookie: string;
-  readonly csrf: string;
 }
 
 async function signIn(base: string, key: string, proposalId: string): Promise<Browser> {
@@ -69,135 +68,387 @@ function press(base: string, proposalId: string, browser: Browser): Promise<Resp
   });
 }
 
-test('gateway write path: a lost answer becomes one write, and a changed task is not overwritten', async (t) => {
-  const serviceKey = randomBytes(32).toString('base64url');
-  const dataDir = await mkdtemp(join(tmpdir(), 'agentlize-lab-write-'));
-  const [directoryPort, tasksPort, gatewayPort] = await freePorts(3);
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    [SERVICE_KEY_ENV]: serviceKey,
-    [DATA_DIR_ENV]: dataDir,
-    [PORT_ENV.directory]: String(directoryPort),
-    [PORT_ENV.tasks]: String(tasksPort),
-    [PORT_ENV.gateway]: String(gatewayPort),
-    // The fault and write-count routes of the fake task list are behind this switch.
-    LAB_TEST_HOOKS: '1',
-  };
+/** Keep polling until a read returns a value, or fail with the reason the wait mattered. */
+async function eventually<T>(what: string, read: () => Promise<T | undefined>, timeoutMs = 15_000): Promise<T> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const value = await read();
+    if (value !== undefined) return value;
+    await new Promise((resolveSleep) => setTimeout(resolveSleep, 100));
+  }
+  throw new Error(`timed out waiting for ${what}`);
+}
 
-  const started: SpawnedService[] = [];
-  t.after(async () => {
-    await Promise.all(started.map((service) => stopChild(service.child)));
-    await rm(dataDir, { recursive: true, force: true });
+/** The two refusals compared across doors at the end: same question, same words. */
+interface DoorRefusals {
+  readonly sr1: string;
+  readonly sr2: string;
+}
+
+const refusalsByDoor = new Map<string, DoorRefusals>();
+
+for (const door of DOORS) {
+  test(`gateway write path (${door.name}): one task, one write, and a refusal for every rule`, async (t) => {
+    const serviceKey = randomBytes(32).toString('base64url');
+    const dataDir = await mkdtemp(join(tmpdir(), 'agentlize-lab-write-'));
+    const rulesDir = await mkdtemp(join(tmpdir(), 'agentlize-lab-rules-'));
+    const rulesPath = join(rulesDir, 'rules.json');
+    await copyFile(DEFAULT_RULES, rulesPath);
+
+    const [directoryPort, tasksPort, gatewayPort] = await freePorts(3);
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      [SERVICE_KEY_ENV]: serviceKey,
+      [DATA_DIR_ENV]: dataDir,
+      [RULES_PATH_ENV]: rulesPath,
+      [TEST_HOOKS_ENV]: '1',
+      [PORT_ENV.directory]: String(directoryPort),
+      [PORT_ENV.tasks]: String(tasksPort),
+      [PORT_ENV.gateway]: String(gatewayPort),
+    };
+
+    const started: SpawnedService[] = [];
+    t.after(async () => {
+      await Promise.all(started.map((service) => stopChild(service.child)));
+      await rm(dataDir, { recursive: true, force: true });
+      await rm(rulesDir, { recursive: true, force: true });
+    });
+
+    const directory = spawnBuiltService('fake-directory', env);
+    const tasks = spawnBuiltService('fake-tasks', env);
+    started.push(directory, tasks);
+    await waitForHealth(directory, directoryPort ?? 0, serviceKey);
+    await waitForHealth(tasks, tasksPort ?? 0, serviceKey);
+
+    const startGateway = async (): Promise<SpawnedService> => {
+      const spawned = spawnBuiltService('gateway', env);
+      started.push(spawned);
+      await waitForHealth(spawned, gatewayPort ?? 0, serviceKey);
+      return spawned;
+    };
+    let gateway = await startGateway();
+
+    const base = `http://127.0.0.1:${gatewayPort}`;
+    const directoryUrl = `http://127.0.0.1:${directoryPort}`;
+    const tasksUrl = `http://127.0.0.1:${tasksPort}`;
+    const serviceHeaders = { authorization: `Bearer ${serviceKey}`, 'content-type': 'application/json' };
+
+    // Keys come from the identity module through its CLI; no raw key is written in this file.
+    const keys = runCli('seed-keys-main.js', [], env);
+    const hoa = keyOf(keys, 'hoa').key;
+    const nam = keyOf(keys, 'nam').key;
+    const nhung = keyOf(keys, 'nhung').key;
+
+    const call = (tool: string, args: unknown, key: string): Promise<Answer> => door.call(base, tool, args, key);
+
+    const draft = async (taskId: string, changes: Record<string, string>, key = hoa): Promise<ProposalAnswer> => {
+      const answer = await call('propose_task_change', { task_id: taskId, changes }, key);
+      assert.equal(answer.reasonCode, null, answer.text);
+      return proposalOf(answer.text);
+    };
+
+    const cardOf = async (proposalId: string, browser: Browser): Promise<string> => {
+      const response = await fetch(`${base}/xac-nhan/${proposalId}`, { headers: { cookie: browser.cookie } });
+      assert.equal(response.status, 200);
+      return response.text();
+    };
+
+    const taskOf = async (taskId: string): Promise<TaskView> => {
+      const response = await fetch(`${tasksUrl}/tasks/${taskId}`, { headers: serviceHeaders });
+      assert.equal(response.status, 200);
+      return (await response.json()) as TaskView;
+    };
+
+    const writeCount = async (taskId: string): Promise<number> => {
+      const response = await fetch(`${tasksUrl}/admin/write-count?task=${taskId}`, { headers: serviceHeaders });
+      assert.equal(response.status, 200);
+      return ((await response.json()) as { count: number }).count;
+    };
+
+    const setFault = async (fault: Record<string, unknown>): Promise<void> => {
+      const response = await fetch(`${tasksUrl}/admin/faults`, {
+        method: 'POST',
+        headers: serviceHeaders,
+        body: JSON.stringify(fault),
+      });
+      assert.equal(response.status, 200, await response.text());
+    };
+
+    const directPatch = (taskId: string, changes: Record<string, string>, expectedVersion: number, key: string): Promise<Response> =>
+      fetch(`${tasksUrl}/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { ...serviceHeaders, 'idempotency-key': key },
+        body: JSON.stringify({ changes, expected_version: expectedVersion }),
+      });
+
+    /** Change one person's role in the directory, as a transfer would. */
+    const setRole = async (employeeId: string, role: string): Promise<void> => {
+      const current = (await (await fetch(`${directoryUrl}/employees/${employeeId}`, { headers: serviceHeaders })).json()) as {
+        version: number;
+      };
+      const response = await fetch(`${directoryUrl}/employees/${employeeId}`, {
+        method: 'PATCH',
+        headers: serviceHeaders,
+        body: JSON.stringify({ expected_version: current.version, changes: { role } }),
+      });
+      assert.equal(response.status, 200, await response.text());
+    };
+
+    await t.test('SR1: Nam cannot move T-12, the refusal names anh Quang, and the trace keeps Nam', async () => {
+      const answer = await call('propose_task_change', { task_id: 'T-12', changes: { assignee: 'NV-04' } }, nam);
+      assert.equal(answer.reasonCode, 'NOT_PERMITTED');
+      assert.match(answer.text, /^CHƯA THỰC HIỆN \[NOT_PERMITTED\] /);
+      assert.ok(answer.text.includes('Trần Văn Quang'), 'the refusal says who to ask');
+      assert.ok(!answer.text.includes('/xac-nhan/'), 'a refused draft returns no link');
+      assert.equal(await writeCount('T-12'), 0);
+
+      const trace = traceTable(env, ['--employee', 'NV-05']);
+      assert.match(
+        trace,
+        new RegExp(
+          String.raw`NV-05\s+tho-than-desktop\s+${door.traceEntry}\s+propose_task_change\s+T-12\s+refused\s+NOT_PERMITTED\s+-\s+intern\.change_task_assignee_or_due`,
+        ),
+        'the trace names Nam and the rule the policy engine applied',
+      );
+
+      refusalsByDoor.set(door.name, { ...(refusalsByDoor.get(door.name) ?? { sr2: '' }), sr1: answer.text });
+    });
+
+    await t.test('SR2: a sales task is not found, and a role lowered before Gửi writes nothing', async () => {
+      const sales = await call('propose_task_change', { task_id: 'T-100', changes: { description: 'Mô tả mới' } }, hoa);
+      assert.equal(sales.reasonCode, null);
+      assert.equal(sales.text, 'Không tìm thấy task T-100.');
+      assert.equal(await writeCount('T-100'), 0);
+
+      const salesTrace = traceTable(env, ['--task', 'T-100']);
+      assert.match(
+        salesTrace,
+        new RegExp(
+          String.raw`NV-02\s+tho-than-desktop\s+${door.traceEntry}\s+propose_task_change\s+T-100\s+not_found\s+NOT_PERMITTED\s+out_of_scope\s+READ_SCOPE\.own_department`,
+        ),
+        'only the trace can tell a foreign task from a missing one',
+      );
+
+      const proposal = await draft('T-12', { assignee: 'NV-04' });
+      const browser = await signIn(base, hoa, proposal.id);
+      await setRole(HOA, 'intern');
+
+      const sent = await press(base, proposal.id, browser);
+      assert.equal(sent.status, 403);
+      assert.match(await sent.text(), /CHƯA THỰC HIỆN \[NOT_PERMITTED\] /);
+      assert.equal(await writeCount('T-12'), 0, 'the lowered role never reaches the task list');
+
+      const status = await call('get_request_status', { request_id: proposal.id }, hoa);
+      assert.equal(status.reasonCode, null);
+      assert.match(status.text, /đang chờ người yêu cầu bấm Gửi/, 'a refused press leaves the proposal unconfirmed');
+
+      const trace = traceTable(env, ['--task', 'T-12']);
+      assert.match(
+        trace,
+        new RegExp(
+          String.raw`NV-02\s+tho-than-desktop\s+web\s+proposal_send\s+T-12\s+refused\s+NOT_PERMITTED\s+-\s+intern\.change_task_assignee_or_due`,
+        ),
+        'the press is checked again against the role the directory holds now',
+      );
+
+      await setRole(HOA, 'staff');
+
+      refusalsByDoor.set(door.name, { ...(refusalsByDoor.get(door.name) ?? { sr1: '' }), sr2: sales.text });
+    });
+
+    await t.test('SR3: Nam edits a description but not an assignee, and a read-only key cannot draft', async () => {
+      const description = await call(
+        'propose_task_change',
+        { task_id: 'T-12', changes: { description: 'Gọi lại khách hàng X trước 17 giờ.' } },
+        nam,
+      );
+      assert.equal(description.reasonCode, null);
+      assert.match(description.text, /^Đã soạn đề xuất dx-/);
+      proposalOf(description.text);
+      assert.equal(await writeCount('T-12'), 0, 'a draft writes nothing');
+
+      const assignee = await call('propose_task_change', { task_id: 'T-12', changes: { assignee: 'NV-04' } }, nam);
+      assert.equal(assignee.reasonCode, 'NOT_PERMITTED');
+      assert.match(assignee.text, /^CHƯA THỰC HIỆN \[NOT_PERMITTED\] /);
+
+      const fullKey = await call('propose_task_change', { task_id: 'T-13', changes: { assignee: 'NV-04' } }, nhung);
+      assert.equal(fullKey.reasonCode, null, 'HR with a full key can change the assignee of a Vận hành task');
+      proposalOf(fullKey.text);
+
+      const readOnly = issueKey(env, 'NV-06', 'read_only');
+      const readOnlyAnswer = await call(
+        'propose_task_change',
+        { task_id: 'T-13', changes: { assignee: 'NV-04' } },
+        readOnly.key,
+      );
+      assert.equal(readOnlyAnswer.reasonCode, 'NOT_PERMITTED');
+      assert.match(readOnlyAnswer.text, /^CHƯA THỰC HIỆN \[NOT_PERMITTED\] /);
+      assert.match(readOnlyAnswer.text, /chỉ để đọc/, 'the sentence explains the declared scope');
+      assert.ok(!readOnlyAnswer.text.includes('/xac-nhan/'));
+      assert.equal(await writeCount('T-13'), 0);
+
+      const trace = traceTable(env, ['--employee', 'NV-06']);
+      assert.match(
+        trace,
+        /propose_task_change\s+T-13\s+ok\s+-\s+-\s+hr\.change_task_assignee_or_due/,
+        'the full key drafts',
+      );
+      assert.match(
+        trace,
+        /propose_task_change\s+T-13\s+refused\s+NOT_PERMITTED\s+-\s+SCOPE_READ_ONLY/,
+        'the read-only key is refused by the scope rule, not by the role',
+      );
+    });
+
+    await t.test('SR5: a broken rule file stops every draft and press, and a changed task is not overwritten', async () => {
+      const waiting = await draft('T-12', { assignee: 'NV-04' });
+      const browser = await signIn(base, hoa, waiting.id);
+
+      await writeFile(rulesPath, '{"version": 1, "roles":');
+
+      const blocked = await call('propose_task_change', { task_id: 'T-13', changes: { description: 'Mô tả mới' } }, hoa);
+      assert.equal(blocked.reasonCode, 'POLICY_UNAVAILABLE');
+      assert.match(blocked.text, /^CHƯA THỰC HIỆN \[POLICY_UNAVAILABLE\] /);
+
+      const sent = await press(base, waiting.id, browser);
+      assert.equal(sent.status, 503);
+      assert.match(await sent.text(), /CHƯA THỰC HIỆN \[POLICY_UNAVAILABLE\] /);
+      assert.equal(await writeCount('T-12'), 0, 'no rule file means no write');
+
+      const blockedTrace = traceTable(env);
+      assert.match(blockedTrace, /propose_task_change\s+-\s+refused\s+POLICY_UNAVAILABLE/);
+      assert.match(
+        blockedTrace,
+        /proposal_send\s+T-12\s+refused\s+POLICY_UNAVAILABLE\s+-\s+POLICY_UNAVAILABLE/,
+        'the press is refused before a command is created',
+      );
+
+      await copyFile(DEFAULT_RULES, rulesPath);
+
+      const waitingForTarget = await draft('T-12', { assignee: 'NV-04' });
+      const secondBrowser = await signIn(base, hoa, waitingForTarget.id);
+
+      // Someone else finishes T-12 while the proposal waits.
+      const direct = await directPatch('T-12', { status: 'done' }, 1, 'e2e-direct-write-T-12:1');
+      assert.equal(direct.status, 200, await direct.text());
+      assert.equal(await writeCount('T-12'), 1, 'only the direct write committed');
+
+      const pressed = await press(base, waitingForTarget.id, secondBrowser);
+      assert.equal(pressed.status, 303);
+      assert.equal(await writeCount('T-12'), 1, 'the gateway did not write over the other change');
+
+      const task = await taskOf('T-12');
+      assert.equal(task.status, 'done');
+      assert.equal(task.assignee, 'NV-03');
+      assert.equal(task.version, 2);
+
+      const status = await call('get_request_status', { request_id: waitingForTarget.id }, hoa);
+      assert.equal(status.reasonCode, 'TARGET_CHANGED');
+      assert.match(status.text, /\[TARGET_CHANGED\]/);
+      assert.match(status.text, /nhờ AI soạn lại/);
+
+      const card = await cardOf(waitingForTarget.id, secondBrowser);
+      assert.match(card, /\[TARGET_CHANGED\]/);
+      assert.match(card, /nhờ AI soạn lại/);
+
+      const trace = traceTable(env, ['--task', 'T-12']);
+      assert.match(trace, /write_command\s+T-12\s+refused\s+TARGET_CHANGED/);
+    });
+
+    await t.test('SR6: a lost answer is one write, and a retry reads the old result', async () => {
+      const proposal = await draft('T-19', { assignee: 'NV-04' });
+      const browser = await signIn(base, hoa, proposal.id);
+
+      // The next committed write is answered by closing the connection: the gateway cannot know it landed.
+      await setFault({ mode: 'drop_response_after_commit', count: 1 });
+
+      const sent = await press(base, proposal.id, browser);
+      assert.equal(sent.status, 303);
+
+      assert.equal(await writeCount('T-19'), 1, 'exactly one committed write, replays excluded');
+      const task = await taskOf('T-19');
+      assert.equal(task.assignee, 'NV-04');
+      assert.equal(task.version, 2, 'one write bumps the version one step');
+
+      const status = await call('get_request_status', { request_id: proposal.id }, hoa);
+      assert.match(status.text, /đã ghi thay đổi vào task T-19 ở lần gửi thứ 2/);
+      assert.equal(status.reasonCode, null);
+
+      const card = await cardOf(proposal.id, browser);
+      assert.match(card, /Đã ghi thay đổi vào task T-19 ở lần gửi thứ 2/);
+
+      const trace = traceTable(env, ['--task', 'T-19']);
+      assert.match(
+        trace,
+        new RegExp(
+          String.raw`write_command\s+T-19\s+ok\s+-\s+\S+\s+WRITE\.SEND\s+v1\s+-\s+${proposal.id}\s+${proposal.id}:1\s+2`,
+        ),
+        'the retry used the old key and the fake task replayed its stored answer',
+      );
+    });
+
+    await t.test('SR6: two presses at once commit one write', async () => {
+      const proposal = await draft('T-20', { status: 'done' });
+      const browser = await signIn(base, hoa, proposal.id);
+
+      const [first, second] = await Promise.all([press(base, proposal.id, browser), press(base, proposal.id, browser)]);
+      const statuses = [first.status, second.status].sort((a, b) => a - b);
+      assert.deepEqual(statuses, [303, 409], 'one press wins, the other is told the proposal was used');
+      const loser = first.status === 409 ? first : second;
+      assert.match(await loser.text(), /\[APPROVAL_USED\]/);
+
+      assert.equal(await writeCount('T-20'), 1, 'two presses, one committed write');
+      const task = await taskOf('T-20');
+      assert.equal(task.status, 'done');
+      assert.equal(task.version, 2);
+
+      const status = await call('get_request_status', { request_id: proposal.id }, hoa);
+      assert.match(status.text, /đã ghi thay đổi vào task T-20 ở lần gửi thứ 1/);
+    });
+
+    await t.test('SR6: a gateway stopped after sending resumes once and writes once', async () => {
+      const proposal = await draft('T-21', { assignee: 'NV-04' });
+      const browser = await signIn(base, hoa, proposal.id);
+
+      // The write commits, then its answer is held open so the gateway can be killed before reading it.
+      await setFault({ mode: 'delay_response_after_commit', count: 1, delay_ms: 2_000 });
+
+      const inFlight = press(base, proposal.id, browser).catch(() => undefined);
+
+      await eventually('the command to be sent and the task to be written', async () => {
+        const status = await call('get_request_status', { request_id: proposal.id }, hoa);
+        if (!status.text.includes('chưa nhận được kết quả')) return undefined;
+        return (await writeCount('T-21')) === 1 ? true : undefined;
+      });
+
+      await killChild(gateway.child);
+      await inFlight;
+
+      gateway = await startGateway();
+
+      const resumed = await eventually('the restarted gateway to settle the command', async () => {
+        const status = await call('get_request_status', { request_id: proposal.id }, hoa);
+        return status.text.includes('đã ghi thay đổi vào task T-21 ở lần gửi thứ 2') ? status : undefined;
+      });
+      assert.equal(resumed.reasonCode, null);
+
+      assert.equal(await writeCount('T-21'), 1, 'the restart sent the old key again and the fake task replayed');
+      const task = await taskOf('T-21');
+      assert.equal(task.assignee, 'NV-04');
+      assert.equal(task.version, 2);
+
+      const trace = traceTable(env, ['--task', 'T-21']);
+      assert.match(trace, /write_command\s+T-21\s+ok\s+-\s+\S+\s+WRITE\.RESUME\s+v1\s+-\s+\S+\s+\S+:1\s+2/);
+    });
   });
+}
 
-  const directory = spawnBuiltService('fake-directory', env);
-  const tasks = spawnBuiltService('fake-tasks', env);
-  started.push(directory, tasks);
-  await waitForHealth(directory, directoryPort ?? 0, serviceKey);
-  await waitForHealth(tasks, tasksPort ?? 0, serviceKey);
-
-  const gateway = spawnBuiltService('gateway', env);
-  started.push(gateway);
-  await waitForHealth(gateway, gatewayPort ?? 0, serviceKey);
-
-  const base = `http://127.0.0.1:${gatewayPort}`;
-  const tasksBase = `http://127.0.0.1:${tasksPort}`;
-  const hoa = keyOf(runCli('seed-keys-main.js', [], env), 'hoa');
-
-  const call = async (tool: string, args: unknown): Promise<ToolResponse> => {
-    const response = await fetch(`${base}/v1/tools/${tool}`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${hoa}`, 'content-type': 'application/json' },
-      body: JSON.stringify(args),
-    });
-    return (await response.json()) as ToolResponse;
-  };
-
-  const taskOf = async (taskId: string): Promise<{ assignee: string; status: string; version: number; description: string }> => {
-    const response = await fetch(`${tasksBase}/tasks/${taskId}`, { headers: { authorization: `Bearer ${serviceKey}` } });
-    assert.equal(response.status, 200);
-    return (await response.json()) as { assignee: string; status: string; version: number; description: string };
-  };
-
-  const writeCount = async (taskId: string): Promise<number> => {
-    const response = await fetch(`${tasksBase}/admin/write-count?task=${taskId}`, {
-      headers: { authorization: `Bearer ${serviceKey}` },
-    });
-    assert.equal(response.status, 200);
-    return ((await response.json()) as { count: number }).count;
-  };
-
-  await t.test('the task list commits the write once even when its answer is dropped', async () => {
-    const draft = await call('propose_task_change', { task_id: 'T-12', changes: { assignee: 'NV-04' } });
-    assert.equal(draft.reason_code, null);
-    const proposal = proposalOf(draft.text);
-    const browser = await signIn(base, hoa, proposal.id);
-
-    // The next committed write is answered by closing the connection: the gateway cannot know it landed.
-    const fault = await fetch(`${tasksBase}/admin/faults`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${serviceKey}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ mode: 'drop_response_after_commit', count: 1 }),
-    });
-    assert.equal(fault.status, 200);
-
-    const sent = await press(base, proposal.id, browser);
-    assert.equal(sent.status, 303);
-
-    assert.equal(await writeCount('T-12'), 1, 'exactly one committed write, replays excluded');
-    const task = await taskOf('T-12');
-    assert.equal(task.assignee, 'NV-04');
-    assert.equal(task.version, 2, 'one write bumps the version one step');
-
-    const status = await call('get_request_status', { request_id: proposal.id });
-    assert.match(status.text, /đã ghi thay đổi vào task T-12 ở lần gửi thứ 2/);
-    assert.equal(status.reason_code, null);
-
-    const card = await fetch(`${base}/xac-nhan/${proposal.id}`, { headers: { cookie: browser.cookie } });
-    assert.match(await card.text(), /Đã ghi thay đổi vào task T-12 ở lần gửi thứ 2/);
-
-    const trace = runCli('trace-main.js', ['--task', 'T-12'], env);
-    assert.match(trace, new RegExp(String.raw`write_command\s+T-12\s+ok\s+-\s+\S+\s+WRITE\.SEND\s+v1\s+-\s+${proposal.id}\s+${proposal.id}:1\s+2`));
-  });
-
-  await t.test('a task another person changed is left alone and the press reports TARGET_CHANGED', async () => {
-    const draft = await call('propose_task_change', { task_id: 'T-13', changes: { description: 'Mô tả do AI soạn' } });
-    const proposal = proposalOf(draft.text);
-    const browser = await signIn(base, hoa, proposal.id);
-
-    // Someone else finishes T-13 while the proposal waits.
-    const direct = await fetch(`${tasksBase}/tasks/T-13`, {
-      method: 'PATCH',
-      headers: {
-        authorization: `Bearer ${serviceKey}`,
-        'content-type': 'application/json',
-        'idempotency-key': 'e2e-direct-write-T-13:1',
-      },
-      body: JSON.stringify({ changes: { status: 'done' }, expected_version: 1 }),
-    });
-    assert.equal(direct.status, 200);
-    assert.equal(await writeCount('T-13'), 1, 'only the direct write committed so far');
-
-    const sent = await press(base, proposal.id, browser);
-    assert.equal(sent.status, 303);
-    assert.equal(await writeCount('T-13'), 1, 'the gateway did not write over the other change');
-
-    const task = await taskOf('T-13');
-    assert.equal(task.status, 'done');
-    assert.notEqual(task.description, 'Mô tả do AI soạn');
-    assert.equal(task.version, 2);
-
-    const status = await call('get_request_status', { request_id: proposal.id });
-    assert.match(status.text, /\[TARGET_CHANGED\]/);
-    assert.match(status.text, /nhờ AI soạn lại/);
-    assert.equal(status.reason_code, 'TARGET_CHANGED');
-
-    const card = await fetch(`${base}/xac-nhan/${proposal.id}`, { headers: { cookie: browser.cookie } });
-    const html = await card.text();
-    assert.match(html, /\[TARGET_CHANGED\]/);
-    assert.match(html, /nhờ AI soạn lại/);
-
-    const trace = runCli('trace-main.js', ['--task', 'T-13'], env);
-    assert.match(trace, /write_command\s+T-13\s+refused\s+TARGET_CHANGED/);
-  });
+test('gateway write path: the three doors refuse the same write in the same words', () => {
+  const first = refusalsByDoor.get('http');
+  assert.ok(first !== undefined, 'the http door ran');
+  for (const door of DOORS) {
+    assert.deepEqual(refusalsByDoor.get(door.name), first, `${door.name} refused in the same words`);
+  }
+  assert.match(first.sr1, /^CHƯA THỰC HIỆN \[NOT_PERMITTED\] /);
+  assert.equal(first.sr2, 'Không tìm thấy task T-100.');
 });

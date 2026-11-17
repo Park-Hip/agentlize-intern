@@ -283,7 +283,7 @@ Hướng dẫn cài phải ghi điều này, và ghi rõ đây cũng là điểm
 
 1. **Bộ luật quyền:** phép thử theo bảng, mỗi ô của ma trận PRD mục 3.2 là một ca.
 2. **Tám phép thử nghiệm thu:** chạy tự động, gọi tool trực tiếp không qua model, nên kết quả ổn định và không tốn tiền.
-   Mỗi phép thử chạy qua hai cửa: `/mcp` (một client HTTP tự viết mở kết nối mới cho mỗi lần gọi và cắt ở 60 giây, giống Thổ Thần) và API mà trợ lý gọi hàm dùng.
+   Mỗi phép thử chạy qua ba lối vào: API mà trợ lý gọi hàm dùng (`http`), `/mcp` bằng JSON-RPC (`mcp-http`), và `/mcp` bằng client mở phiên như máy chủ Thổ Thần (`tho-than-host`, cắt ở 60 giây).
 3. **Trong Thổ Thần:** bốn kịch bản ở 2.2, chạy tay, có ảnh chụp và log làm bằng chứng.
    Gói FREE có 500 credit, nên lớp này chỉ chạy khi nghiệm thu một mốc.
 
@@ -291,14 +291,14 @@ Hướng dẫn cài phải ghi điều này, và ghi rõ đây cũng là điểm
 
 | Yêu cầu | Phép thử tự động |
 | --- | --- |
-| SR1 (danh tính và một cửa ghi) | Khoá của Nam gọi `propose_task_change` đổi người phụ trách T-12: bị từ chối, vết ghi người yêu cầu là Nam. Thu hồi khoá của chị Hoa: lần gọi sau bị từ chối với `KEY_REVOKED`. Khoá của nhân vật "khách": mọi lệnh bị từ chối với `KEY_INVALID`. Đổi email của chị Hoa trong danh bạ giả: quyền của chị không đổi. Hai hệ thống giả từ chối lời gọi không mang khoá dịch vụ của cổng. |
-| SR2 (luật chạy được) | Khoá của chị Hoa đề xuất sửa một task phòng Kinh doanh: bị từ chối, dù không có prompt nào. Chị Hoa soạn đề xuất, rồi vai của chị bị hạ xuống thực tập sinh trước khi bấm Gửi: lệnh ghi bị từ chối với `NOT_PERMITTED`. |
-| SR3 (phạm vi quyền) | Chị Hoa `find_employee` anh Minh: không có số cá nhân. Thêm trường mới vào danh bạ giả mà luật chưa khai: trường đó không xuất hiện ở bất kỳ vai nào. Chị Hoa `find_employee` với một đoạn số điện thoại của anh Minh: không có kết quả, vì cổng không so khớp trên trường bị giữ. Chị Hoa `get_task` một task phòng Kinh doanh: "không tìm thấy". Chị Nhung dùng khoá khai báo "chỉ đọc", mô tả task chứa câu lừa sửa danh bạ: lệnh sửa bị chặn. Mô tả task chứa dấu đóng khối giả: dữ liệu vẫn nằm trọn trong khối có nhãn. Quét vết: 0 trường cá nhân. |
+| SR1 (danh tính và một cửa ghi) | Khoá của Nam gọi `propose_task_change` đổi người phụ trách T-12: bị từ chối kèm tên anh Quang, vết ghi người yêu cầu là Nam. Thu hồi khoá của chị Hoa: lần gọi sau bị từ chối với `KEY_REVOKED`. Khoá của nhân vật "khách": mọi lệnh bị từ chối với `KEY_INVALID`. Đổi email của chị Hoa trong danh bạ giả: quyền của chị không đổi. Hai hệ thống giả từ chối lời gọi không mang khoá dịch vụ của cổng. |
+| SR2 (luật chạy được) | Khoá của chị Hoa đề xuất sửa một task phòng Kinh doanh: nhận "không tìm thấy" và 0 lần ghi, dù không có prompt nào. Chị Hoa soạn đề xuất đổi người phụ trách một task Vận hành, rồi vai của chị bị hạ xuống thực tập sinh trước khi bấm Gửi: lệnh ghi bị từ chối với `NOT_PERMITTED` và 0 lần ghi. |
+| SR3 (phạm vi quyền) | Chị Hoa `find_employee` anh Minh: không có số cá nhân. Thêm trường mới vào danh bạ giả mà luật chưa khai: trường đó không xuất hiện ở bất kỳ vai nào. Chị Hoa `find_employee` với một đoạn số điện thoại của anh Minh: không có kết quả, vì cổng không so khớp trên trường bị giữ. Chị Hoa `get_task` một task phòng Kinh doanh: "không tìm thấy". Chị Nhung dùng khoá khai báo "chỉ đọc" gọi `propose_task_change` trên một task Vận hành mà khoá đầy đủ của chị được đổi: bị từ chối với `NOT_PERMITTED`; danh mục tool không có tool sửa danh bạ. Mô tả task chứa dấu đóng khối giả: dữ liệu vẫn nằm trọn trong khối có nhãn. Quét vết: 0 trường cá nhân. |
 | SR4 (điểm dừng rủi ro) | Chuyển 30 task: dừng chờ duyệt. Sửa nội dung đang lưu sau khi duyệt: bị từ chối với `CONTENT_CHANGED`. Duyệt quá hạn, duyệt lần hai, người yêu cầu tự duyệt, dùng lại phiên đăng nhập đã hết hạn: bị từ chối. Danh sách tool không có tool xác nhận hay duyệt. |
-| SR5 (không chắc thì chặn) | Làm hỏng file luật, hoặc cho bộ luật quyền ném lỗi: mọi lệnh ghi bị từ chối với `POLICY_UNAVAILABLE`, 0 bản ghi đổi. Sửa T-12 trực tiếp ở danh sách task giả sau khi đề xuất được soạn: lệnh ghi bị từ chối với `TARGET_CHANGED`, T-12 giữ giá trị mới. |
-| SR6 (không ghi trùng) | Danh sách task ghi xong nhưng cổng không nhận được phản hồi, rồi gửi lại: 1 task, và lần gửi lại nhận kết quả cũ chứ không nhận "xung đột". Bấm Gửi hai lần cùng lúc: 1 lần ghi. Tắt cổng ở ba thời điểm của Q1: đủ 30 task, không task nào ghi hai lần. |
+| SR5 (không chắc thì chặn) | Làm hỏng file luật, hoặc cho bộ luật quyền ném lỗi: mọi lệnh soạn và ghi bị từ chối với `POLICY_UNAVAILABLE`, 0 bản ghi đổi. Sửa T-12 trực tiếp ở danh sách task giả sau khi đề xuất được soạn: lệnh ghi bị từ chối với `TARGET_CHANGED`, T-12 giữ giá trị mới. |
+| SR6 (không ghi trùng) | Danh sách task ghi xong nhưng cổng không nhận được phản hồi, rồi gửi lại: 1 task, và lần gửi lại nhận kết quả cũ chứ không nhận "xung đột". Bấm Gửi hai lần cùng lúc: 1 lần ghi. Tắt cổng sau khi gửi, khởi động lại: gửi lại bằng mã cũ và đếm ghi bằng 1. |
 | SR7 (vết xuyên suốt) | Một truy vấn theo "T-12" trả đủ chuỗi: yêu cầu, quyết định luật, xác nhận, lệnh ghi, kết quả. Mọi lần từ chối trong vết có mã lý do. |
-| SR8 (dùng lại, quyền theo người) | Cùng bộ phép thử qua hai cửa cho cùng kết quả; 0 dòng sửa ở bộ nối khi thêm cửa thứ hai. |
+| SR8 (dùng lại, quyền theo người) | Cùng bộ phép thử qua ba lối vào `http`, `mcp-http`, `tho-than-host` cho cùng kết quả; 0 dòng sửa ở bộ nối khi thêm `/mcp`. |
 
 ### 8.3. Số đo đầu tiên
 
@@ -320,7 +320,7 @@ M4 (khả năng mở rộng) đo sau, ở bước đánh giá.
 | --- | --- | --- | --- |
 | 0 | ADR | Năm ADR ở mục 11 được chốt | Đầu tuần 2 |
 | 1 | Lát mỏng chỉ đọc | Kịch bản D chạy trong Thổ Thần; đổi khoá sang Nam thì vết ghi Nam; phép thử SR3 đạt, gồm trường chưa khai, "không tìm thấy" và khối dữ liệu có nhãn | Tuần 2 |
-| 2 | Ghi một task | Kịch bản A và B chạy trong Thổ Thần; SR1, SR2, SR5 (gồm `TARGET_CHANGED`) và phần gửi lại của SR6 đạt | Tuần 2, sang đầu tuần 3 nếu mốc 1 trễ |
+| 2 | Ghi một task | Kịch bản A và B chạy trong Thổ Thần; SR1, SR2, SR5 (gồm `TARGET_CHANGED`), phần gửi lại và phần khởi động lại của SR6 đạt | Tuần 2, sang đầu tuần 3 nếu mốc 1 trễ |
 | 3 | Duyệt và hàng loạt | Kịch bản C chạy trong Thổ Thần; SR4, SR7 và phần sập giữa chừng của SR6 đạt; trả lời Q1 | Tuần 3 |
 | 4 | Nơi gọi thứ hai và số đo đầu | SR8 đạt; có số M1, M2, M3, M5, M6 | Tuần 4 |
 

@@ -120,3 +120,13 @@ export async function stopChild(child: ChildProcess): Promise<void> {
     child.kill('SIGTERM');
   });
 }
+
+/** Stop a service the way a crash does: no signal handler, no closing the database. */
+export async function killChild(child: ChildProcess): Promise<void> {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+
+  await new Promise<void>((done) => {
+    child.once('exit', () => done());
+    child.kill('SIGKILL');
+  });
+}
