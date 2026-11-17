@@ -32,7 +32,7 @@ Mỗi nhánh bị ràng buộc sáu luật: chỉ nguồn gốc, mỗi khẳng �
 
 Tôi kiểm chéo lại 51 câu và khẳng định trọng yếu bằng `curl` cộng so khớp chuỗi, không tin bản tóm tắt của nhánh.
 Kết quả: 50 khớp nguyên văn, 1 trang trả về `Access Denied` và bị loại khỏi mọi kết luận (Salesforce, S52).
-Lệnh kiểm nằm ở `checks/real-system-architectures.sh`; chạy lại bằng `bash rd/01-explore/checks/real-system-architectures.sh`.
+Lệnh kiểm nằm ở `../checks/real-system-architectures.sh`; chạy lại bằng `bash rd/checks/real-system-architectures.sh`.
 
 Ba điều cố ý không làm:
 

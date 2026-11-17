@@ -338,5 +338,5 @@ Hai lệnh cuối cần mạng và Node 18 trở lên.
 Kiểm tra tài liệu này không có em dash:
 
 ```bash
-grep -n $'\u2014' rd/01-explore/appotapay-skills.md || echo "khong co em dash"
+grep -n $'\u2014' rd/appota/appotapay-skills.md || echo "khong co em dash"
 ```

@@ -26,7 +26,7 @@ Sáu bước, tất cả chạy lại được:
 3. Tải năm ảnh trong `screenshots/` của manifest và xem trực tiếp.
 4. Đọc bộ tài liệu ở `docs-srd.appota.ai/tho-than`: `sitemap-pages.xml`, `llms.txt`, `llms-full.txt` (78.220 byte), và từng trang `.md`.
 5. Gửi yêu cầu JSON-RPC vào endpoint MCP của bộ tài liệu để bắt tay và liệt kê tool.
-6. Viết script `checks/tho-than-platform.sh` mở lại từng nguồn và so khớp nguyên văn câu trích, gồm một hàm riêng cho redirect, một cho header, một cho bắt tay MCP.
+6. Viết script `rd/checks/tho-than-platform.sh` mở lại từng nguồn và so khớp nguyên văn câu trích, gồm một hàm riêng cho redirect, một cho header, một cho bắt tay MCP.
 
 Không tạo tài khoản, không đăng nhập, không gửi dữ liệu nào vào hệ thống.
 
@@ -272,7 +272,7 @@ GET vào cùng đường dẫn trả 405, nên một lần kiểm bằng trình 
 Kiểm chéo tự động:
 
 ```bash
-bash rd/01-explore/checks/tho-than-platform.sh
+bash rd/checks/tho-than-platform.sh
 ```
 
 Kết quả ngày 2026-11-13: 21 PASS, 0 MISS, 0 BLOCKED, mã thoát 0.

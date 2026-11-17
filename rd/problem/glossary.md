@@ -17,7 +17,7 @@ Trong bài viết, ưu tiên tên tiếng Việt; tên tiếng Anh để trong n
 | Danh mục tool               | Registry                           | Danh sách tool đang có, mô tả của chúng và nơi chúng được phép gọi tới.                                |
 | Danh tính                   | Identity                           | Thông tin cho biết ai đang yêu cầu (subject) và bên nào đang thực hiện (actor).                        |
 | Duyệt                       | Approval                           | Một người có quyền xác nhận trước khi lệnh rủi ro cao được ghi.                                        |
-| Dấu vân tay nội dung        | Hash                               | Một chuỗi ngắn tính từ nội dung lệnh; nội dung đổi một chữ thì dấu vân tay đổi theo.                   |
+| Dấu vân tay nội dung        | Hash, digest                       | Một chuỗi ngắn tính từ nội dung lệnh; nội dung đổi một chữ thì dấu vân tay đổi theo.                   |
 | Không chắc thì chặn         | Fail-closed                        | Khi không xác định được quyền, hệ thống từ chối thay vì cho qua.                                       |
 | Gửi lại                     | Retry                              | Gửi lại một lệnh khi lần trước không nhận được phản hồi.                                               |
 | Chống ghi trùng             | Idempotency                        | Gửi lại cùng một lệnh thì hệ thống không làm thêm lần nữa, chỉ trả lại kết quả cũ.                     |

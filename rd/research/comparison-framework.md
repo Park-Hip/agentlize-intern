@@ -78,7 +78,7 @@ Không đưa giá tiền ví dụ vì chưa chốt cấu hình Lab và chưa c�
 | M5 - vận hành | Service, cấu hình, deploy steps, điểm sửa policy | Chưa kiểm kê triển khai. |
 | M6 - tái dùng | Người-giờ, dòng code, connector phải sửa khi thêm agent | Chưa đo; gate nguồn: 0 connector sửa. |
 
-100 lần, tăng 10 lần và hai gate trên là từ [S02, mục 7.3](../00-frame/prd-ai-platform.md#73-sáu-chỉ-số-đo), không phải ngưỡng mới.
+100 lần, tăng 10 lần và hai gate trên là từ [S02, mục 7.3](../problem/prd-ai-platform.md#73-sáu-chỉ-số-đo), không phải ngưỡng mới.
 Latency, success rate và cost mục tiêu vẫn chờ baseline.
 
 ## 3. Phân tích từng phương pháp
@@ -107,7 +107,7 @@ Tính cả lỗi/retry vào chi phí trên thay đổi thành công; **Lab chưa
 
 **f. Bảo mật.**
 `strict: true` ràng buộc function schema theo giới hạn OpenAI, không xác thực actor hay cấp quyền sửa task.
-App phải kiểm actor/action/resource, lọc row/field và buộc approval tại nơi thực thi ([S03](https://platform.openai.com/docs/guides/function-calling), Strict mode; [S02, SR1-SR5](../00-frame/prd-ai-platform.md#6-yêu-cầu-bắt-buộc)).
+App phải kiểm actor/action/resource, lọc row/field và buộc approval tại nơi thực thi ([S03](https://platform.openai.com/docs/guides/function-calling), Strict mode; [S02, SR1-SR5](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc)).
 
 **g. Bảo trì - suy luận.**
 API nghiệp vụ đổi thì adapter/test contract đổi; provider đổi có thể ảnh hưởng schema/dispatch, không nhất thiết policy nếu tách tốt.
@@ -302,7 +302,7 @@ Mọi tổng chi phí, throughput, latency và độ ổn định Lab vẫn chư
 
 ## 5. Đối chiếu với nhu cầu của hệ thống
 
-Từng yêu cầu dưới đây lấy từ [S02, mục 6](../00-frame/prd-ai-platform.md#6-yêu-cầu-bắt-buộc).
+Từng yêu cầu dưới đây lấy từ [S02, mục 6](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc).
 SR áp cho tổ hợp, không đòi từng cơ chế đứng riêng đáp ứng tất cả; **chưa SR nào được đánh dấu đạt**.
 
 | Yêu cầu | Đóng góp cơ chế | App/hệ thống đích còn phải làm | Nguồn và phép kiểm chưa thực hiện |
@@ -335,7 +335,7 @@ Gate áp cho phương án triển khai sau này, không loại một cơ chế v
 | Trace nối quyết định-effect-cost | SR7 | Run có lỗi/resume, đối chiếu usage | Chưa đủ giải trình/đánh giá. |
 | Nơi gọi thứ hai reuse | SR8 | Quyền theo người ở cả hai nơi, không sửa connector | Chưa có reusable asset an toàn. |
 
-M2 gate 0 duplicate/0 lost và M6 gate 0 connector sửa giữ đúng [S02, mục 7.3](../00-frame/prd-ai-platform.md#73-sáu-chỉ-số-đo), không tuyên bố đạt chỉ vì có key/interface.
+M2 gate 0 duplicate/0 lost và M6 gate 0 connector sửa giữ đúng [S02, mục 7.3](../problem/prd-ai-platform.md#73-sáu-chỉ-số-đo), không tuyên bố đạt chỉ vì có key/interface.
 
 ### 6.2. Tiêu chí phân biệt
 
@@ -408,7 +408,7 @@ Nguồn live chưa có snapshot/commit; MCP ghim 2026-07-28.
 | Mã | Nguồn gốc | Phiên bản/phạm vi và vị trí |
 | --- | --- | --- |
 | S01 | [Chương trình TXT](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt) | Trang 5-6, dòng 151-240; Compare/Track 01/Lab/nghiệm thu. |
-| S02 | [Bước 0, mục 6 và 7.3](../00-frame/prd-ai-platform.md#6-yêu-cầu-bắt-buộc) | Chỉ dùng phần yêu cầu SR1-SR8 và chỉ số M1-M6; không dùng phụ lục thiết kế. |
+| S02 | [Bước 0, mục 6 và 7.3](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc) | Chỉ dùng phần yêu cầu SR1-SR8 và chỉ số M1-M6; không dùng phụ lục thiết kế. |
 | S03 | [OpenAI Function Calling](https://platform.openai.com/docs/guides/function-calling) | Live; tool flow, strict, formatting, token usage. |
 | S04 | [MCP Architecture](https://modelcontextprotocol.io/specification/2026-07-28/architecture) | 2026-07-28; components/stateless/capabilities/design. |
 | S05 | [MCP Tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) | 2026-07-28; list/call/schema/state/errors/security. |

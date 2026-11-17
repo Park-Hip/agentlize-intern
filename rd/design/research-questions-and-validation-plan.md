@@ -3,7 +3,7 @@
 Ngày: 2026-11-15. Trạng thái: bản nháp, chưa chạy phép thử nào, chưa có số đo.
 
 Mọi giả thuyết dưới đây đoán từ tài liệu nguồn và bước so sánh, chưa chạy trên Lab.
-Tám yêu cầu dùng để đối chiếu lấy từ [PRD](../00-frame/prd-ai-platform.md).
+Tám yêu cầu dùng để đối chiếu lấy từ [PRD](../problem/prd-ai-platform.md).
 
 ## Đọc nhanh
 
@@ -15,7 +15,7 @@ Tám yêu cầu dùng để đối chiếu lấy từ [PRD](../00-frame/prd-ai-p
 
 ## Nhân vật và tình huống
 
-Ví dụ trong bài dùng chung một câu chuyện ở phòng Vận hành, lấy từ [PRD, mục 1.1 và 3.2](../00-frame/prd-ai-platform.md#11-một-buổi-sáng-của-chị-hoa).
+Ví dụ trong bài dùng chung một câu chuyện ở phòng Vận hành, lấy từ [PRD, mục 1.1 và 3.2](../problem/prd-ai-platform.md#11-một-buổi-sáng-của-chị-hoa).
 Mọi người và dữ liệu đều là giả lập.
 
 | Ai | Là ai | Được làm gì với task |
@@ -36,18 +36,18 @@ Ba tình huống lặp lại trong bài:
 
 # 1. Hai câu hỏi
 
-[So sánh phương án, mục 4](../02-compare/option-comparison.md#4-ghép-thế-nào-để-tự-dựng-ít-nhất) chọn tạm một tổ hợp cho bản thử đầu, và còn nhiều điều chưa chắc.
+[So sánh phương án, mục 4](../research/option-comparison.md#4-ghép-thế-nào-để-tự-dựng-ít-nhất) chọn tạm một tổ hợp cho bản thử đầu, và còn nhiều điều chưa chắc.
 Một điều chỉ thành câu hỏi khi qua đủ hai điều kiện:
 
 1. **Chưa biết đáp án trước khi thử.**
 2. **Đáp án khác nhau dẫn tới cách làm hoặc kết luận khác nhau.**
 
-Điều nào đã biết đáp án vì chính Lab dựng ra thứ được thử thì là phép thử nghiệm thu, đã có ở [PRD, mục 6](../00-frame/prd-ai-platform.md#6-yêu-cầu-bắt-buộc).
+Điều nào đã biết đáp án vì chính Lab dựng ra thứ được thử thì là phép thử nghiệm thu, đã có ở [PRD, mục 6](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc).
 
 Lab là bản thử trên dữ liệu giả lập, nên nơi gọi thứ hai cũng do Lab tự viết.
 Nơi gọi thứ hai là chỗ thứ hai người dùng nhờ AI, ngoài khung trò chuyện của Lab; ở đây là một trợ lý AI thứ hai, ví dụ trợ lý tóm tắt task.
 Vì Lab viết cả hai đầu, cách gửi danh tính người dùng và cách chống làm một việc hai lần đều là quyết định thiết kế đã biết đáp án, kiểm bằng phép thử nghiệm thu của PRD.
-Cắm thử Lab vào phần mềm có sẵn của công ty, như Thổ Thần web, để sau, như [PRD, mục 8.1](../00-frame/prd-ai-platform.md#81-đã-có-và-cần-làm) đã ghi.
+Cắm thử Lab vào phần mềm có sẵn của công ty, như Thổ Thần web, để sau, như [PRD, mục 8.1](../problem/prd-ai-platform.md#81-đã-có-và-cần-làm) đã ghi.
 
 Chỉ hai điều qua đủ hai điều kiện, và chúng nằm ở hai điểm trên hành trình "chuyển T-12 sang anh Minh".
 
@@ -134,7 +134,7 @@ Chạy mỗi cách 100 lần, đo thời gian và chi phí.
 | Hai cách ngang nhau, hoặc MCP chậm hơn, đắt hơn | Không nên dùng MCP khi mọi nơi gọi do cùng một nhóm viết; MCP chỉ đáng dùng khi phải cắm vào phần mềm của bên khác. |
 
 Dù số đo ra sao, kết luận cũng ghi thêm một phát hiện từ đọc tài liệu.
-Cắm MCP vào phần mềm có sẵn mà chỉ dùng một khóa cho cả bản cài thì ai dùng phần mềm đó cũng mượn được quyền của người đã cài ([phụ lục bằng chứng, mục 3.2](../02-compare/comparison-framework.md#32-mcp)).
+Cắm MCP vào phần mềm có sẵn mà chỉ dùng một khóa cho cả bản cài thì ai dùng phần mềm đó cũng mượn được quyền của người đã cài ([phụ lục bằng chứng, mục 3.2](../research/comparison-framework.md#32-mcp)).
 
 # Phụ lục A - Chi tiết kỹ thuật từng câu hỏi
 
@@ -175,7 +175,7 @@ Kết quả câu này cũng là bằng chứng cho việc khi nào cần công c
 
 1. Thêm trợ lý AI thứ hai cho từng cách nối; ghi giờ công, số dòng code và số bộ nối phải sửa.
 2. Chạy cùng tám phép thử nghiệm thu của PRD từ cả hai nơi gọi; kết quả phải giống nhau.
-3. Chạy mỗi cách 100 lần trên khung trò chuyện của Lab, đo thời gian và chi phí theo [PRD, mục 7.3](../00-frame/prd-ai-platform.md#73-sáu-chỉ-số-đo).
+3. Chạy mỗi cách 100 lần trên khung trò chuyện của Lab, đo thời gian và chi phí theo [PRD, mục 7.3](../problem/prd-ai-platform.md#73-sáu-chỉ-số-đo).
 
 Mức chênh thế nào là "rõ" được chốt sau lần đo đầu tiên (baseline), không chốt trước.
 
@@ -186,8 +186,8 @@ Mức chênh thế nào là "rõ" được chốt sau lần đo đầu tiên (ba
 
 # Phụ lục B - Nguồn
 
-- [So sánh phương án](../02-compare/option-comparison.md): tổ hợp chọn tạm và điều kiện xem lại.
-- [Phụ lục bằng chứng của bước so sánh](../02-compare/comparison-framework.md): nguồn gốc từng nhận định; xác thực tùy chọn của MCP ở [mục 3.2](../02-compare/comparison-framework.md#32-mcp); danh sách giả thuyết ban đầu ở [mục 7.3](../02-compare/comparison-framework.md#73-câu-hỏi-chuyển-bước-03).
-- [Khảo sát Thổ Thần, mục 5](../01-explore/tho-than-platform.md#52-lobehub-là-mcp-host-nên-thực-thể-1-có-thể-cắm-được-mcp-server): Thổ Thần web cắm được máy chủ công cụ, dùng cho việc để sau.
-- [PRD, mục 6](../00-frame/prd-ai-platform.md#6-yêu-cầu-bắt-buộc) và [mục 7.3](../00-frame/prd-ai-platform.md#73-sáu-chỉ-số-đo): tám yêu cầu SR1-SR8, sáu chỉ số M1-M6 và các ca thử gốc.
+- [So sánh phương án](../research/option-comparison.md): tổ hợp chọn tạm và điều kiện xem lại.
+- [Phụ lục bằng chứng của bước so sánh](../research/comparison-framework.md): nguồn gốc từng nhận định; xác thực tùy chọn của MCP ở [mục 3.2](../research/comparison-framework.md#32-mcp); danh sách giả thuyết ban đầu ở [mục 7.3](../research/comparison-framework.md#73-câu-hỏi-chuyển-bước-03).
+- [Khảo sát Thổ Thần, mục 5](../appota/tho-than-platform.md#52-lobehub-là-mcp-host-nên-thực-thể-1-có-thể-cắm-được-mcp-server): Thổ Thần web cắm được máy chủ công cụ, dùng cho việc để sau.
+- [PRD, mục 6](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc) và [mục 7.3](../problem/prd-ai-platform.md#73-sáu-chỉ-số-đo): tám yêu cầu SR1-SR8, sáu chỉ số M1-M6 và các ca thử gốc.
 - [Chương trình R&D, trang 5-6](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt): yêu cầu của bước Question và tiêu chí nghiệm thu của Track 01.
