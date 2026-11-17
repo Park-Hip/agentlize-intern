@@ -5,10 +5,8 @@ import type { CallToolResult, ServerNotification, ServerRequest } from "@modelco
 import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
 import { z } from "zod";
 import type { ProbeContext } from "./context.js";
-import { labEnv, redactHeaders } from "./log.js";
-
-export const PROBE_VERSION = "0.1.0";
-export const SERVER_NAME = "tho-than-mcp-probe";
+import { labEnv, identityHeaders, redactHeaders } from "./log.js";
+import { PROBE_VERSION, SERVER_NAME } from "./meta.js";
 
 export const TOOL_NAMES = [
   "whoami",
@@ -129,15 +127,6 @@ function httpSnapshot(ctx: ProbeContext, extra: Extra): Record<string, unknown> 
     headers: redactHeaders(headers),
     rawHeaderNames: Object.keys(headers),
   };
-}
-
-const IDENTITY_HEADER_PATTERN = /(auth|cookie|session|user|email|trace|request-id|correlation|forwarded|origin|referer|user-agent)/i;
-
-function identityHeaders(headers: Record<string, unknown> | undefined): Record<string, unknown> {
-  if (!headers) return {};
-  return Object.fromEntries(
-    Object.entries(headers).filter(([name]) => IDENTITY_HEADER_PATTERN.test(name)),
-  );
 }
 
 function traceSnapshot(ctx: ProbeContext, extra: Extra): Record<string, unknown> {

@@ -145,9 +145,14 @@ npm run build
 node dist/index.js --stdio                     # stdio transport, the host spawns this
 node dist/index.js --http --port 8787          # Streamable HTTP at http://localhost:8787/mcp
 node dist/index.js --http --port 8787 --bearer <token>
-npm run selftest                               # build, run both transports, assert the log lines
+node dist/index.js --openai-provider --port 8787  # OpenAI-compatible model provider: GET /v1/models, POST /v1/chat/completions
+npm run selftest                               # build, run every mode, assert the log lines
 npm run summarize -- <log-file-or-directory>   # print the facts needed for the P1-P5 tables
 ```
+
+The provider mode returns one fixed answer and never calls a model.
+It logs the OpenAI `user` field and the identity headers (`x-user-id`, `x-user-email`, `x-agent-id`, `x-executor-id`) with keys redacted like the other modes.
+It measures the third architecture candidate in `rd/design/mvp-spec.md`, using the model-call identity finding in `rd/appota/tho-than-platform.md` section 6.3; it is not a Lab component.
 
 The self-test must print a `SELFTEST PASSED: <n> checks` line.
 Build, run and troubleshooting details are in `tools/mcp-probe/README.md`.

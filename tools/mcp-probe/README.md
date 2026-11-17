@@ -8,8 +8,8 @@ Không có tên thật, không có email thật, không có token thật.
 ## Đọc nhanh
 
 - Cắm server này vào Thổ Thần desktop để trả lời năm câu hỏi P1-P5 (giao thức, danh tính, duyệt, thử lại, hiển thị) trong runbook `rd/appota/tho-than-mcp-probe.md`.
-- Chạy được hai kiểu: stdio (host tự spawn) và Streamable HTTP trên localhost.
-- Mọi request HTTP và mọi thông điệp JSON-RPC được ghi thành một dòng JSON trong `scratch/mcp-probe/log-<timestamp>.jsonl`.
+- Chạy được ba kiểu: stdio (host tự spawn), Streamable HTTP trên localhost, và giả làm nhà cung cấp mô hình kiểu OpenAI để đo danh tính trong lời gọi mô hình.
+- Mọi request HTTP và mọi thông điệp JSON-RPC hoặc lời gọi mô hình được ghi thành một dòng JSON trong `scratch/mcp-probe/log-<timestamp>.jsonl`.
 - Giá trị Authorization được che còn 6 ký tự đầu cộng độ dài, không bao giờ ghi nguyên token.
 - Tự kiểm tra bằng `npm run selftest`; lần chạy gần nhất đạt toàn bộ kiểm tra.
 
@@ -117,18 +117,68 @@ Trang `/approve/<id>` cố ý không đòi xác thực, vì link duyệt đượ
 
 | Tham số | Mặc định | Ý nghĩa |
 | --- | --- | --- |
-| `--stdio` | - | giao thức qua stdin/stdout |
-| `--http` | - | Streamable HTTP |
-| `--port <n>` | 8787 | cổng HTTP |
-| `--host <addr>` | 127.0.0.1 | địa chỉ nghe |
-| `--bearer <token>` | không có | bắt buộc bearer token |
-| `--public-url <url>` | tự suy ra | địa chỉ dùng trong link của `echo_link` |
+| `--stdio` | - | giao thức MCP qua stdin/stdout |
+| `--http` | - | MCP qua Streamable HTTP |
+| `--openai-provider` | - | giả làm nhà cung cấp mô hình kiểu OpenAI |
+| `--port <n>` | 8787 | cổng HTTP, dùng cho `--http` và `--openai-provider` |
+| `--host <addr>` | 127.0.0.1 | địa chỉ nghe, dùng cho `--http` và `--openai-provider` |
+| `--bearer <token>` | không có | bắt buộc bearer token ở cả hai chế độ HTTP |
+| `--public-url <url>` | tự suy ra | địa chỉ host dùng: link của `echo_link` ở `--http`, hoặc địa chỉ hiện trên `/` và `/health` ở `--openai-provider` |
 | `--log-dir <dir>` | `<repo>/scratch/mcp-probe` | nơi ghi log |
 | `--tls-cert <file>` | không có | chứng chỉ HTTPS |
 | `--tls-key <file>` | không có | khóa HTTPS |
 | `-h`, `--help` | - | in hướng dẫn |
 
-## 5. Thêm server vào Thổ Thần desktop
+Chọn đúng một trong ba chế độ.
+Khi chạy sau tunnel, truyền `--public-url` để trang chủ và `/health` hiện đúng địa chỉ mà host dùng.
+
+## 5. Chạy chế độ nhà cung cấp mô hình kiểu OpenAI
+
+Chế độ này giả làm một nhà cung cấp mô hình tương thích OpenAI để trả lời một câu hỏi hẹp: khi Thổ Thần gọi mô hình, lời gọi có mang danh tính người dùng không?
+Nó không gọi mô hình thật, không tính chi phí và luôn trả đúng một câu.
+
+```bash
+node dist/index.js --openai-provider --port 8787 --bearer khoa-thu-nghiem
+```
+
+Khi chạy sau tunnel, thêm địa chỉ công khai để trang chủ và `/health` hiện đúng:
+
+```bash
+node dist/index.js --openai-provider --port 8787 --bearer khoa-thu-nghiem --public-url https://ten-mien-tunnel.example
+```
+
+`--public-url` là gốc của tunnel, không kèm `/v1`; chế độ provider tự thêm `/v1` vào base URL.
+
+| Đường dẫn | Việc gì |
+| --- | --- |
+| `POST /v1/chat/completions` | trả câu cố định, hỗ trợ cả trả một lần và luồng SSE |
+| `GET /v1/models` | trả danh sách một model `mcp-probe-fixed` |
+| `GET /health` | JSON trạng thái, không cần xác thực |
+| `GET /` | trang chủ nhỏ cho người đọc |
+
+Thêm nhà cung cấp trong Thổ Thần:
+
+1. Mở Cài đặt, tìm mục nhà cung cấp mô hình (model provider), chọn loại OpenAI-compatible hoặc tùy chỉnh.
+2. Base URL: `http://localhost:8787/v1` khi thử trên máy, hoặc `https://<tên-miền-tunnel>/v1` khi chạy qua tunnel.
+3. API key: đúng giá trị đã truyền cho `--bearer`.
+4. Model: `mcp-probe-fixed`.
+5. Gửi một câu bất kỳ, rồi mở file log.
+
+Mỗi lời gọi mô hình ghi một dòng `openai_request` với:
+
+- `user` và `userPresent`: trường `user` của OpenAI, nếu host gửi.
+- `identityHeaders`: các header như `x-user-id`, `x-user-email`, `x-agent-id`, `x-executor-id`, và `authorization` đã che.
+- `model`, `stream`, `messageCount`, `messageRoles`, `bodyBytes`, `bodyPreview` (tối đa 4.000 ký tự).
+
+`bodyPreview` có thể chứa nội dung câu chat, nên chỉ gửi dữ liệu giả lập và giữ log trong `scratch/`.
+
+Dòng `openai_response` ghi thời gian và việc luồng có chạy xong hay không.
+Trường `usage` trong câu trả lời luôn bằng 0 vì không có mô hình nào chạy; đừng dùng số đó để đo chi phí.
+
+**Kết luận:** nếu hai tài khoản khác nhau cho ra `user` hoặc header danh tính khác nhau, cách nối "cổng đóng vai mô hình" giữ được danh tính.
+Nếu mọi tài khoản giống nhau, cách này lặp lại lỗi tài khoản dùng chung và không đáng dựng.
+
+## 6. Thêm server vào Thổ Thần desktop
 
 Phần này do người dùng giao diện làm, agent không mở được app.
 Các nhãn menu có thể khác nhau giữa các bản LobeHub, nên hãy tìm mục có chữ MCP.
@@ -143,10 +193,10 @@ Phiên bản Thổ Thần đang dùng là bản đổi nhãn của LobeHub 2.1.5
 7. Bật MCP server này cho agent hoặc cuộc chat sẽ dùng, vì LobeHub thường chỉ gắn công cụ vào chat sau khi bật.
 8. Gõ thử: `Gọi tool whoami của MCP server mcp-probe và in nguyên văn kết quả.`
 
-Nếu danh sách tool không hiện, xem log và bảng lỗi thường gặp ở mục 9.
+Nếu danh sách tool không hiện, xem log và bảng lỗi thường gặp ở mục 10.
 Nếu form chỉ có SSE mà không có Streamable HTTP, ghi lại làm bằng chứng P1, vì probe này không chạy transport SSE cũ.
 
-## 6. Tám tool và câu hỏi chúng trả lời
+## 7. Tám tool và câu hỏi chúng trả lời
 
 | Tool | Annotation | Việc làm | Câu hỏi |
 | --- | --- | --- | --- |
@@ -162,7 +212,7 @@ Nếu form chỉ có SSE mà không có Streamable HTTP, ghi lại làm bằng c
 Mọi mô tả tool bằng tiếng Việt để thấy host hiển thị chúng thế nào.
 Tên tool giữ tiếng Anh để dễ gọi và dễ grep trong log.
 
-## 7. Log
+## 8. Log
 
 Mặc định log nằm ở `scratch/mcp-probe/log-<timestamp>.jsonl` của repo, bất kể host spawn tiến trình ở thư mục nào.
 Mỗi dòng là một JSON object độc lập, không xuống dòng bên trong.
@@ -184,15 +234,17 @@ Các loại dòng chính:
 | `ask_confirm_branch`, `ask_confirm_result` | nhánh elicitation và câu trả lời |
 | `approve_visit` | một lượt bấm link duyệt, kèm User-Agent và Referer |
 | `extra_meta` | khóa lạ trong `_meta`, ví dụ dấu vết hoặc thông tin chi phí |
+| `openai_request` | một lời gọi mô hình: `user`, `userPresent`, header danh tính, model, stream, số message và phần đầu body |
+| `openai_response` | phản hồi của provider giả lập: thời gian, số đoạn stream, luồng có chạy xong không |
 
-Giá trị của `authorization`, `proxy-authorization`, `cookie`, `set-cookie` và `x-api-key` được thay bằng 6 ký tự đầu cộng độ dài, ví dụ `Bearer...(len=34)`.
+Giá trị của `authorization`, `proxy-authorization`, `cookie`, `set-cookie`, `x-api-key`, `api-key`, `x-auth-token` và `x-goog-api-key` được thay bằng 6 ký tự đầu cộng độ dài, ví dụ `Bearer...(len=34)`.
 Giá trị ngắn hơn hoặc bằng 8 ký tự bị che hoàn toàn.
 Không có token nào được ghi nguyên văn; self-test kiểm tra đúng điều này.
 
 Log nằm trong `scratch/`, thư mục đã được git bỏ qua.
 Đừng commit log và đừng dán log lên kênh công khai nếu host có gửi header lạ.
 
-## 8. Đọc log nhanh
+## 9. Đọc log nhanh
 
 Lệnh tóm tắt đọc file log mới nhất dưới `scratch/mcp-probe`:
 
@@ -207,7 +259,7 @@ node dist/summarize.js ../../scratch/mcp-probe/log-20261116-145212-526.jsonl
 node dist/summarize.js ../../scratch/mcp-probe/
 ```
 
-Kết quả tóm tắt gồm: phiên và clientInfo, header giống danh tính, dấu vết, số lần gọi từng tool, số lần `flaky`, vòng đời `slow`, nhánh `ask_confirm`, lượt bấm link duyệt và các kết quả `isError`.
+Kết quả tóm tắt gồm: phiên và clientInfo, header giống danh tính, dấu vết, số lần gọi từng tool, số lần `flaky`, vòng đời `slow`, nhánh `ask_confirm`, lượt bấm link duyệt, các kết quả `isError`, và với chế độ provider là trường `user` cùng header danh tính của từng lời gọi mô hình.
 Đây chỉ là số liệu thô để điền bảng trong runbook, không phải kết luận.
 
 Theo dõi trực tiếp:
@@ -216,14 +268,14 @@ Theo dõi trực tiếp:
 tail -f ../../scratch/mcp-probe/log-*.jsonl
 ```
 
-## 9. Tự kiểm tra
+## 10. Tự kiểm tra
 
 ```bash
 npm run selftest
 ```
 
-Script này build lại, chạy server ở cả hai transport, nối bằng SDK client chính thức, gọi đủ 7 tool và kiểm tra từng dòng log.
-Nó cũng thử client có và không có khai báo elicitation, tiến độ, hủy giữa chừng, CORS, chế độ bearer và việc che token.
+Script này build lại, chạy server ở cả hai transport MCP và chế độ nhà cung cấp mô hình, nối bằng SDK client chính thức, gọi đủ 8 tool, gọi thử cả hai dạng trả lời của mô hình và kiểm tra từng dòng log.
+Nó cũng thử client có và không có khai báo elicitation, tiến độ, hủy giữa chừng, CORS, chế độ bearer, việc che token và việc ghi trường `user` cùng header danh tính.
 Kết quả đúng phải có một dòng dạng:
 
 ```
@@ -243,7 +295,7 @@ npx --yes @modelcontextprotocol/inspector@2.15.0 --cli --transport http --server
 Lần chạy đã kiểm chứng với Inspector 2.15.0 trên Node 22.21.0.
 npm có thể in cảnh báo engine vì Inspector khai báo Node mới hơn, nhưng CLI vẫn chạy.
 
-### 9.1. Lỗi thường gặp
+### 10.1. Lỗi thường gặp
 
 | Hiện tượng | Nguyên nhân thường gặp | Cách xử lý |
 | --- | --- | --- |
@@ -254,23 +306,30 @@ npm có thể in cảnh báo engine vì Inspector khai báo Node mới hơn, nh�
 | 406 | host gửi `Accept` không đúng chuẩn Streamable HTTP | ghi lại làm bằng chứng P1 |
 | Trình duyệt báo CORS | gọi từ bản web, không phải desktop | probe đã bật CORS; kiểm tra lại URL và mixed content |
 | Trình duyệt không gửi cookie | CORS đang để `*`, không đi với credentials | ghi lại làm bằng chứng P1, thử bản desktop |
+| Provider trả 401 | đang bật `--bearer` nhưng ô API key của nhà cung cấp chưa khớp | nhập đúng khoá, hoặc chạy lại không `--bearer` trong buổi thử ngắn |
+| Provider trả 404 `model_not_found` | host hỏi một model khác `mcp-probe-fixed` | khai đúng model trong form của nhà cung cấp |
+| Provider trả lời nhưng log không có `user` | host không gửi trường `user`; đó là kết quả đo, không phải lỗi | đọc thêm `identityHeaders` để xem có header danh tính nào khác |
 | Không thấy file log | host spawn ở thư mục khác, hoặc không có quyền ghi | mặc định log ở `scratch/mcp-probe` của repo; nếu vẫn không thấy thì truyền `--log-dir` tuyệt đối trong args |
 
-## 10. Giới hạn
+## 11. Giới hạn
 
 - Đây là đồ nghề để đo, không phải mẫu để đưa vào sản phẩm.
 - Không có xác thực cho trang `/approve`, không có OAuth server, không có lưu trữ bền vững.
 - Phiên Streamable HTTP nằm trong bộ nhớ, nên khởi động lại server là mất phiên.
 - Không chạy transport SSE cũ, nên nếu host chỉ có SSE thì đó là một phát hiện P1.
+- Chế độ provider chỉ có `/v1/models` và `/v1/chat/completions`; không có embeddings, function calling hay audio, và luôn trả cùng một câu.
+- Số token trong `usage` của provider luôn bằng 0 vì không có mô hình nào chạy; không dùng nó để đo chi phí.
 - Không đo độ trễ chuẩn, không đo chi phí token; nó chỉ ghi lại những gì host gửi.
 - Không quyết định kiến trúc, không thay thế ADR-0001.
 - Khi không đặt `--bearer`, bất kỳ trang web nào trên máy cũng có thể gọi endpoint localhost, nên chỉ chạy trong lúc đo.
-- Log có thể chứa header do host gửi; giữ trong `scratch/` và không dán công khai.
+- Log có thể chứa header do host gửi và phần đầu nội dung chat; giữ trong `scratch/` và không dán công khai.
 
-## 11. Nguồn
+## 12. Nguồn
 
 - Đặc tả MCP, transports: https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
 - Đặc tả MCP, tools và annotations: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
 - Đặc tả MCP, elicitation: https://modelcontextprotocol.io/specification/2025-06-18/client/elicitation
+- OpenAI API, chat completions: https://platform.openai.com/docs/api-reference/chat
+- OpenAI API, models: https://platform.openai.com/docs/api-reference/models
 - TypeScript SDK chính thức: https://github.com/modelcontextprotocol/typescript-sdk
 - LobeHub, nền tảng gốc của Thổ Thần: https://github.com/lobehub/lobehub

@@ -18,6 +18,7 @@ import { getDefaultEnvironment, StdioClientTransport } from "@modelcontextprotoc
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { findRepoRoot } from "./log.js";
+import { PROVIDER_FIXED_REPLY } from "./openai.js";
 
 type LogEntry = Record<string, any>;
 
@@ -91,14 +92,18 @@ interface HttpServerHandle {
   stop: () => Promise<void>;
 }
 
-async function startHttpServer(logDir: string, extraArgs: string[] = []): Promise<HttpServerHandle> {
+async function startServer(
+  mode: "--http" | "--openai-provider",
+  logDir: string,
+  extraArgs: string[] = [],
+): Promise<HttpServerHandle> {
   const port = await freePort();
   const baseUrl = `http://127.0.0.1:${port}`;
-  const child = spawn(
-    process.execPath,
-    [SERVER_ENTRY, "--http", "--port", String(port), "--log-dir", logDir, "--public-url", baseUrl, ...extraArgs],
-    { stdio: ["ignore", "pipe", "pipe"] },
-  );
+  const args = [SERVER_ENTRY, mode, "--port", String(port), "--log-dir", logDir, "--public-url", baseUrl];
+  args.push(...extraArgs);
+  const child = spawn(process.execPath, args, {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
   spawned.push(child);
   let stderr = "";
   child.stdout?.on("data", (chunk) => (stderr += String(chunk)));
@@ -155,7 +160,7 @@ async function main(): Promise<void> {
   console.log(`log root: ${LOG_ROOT}\n`);
 
   // ---------------------------------------------------------------- stdio
-  console.log("[1/4] stdio transport, basic client");
+  console.log("[1/5] stdio transport, basic client");
   const stdioDir = join(LOG_ROOT, "stdio-basic");
   const stdioTransport = new StdioClientTransport({
     command: process.execPath,
@@ -250,7 +255,7 @@ async function main(): Promise<void> {
   check("stdio: every tool_call has its raw JSON-RPC request line", allToolCallsLogged);
 
   // ------------------------------------------------- stdio with elicitation
-  console.log("\n[2/4] stdio transport, elicitation client");
+  console.log("\n[2/5] stdio transport, elicitation client");
   const elicitDir = join(LOG_ROOT, "stdio-elicit");
   const elicitTransport = new StdioClientTransport({
     command: process.execPath,
@@ -297,9 +302,9 @@ async function main(): Promise<void> {
   check("stdio: notifications/cancelled is logged as an incoming message", elicitLog.some((entry) => entry.kind === "jsonrpc" && entry.direction === "in" && entry.message?.method === "notifications/cancelled"));
 
   // ------------------------------------------------------- HTTP, no bearer
-  console.log("\n[3/4] HTTP transport, no bearer configured");
+  console.log("\n[3/5] HTTP transport, no bearer configured");
   const httpDir = join(LOG_ROOT, "http-open");
-  const httpServer = await startHttpServer(httpDir);
+  const httpServer = await startServer("--http", httpDir);
   const testToken = "probe-auth-token-1234567890";
 
   const health = await fetch(`${httpServer.baseUrl}/health`, {
@@ -406,10 +411,10 @@ async function main(): Promise<void> {
   check("summary: summarizer reads the HTTP log", summary.includes("== Tổng quan ==") && summary.includes("whoami") && summary.includes("Ghi giả lập"));
 
   // --------------------------------------------------------- HTTP, bearer
-  console.log("\n[4/4] HTTP transport, bearer configured");
+  console.log("\n[4/5] HTTP transport, bearer configured");
   const authDir = join(LOG_ROOT, "http-bearer");
   const secret = "selftest-secret-token";
-  const authServer = await startHttpServer(authDir, ["--bearer", secret]);
+  const authServer = await startServer("--http", authDir, ["--bearer", secret]);
 
   const unauth = await fetch(`${authServer.baseUrl}/mcp`, {
     method: "POST",
@@ -445,6 +450,148 @@ async function main(): Promise<void> {
   check("http+bearer: the secret never appears in the log", !authRaw.includes(secret));
   check("http+bearer: the redacted Authorization string is present", authRaw.includes("Bearer...(len="));
   check("http+bearer: the 401 response is logged", authLog.some((entry) => entry.kind === "http_response" && entry.statusCode === 401));
+
+  // ------------------------------------ OpenAI-compatible model provider
+  console.log("\n[5/5] OpenAI-compatible model provider");
+  const providerDir = join(LOG_ROOT, "openai-provider");
+  const providerToken = "provider-key-selftest-1234567890";
+  const providerServer = await startServer("--openai-provider", providerDir, ["--bearer", providerToken]);
+
+  const providerHealth = await fetch(`${providerServer.baseUrl}/health`);
+  const providerHealthBody = (await providerHealth.json()) as Record<string, any>;
+  check(
+    "provider: /health reports the provider mode and model",
+    providerHealth.status === 200 &&
+      providerHealthBody.mode === "openai-provider" &&
+      providerHealthBody.model === "mcp-probe-fixed" &&
+      providerHealthBody.publicBaseUrl === providerServer.baseUrl,
+  );
+
+  const providerNoAuth = await fetch(`${providerServer.baseUrl}/v1/models`);
+  check("provider: /v1/models requires the bearer key", providerNoAuth.status === 401);
+  const providerWrongAuth = await fetch(`${providerServer.baseUrl}/v1/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer sai-khoa" },
+    body: JSON.stringify({ model: "mcp-probe-fixed", messages: [{ role: "user", content: "sai khoa" }] }),
+  });
+  check("provider: the wrong key gets 401", providerWrongAuth.status === 401);
+
+  const providerHeaders = {
+    Authorization: `Bearer ${providerToken}`,
+    "Content-Type": "application/json",
+    "x-user-id": "user_selftest_01",
+    "x-agent-id": "agt_selftest",
+    "x-executor-id": "user_selftest_01",
+    "api-key": "api-key-selftest-123",
+  };
+  const modelsResponse = await fetch(`${providerServer.baseUrl}/v1/models`, { headers: providerHeaders });
+  const modelsBody = (await modelsResponse.json()) as Record<string, any>;
+  check(
+    "provider: /v1/models lists the fixed model",
+    modelsResponse.status === 200 && modelsBody.data?.[0]?.id === "mcp-probe-fixed",
+  );
+
+  const chatResponse = await fetch(`${providerServer.baseUrl}/v1/chat/completions`, {
+    method: "POST",
+    headers: providerHeaders,
+    body: JSON.stringify({
+      model: "mcp-probe-fixed",
+      messages: [{ role: "user", content: "Xin chào, đây là dữ liệu giả lập." }],
+      user: "nhan-vat-hoa",
+    }),
+  });
+  const chatBody = (await chatResponse.json()) as Record<string, any>;
+  check(
+    "provider: chat completions returns the fixed answer",
+    chatResponse.status === 200 && chatBody.choices?.[0]?.message?.content === PROVIDER_FIXED_REPLY,
+  );
+  check("provider: chat completions returns usage", typeof chatBody.usage?.total_tokens === "number");
+
+  const streamResponse = await fetch(`${providerServer.baseUrl}/v1/chat/completions`, {
+    method: "POST",
+    headers: providerHeaders,
+    body: JSON.stringify({
+      model: "mcp-probe-fixed",
+      messages: [{ role: "user", content: "Xin chào bằng luồng." }],
+      stream: true,
+      stream_options: { include_usage: true },
+    }),
+  });
+  check(
+    "provider: stream answers with SSE",
+    streamResponse.status === 200 && (streamResponse.headers.get("content-type") ?? "").includes("text/event-stream"),
+  );
+  const streamText = await streamResponse.text();
+  const dataLines = streamText
+    .split("\n")
+    .filter((line) => line.startsWith("data: "))
+    .map((line) => line.slice("data: ".length).trim());
+  check("provider: stream ends with [DONE]", dataLines.includes("[DONE]"));
+  const streamEvents = dataLines
+    .filter((line) => line !== "[DONE]")
+    .map((line) => JSON.parse(line) as Record<string, any>);
+  const streamedText = streamEvents
+    .map((event) => event.choices?.[0]?.delta?.content ?? "")
+    .join("");
+  check("provider: streamed deltas rebuild the fixed answer", streamedText === PROVIDER_FIXED_REPLY);
+  check(
+    "provider: stream sends a final usage chunk",
+    streamEvents.some((event) => event.usage?.total_tokens === 0 && event.choices?.length === 0),
+  );
+
+  const unsupported = await fetch(`${providerServer.baseUrl}/v1/embeddings`, { headers: providerHeaders });
+  check("provider: unsupported endpoints answer 404", unsupported.status === 404);
+  await providerServer.stop();
+
+  const providerLog = entries(providerDir);
+  const providerRaw = rawLog(providerDir);
+  const providerRequests = providerLog.filter((entry) => entry.kind === "openai_request");
+  check("provider: both model calls are logged", providerRequests.length === 2, String(providerRequests.length));
+  check(
+    "provider: the one-shot call logs the user field",
+    providerRequests.some((entry) => entry.stream === false && entry.user === "nhan-vat-hoa" && entry.userPresent === true),
+  );
+  check(
+    "provider: the stream call logs a missing user field",
+    providerRequests.some((entry) => entry.stream === true && entry.user === null && entry.userPresent === false),
+  );
+  check(
+    "provider: identity headers are logged",
+    providerRequests.some(
+      (entry) =>
+        entry.identityHeaders?.["x-user-id"] === "user_selftest_01" &&
+        entry.identityHeaders?.["x-agent-id"] === "agt_selftest",
+    ),
+  );
+  check(
+    "provider: the model call is logged with model and message count",
+    providerRequests.some((entry) => entry.model === "mcp-probe-fixed" && entry.messageCount === 1),
+  );
+  check("provider: the provider key never appears in the log", !providerRaw.includes(providerToken));
+  check("provider: an api-key header is redacted too", !providerRaw.includes("api-key-selftest-123") && providerRaw.includes("api-ke...(len=20)"));
+  check("provider: Authorization is redacted in the provider log", providerRaw.includes("Bearer...(len="));
+  check(
+    "provider: both responses are logged",
+    providerLog.filter((entry) => entry.kind === "openai_response").length === 2 &&
+      providerLog.some((entry) => entry.kind === "openai_response" && entry.stream === true && entry.completed === true),
+  );
+  check(
+    "provider: the 401s and the accepted key are logged",
+    providerLog.some((entry) => entry.kind === "http_auth" && entry.ok === false) &&
+      providerLog.some((entry) => entry.kind === "http_auth" && entry.ok === true && entry.reason === "bearer_ok"),
+  );
+  check(
+    "provider: the two provider paths appear in the request log",
+    providerLog.some((entry) => entry.kind === "http_request" && entry.path === "/v1/models") &&
+      providerLog.some((entry) => entry.kind === "http_request" && entry.path === "/v1/chat/completions"),
+  );
+  const providerSummary = execFileSync(process.execPath, [join(HERE, "summarize.js"), providerDir], { encoding: "utf8" });
+  check(
+    "provider: the summarizer reports the user field and identity headers",
+    providerSummary.includes("Nhà cung cấp mô hình kiểu OpenAI") &&
+      providerSummary.includes("nhan-vat-hoa") &&
+      providerSummary.includes("x-user-id=user_selftest_01"),
+  );
 
   console.log(`\nSELFTEST PASSED: ${checks} checks`);
   console.log(`logs kept for inspection: ${LOG_ROOT}`);
