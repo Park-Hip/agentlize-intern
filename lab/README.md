@@ -146,8 +146,8 @@ curl -s -X POST http://127.0.0.1:8790/v1/tools/find_employee -H "Authorization: 
 ## Cửa `/mcp`
 
 `POST http://127.0.0.1:8790/mcp` là cửa MCP qua HTTP (Streamable HTTP, `@modelcontextprotocol/sdk` 1.32.2) cho Thổ Thần và mọi client MCP.
-Nó mở đúng ba tool của `GET /v1/tools`, cùng mô tả, cùng lược đồ tham số, cùng khoá `lab_` và cùng đường kiểm quyền; mã dùng chung nằm ở `gateway/src/call.ts`.
-Cửa vẫn chỉ nghe ở `127.0.0.1`; mở ra ngoài là việc của issue riêng sau ADR-0004.
+Nó mở đúng danh mục của `GET /v1/tools`: ba tool đọc và hai tool soạn đề xuất, cùng mô tả, cùng lược đồ tham số, cùng khoá `lab_` và cùng đường kiểm quyền; mã dùng chung nằm ở `gateway/src/call.ts`.
+Cửa vẫn chỉ nghe ở `127.0.0.1`; một phiên nghiệm thu mở nó ra ngoài bằng `npm run tunnel` theo ADR-0004, không mở cố định.
 
 - Khoá nằm ở header `Authorization: Bearer <khoá>` của mọi request.
   Thiếu, sai hoặc bị thu hồi thì cổng trả 401 kèm câu `CHƯA THỰC HIỆN [KEY_INVALID]` hoặc `[KEY_REVOKED]` và ghi một dòng vết.
@@ -190,6 +190,33 @@ Bảng đã có cột số thứ tự để đề xuất hàng loạt dùng lạ
 
 Phép thử của đường ghi nằm ở `gateway/src/write-test.ts` và chạy trên hệ thống giả trong bộ nhớ.
 Phép thử đầu cuối `tests/src/gateway-write-test.ts` chạy ba dịch vụ thật, làm rơi phản hồi bằng `POST /admin/faults` và đếm bằng `GET /admin/write-count`.
+
+## Đường hầm cho một phiên nghiệm thu
+
+Mốc 1 cần một địa chỉ HTTPS công khai để Thổ Thần web và desktop gọi vào ([ADR-0004](../docs/adr/adr-0004-shared-gateway-over-https.md#3-quyết-định)).
+Lệnh `npm run tunnel` dựng mã, mở ba dịch vụ, rồi mở một đường hầm Cloudflare tới cổng và in địa chỉ công khai của `/mcp`.
+
+```
+npm run tunnel
+```
+
+Đường hầm và ba dịch vụ tự tắt sau 45 phút, hoặc sớm hơn khi bấm Ctrl+C.
+Lệnh không nhận khoá và không in khoá; lấy khoá bằng `npm run seed-keys` ở cửa sổ thứ hai rồi dán thẳng vào ô API Key của skill.
+
+Chỉ cổng ở `127.0.0.1:8790` đi qua đường hầm.
+Danh bạ giả ở 8791, danh sách task giả ở 8792 và trang điều khiển ở 8793 không bao giờ đi qua đường hầm ([ADR-0006](../docs/adr/adr-0006-operator-console.md#31-vị-trí-và-ranh-giới)).
+Lệnh từ chối chạy khi `LAB_GATEWAY_PORT` trùng `LAB_CONSOLE_PORT`.
+
+| Biến | Việc |
+| --- | --- |
+| `LAB_CLOUDFLARED_PATH` | Đường dẫn tới `cloudflared`; mặc định trên Windows là `C:\Program Files (x86)\cloudflared\cloudflared.exe`, trên hệ khác là `cloudflared` trong `PATH` |
+| `LAB_TUNNEL_MINUTES` | Rút ngắn giới hạn cho một buổi demo, từ 1 tới 45; không đặt dài hơn 45 |
+| `LAB_CONSOLE_PORT` | Cổng trang điều khiển mà lệnh phải tránh, mặc định 8793 |
+
+Sau phiên, tắt đường hầm, trả skill về trạng thái trước và chạy `npm run seed-keys -- --rotate` để thu hồi khoá đã đi qua Internet.
+Kịch bản từng bước và chỗ điền bằng chứng nằm ở [nghiệm thu mốc 1](../rd/evaluation/milestone-1-tho-than.md).
+
+**Kết luận:** một lệnh mở đường hầm tới cổng, và trang điều khiển ở 8793 không bao giờ đi qua đó.
 
 ## Bảng vết
 

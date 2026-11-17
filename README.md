@@ -17,7 +17,8 @@ Start with [findings](rd/findings.md): what the research found, the lessons, and
 | Design | [rd/design](rd/design) | [Solution candidates](rd/design/solution-candidates.md), [research questions and validation plan](rd/design/research-questions-and-validation-plan.md), [Q1: self build or workflow engine](rd/design/q1-self-build-vs-workflow-engine.html) |
 | Source checks | [rd/checks](rd/checks) | One script per document that re-opens the cited URLs |
 | Host probe | [tools/mcp-probe](tools/mcp-probe) | Throwaway MCP server that recorded how Thổ Thần behaves as an MCP host ([README](tools/mcp-probe/README.md)) |
-| Prototype | not started | `lab/`, after ADR-0001 |
+| Prototype | [lab](lab) | AI Operations Connector Lab: gateway, fake systems, `/mcp`, tests ([README](lab/README.md)) |
+| Acceptance | [rd/evaluation](rd/evaluation) | [Milestone 1 runbook](rd/evaluation/milestone-1-tho-than.md) for the manual run in Thổ Thần |
 
 Other places:
 
