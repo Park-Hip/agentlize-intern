@@ -364,7 +364,7 @@ Năm ADR, theo [tổng hợp, mục 8](../findings.md#8-bước-tiếp-theo):
    ADR này chốt thêm ba điều: SQLite có sẵn trong Node (`node:sqlite`, đã chạy được trên máy Lab với Node 22.21 nhưng còn gắn nhãn thử nghiệm) hay thư viện `better-sqlite3`; hai hệ thống giả là dịch vụ riêng (mục 4.2); bộ luật quyền tự viết, đọc file luật dạng bảng, và vì sao chưa dùng OPA hay Cedar.
 
 Quyết định 1, 4 và 5 đã ghi thành [ADR-0001](../../docs/adr/adr-0001-self-built-thin-gateway.md), [ADR-0002](../../docs/adr/adr-0002-safe-read-and-write.md) và [ADR-0003](../../docs/adr/adr-0003-technology-stack.md); ADR-0003 chọn `better-sqlite3`.
-Quyết định 2 và 3 chờ phép đo lời gọi trong chat qua HTTPS (S3, S4, S6), vì phép đo ngày 2026-11-17 cho thấy máy chủ Thổ Thần gọi ra được địa chỉ công khai và gắn thêm header `x-user-id`.
+Quyết định 2 và 3 chờ phép đo lời gọi trong chat qua HTTPS (S3, S4, S6), vì phép đo HTTPS ngày 2026-11-17 ([khảo sát Thổ Thần, mục 3.6](../appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)) cho thấy máy chủ Thổ Thần gọi ra được địa chỉ công khai và gắn thêm header `x-user-id`.
 
 Để sau, không chặn mốc 0 tới mốc 2:
 
