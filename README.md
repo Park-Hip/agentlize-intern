@@ -7,24 +7,27 @@ Owner of every artifact in this repo: Phạm Bách Hiệp. Mentor: Kevin.
 
 ## Where things are
 
-| Step | Folder | Contents |
+Start with [findings](rd/findings.md): what the research found, the lessons, and what we build next.
+
+| Topic | Folder | Contents |
 | --- | --- | --- |
-| 00 Frame | [rd/00-frame](rd/00-frame) | [PRD - AI Platform](rd/00-frame/prd-ai-platform.md): problem, users, requirements SR1-SR8, [bảng thuật ngữ](rd/00-frame/glossary.md) |
-| 01 Explore | [rd/01-explore](rd/01-explore) | [MCP overview](rd/01-explore/mcp-overview.md), [Appota cases](rd/01-explore/appota-cases.md), [AppotaPay skills](rd/01-explore/appotapay-skills.md), [real systems](rd/01-explore/real-system-architectures.md), [Tho Than platform](rd/01-explore/tho-than-platform.md), [five methods](rd/01-explore/five-methods) |
-| 02 Compare | [rd/02-compare](rd/02-compare) | [Option comparison](rd/02-compare/option-comparison.md), [comparison framework](rd/02-compare/comparison-framework.md) |
-| 03 Question | [rd/03-question](rd/03-question) | [Research questions and validation plan](rd/03-question/research-questions-and-validation-plan.md) |
-| 04 Propose | [rd/04-propose](rd/04-propose) | [Solution candidates](rd/04-propose/solution-candidates.md) |
-| 05-07 | not started | Build, Evaluate, Package |
+| Problem | [rd/problem](rd/problem) | [PRD - AI Platform](rd/problem/prd-ai-platform.md): problem, users, requirements SR1-SR8; [bảng thuật ngữ](rd/problem/glossary.md); [mental model](rd/problem/track01-mental-model.html) |
+| Outside research | [rd/research](rd/research) | [Market lessons](rd/research/market-lessons.md), [market landscape](rd/research/market-landscape.md), [option comparison](rd/research/option-comparison.md), [comparison framework](rd/research/comparison-framework.md), [five methods](rd/research/five-methods), [real systems](rd/research/real-system-architectures.md), [MCP overview](rd/research/mcp-overview.md) |
+| Appota systems | [rd/appota](rd/appota) | [Thổ Thần platform](rd/appota/tho-than-platform.md), [MCP probe results in Thổ Thần](rd/appota/tho-than-mcp-probe.md), [Appota cases](rd/appota/appota-cases.md), [AppotaPay skills](rd/appota/appotapay-skills.md) |
+| Design | [rd/design](rd/design) | [Solution candidates](rd/design/solution-candidates.md), [research questions and validation plan](rd/design/research-questions-and-validation-plan.md), [Q1: self build or workflow engine](rd/design/q1-self-build-vs-workflow-engine.html) |
+| Source checks | [rd/checks](rd/checks) | One script per document that re-opens the cited URLs |
+| Host probe | [tools/mcp-probe](tools/mcp-probe) | Throwaway MCP server that recorded how Thổ Thần behaves as an MCP host ([README](tools/mcp-probe/README.md)) |
+| Prototype | not started | `lab/`, after ADR-0001 |
 
 Other places:
 
 - [docs/program](docs/program): the official 8 week program text.
 - [docs/context](docs/context): Appota AI ecosystem and track comparison.
-- [submitted](submitted): PDFs already handed in, and [weekly reports](submitted/weekly-report) sent to Lark.
+- [submitted](submitted): PDFs already handed in, [weekly reports](submitted/weekly-report) sent to Lark, and [weekly plans](submitted/weekly-plan).
 
 ## Commands
 
 ```
-bash tools/render/render.sh rd/04-propose/solution-candidates.md   # PDF to dist/
-python tools/check-docs.py                                          # links, em dash, file names
+bash tools/render/render.sh rd/findings.md   # PDF to dist/
+python tools/check-docs.py                    # links, em dash, file names
 ```

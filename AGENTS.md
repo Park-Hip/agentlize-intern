@@ -18,30 +18,30 @@ Read the  TXT for the full acceptance criteria, the R&D framework and the week b
 
 ## 2. Current state
 
-The repository holds documents only. There is no code yet.
+The research phase is done and summarized in `rd/findings.md`: the five integration models, real systems and the 2026 market were surveyed, and no product covers the Lab's problem end to end.
+There is no lab code yet.
+The only code is `tools/mcp-probe`, a throwaway MCP server that recorded how Thổ Thần desktop behaves as an MCP host; its results are in `rd/appota/tho-than-mcp-probe.md`.
+The current goal is a first prototype that plugs into Thổ Thần AI as an MCP server: the intern has a Thổ Thần account, and the Thổ Thần desktop app connects to MCP servers.
+Host facts that constrain the design (stdio only in chat, no user identity, no approval step, 60 second cut-off) are summarized in `rd/findings.md` section 4.
 
-The company ecosystem the lab will eventually plug into is recorded in `docs/context/appota-ai-ecosystem.md` (AgentLize control plane, Thổ Thần AI execution plane, Kdata infrastructure, business data owners).
+The company ecosystem the lab plugs into is recorded in `docs/context/appota-ai-ecosystem.md` (AgentLize control plane, Thổ Thần AI execution plane, Kdata infrastructure, business data owners).
 It is context for where the work lands, not a decision on stack or architecture, and it needs Kevin to confirm it.
 
-Stack, architecture and MVP scope are not decided. They must land in an ADR before any code is written.
+Stack, architecture and prototype scope must land in a short ADR before code is written.
 
-When code arrives, add a real `## 6. Commands` section to this file with the actual setup, run and test commands. The render and source-check commands are already there.
+When code arrives, add the actual setup, run and test commands to `## 6. Commands`.
 
-## 3. Required way of working
+## 3. Way of working
 
-The program forbids starting from "what should we code". The order is fixed:
+The program's R&D framework (explore, compare, question, propose, build, evaluate, package) is no longer the folder layout or a fixed gate order.
+Explore, compare, question and propose are done; their results live in `rd/findings.md`.
 
-1. **Explore**: survey at least 3 existing models or solutions, link the original sources.
-2. **Compare**: table of tradeoffs covering cost, scalability, security and maintenance.
-3. **Question**: name what is still unknown, turn assumptions into testable hypotheses.
-4. **Propose**: pick the approach to try, explain why the alternatives lost, record an ADR.
-5. **Build**: a small POC or MVP that runs, with run instructions.
-6. **Evaluate**: baseline and test suite established before any claim of success.
-7. **Package**: docs, test suite, demo, follow up backlog.
+What still applies:
 
-For Track 01, these five models must be surveyed before the approach is chosen: API/Function Calling, MCP, Workflow Engine, Agent Orchestration, Event driven Integration.
-
-Do not skip steps 1 to 4, even when the request looks small.
+- **Prototype first, in the real host.** Build the smallest thing that runs inside Thổ Thần, then measure it.
+- **Evidence before claims.** A baseline and a test suite exist before any claim of success.
+- **Research on demand.** Read an outside system only to answer a question the prototype raises, with a time box, and record what was learned in `rd/findings.md` or the document it changes.
+- **Package at the end.** Docs, test suite, demo, follow up backlog.
 
 ## 4. Definition of done for Track 01
 
@@ -64,7 +64,7 @@ Render a Markdown document to A4 PDF. Requires Node/npx, Python 3, and Chrome or
 The PDF is written to `dist/<name>.pdf` (git-ignored) unless an output path is given.
 
 ```
-bash tools/render/render.sh rd/04-propose/solution-candidates.md
+bash tools/render/render.sh rd/findings.md
 ```
 
 The render step drops the metadata line (date and status), so a handed-in PDF never carries it.
@@ -80,9 +80,11 @@ python tools/check-docs.py
 Re-run the source quote checks (they open the cited URLs, so they need network).
 
 ```
-bash rd/00-frame/checks/prd-quotes.sh
-bash rd/01-explore/checks/real-system-architectures.sh
-bash rd/01-explore/checks/tho-than-platform.sh
+bash rd/checks/prd-ai-platform.sh
+bash rd/checks/real-system-architectures.sh
+bash rd/checks/tho-than-platform.sh
+bash rd/checks/market-landscape.sh
+bash rd/checks/mausbot.sh
 ```
 
 ### MCP probe for Thổ Thần
@@ -123,7 +125,7 @@ Write so the non-technical reader gets the point and the engineer loses nothing.
   Use another domain (payments, refunds) only when the Lab cannot show the point, and say why.
 - **Explain every term on first use** with one everyday sentence, keeping the English term in parentheses.
   Example: "chống ghi trùng (idempotency): gửi lại cùng một lệnh thì hệ thống không làm thêm lần nữa".
-  Prefer the Vietnamese wording after that. Keep shared terms in `rd/00-frame/glossary.md` and reuse them across reports.
+  Prefer the Vietnamese wording after that. Keep shared terms in `rd/problem/glossary.md` and reuse them across reports.
 - **Codes always carry a name.** Write "SR6 (không ghi trùng)", never a bare "SR6". Do not use a code before the section that defines it.
 - **One sentence, one idea.** Aim for at most about 25 words. Name who does what ("agent gửi lệnh", "người duyệt bấm duyệt"), and avoid abstract nouns as the subject.
 - **No talking about the document itself.** Cut sentences such as "phần này không trả lời...", "đọc như giả thuyết", "sai phạm trù". Say the point directly.
@@ -133,29 +135,30 @@ Write so the non-technical reader gets the point and the engineer loses nothing.
   Do not add an owner, mentor, revision or version line: the intern owns every artifact, and git holds the history.
   `python tools/check-docs.py` rejects those lines, and the render step drops the metadata line so a PDF handed in never carries it.
 - **Every section ends with "so what".** A conclusion, a decision, or a concrete next check. A section that only lists considerations is not finished.
-- **One set of criteria across documents.** All comparisons and proposals judge against the same requirements (currently SR1-SR8 in `rd/00-frame/prd-ai-platform.md`). Do not invent a parallel list. If the set changes, update it at the source.
+- **One set of criteria across documents.** All comparisons and proposals judge against the same requirements (currently SR1-SR8 in `rd/problem/prd-ai-platform.md`). Do not invent a parallel list. If the set changes, update it at the source.
 - **Readability check before submitting.** A non-technical reader should be able to read "Đọc nhanh" in 2 minutes and answer the three questions above. An engineer should be able to trace every claim to a source, a number or a test.
 
 ## 8. Repository layout and naming
 
 ```
+.github/         issue forms and the pull request template, see section 9
 README.md        map of the repo
 AGENTS.md        this file
 docs/
   program/       the official program document, read only
   context/       company context (ecosystem, track comparison)
   adr/           one file per decision: adr-0001-<slug>.md
-rd/              the R&D work, one folder per step of section 3
-  00-frame/      problem, users, requirements (PRD)
-  01-explore/    surveys of existing solutions and real systems
-  02-compare/    trade-off tables and selection criteria
-  03-question/   open questions and testable hypotheses
-  04-propose/    candidate solutions, the chosen approach
-  05-build/ 06-evaluate/ 07-package/   created when the step starts
-  <step>/checks/ scripts that re-verify claims made in that step
-lab/             POC code, created after the first ADR
+rd/              the R&D work, grouped by topic
+  findings.md    what the research found and what we do next; start here
+  problem/       problem, users, requirements SR1-SR8 (PRD), glossary
+  research/      outside solutions: MCP, five integration models, real systems, market, comparison
+  appota/        Appota's own systems: member company cases, AppotaPay skills, Thổ Thần
+  design/        solution candidates, open questions and how to test them
+  checks/        scripts that re-verify quoted claims, one per document: <doc-slug>.sh
+lab/             prototype code, created after the first ADR
 submitted/       PDFs handed in to the program, never edited afterwards
   weekly-report/ weekly reports sent to Lark: Markdown source and its PDF
+  weekly-plan/   weekly plans sent to the mentor, named like weekly reports
 tools/           render and doc-check scripts
 dist/            generated PDFs (git-ignored)
 scratch/         agent working files and raw captures (git-ignored)
@@ -163,11 +166,45 @@ scratch/         agent working files and raw captures (git-ignored)
 
 Rules:
 
-- Put a document in the folder of the step it belongs to. The step folder carries the order, so file names carry no number.
+- Put a document in the folder of its topic. File names carry no number or step.
+  Add a new topic folder only when it will hold at least two documents; evaluation reports go in `rd/evaluation/` when that work starts.
+- New findings that change the direction go into `rd/findings.md`, and the detailed document links back to it.
 - File names are lowercase ASCII kebab-case with a short English slug, for example `option-comparison.md`. Content stays Vietnamese.
+- Files whose name GitHub fixes (`.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/`) keep that name.
 - Two exceptions allow a number or date: `adr-0001-<slug>.md` (never renumbered) and `YYYY-MM-DD-<slug>.pdf` in `submitted/` (the submission date).
-  A weekly report keeps its Markdown source next to its PDF, both named `YYYY-MM-DD-week-<n>` after the Monday it is sent.
+  A weekly report or weekly plan keeps its Markdown source next to its PDF, both named `YYYY-MM-DD-week-<n>` after the Monday of its week.
 - No version or draft markers in file names (`v2`, `final`, `old`). Version history is git. A document that is replaced is deleted, not kept beside the new one.
 - A summary page for a document sits next to it with the same slug (`appota-cases.md` and `appota-cases.html`).
-- Every claim that rests on an external quote has a script in `<step>/checks/` that can re-verify it.
+- Every claim that rests on an external quote has a script in `rd/checks/`, named after its document, that can re-verify it.
 - Generated files are not committed, except a PDF that was handed in: copy it to `submitted/` at that moment.
+
+## 9. Issues and pull requests
+
+The remote is `Park-Hip/agentlize-intern` on GitHub.
+Plans and decisions live in the repo (ADR, spec, `rd/findings.md`); issues track the work and link to them.
+
+Issues:
+
+- One issue per outcome, with a definition of done and a way to verify it. Use the forms in `.github/ISSUE_TEMPLATE/`: `feature`, `bug`, `research`, `task`.
+- Break a large outcome into a checklist inside the issue, or into sub-issues when a step needs its own discussion or PR.
+- Skip the issue for a change that fits in one small PR and about an hour of work. The PR description is then the record.
+- A `research` issue names the question, the time box and the document the answer goes into (section 3).
+- Each issue has one assignee and belongs to the milestone of its week (`Tuần 3`), so the weekly report can list closed issues and merged PRs as evidence.
+- An issue is also a prompt for a coding agent. Write it so a person or an agent can act on it without asking, and keep section 5 data out of it.
+
+Branches and pull requests:
+
+- Do not push to `main`. Branch from it as `<issue>-<slug>` (for example `12-employee-lookup`, the name GitHub's "Create a branch" gives) and keep the branch short-lived.
+- One purpose per PR, small enough to review in one sitting. Use `.github/pull_request_template.md`.
+- PR titles follow the commit style: a short imperative English sentence.
+- The last PR of an issue says `Closes #<n>`; earlier ones say `Refs #<n>`. A dependent chain of PRs can use GitHub stacked PRs (`gh stack`).
+- Squash merge, after `python tools/check-docs.py` and the relevant tests pass.
+- An agent working an issue opens the PR and keeps its description current. It never merges its own PR; the intern reviews and merges.
+
+One-time setup of the labels the forms use:
+
+```
+gh label create feature --color a2eeef --description "Kết quả kiểm chứng được"
+gh label create task --color c5def5 --description "Việc nhỏ, thường là việc con"
+gh label create research --color d876e3 --description "Câu hỏi có giới hạn thời gian"
+```
