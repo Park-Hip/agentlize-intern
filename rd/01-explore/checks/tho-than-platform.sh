@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # Kiểm chéo nguồn cho rd/01-explore/tho-than-platform.md
 # Mỗi dòng kiểm một câu trích hoặc một quan sát: mở URL, bỏ thẻ HTML, gộp khoảng trắng, so khớp nguyên văn.
-# Ba hàm đặc biệt cho thứ không kiểm được bằng chuỗi trong body:
+# Năm hàm đặc biệt cho thứ không kiểm được bằng chuỗi trong body:
 #   check_redirect: mã HTTP và vị trí Location
 #   check_header:   header phản hồi
+#   check_raw:      mã nguồn, so khớp nguyên văn không qua norm
+#   check_absent:   mã nguồn, phải vắng một chuỗi
 #   check_mcp:      bắt tay MCP initialize rồi tools/list bằng POST
 # Cách chạy: bash rd/01-explore/checks/tho-than-platform.sh
 # Ngày chạy đầu: 2026-11-13.
+# Bổ sung 2026-11-17: 29 câu kiểm mã nguồn LobeHub 2.1.56 (L1-L29).
 
 set -u
 PASS=0
@@ -60,6 +63,46 @@ check_header() { # $1 url, $2 header chứa chuỗi này, $3 nhãn
     *)
       printf 'MISS    | %-46s | %s\n' "$3" "$1"
       FAIL=$((FAIL + 1))
+      ;;
+  esac
+}
+
+check_raw() { # $1 url, $2 chuỗi phải có trong mã nguồn, $3 nhãn
+  local body
+  body=$(curl -sL -g --compressed --max-time 45 -A "Mozilla/5.0" "$1" 2>/dev/null)
+  if [ -z "$body" ]; then
+    printf 'BLOCKED | %-46s | %s\n' "$3" "$1"
+    FAIL=$((FAIL + 1))
+    return
+  fi
+  case "$body" in
+    *"$2"*)
+      printf 'PASS    | %s\n' "$3"
+      PASS=$((PASS + 1))
+      ;;
+    *)
+      printf 'MISS    | %-46s | %s\n' "$3" "$1"
+      FAIL=$((FAIL + 1))
+      ;;
+  esac
+}
+
+check_absent() { # $1 url, $2 chuỗi phải vắng, $3 nhãn
+  local body
+  body=$(curl -sL -g --compressed --max-time 45 -A "Mozilla/5.0" "$1" 2>/dev/null)
+  if [ -z "$body" ]; then
+    printf 'BLOCKED | %-46s | %s\n' "$3" "$1"
+    FAIL=$((FAIL + 1))
+    return
+  fi
+  case "$body" in
+    *"$2"*)
+      printf 'MISS    | %-46s | %s\n' "$3" "$1"
+      FAIL=$((FAIL + 1))
+      ;;
+    *)
+      printf 'PASS    | %s\n' "$3"
+      PASS=$((PASS + 1))
       ;;
   esac
 }
@@ -131,6 +174,48 @@ check "https://github.com/lobehub/lobehub/discussions/7495" "MCP Tools 发现与
 
 # --- S17: MCP server thật của Appota ---
 check_mcp "https://docs-srd.appota.ai/tho-than/~gitbook/mcp" '"title":"Thổ Thần MCP Server"' '"name":"searchDocumentation"' "S17 MCP server sống tại docs-srd"
+
+# --- L1 tới L29: mã nguồn LobeHub 2.1.56, tag v2.1.56, commit eddb0c9 ---
+LH="https://raw.githubusercontent.com/lobehub/lobehub/v2.1.56"
+
+# Header danh tính trong LobeHub chỉ là X-lobe-user-id, dùng cho TTS/STT.
+check_raw "$LH/packages/const/src/fetch.ts" "export const LOBE_USER_ID = 'X-lobe-user-id';" "L1 hằng header người dùng của LobeHub"
+check_raw "$LH/src/services/_header.ts" "[LOBE_USER_ID]: state.user?.id || ''," "L2 header người dùng chỉ dùng cho TTS/STT"
+check_raw "$LH/src/hooks/useTTS.ts" "createHeaderWithOpenAI" "L3 TTS dùng header người dùng"
+
+# MCP client chỉ gửi header cấu hình và auth.
+check_raw "$LH/src/libs/mcp/client.ts" "const headers: Record<string, string> = { ...params.headers };" "L4 MCP client chỉ nhận header cấu hình"
+check_raw "$LH/src/libs/mcp/client.ts" "requestInit: { headers }," "L5 MCP client dùng đúng bộ header đó"
+check_absent "$LH/src/libs/mcp/client.ts" "user-id" "L6 MCP client không có user-id"
+check_raw "$LH/src/server/services/mcp/index.ts" "(mcpParams as any).headers = headers;" "L7 MCP service chuyển header cấu hình"
+check_raw "$LH/src/server/routers/tools/mcp.ts" "input.headers," "L8 route MCP chuyển header thẳng"
+check_raw "$LH/src/services/mcp.ts" "...connection.headers," "L9 chat gộp header của kết nối"
+check_raw "$LH/src/services/mcp.ts" "...pluginSettings," "L10 chat gộp thêm cài đặt skill"
+
+# OAuth2 chỉ là kiểu dữ liệu, form chưa có.
+check_raw "$LH/src/libs/mcp/types.ts" "// --- Stage 2 & 3: OAuth 2.1 automated flow ---" "L11 OAuth2 MCP còn ở giai đoạn sau"
+check_raw "$LH/src/features/PluginDevModal/MCPManifestForm/index.tsx" "value: 'bearer'," "L12 form MCP có API Key"
+check_absent "$LH/src/features/PluginDevModal/MCPManifestForm/index.tsx" "oauth2" "L13 form MCP không có OAuth2"
+check_raw "$LH/src/features/PluginDevModal/MCPManifestForm/index.tsx" "addButtonText={t('dev.mcp.headers.add')}" "L14 form MCP cho đặt header tự do"
+
+# Lời gọi model có gửi user trong body.
+check_raw "$LH/src/app/(backend)/webapi/chat/%5Bprovider%5D/route.ts" "user: userId," "L15 webapi gửi mã người dùng"
+check_raw "$LH/src/server/modules/AgentRuntime/RuntimeExecutors.ts" "user: ctx.userId," "L16 agent runtime gửi mã người dùng"
+check_raw "$LH/packages/model-runtime/src/core/openaiCompatibleFactory/index.ts" "...(chatCompletion?.noUserId ? {} : { user: options?.user })," "L17 OpenAI-compatible gửi trường user"
+check_raw "$LH/packages/model-runtime/src/core/openaiCompatibleFactory/index.ts" "safety_identifier: options?.user," "L18 Responses API gửi safety_identifier"
+check_raw "$LH/packages/model-runtime/src/core/anthropicCompatibleFactory/index.ts" "metadata: options?.user ? { user_id: options.user } : undefined," "L19 Anthropic gửi metadata.user_id"
+check_raw "$LH/packages/model-runtime/src/providers/githubCopilot/index.ts" "metadata: options?.user ? { user_id: options.user } : undefined," "L20 GitHub Copilot Anthropic gửi metadata.user_id"
+check_raw "$LH/packages/model-runtime/src/providers/cohere/index.ts" "noUserId: true," "L21 Cohere không gửi user"
+
+# Bốn chế độ duyệt, headless bị ẩn.
+check_raw "$LH/packages/types/src/tool/intervention.ts" "approvalMode: 'auto-run' | 'allow-list' | 'manual' | 'headless';" "L22 kiểu dữ liệu có headless"
+check_raw "$LH/src/store/user/slices/settings/selectors/toolIntervention.ts" "// Filter out 'headless' mode as it's not user-selectable" "L23 selector ẩn headless"
+check_absent "$LH/src/features/ChatInput/RuntimeConfig/ApprovalMode.tsx" "headless" "L24 menu duyệt không có headless"
+check_raw "$LH/packages/agent-runtime/src/agents/GeneralChatAgent.ts" "if (approvalMode === 'headless') {" "L25 agent runtime xử lý headless"
+check_raw "$LH/src/server/routers/lambda/aiAgent.ts" "userInterventionConfig: UserInterventionConfigSchema.optional()," "L26 API nhận cấu hình duyệt"
+check_raw "$LH/src/server/services/aiAgent/index.ts" "userInterventionConfig = { approvalMode: 'headless' }," "L27 mặc định headless khi thiếu cấu hình"
+check_raw "$LH/packages/agent-runtime/src/agents/GeneralChatAgent.ts" "const config = this.getToolInterventionConfig(toolCalling, state);" "L28 manual đọc chính sách của tool"
+check_raw "$LH/src/server/services/mcp/index.ts" "parameters: item.inputSchema as ToolManifestSettings," "L29 tool MCP chỉ có tên, mô tả, schema"
 
 echo
 printf 'Tổng: %d PASS, %d MISS/BLOCKED\n' "$PASS" "$FAIL"
