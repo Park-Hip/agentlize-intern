@@ -3,3 +3,6 @@ scratch/
 .lavish/
 *.render.html
 __pycache__/
+lab/.data/
+lab/**/dist/
+lab/**/node_modules/

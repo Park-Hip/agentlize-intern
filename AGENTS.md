@@ -19,17 +19,18 @@ Read the  TXT for the full acceptance criteria, the R&D framework and the week b
 ## 2. Current state
 
 The research phase is done and summarized in `rd/findings.md`: the five integration models, real systems and the 2026 market were surveyed, and no product covers the Lab's problem end to end.
-There is no lab code yet.
-The only code is `tools/mcp-probe`, a throwaway MCP server that recorded how Thổ Thần desktop behaves as an MCP host; its results are in `rd/appota/tho-than-mcp-probe.md`.
+The `lab/` scaffold now runs three local services with health checks; it has no business logic yet.
+`tools/mcp-probe` is a throwaway MCP server that recorded how Thổ Thần desktop behaves as an MCP host; its results are in `rd/appota/tho-than-mcp-probe.md`, and it is not part of the lab.
 The current goal is a first prototype that plugs into Thổ Thần AI as an MCP server: the intern has a Thổ Thần account, and the Thổ Thần desktop app connects to MCP servers.
 Host facts that constrain the design (stdio only in chat, no user identity, no approval step, 60 second cut-off) are summarized in `rd/findings.md` section 4.
 
 The company ecosystem the lab plugs into is recorded in `docs/context/appota-ai-ecosystem.md` (AgentLize control plane, Thổ Thần AI execution plane, Kdata infrastructure, business data owners).
 It is context for where the work lands, not a decision on stack or architecture, and it needs Kevin to confirm it.
 
-Stack, architecture and prototype scope must land in a short ADR before code is written.
+Stack, architecture and prototype scope are recorded in ADR-0001 to ADR-0003 and the prototype spec.
+Read them before adding business logic.
 
-When code arrives, add the actual setup, run and test commands to `## 6. Commands`.
+Setup, run and test commands are in section 6.
 
 ## 3. Way of working
 
@@ -86,6 +87,25 @@ bash rd/checks/tho-than-platform.sh
 bash rd/checks/market-landscape.sh
 bash rd/checks/mausbot.sh
 ```
+
+### Lab POC
+
+The lab is an npm workspace in `lab/`. It needs Node 22 or newer.
+It starts three local services and has no business logic yet.
+
+```
+cd lab
+npm install
+npm run lint
+npm test
+npm start
+```
+
+`npm start` builds the workspace, generates a random service key when `LAB_SERVICE_KEY` is not set, starts the fake directory on 127.0.0.1:8791 and the fake task list on 127.0.0.1:8792, waits for both `/health` endpoints to return 200, then opens the gateway on 127.0.0.1:8790.
+The key is passed to the three processes through the environment and is never printed.
+Override the ports with `LAB_GATEWAY_PORT`, `LAB_DIRECTORY_PORT` and `LAB_TASKS_PORT`, and the data folder with `LAB_DATA_DIR`.
+`npm test` builds, then runs every `*-test.js` file in the workspace, including a smoke test that starts the three services on temporary ports and checks `/health`.
+`npm run lint` type-checks the whole workspace with `tsc --noEmit`.
 
 ### MCP probe for Thổ Thần
 
