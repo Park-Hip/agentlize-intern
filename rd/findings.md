@@ -1,6 +1,6 @@
 # Tổng hợp phát hiện - AI Operations Connector Lab
 
-Ngày: 2026-11-17. Trạng thái: đã cắm thử một server MCP vào Thổ Thần (desktop và web), đo khoá riêng của từng người và đọc mã LobeHub 2.1.56; chưa có bản thử của Lab.
+Ngày: 2026-11-17. Trạng thái: đã cắm thử MCP vào Thổ Thần (desktop và web), đo HTTPS công khai, kiểm khoá riêng và đọc mã LobeHub 2.1.56; chưa có bản thử của Lab.
 
 Đây là điểm vào của phần nghiên cứu.
 Mỗi mục tóm tắt một nhóm tài liệu và trỏ về bản chi tiết.
@@ -14,7 +14,7 @@ Mọi người và dữ liệu trong ví dụ đều là giả lập.
 - Đề xuất: tự dựng một cổng mỏng làm ba việc đó, chép các mẫu thiết kế đã có, và cắm thẳng vào Thổ Thần.
 - Lần cắm thử cho thấy AI trong Thổ Thần gọi được công cụ của Lab, nhưng không hỏi duyệt trước khi ghi và cắt mọi lệnh sau 60 giây.
   Đọc mã nguồn xác nhận hộp duyệt của Thổ Thần chỉ là tính năng giao diện, không phải lớp bảo vệ.
-  Mỗi người đặt được một khoá riêng vào cấu hình, và khoá đó tới được cổng; Thổ Thần có gắn mã người dùng ở một đường nối, nhưng chưa biết có tin được không.
+  Lời gọi trong chat đi qua máy chủ Thổ Thần, cả trên web lẫn desktop; máy chủ gắn thêm mã người dùng, nhưng khoá do người thêm skill đặt nên chưa biết có riêng từng người không.
 - Tiếp theo: báo Kevin các giới hạn của Thổ Thần, chốt các quyết định thiết kế đầu tiên, rồi dựng bản thử.
 
 ## 1. Vấn đề
@@ -75,24 +75,24 @@ Hai là đọc mã nguồn LobeHub 2.1.56 phần gọi MCP, gọi mô hình và 
 
 | Điều cần biết | Thổ Thần làm gì | Hệ quả cho Lab |
 | --- | --- | --- |
-| Nối bằng cách nào | Trong chat chỉ chạy được kiểu Thổ Thần tự mở chương trình trên máy người dùng (stdio). Nối bằng địa chỉ web trên máy thì báo lỗi `fetch failed`. | Bản thử đầu dùng stdio. Ngày 2026-11-17, địa chỉ HTTPS công khai cũng gọi được từ chat web và desktop (qua máy chủ Thổ Thần); dùng đường đó cần Kevin đồng ý mở địa chỉ. |
-| Danh tính | Qua stdio, server chỉ thấy tên ứng dụng, không thấy tài khoản. Qua HTTPS công khai, máy chủ Thổ Thần gắn thêm bốn header mang mã và email người dùng (đo 2026-11-17, một tài khoản). Mã LobeHub 2.1.56 không gắn các header này, nên đó là phần Appota thêm; chưa biết Thổ Thần ghi đè hay nối thêm header người dùng tự đặt ([mục 3.6](appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17), [mục 6.2](appota/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt)). Màn hình cấu hình chỉ có "không xác thực" và "khoá API", không có đăng nhập ủy quyền (OAuth2). Khoá người dùng tự đặt thì tới được server: với stdio qua biến môi trường, với khoá API qua header `Authorization: Bearer`. | Cổng cấp mỗi người một khoá riêng và nhận ra người hỏi qua khoá đó. Đổi khoá có hiệu lực ngay ở lần gọi sau, không cần mở lại ứng dụng. Header của Thổ Thần chỉ làm lớp kiểm thứ hai, và chỉ khi H9 (ghi đè `x-user-id`) và H10 (phiên tách theo người dùng) đúng ([mục 6.5](appota/tho-than-platform.md#65-hệ-quả-cho-adr-0005)). |
+| Nối bằng cách nào | Chat gọi được tool qua cả stdio và Streamable HTTP. HTTP chỉ chạy khi server có địa chỉ HTTPS công khai: nối tới `localhost` báo lỗi `fetch failed`, vì lời gọi đi qua máy chủ Thổ Thần ([kịch bản đo, mục 4.8](appota/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6)). | Bản thử đầu giữ stdio. Cổng cũng có thể chạy ở một máy chủ chung, chỉ cần một địa chỉ HTTPS công khai; dùng đường đó cần Kevin đồng ý mở địa chỉ. |
+| Danh tính | Qua stdio, server chỉ thấy tên ứng dụng, không thấy tài khoản. Qua HTTPS công khai, máy chủ Thổ Thần gắn thêm bốn header mang mã và email người dùng (đo 2026-11-17, một tài khoản). Mã LobeHub 2.1.56 không gắn các header này, nên đó là phần Appota thêm; chưa biết Thổ Thần ghi đè hay nối thêm header người dùng tự đặt ([mục 3.6](appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17), [mục 6.2](appota/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt)). Màn hình cấu hình chỉ có "không xác thực" và "khoá API", không có đăng nhập ủy quyền (OAuth2). Khoá Bearer do người thêm skill đặt và tới được server; phép đo chỉ dùng một tài khoản và một skill nên chưa biết khoá riêng từng người hay dùng chung. Ai có token gọi thẳng endpoint cũng tự đặt được `x-user-id`. | Cổng cấp và tự kiểm khoá riêng cho từng người, nhận ra người hỏi qua khoá đó. Đổi khoá có hiệu lực ở lần gọi sau, không cần mở lại ứng dụng. Header của Thổ Thần chỉ làm lớp kiểm thứ hai, và chỉ khi H9 (ghi đè `x-user-id`) và H10 (phiên tách theo người dùng) đúng ([mục 6.5](appota/tho-than-platform.md#65-hệ-quả-cho-adr-0005)). |
 | Danh tính trong lời gọi tới mô hình | Mã LobeHub gửi mã người dùng thô trong nội dung lời gọi: `user`, `safety_identifier` hoặc `metadata.user_id`, tuỳ nhà cung cấp. Chỉ đọc mã, chưa đo ([mục 6.3](appota/tho-than-platform.md#63-lời-gọi-model-có-danh-tính-nhưng-trong-body)). | Không coi lời gọi tới mô hình là ẩn danh khi đưa dữ liệu vào chat. |
 | Duyệt | Không hỏi trước khi gọi công cụ ghi, kể cả ở chế độ duyệt tay. Mã giải thích vì sao: công cụ MCP không khai báo chính sách duyệt (`humanIntervention`), nên chế độ tay vẫn cho chạy. Ngoài ba chế độ hiện trên giao diện còn một chế độ ẩn `headless`, API nhận và là mặc định khi lời gọi không gửi cấu hình ([mục 6.4](appota/tho-than-platform.md#64-bốn-chế-độ-duyệt-ba-chế-độ-hiện-trên-giao-diện)). Không có biểu mẫu hỏi người dùng (elicitation). Link trong kết quả bấm được và mở trình duyệt. | Cổng không được dựa vào hộp duyệt của Thổ Thần: tự kiểm quyền và tự chặn ghi. Duyệt nằm ở trang riêng của cổng, mở bằng link; khớp [bài học về kênh duyệt](research/market-lessons.md#34-lời-duyệt-phải-khóa-vào-đúng-nội-dung-và-đi-qua-kênh-agent-không-giả-được). |
 | Gọi lại và thời gian chờ | Không tự gọi lại khi công cụ báo lỗi. Cắt mọi lệnh sau 60 giây, và nút dừng không hủy ngay. Mỗi lần gọi là một tiến trình mới. | Công cụ phải trả lời dưới 60 giây; việc dài như chuyển 30 task chạy nền và trả mã theo dõi. Mọi trạng thái lưu ở cổng, không giữ trong bộ nhớ. |
 | Hiển thị và vết | Không hiện dữ liệu có cấu trúc. Kết quả lỗi vẫn có dấu tích xanh. Không có mã vết, không có số token. | Kết quả viết bằng chữ dễ đọc, lỗi ghi rõ trong chữ. Cổng tự sinh mã vết cho SR7 (vết xuyên suốt). |
 
-Độ tin cậy: cao với duyệt, thời gian chờ và đường đi của khoá riêng (có log, ảnh, lặp lại, thêm đọc mã); trung bình với danh tính, vì mới có một tài khoản và log gốc của phép đo HTTPS không còn trên máy đo, chỉ còn bản tóm tắt ([khảo sát Thổ Thần, mục 3.6](appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
+Độ tin cậy: cao với duyệt, thời gian chờ, đường đi của khoá và việc lời gọi đi qua máy chủ Thổ Thần (có log, ảnh, lặp lại, thêm đọc mã); trung bình với nguồn gốc header danh tính và việc chia sẻ khoá, vì mới có một tài khoản, một skill và log gốc của phép đo HTTPS không còn trên máy đo, chỉ còn bản tóm tắt ([khảo sát Thổ Thần, mục 3.6](appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
 Lỗi `fetch failed` ở `localhost` đã có lời giải thích khớp phép đo: lời gọi trong chat đi qua máy chủ Thổ Thần nên không tới được máy người dùng, còn địa chỉ công khai thì tới được.
 
-**Kết luận:** Thổ Thần là nơi chạy bản thử, và đã chạy được qua stdio.
+**Kết luận:** Thổ Thần là nơi chạy bản thử, và đã chạy được qua cả stdio lẫn Streamable HTTP có địa chỉ công khai.
 Hai câu chặn thiết kế đã có lời đáp: Thổ Thần không có bước duyệt đáng tin, và không có danh tính người dùng mà Lab kiểm chứng được, nên cổng của Lab làm cả hai.
 Việc duyệt không thể giao cho Thổ Thần: công cụ MCP không khai báo chính sách duyệt, và còn một chế độ ẩn cho chạy không hỏi.
 Việc danh tính cũng vậy: header `x-user-id` do Thổ Thần gắn chỉ là lớp kiểm thứ hai, và chỉ dùng được sau khi ba phép kiểm H9 (ghi đè `x-user-id`), H10 (phiên tách theo người dùng) và H11 (`execAgent` mặc định không hỏi duyệt) có kết quả ([khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được)).
 Bản thử cấp mỗi nhân vật giả một khoá riêng và ghi rõ đây là giả lập.
 Khoá chỉ chứng minh "người cài công cụ này", không phải một lần đăng nhập; vì vậy cổng tự kiểm khoá, thu hồi được khoá, và che khoá trong log.
 Ô biến môi trường của stdio không hiện sẵn trong form cài; người dùng phải thêm qua "Import JSON config", nên hướng dẫn cài của Lab phải ghi rõ bước này.
-Ba điểm cần báo Kevin: danh tính chỉ có qua header chưa kiểm chứng, không có bước duyệt (kèm chế độ ẩn `headless`), và nối bằng địa chỉ web trên máy thì lỗi còn địa chỉ công khai thì chạy.
+Bốn điểm cần báo Kevin: người dùng thật ở web hay desktop, header danh tính có được máy chủ ký không, skill do từng người thêm hay chia sẻ cho cả tổ chức, và Lab có địa chỉ công khai lâu dài không.
 
 ## 5. Làm gì bây giờ
 
@@ -110,7 +110,7 @@ Tám phép thử SR1-SR8 chạy tự động.
 | --- | --- | --- |
 | Cổng kiểm soát: danh tính, luật quyền, lọc trường, duyệt, chống ghi trùng, vết | Lab tự dựng, chép mẫu ở mục 3 | Không sản phẩm nào làm trọn SR3, SR4, SR6 |
 | Nối công cụ | MCP trước, vì đó là đường cắm vào Thổ Thần; gọi hàm thêm sau trên cùng cổng | Hai cách vẫn được đo cạnh nhau, chỉ đổi thứ tự dựng |
-| Cắm vào Thổ Thần | Server MCP chạy kiểu stdio trên máy người dùng; cổng giữ mọi trạng thái | Trong chat, Thổ Thần chỉ gọi được stdio, và mở tiến trình mới mỗi lần gọi (mục 4) |
+| Cắm vào Thổ Thần | Server MCP chạy kiểu stdio trên máy người dùng; cổng giữ mọi trạng thái | Bản thử đầu giữ stdio vì đã chạy được; nối bằng địa chỉ HTTPS công khai cũng đã chạy được (mục 4), chờ chốt chỗ chạy |
 | Chờ duyệt | Cổng tự lưu đề xuất đang chờ; người duyệt bấm trên trang của cổng, mở bằng link trong chat | Thổ Thần không có bước duyệt (mục 4); ít thành phần; xem lại theo Q1 ở mục 6 |
 | Điều phối agent, sự kiện | Chưa thêm | Chưa yêu cầu nào cần |
 
@@ -136,7 +136,8 @@ Chuyển 30 task cần anh Quang duyệt là kịch bản thứ tư, làm khi ba
 
 | Câu hỏi | Ta đoán | Trả lời bằng | Khi nào |
 | --- | --- | --- | --- |
-| Vì sao nối bằng địa chỉ web thì lời gọi trong chat lỗi? | Lời gọi đi qua máy chủ Thổ Thần nên không tới được máy người dùng | Hỏi Kevin; mở đường hầm HTTPS (tunnel) khi được phép rồi gọi lại | Tuần 2, không chặn bản thử stdio |
+| Khoá là riêng từng người hay cả tổ chức dùng chung? | Chưa biết, vì phép đo chỉ dùng một tài khoản và một skill | Hỏi Kevin; thử hai tài khoản cùng một skill | Tuần 2, không chặn mốc 1 |
+| Máy chủ Thổ Thần có ký header danh tính và gọi ra từ dải IP cố định không? | Chưa biết; header `x-user-id` hiện có thể do người gọi tự đặt | Hỏi Kevin; thử gửi header giả và so IP gọi ra | Tuần 2, quyết định cách dùng `x-user-id` |
 | Hai tài khoản có trông giống nhau ở phía server không? | Giống nhau | Chạy lại `whoami` bằng tài khoản thứ hai | Khi có tài khoản thứ hai |
 | Q1. Sập giữa lúc chuyển 30 task: chạy lại có đủ, không trùng? | Cổng tự viết làm được, nếu mỗi task có mã riêng và tiến độ lưu sau mỗi task | Tắt ứng dụng ở ba thời điểm, chạy lại, đếm task | Khi dựng kịch bản thứ tư |
 | Q2. MCP tiết kiệm bao nhiêu công so với gọi hàm? | Gần bằng nhau khi Lab viết cả hai nơi gọi | Thêm trợ lý AI thứ hai cho từng cách, đếm giờ công | Bước đánh giá |
@@ -150,9 +151,9 @@ Q1 và Q2 chi tiết ở [câu hỏi kiểm chứng](design/research-questions-a
 Ba câu H9 tới H11 chi tiết ở [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được).
 Hai câu về thiết bị và Hook, cùng mọi mối nối giữa Appota, AgentLize, Thổ Thần, MausBot và Lab ở [bản đồ hệ thống](design/system-map.md).
 
-Ba câu chặn thiết kế ở bản trước (danh tính, kênh duyệt, khoá riêng của từng người) đã có lời đáp ở mục 4.
+Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã có lời đáp ở mục 4; câu khoá riêng hay dùng chung vẫn mở.
 
-**Kết luận:** không câu nào còn chặn việc viết ADR; câu địa chỉ web chỉ chặn việc chạy cổng ở máy chủ chung, không chặn bản thử stdio.
+**Kết luận:** không câu nào còn chặn việc viết ADR; câu địa chỉ web đã có lời đáp, còn hai câu về chia sẻ khoá và nguồn header danh tính quyết định cách cổng kiểm người gọi.
 
 ## 7. Đo thế nào là thành công
 
@@ -168,8 +169,8 @@ Ba câu chặn thiết kế ở bản trước (danh tính, kênh duyệt, khoá
 | --- | --- | --- |
 | Xong 2026-11-16 | Cắm một MCP server thử vào Thổ Thần desktop, trả lời câu danh tính và câu kênh duyệt | [Kịch bản đo](appota/tho-than-mcp-probe.md), [khảo sát Thổ Thần, mục 3.5](appota/tho-than-platform.md#35-lần-cắm-mcp-thử-bằng-tài-khoản-2026-11-16) |
 | Xong 2026-11-16 | Kiểm khoá riêng mỗi người qua stdio và khoá API | [Kịch bản đo, mục 5.5](appota/tho-than-mcp-probe.md#55-khoá-riêng-của-từng-người-h8) |
-| Xong 2026-11-17 | Đo lại qua HTTPS công khai và đọc mã LobeHub 2.1.56 về danh tính và duyệt | [Khảo sát Thổ Thần, mục 3.6](appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17) và [mục 6](appota/tho-than-platform.md#6-đọc-mã-lobehub-2156-danh-tính-và-duyệt-công-cụ) |
-| Đầu tuần 2 | Báo Kevin ba điểm ở mục 4; xoá khoá thử khỏi cấu hình hai skill thử | Câu trả lời của Kevin ghi vào mục 4 |
+| Xong 2026-11-17 | Đo qua HTTPS công khai và đọc mã LobeHub 2.1.56 về danh tính và duyệt | [Khảo sát Thổ Thần, mục 3.6](appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17) và [mục 6](appota/tho-than-platform.md#6-đọc-mã-lobehub-2156-danh-tính-và-duyệt-công-cụ) |
+| Đầu tuần 2 | Báo Kevin bốn điểm ở mục 4; xoá khoá thử khỏi cấu hình hai skill thử | Câu trả lời của Kevin ghi vào mục 4 |
 | Tuần 2, trước ADR về danh tính | Chạy H9, H10 và H11 (mục 6) | Kết quả ghi vào cột cuối của bảng H trong [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được) |
 | Tuần 2 | Viết các ADR đầu: dựng cổng mỏng cắm vào Thổ Thần, nơi chạy và cách nối, danh tính người hỏi, kênh duyệt và chống ghi trùng, công nghệ; rồi viết spec bản thử | `docs/adr/adr-0001-<slug>.md` trở đi, `rd/design/mvp-spec.md` |
 | Tuần 2 | Dựng hai hệ thống giả lập, cổng kiểm soát, MCP server và tám phép thử | `lab/` chạy được bằng một lệnh; ba kịch bản ở 5.2 chạy trong Thổ Thần |
