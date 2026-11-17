@@ -11,7 +11,7 @@ const USAGE = [
   '  npm run trace -- --limit <n>          show at most n lines (default 200)',
 ].join('\n');
 
-const COLUMNS = ['time', 'trace', 'requester', 'caller', 'entry', 'tool', 'object', 'outcome', 'reason', 'scope', 'rule', 'policy', 'host_user', 'proposal', 'ms'] as const;
+const COLUMNS = ['time', 'trace', 'requester', 'caller', 'entry', 'tool', 'object', 'outcome', 'reason', 'scope', 'rule', 'policy', 'host_user', 'proposal', 'key', 'tries', 'ms'] as const;
 
 function cells(row: TraceRow): string[] {
   return [
@@ -29,6 +29,8 @@ function cells(row: TraceRow): string[] {
     row.policyVersion === null ? '-' : `v${row.policyVersion}`,
     row.hostUser ?? '-',
     row.proposalId ?? '-',
+    row.idempotencyKey ?? '-',
+    row.attempts === null ? '-' : String(row.attempts),
     String(row.durationMs),
   ];
 }

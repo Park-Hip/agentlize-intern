@@ -43,6 +43,10 @@ export interface TraceRecord {
   readonly hostUser: string | null;
   /** The proposal this line is a step of (write, send or cancel); null for a call that touched none. */
   readonly proposalId?: string | null;
+  /** The fixed key of a write command; null for every line that is not a write. */
+  readonly idempotencyKey?: string | null;
+  /** How many times a write command had been sent when this line was written. */
+  readonly attempts?: number | null;
   readonly durationMs: number;
 }
 
@@ -71,6 +75,8 @@ interface Row {
   policy_version: number | null;
   host_user: string | null;
   proposal_id: string | null;
+  idempotency_key: string | null;
+  attempts: number | null;
   duration_ms: number;
 }
 
@@ -94,6 +100,8 @@ function createTraceSql(table: string): string {
       policy_version INTEGER,
       host_user      TEXT,
       proposal_id    TEXT,
+      idempotency_key TEXT,
+      attempts       INTEGER,
       duration_ms    INTEGER NOT NULL
     );
   `;
@@ -133,6 +141,8 @@ function toRow(row: Row): TraceRow {
     policyVersion: row.policy_version,
     hostUser: row.host_user,
     proposalId: row.proposal_id,
+    idempotencyKey: row.idempotency_key,
+    attempts: row.attempts,
     durationMs: row.duration_ms,
   };
 }
@@ -157,8 +167,11 @@ export class TraceStore {
 
     // A table made before a column existed gets it; ADD COLUMN is not an UPDATE, so the triggers stay quiet.
     const columns = (db.prepare('PRAGMA table_info(trace)').all() as { name: string }[]).map((column) => column.name);
-    for (const column of ['host_user', 'proposal_id']) {
-      if (!columns.includes(column)) db.exec(`ALTER TABLE trace ADD COLUMN ${column} TEXT`);
+    for (const column of ['host_user', 'proposal_id', 'idempotency_key', 'attempts']) {
+      if (!columns.includes(column)) {
+        const type = column === 'attempts' ? 'INTEGER' : 'TEXT';
+        db.exec(`ALTER TABLE trace ADD COLUMN ${column} ${type}`);
+      }
     }
     // The `entry` check cannot be altered, so a table made before the `web` entry is copied into a new one.
     if (!existing.sql.includes("'web'")) this.rebuild();
@@ -177,9 +190,9 @@ export class TraceStore {
       this.db.exec(createTraceSql('trace'));
       this.db.exec(`
         INSERT INTO trace (seq, trace_id, at, requester, caller, entry, tool, object_id, outcome, reason_code,
-                           out_of_scope, rule_id, policy_version, host_user, proposal_id, duration_ms)
+                           out_of_scope, rule_id, policy_version, host_user, proposal_id, idempotency_key, attempts, duration_ms)
         SELECT seq, trace_id, at, requester, caller, entry, tool, object_id, outcome, reason_code,
-               out_of_scope, rule_id, policy_version, host_user, proposal_id, duration_ms
+               out_of_scope, rule_id, policy_version, host_user, proposal_id, idempotency_key, attempts, duration_ms
         FROM trace_before_web;
         DROP TABLE trace_before_web;
       `);
@@ -203,14 +216,18 @@ export class TraceStore {
       policy_version: record.policyVersion,
       host_user: record.hostUser,
       proposal_id: record.proposalId ?? null,
+      idempotency_key: record.idempotencyKey ?? null,
+      attempts: record.attempts ?? null,
       duration_ms: Math.max(0, Math.round(record.durationMs)),
     };
     this.db
       .prepare(
         `INSERT INTO trace (trace_id, at, requester, caller, entry, tool, object_id, outcome, reason_code,
-                            out_of_scope, rule_id, policy_version, host_user, proposal_id, duration_ms)
+                            out_of_scope, rule_id, policy_version, host_user, proposal_id, idempotency_key,
+                            attempts, duration_ms)
          VALUES (@trace_id, @at, @requester, @caller, @entry, @tool, @object_id, @outcome, @reason_code,
-                 @out_of_scope, @rule_id, @policy_version, @host_user, @proposal_id, @duration_ms)`,
+                 @out_of_scope, @rule_id, @policy_version, @host_user, @proposal_id, @idempotency_key,
+                 @attempts, @duration_ms)`,
       )
       .run(row);
   }

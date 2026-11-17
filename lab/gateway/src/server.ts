@@ -3,12 +3,13 @@ import { createGatewayHandler } from './app.js';
 import { openGatewayDatabase, resolveDataDir } from './database.js';
 import { ApiKeyIdentity, KeyStore } from './identity/index.js';
 import { createPolicyEngine } from './policy/index.js';
-import { AcknowledgingExecutor, ProposalStore, type ProposalExecutor } from './proposals/index.js';
+import { ProposalStore, type ProposalExecutor } from './proposals/index.js';
 import { HttpSystems, systemUrl, type Systems } from './systems.js';
 import { PROPOSE_TOOLS } from './tools/propose-tools.js';
 import { READ_TOOLS } from './tools/read-tools.js';
 import { TraceStore } from './trace/index.js';
 import { SessionStore } from './web/session-store.js';
+import { CommandStore, TaskListExecutor } from './writes/index.js';
 
 export interface GatewayOptions {
   /** Explicit port, used by tests with 0. Defaults to `LAB_GATEWAY_PORT`. */
@@ -29,6 +30,7 @@ export interface RunningGateway extends RunningService {
   readonly trace: TraceStore;
   readonly proposals: ProposalStore;
   readonly sessions: SessionStore;
+  readonly commands: CommandStore;
 }
 
 /** Open the gateway database, then listen. The service key is required before either happens. */
@@ -43,6 +45,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
     const trace = new TraceStore(db, now);
     const proposals = new ProposalStore(db, now);
     const sessions = new SessionStore(db, now);
+    const commands = new CommandStore(db, now);
     const publicBaseUrl = readPublicBaseUrl(env);
     // Without `LAB_PUBLIC_BASE_URL` the links use the address the gateway listens on, known once it is listening.
     let listeningUrl = '';
@@ -53,6 +56,9 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
         tasksUrl: systemUrl('tasks', env),
         serviceKey,
       });
+
+    const executor: ProposalExecutor =
+      options.executor ?? new TaskListExecutor({ commands, proposals, systems, trace });
 
     const running = await startService({
       service: 'gateway',
@@ -67,7 +73,8 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
         keys,
         proposals,
         sessions,
-        executor: options.executor ?? new AcknowledgingExecutor(),
+        commands,
+        executor,
         publicBaseUrl: () => publicBaseUrl ?? listeningUrl,
         now,
       }),
@@ -75,12 +82,20 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
 
     listeningUrl = running.url;
 
+    // A previous run may have confirmed a write and crashed before or during the send; settle those with their old keys.
+    if (options.executor === undefined) {
+      void executor.resume?.().catch((error: unknown) => {
+        console.error(`[gateway] startup resend failed: ${error instanceof Error ? error.message : String(error)}`);
+      });
+    }
+
     return {
       ...running,
       keys,
       trace,
       proposals,
       sessions,
+      commands,
       async close(): Promise<void> {
         try {
           await running.close();

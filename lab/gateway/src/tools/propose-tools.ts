@@ -1,7 +1,7 @@
-import { EMPLOYEE_ID_PATTERN } from '@lab/shared';
+import { EMPLOYEE_ID_PATTERN, refusalMessage, type ReasonCode } from '@lab/shared';
 import { z } from 'zod';
 import { badRequest, refuse } from '../call.js';
-import { RULE_IDS, type PolicyDecision, type TableAction } from '../policy/index.js';
+import { ACTION_PHRASE, FIELD_ACTION, RULE_IDS, strictestOf, type PolicyDecision, type TableAction } from '../policy/index.js';
 import { cardRows, formatClock } from '../proposals/card.js';
 import {
   CHANGE_FIELDS,
@@ -41,22 +41,6 @@ const statusInput = z.strictObject({
   request_id: z.string().trim().min(1).max(40),
 });
 
-const FIELD_ACTION: Readonly<Record<ChangeField, TableAction>> = {
-  description: 'edit_task_description',
-  status: 'change_task_status',
-  assignee: 'change_task_assignee_or_due',
-  due: 'change_task_assignee_or_due',
-};
-
-const ACTION_PHRASE: Readonly<Record<TableAction, string>> = {
-  edit_task_description: 'sửa mô tả task',
-  change_task_status: 'đổi trạng thái task',
-  change_task_assignee_or_due: 'đổi người phụ trách hoặc hạn của task',
-  bulk_change: 'đổi hàng loạt task',
-  edit_other_department_task: 'sửa task của phòng khác',
-  edit_directory: 'sửa danh bạ',
-};
-
 /** Lower case, no accents, as the directory compares names. */
 function fold(text: string): string {
   return text
@@ -64,18 +48,6 @@ function fold(text: string): string {
     .replace(/\p{M}/gu, '')
     .replace(/đ/gi, 'd')
     .toLowerCase();
-}
-
-/** Higher is stricter. Mirrors the engine: "no" beats "needs approval" beats "yes". */
-const STRICTNESS = { allow: 0, needs_approval: 1, deny: 2 } as const;
-
-function strictestOf(decisions: readonly PolicyDecision[]): PolicyDecision | undefined {
-  let winner: PolicyDecision | undefined;
-  for (const decision of decisions) {
-    if (decision.reasonCode === 'POLICY_UNAVAILABLE') return decision;
-    if (winner === undefined || STRICTNESS[decision.effect] > STRICTNESS[winner.effect]) winner = decision;
-  }
-  return winner;
 }
 
 /** Names of the leads of a department, read from the directory. Empty when nobody is a lead or the directory does not answer. */
@@ -270,28 +242,68 @@ const proposeTaskChange = defineTool(
   },
 );
 
-const STATUS_SENTENCE: Readonly<Record<'confirmed' | 'cancelled' | 'expired', string>> = {
-  confirmed: 'Người yêu cầu đã bấm Gửi và cổng đã nhận lệnh.',
+const STATUS_SENTENCE: Readonly<Record<'cancelled' | 'expired', string>> = {
   cancelled: 'Người yêu cầu đã bấm Sửa nên đề xuất này bị huỷ. Hãy soạn lại đề xuất mới với nội dung đã sửa.',
   expired: 'Đề xuất đã hết hạn mà chưa được gửi, nên không có gì được ghi. Hãy soạn lại nếu vẫn cần.',
 };
 
-function describeStatus(proposal: Proposal, context: ToolContext): string {
+/** Why a write command did not land, said in the words the caller needs to act on. */
+const COMMAND_FAILURE_SENTENCE: Readonly<Partial<Record<ReasonCode, string>>> = {
+  TARGET_CHANGED: 'Task đã bị người khác sửa sau khi đề xuất được soạn nên cổng không ghi. Hãy nhờ AI soạn lại với dữ liệu mới.',
+  CONTENT_CHANGED: 'Nội dung đề xuất không còn khớp với lúc soạn nên cổng không ghi. Hãy nhờ AI soạn lại.',
+  GATEWAY_UNAVAILABLE: 'Danh sách task từ chối lệnh hoặc trả lời không đọc được nên cổng không ghi. Hãy báo người vận hành Lab.',
+};
+
+interface StatusAnswer {
+  readonly text: string;
+  readonly reasonCode: ReasonCode | null;
+}
+
+function describeStatus(proposal: Proposal, context: ToolContext): StatusAnswer {
   const status = effectiveStatus(proposal, context.now());
   const head = `Đề xuất ${proposal.proposalId} cho task ${proposal.taskId}:`;
   if (status === 'awaiting_confirmation') {
-    return [
-      `${head} đang chờ người yêu cầu bấm Gửi, hết hạn lúc ${formatClock(new Date(proposal.expiresAt))}.`,
-      'Link xác nhận:',
-      confirmationLink(context.publicBaseUrl, proposal.proposalId),
-    ].join('\n');
+    return {
+      text: [
+        `${head} đang chờ người yêu cầu bấm Gửi, hết hạn lúc ${formatClock(new Date(proposal.expiresAt))}.`,
+        'Link xác nhận:',
+        confirmationLink(context.publicBaseUrl, proposal.proposalId),
+      ].join('\n'),
+      reasonCode: null,
+    };
   }
-  return `${head} ${STATUS_SENTENCE[status]}`;
+  if (status === 'cancelled' || status === 'expired') {
+    return { text: `${head} ${STATUS_SENTENCE[status]}`, reasonCode: null };
+  }
+
+  // Confirmed: the command carries what happened after the press.
+  const command = context.commands.findByProposal(proposal.proposalId);
+  if (command === undefined) {
+    return { text: `${head} đã được xác nhận nhưng cổng chưa có lệnh ghi.`, reasonCode: null };
+  }
+  switch (command.status) {
+    case 'not_sent':
+      return { text: `${head} đã được xác nhận, cổng chưa gửi lệnh ghi.`, reasonCode: null };
+    case 'sent_unknown':
+      return {
+        text: `${head} cổng đã gửi lệnh nhưng chưa nhận được kết quả. Cổng giữ lệnh và gửi lại với đúng mã cũ, nên task không bị ghi hai lần.`,
+        reasonCode: null,
+      };
+    case 'done':
+      return { text: `${head} đã ghi thay đổi vào task ${command.taskId} ở lần gửi thứ ${command.attempts}.`, reasonCode: null };
+    case 'failed': {
+      const code = command.reasonCode;
+      const sentence =
+        (code === null ? undefined : COMMAND_FAILURE_SENTENCE[code]) ?? 'Cổng không ghi được thay đổi. Hãy báo người vận hành Lab.';
+      const text = code === null ? `CHƯA THỰC HIỆN ${sentence}` : refusalMessage(code, sentence);
+      return { text: `${head} ${text}`, reasonCode: code };
+    }
+  }
 }
 
 const getRequestStatus = defineTool(
   'get_request_status',
-  'Cho biết một đề xuất do mình soạn đang ở bước nào: chờ bấm Gửi (kèm lại link xác nhận), đã gửi, đã huỷ hay hết hạn. ' +
+  'Cho biết một đề xuất do mình soạn đang ở bước nào: chờ bấm Gửi (kèm lại link xác nhận), đã ghi xong, chưa ghi được kèm mã lý do, hay chưa biết kết quả. ' +
     'Tham số request_id là mã đề xuất, ví dụ dx-0123456789abcdef. Chỉ xem được đề xuất của chính mình.',
   statusInput,
   (context, args) => {
@@ -310,10 +322,11 @@ const getRequestStatus = defineTool(
     if (proposal.requester !== context.actor.employeeId) {
       return notFound({ outOfScope: true, traceReasonCode: 'NOT_PERMITTED' });
     }
+    const described = describeStatus(proposal, context);
     return Promise.resolve({
       status: 200,
-      text: describeStatus(proposal, context),
-      reasonCode: null,
+      text: described.text,
+      reasonCode: described.reasonCode,
       outcome: 'ok',
       objectId: proposal.taskId,
       proposalId: proposal.proposalId,

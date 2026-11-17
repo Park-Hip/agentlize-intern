@@ -1,3 +1,4 @@
+export { ACTION_PHRASE, FIELD_ACTION, strictestOf } from './actions.js';
 export { createPolicyEngine, DEFAULT_RULES_PATH, RULE_IDS } from './engine.js';
 export type { PolicyEngine, PolicyEngineOptions } from './engine.js';
 export { ACTIONS, TABLE_ACTIONS } from './schema.js';

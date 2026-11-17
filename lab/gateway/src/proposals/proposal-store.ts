@@ -209,7 +209,11 @@ export class ProposalStore {
       if (print !== proposal.fingerprint) return { ok: false, reason: 'CONTENT_CHANGED', proposal };
 
       const status: ProposalStatus = decision === 'confirm' ? 'confirmed' : 'cancelled';
-      this.db.prepare('UPDATE proposals SET status = ? WHERE proposal_id = ?').run(status, proposalId);
+      // Conditional on the status: a second press (or a press racing the first) changes no row and loses.
+      const changed = this.db
+        .prepare("UPDATE proposals SET status = ? WHERE proposal_id = ? AND status = 'awaiting_confirmation'")
+        .run(status, proposalId);
+      if (changed.changes !== 1) return { ok: false, reason: 'APPROVAL_USED', proposal };
       this.db
         .prepare('INSERT INTO confirmations (proposal_id, actor, decision, fingerprint, at) VALUES (?, ?, ?, ?, ?)')
         .run(proposalId, actor, decision, print, now.toISOString());

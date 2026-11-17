@@ -309,7 +309,7 @@ test('send: the requester presses Gửi with a session and the CSRF token, once'
     assert.deepEqual(h.executed[0]?.changes, { assignee: 'NV-04' });
 
     const { html } = await openCard(f, id, browser.cookie);
-    assert.match(html, /Đã nhận lệnh gửi/);
+    assert.match(html, /Đã xác nhận đề xuất/);
     assert.doesNotMatch(html, /<button/, 'a sent proposal has no buttons left');
 
     const again = await press(f, id, 'gui', { cookie: browser.cookie }, { csrf: browser.csrf });

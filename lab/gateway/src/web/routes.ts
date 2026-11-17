@@ -5,7 +5,10 @@ import { EMPLOYEE_ID_PATTERN, type ReasonCode } from '@lab/shared';
 import { newTrail, TraceUnavailableError, writeTrace, type GatewayDeps } from '../call.js';
 import { cardRows, formatClock, personLabel } from '../proposals/card.js';
 import { effectiveStatus, PROPOSAL_ID_PATTERN, type Decision, type Proposal } from '../proposals/index.js';
+import { SystemUnavailableError, type EmployeeRecord, type TaskRecord } from '../systems.js';
+import type { KeyRecord } from '../identity/index.js';
 import type { ToolResult } from '../tools/types.js';
+import { checkWrite, type WriteRefusal } from '../writes/index.js';
 import { cardPage, loginPage, messagePage } from './html.js';
 import { readForm } from './form.js';
 import { SESSION_TTL_MS, type Session } from './session-store.js';
@@ -180,6 +183,7 @@ async function handleCard(deps: GatewayDeps, req: IncomingMessage, res: ServerRe
       expiresAtLabel: formatClock(new Date(proposal.expiresAt)),
       status: effectiveStatus(proposal, deps.now()),
       csrfToken: active.session.csrfToken,
+      command: deps.commands.findByProposal(proposal.proposalId),
     }),
   );
 }
@@ -200,6 +204,41 @@ const DECIDE_SENTENCE = {
   APPROVAL_USED: 'Đề xuất này đã được gửi hoặc huỷ, và mỗi đề xuất chỉ bấm được một lần.',
   CONTENT_CHANGED: 'Nội dung đề xuất không còn khớp với lúc soạn nên cổng không gửi. Hãy nhờ AI soạn lại.',
 } as const;
+
+/**
+ * The checks that depend on the key, the directory, the task list and the rule
+ * file are done again here, right before the proposal is confirmed: any of them
+ * may have changed since the draft. Time and content stay in the proposal
+ * store, inside the transaction that changes the status.
+ */
+async function writeChecks(
+  deps: GatewayDeps,
+  proposal: Proposal,
+  key: KeyRecord,
+): Promise<{ ok: true } | { ok: false; check: WriteRefusal }> {
+  let employee: EmployeeRecord | undefined;
+  let task: TaskRecord | undefined;
+  try {
+    employee = await deps.systems.getEmployee(proposal.requester);
+    task = await deps.systems.getTask(proposal.taskId);
+  } catch (error) {
+    if (!(error instanceof SystemUnavailableError)) throw error;
+    return {
+      ok: false,
+      check: {
+        ok: false,
+        code: 'GATEWAY_UNAVAILABLE',
+        status: 502,
+        ruleId: `WEB.SYSTEM.${error.system}`,
+        policyVersion: null,
+        sentence: 'Cổng không nối được với danh bạ hoặc danh sách task nên chưa ghi. Hãy thử lại sau, hoặc báo người vận hành Lab.',
+      },
+    };
+  }
+
+  const check = checkWrite({ proposal, key, employee, task, policy: deps.policy });
+  return check.ok ? { ok: true } : { ok: false, check };
+}
 
 async function handleDecision(
   deps: GatewayDeps,
@@ -243,9 +282,37 @@ async function handleDecision(
 
   // A key revoked after the login ends the session at the next press.
   const key = deps.keys.findById(active.session.keyId);
-  if (key === undefined || key.revokedAt !== null) {
+  if (key === undefined) {
+    deps.sessions.end(active.token);
+    return refused(401, 'KEY_INVALID', 'WEB.KEY_INVALID', 'Khoá của phiên không còn trong danh sách cấp khoá. Hãy đăng nhập lại bằng khoá hợp lệ.');
+  }
+  if (key.revokedAt !== null) {
     deps.sessions.end(active.token);
     return refused(401, 'KEY_REVOKED', 'WEB.KEY_REVOKED', 'Khoá của bạn đã bị thu hồi nên phiên bị đóng. Hãy xin người quản lý Lab cấp khoá mới.');
+  }
+
+  // Pressing Gửi checks the key, the person, the rule file and the task again; only then does the proposal become confirmed.
+  if (decision === 'confirm') {
+    const proposal = PROPOSAL_ID_PATTERN.test(proposalId) ? deps.proposals.get(proposalId) : undefined;
+    // Only a proposal still waiting for the press needs the second check; an expired or used one is answered by the store.
+    if (proposal !== undefined && effectiveStatus(proposal, deps.now()) === 'awaiting_confirmation') {
+      const checked = await writeChecks(deps, proposal, key);
+      if (!checked.ok) {
+        const { status, code, ruleId, policyVersion, sentence } = checked.check;
+        traceStep(deps, started, {
+          tool,
+          requester,
+          caller: key.caller,
+          taskId: proposal.taskId,
+          proposalId: proposal.proposalId,
+          outcome: 'refused',
+          reasonCode: code,
+          ruleId,
+          policyVersion,
+        });
+        return refusalPage(res, status, code, sentence);
+      }
+    }
   }
 
   const caller = key.caller;
@@ -261,6 +328,8 @@ async function handleDecision(
       ruleId: 'WEB.CONFIRM',
       policyVersion: decided.policyVersion,
     });
+    // The command exists from the same transaction as the confirmation, so a crash cannot leave a confirmed proposal with no way to run.
+    if (decision === 'confirm') deps.commands.createForProposal(decided);
   });
 
   if (!result.ok) {

@@ -1,0 +1,126 @@
+import type { ReasonCode } from '@lab/shared';
+import type { KeyRecord } from '../identity/index.js';
+import { FIELD_ACTION, RULE_IDS, strictestOf, type PolicyDecision, type PolicyEngine } from '../policy/index.js';
+import { CHANGE_FIELDS, type Proposal } from '../proposals/index.js';
+import type { EmployeeRecord, TaskRecord } from '../systems.js';
+
+/** The checks that must pass again at the moment a person presses Gửi (ADR-0002 section 3 point 4). */
+export interface WriteCheckInput {
+  readonly proposal: Proposal;
+  readonly key: KeyRecord | undefined;
+  /** The key's person, read from the directory now, never kept from the draft. */
+  readonly employee: EmployeeRecord | undefined;
+  /** The task as it is now; its department is part of the policy question. */
+  readonly task: TaskRecord | undefined;
+  readonly policy: PolicyEngine;
+}
+
+export type WriteCheck =
+  | { readonly ok: true; readonly ruleId: string; readonly policyVersion: number | null }
+  | {
+      readonly ok: false;
+      readonly code: ReasonCode;
+      readonly status: number;
+      readonly ruleId: string;
+      readonly policyVersion: number | null;
+      readonly sentence: string;
+    };
+
+/** The refusal half of a check, for callers that keep it apart from the allowed answer. */
+export type WriteRefusal = Extract<WriteCheck, { ok: false }>;
+
+function denied(
+  code: ReasonCode,
+  status: number,
+  ruleId: string,
+  sentence: string,
+  policyVersion: number | null = null,
+): WriteCheck {
+  return { ok: false, code, status, ruleId, policyVersion, sentence };
+}
+
+/**
+ * The permission part of the second check: the key still belongs to the same
+ * person, that person is still in the directory, the task list still holds the
+ * task, and the rule file still allows every field the proposal changes.
+ * Time and content are checked by the proposal store in the same transaction.
+ */
+export function checkWrite(input: WriteCheckInput): WriteCheck {
+  const { proposal, key, employee, task, policy } = input;
+
+  if (key === undefined) {
+    return denied('KEY_INVALID', 401, 'WRITE.KEY_INVALID', 'Khoá của phiên không còn trong danh sách cấp khoá nên cổng không ghi. Hãy đăng nhập lại bằng khoá hợp lệ.');
+  }
+  if (key.revokedAt !== null) {
+    return denied('KEY_REVOKED', 401, 'WRITE.KEY_REVOKED', 'Khoá của bạn đã bị thu hồi nên cổng không ghi. Hãy xin người quản lý Lab cấp khoá mới.');
+  }
+  if (key.employeeId !== proposal.requester) {
+    return denied('NOT_PERMITTED', 403, 'WRITE.NOT_REQUESTER', 'Đề xuất này của người khác nên bạn không gửi được. Hãy đăng nhập đúng nhân vật đã nhờ AI soạn.');
+  }
+  if (employee === undefined) {
+    return denied('KEY_INVALID', 401, 'WRITE.NOT_IN_DIRECTORY', 'Người của khoá này không còn trong danh bạ nên cổng không ghi. Hãy hỏi người đã cấp khoá cho bạn.');
+  }
+
+  const role = employee['role'];
+  const department = employee['department'];
+  if (typeof role !== 'string' || typeof department !== 'string') {
+    return denied('NOT_PERMITTED', 403, RULE_IDS.roleUnknown, 'Danh bạ không cho biết vai và phòng của bạn nên cổng không ghi. Hãy báo người quản lý danh bạ.');
+  }
+
+  if (task === undefined) {
+    return denied(
+      'TARGET_CHANGED',
+      409,
+      'WRITE.TASK_GONE',
+      `Task ${proposal.taskId} không còn trong danh sách task nên cổng không ghi. Hãy nhờ AI soạn lại.`,
+    );
+  }
+
+  const actions = [...new Set(CHANGE_FIELDS.filter((field) => proposal.changes[field] !== undefined).map((field) => FIELD_ACTION[field]))];
+  const decisions = actions.map((action) =>
+    policy.decide({
+      actor: { id: key.employeeId, role, department },
+      action,
+      object: { kind: 'task', department: task.department, taskCount: 1 },
+      context: { scope: key.scope === 'read_only' ? 'read_only' : 'read_write', caller: key.caller },
+    }),
+  );
+  const decision = strictestOf(decisions);
+  if (decision === undefined || decision.effect !== 'allow') {
+    const fallback: PolicyDecision = {
+      effect: 'deny',
+      reasonCode: 'NOT_PERMITTED',
+      ruleId: RULE_IDS.inputInvalid,
+      policyVersion: null,
+    };
+    const answer = decision ?? fallback;
+    const version = answer.policyVersion;
+    if (answer.reasonCode === 'POLICY_UNAVAILABLE') {
+      return denied(
+        'POLICY_UNAVAILABLE',
+        503,
+        answer.ruleId,
+        'Cổng không đọc được bộ luật quyền nên chặn mọi lệnh ghi. Hãy báo người vận hành Lab.',
+        version,
+      );
+    }
+    if (answer.effect === 'needs_approval') {
+      return denied(
+        'NEEDS_APPROVAL',
+        403,
+        answer.ruleId,
+        'Việc này cần trưởng nhóm duyệt, và bước duyệt chưa có trong bản này nên cổng không ghi. Hãy hỏi trưởng nhóm phòng bạn.',
+        version,
+      );
+    }
+    return denied(
+      'NOT_PERMITTED',
+      403,
+      answer.ruleId,
+      'Bộ luật quyền không cho vai hiện tại của bạn ghi thay đổi này nữa. Hãy hỏi trưởng nhóm phòng bạn.',
+      version,
+    );
+  }
+
+  return { ok: true, ruleId: decision.ruleId, policyVersion: decision.policyVersion };
+}

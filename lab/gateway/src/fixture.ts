@@ -8,6 +8,8 @@ import {
   type EmployeeRecord,
   type EmployeeSearch,
   type Systems,
+  type TaskPatch,
+  type TaskPatchResult,
   type TaskRecord,
   type TaskSearch,
 } from './systems.js';
@@ -102,6 +104,16 @@ export class StubSystems implements Systems {
   readonly taskSearches: TaskSearch[] = [];
   directoryReads = 0;
 
+  /** Every PATCH the executor sent, so a test can count sends and compare their keys. */
+  readonly patchCalls: TaskPatch[] = [];
+  /** Committed writes per task, replays excluded, like the fake task list's `/admin/write-count`. */
+  readonly writes = new Map<string, number>();
+  /** The next N PATCHes commit and then answer as if the connection died. */
+  dropAfterCommit = 0;
+  /** The next N PATCHes answer as if the network died before anything was written. */
+  failBeforeCommit = 0;
+  private readonly saved = new Map<string, { fingerprint: string; task: TaskRecord }>();
+
   getEmployee(employeeId: string): Promise<EmployeeRecord | undefined> {
     this.directoryReads += 1;
     this.failIfDown('directory');
@@ -140,6 +152,48 @@ export class StubSystems implements Systems {
     );
   }
 
+  /** The same order of checks as the fake task list: saved key, task, version, then the write. */
+  async patchTask(input: TaskPatch): Promise<TaskPatchResult> {
+    this.failIfDown('tasks');
+    this.patchCalls.push(input);
+    if (this.failBeforeCommit > 0) {
+      this.failBeforeCommit -= 1;
+      return { kind: 'unavailable', detail: 'request failed (test)' };
+    }
+
+    const fingerprint = JSON.stringify([
+      input.taskId,
+      input.expectedVersion,
+      Object.fromEntries(Object.entries(input.changes).sort(([a], [b]) => (a < b ? -1 : 1))),
+    ]);
+    const seen = this.saved.get(input.idempotencyKey);
+    if (seen !== undefined) {
+      return seen.fingerprint === fingerprint
+        ? { kind: 'written', task: seen.task, replayed: true }
+        : { kind: 'rejected', status: 422, error: 'idempotency_key_reused' };
+    }
+
+    const task = this.tasks.find((candidate) => candidate.id === input.taskId);
+    if (task === undefined) return { kind: 'not_found' };
+    if (task.version !== input.expectedVersion) return { kind: 'conflict', currentVersion: task.version };
+
+    const next: TaskRecord = { ...task, ...input.changes, version: task.version + 1 };
+    this.tasks = this.tasks.map((candidate) => (candidate.id === next.id ? next : candidate));
+    this.writes.set(next.id, (this.writes.get(next.id) ?? 0) + 1);
+    this.saved.set(input.idempotencyKey, { fingerprint, task: next });
+
+    if (this.dropAfterCommit > 0) {
+      this.dropAfterCommit -= 1;
+      return { kind: 'unavailable', detail: 'the write landed but the answer was lost (test)' };
+    }
+    return { kind: 'written', task: next, replayed: false };
+  }
+
+  /** How many writes really committed for a task, replays excluded. */
+  writeCount(taskId: string): number {
+    return this.writes.get(taskId) ?? 0;
+  }
+
   private failIfDown(system: 'directory' | 'tasks'): void {
     if (this.down === system) throw new SystemUnavailableError(system, 'stopped for the test');
   }
@@ -155,15 +209,30 @@ export interface GatewayFixture {
   close(): Promise<void>;
 }
 
-export async function startFixture(options: Pick<GatewayOptions, 'rulesPath' | 'now' | 'executor'> = {}): Promise<GatewayFixture> {
-  const dir = mkdtempSync(join(tmpdir(), 'lab-gateway-'));
+export interface FixtureOptions extends Pick<GatewayOptions, 'rulesPath' | 'now' | 'executor'> {
+  /** Reuse an existing data dir; used by the restart test. Without it the fixture makes a temp dir and removes it on close. */
+  readonly dir?: string;
+  /** Reuse the same fake systems across a restart. */
+  readonly systems?: StubSystems;
+}
+
+export async function startFixture(options: FixtureOptions = {}): Promise<GatewayFixture> {
+  const ownsDir = options.dir === undefined;
+  const dir = options.dir ?? mkdtempSync(join(tmpdir(), 'lab-gateway-'));
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     [SERVICE_KEY_ENV]: 'test-service-key-0123456789abcdef',
     [DATA_DIR_ENV]: dir,
   };
-  const systems = new StubSystems();
-  const gateway = await startGateway({ port: 0, env, systems, ...options });
+  const systems = options.systems ?? new StubSystems();
+  const gateway = await startGateway({
+    port: 0,
+    env,
+    systems,
+    ...(options.rulesPath === undefined ? {} : { rulesPath: options.rulesPath }),
+    ...(options.now === undefined ? {} : { now: options.now }),
+    ...(options.executor === undefined ? {} : { executor: options.executor }),
+  });
 
   return {
     dir,
@@ -184,7 +253,7 @@ export async function startFixture(options: Pick<GatewayOptions, 'rulesPath' | '
     },
     async close() {
       await gateway.close();
-      rmSync(dir, { recursive: true, force: true });
+      if (ownsDir) rmSync(dir, { recursive: true, force: true });
     },
   };
 }

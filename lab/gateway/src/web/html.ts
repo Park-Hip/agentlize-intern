@@ -1,5 +1,6 @@
 import { PERSONAS } from '@lab/shared';
 import type { CardRow } from '../proposals/card.js';
+import type { WriteCommand } from '../writes/command-store.js';
 
 /** Escape the five characters that can open a tag or leave an attribute. Every value that reaches a page goes through this. */
 export function esc(value: string): string {
@@ -111,16 +112,48 @@ export interface CardView {
   readonly expiresAtLabel: string;
   readonly status: 'awaiting_confirmation' | 'confirmed' | 'cancelled' | 'expired';
   readonly csrfToken: string;
+  /** The write command behind a confirmed proposal; absent for a proposal nobody has sent. */
+  readonly command?: WriteCommand | undefined;
 }
 
-const STATUS_BANNER: Readonly<Record<Exclude<CardView['status'], 'awaiting_confirmation'>, { text: string; tone: Tone }>> = {
-  confirmed: {
-    text: 'Đã nhận lệnh gửi. Lab chưa nối bước ghi thật vào danh sách task nên task chưa đổi.',
-    tone: 'ok',
-  },
+const STATUS_BANNER: Readonly<Record<'cancelled' | 'expired', { text: string; tone: Tone }>> = {
   cancelled: { text: 'Đề xuất đã bị huỷ. Hãy nhờ AI soạn lại với nội dung đã sửa.', tone: 'info' },
   expired: { text: 'CHƯA THỰC HIỆN [APPROVAL_EXPIRED] Đề xuất đã hết hạn. Hãy nhờ AI soạn lại.', tone: 'bad' },
 };
+
+/** What the page says about the write command: written, still unknown, or not carried out with the reason. */
+const COMMAND_BANNER: Readonly<Record<string, { text: string; tone: Tone }>> = {
+  TARGET_CHANGED: {
+    text: 'CHƯA THỰC HIỆN [TARGET_CHANGED] Task đã bị người khác sửa sau khi đề xuất được soạn nên cổng không ghi. Hãy nhờ AI soạn lại với dữ liệu mới.',
+    tone: 'bad',
+  },
+  CONTENT_CHANGED: {
+    text: 'CHƯA THỰC HIỆN [CONTENT_CHANGED] Nội dung đề xuất không còn khớp với lúc soạn nên cổng không ghi. Hãy nhờ AI soạn lại.',
+    tone: 'bad',
+  },
+  GATEWAY_UNAVAILABLE: {
+    text: 'CHƯA THỰC HIỆN [GATEWAY_UNAVAILABLE] Danh sách task từ chối lệnh hoặc trả lời không đọc được nên cổng không ghi. Hãy báo người vận hành Lab.',
+    tone: 'bad',
+  },
+};
+
+function confirmedBanner(view: CardView): { text: string; tone: Tone } {
+  const command = view.command;
+  if (command === undefined || command.status === 'not_sent') {
+    return { text: 'Đã xác nhận đề xuất. Cổng chưa gửi lệnh ghi.', tone: 'info' };
+  }
+  if (command.status === 'sent_unknown') {
+    return {
+      text: 'Cổng đã gửi lệnh nhưng chưa nhận được kết quả. Cổng giữ lệnh và gửi lại với đúng mã cũ, nên task không bị ghi hai lần. Hãy mở lại trang sau ít phút.',
+      tone: 'info',
+    };
+  }
+  if (command.status === 'done') {
+    return { text: `Đã ghi thay đổi vào task ${view.taskId} ở lần gửi thứ ${command.attempts}.`, tone: 'ok' };
+  }
+  const known = command.reasonCode === null ? undefined : COMMAND_BANNER[command.reasonCode];
+  return known ?? { text: 'CHƯA THỰC HIỆN Lệnh ghi không thành công. Hãy báo người vận hành Lab.', tone: 'bad' };
+}
 
 /** The confirmation card. Every value on it was read from the systems by the gateway, none is the agent's wording. */
 export function cardPage(view: CardView): string {
@@ -131,9 +164,7 @@ export function cardPage(view: CardView): string {
     )
     .join('\n');
 
-  const state =
-    view.status === 'awaiting_confirmation'
-      ? `<div class="actions">
+  const pending = `<div class="actions">
 <form method="post" action="/xac-nhan/${esc(view.proposalId)}/gui">
 <input type="hidden" name="csrf" value="${esc(view.csrfToken)}">
 <button type="submit">Gửi</button>
@@ -143,8 +174,12 @@ export function cardPage(view: CardView): string {
 <button type="submit" class="secondary">Sửa (huỷ đề xuất này)</button>
 </form>
 </div>
-<p class="meta">Bấm Gửi để cổng nhận lệnh. Bấm Sửa để huỷ đề xuất này; bạn nhờ AI soạn lại và sẽ nhận một link mới.</p>`
-      : banner(STATUS_BANNER[view.status].text, STATUS_BANNER[view.status].tone);
+<p class="meta">Bấm Gửi để cổng nhận lệnh. Bấm Sửa để huỷ đề xuất này; bạn nhờ AI soạn lại và sẽ nhận một link mới.</p>`;
+  let state = pending;
+  if (view.status !== 'awaiting_confirmation') {
+    const info = view.status === 'confirmed' ? confirmedBanner(view) : STATUS_BANNER[view.status];
+    state = banner(info.text, info.tone);
+  }
 
   return layout(
     `Xác nhận thay đổi ${view.taskId}`,
