@@ -109,6 +109,13 @@ Override the ports with `LAB_GATEWAY_PORT`, `LAB_DIRECTORY_PORT` and `LAB_TASKS_
 `npm test` builds, then runs every `*-test.js` file in the workspace, including a smoke test that starts the three services on temporary ports and checks `/health`.
 `npm run lint` type-checks the whole workspace with `tsc --noEmit`.
 
+Run only the gateway tests, for example the policy engine tests (the rule file is `lab/gateway/policy/rules.json`):
+
+```
+cd lab
+npm test -w gateway -- --test-name-pattern policy
+```
+
 ### MCP probe for Thổ Thần
 
 The probe in `tools/mcp-probe` records what Thổ Thần sends as an MCP host.

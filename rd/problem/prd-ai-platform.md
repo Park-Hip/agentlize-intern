@@ -122,13 +122,14 @@ Công ty chỉ có một agent dùng chung; agent không có quyền riêng mà 
 Bảng dưới là dữ liệu quyền giả định của Lab, dùng thẳng làm dữ liệu thử cho mục 6.
 "Cần duyệt" nghĩa là lệnh dừng lại chờ trưởng nhóm cùng phòng duyệt.
 "Hàng loạt" nghĩa là một lệnh chạm từ 5 task trở lên (ngưỡng đề xuất).
+Đổi trạng thái task phòng mình có cùng quyền như sửa mô tả, vì việc đó không chuyển trách nhiệm sang người khác.
 
-| Vai                     | Tra email công việc | Tra số điện thoại cá nhân, địa chỉ nhà | Sửa mô tả task phòng mình | Đổi người phụ trách hoặc hạn task phòng mình | Đổi hàng loạt | Sửa task phòng khác | Sửa danh bạ |
-| ----------------------- | ------------------- | -------------------------------------- | ------------------------- | -------------------------------------------- | ------------- | ------------------- | ----------- |
-| Thực tập sinh (Nam)     | Được                | Không                                  | Được                      | Không                                        | Không         | Không               | Không       |
-| Nhân viên (chị Hoa)     | Được                | Không                                  | Được                      | Được                                         | Cần duyệt     | Không               | Không       |
-| Trưởng nhóm (anh Quang) | Được                | Không                                  | Được                      | Được                                         | Được          | Không               | Không       |
-| Nhân sự (chị Nhung)     | Được                | Được                                   | Được                      | Được                                         | Cần duyệt     | Không               | Được        |
+| Vai                     | Tra email công việc | Tra số điện thoại cá nhân, địa chỉ nhà | Sửa mô tả task phòng mình | Đổi trạng thái task phòng mình | Đổi người phụ trách hoặc hạn task phòng mình | Đổi hàng loạt | Sửa task phòng khác | Sửa danh bạ |
+| ----------------------- | ------------------- | -------------------------------------- | ------------------------- | ------------------------------ | -------------------------------------------- | ------------- | ------------------- | ----------- |
+| Thực tập sinh (Nam)     | Được                | Không                                  | Được                      | Được                           | Không                                        | Không         | Không               | Không       |
+| Nhân viên (chị Hoa)     | Được                | Không                                  | Được                      | Được                           | Được                                         | Cần duyệt     | Không               | Không       |
+| Trưởng nhóm (anh Quang) | Được                | Không                                  | Được                      | Được                           | Được                                         | Được          | Không               | Không       |
+| Nhân sự (chị Nhung)     | Được                | Được                                   | Được                      | Được                           | Được                                         | Cần duyệt     | Không               | Được        |
 
 Agent và nơi gọi không có dòng nào trong bảng, vì chúng không mang quyền nghiệp vụ.
 
