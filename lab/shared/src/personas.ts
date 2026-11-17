@@ -25,12 +25,12 @@ export interface Persona {
  * her own department while her full key can still change it.
  */
 export const PERSONAS = {
-  hoa: { employeeId: 'NV-03', fullName: 'Nguyễn Thị Hoa', department: 'Vận hành', role: 'staff' },
-  nam: { employeeId: 'NV-04', fullName: 'Lê Hoàng Nam', department: 'Vận hành', role: 'intern' },
+  hoa: { employeeId: 'NV-02', fullName: 'Nguyễn Thị Hoa', department: 'Vận hành', role: 'staff' },
+  nam: { employeeId: 'NV-05', fullName: 'Lê Hoàng Nam', department: 'Vận hành', role: 'intern' },
   quang: { employeeId: 'NV-01', fullName: 'Trần Văn Quang', department: 'Vận hành', role: 'lead' },
-  nhung: { employeeId: 'NV-02', fullName: 'Phạm Thị Nhung', department: 'Vận hành', role: 'hr' },
-  lan: { employeeId: 'NV-05', fullName: 'Đỗ Thị Lan', department: 'Vận hành', role: 'staff' },
-  minh: { employeeId: 'NV-06', fullName: 'Vũ Quốc Minh', department: 'Vận hành', role: 'staff' },
+  nhung: { employeeId: 'NV-06', fullName: 'Phạm Thị Nhung', department: 'Vận hành', role: 'hr' },
+  lan: { employeeId: 'NV-03', fullName: 'Đỗ Thị Lan', department: 'Vận hành', role: 'staff' },
+  minh: { employeeId: 'NV-04', fullName: 'Vũ Quốc Minh', department: 'Vận hành', role: 'staff' },
 } as const satisfies Record<string, Persona>;
 
 export type PersonaName = keyof typeof PERSONAS;

@@ -1,4 +1,4 @@
-export * from './auth.js';
+export * from './bearer.js';
 export * from './env.js';
 export * from './http.js';
 export * from './personas.js';

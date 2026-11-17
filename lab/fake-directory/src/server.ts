@@ -5,8 +5,8 @@ import {
   BodyError,
   DEPARTMENTS,
   LOOPBACK_HOST,
+  hasValidServiceKey,
   ROLES,
-  bearerKeyMatches,
   readJsonBody,
   readServiceKey,
   resolveDataDir,
@@ -87,7 +87,7 @@ export function createDirectoryHandler(options: {
   return async (req, res) => {
     // The key is checked first, for every path and method, so an unauthenticated
     // caller cannot tell a real route from a missing one.
-    if (!bearerKeyMatches(req.headers.authorization, serviceKey)) {
+    if (!hasValidServiceKey(req.headers.authorization, serviceKey)) {
       sendJson(res, 401, { error: 'unauthorized' }, { 'www-authenticate': 'Bearer' });
       return;
     }

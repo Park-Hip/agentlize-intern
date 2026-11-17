@@ -93,13 +93,7 @@ function spawnService(name: ServiceName, env: NodeJS.ProcessEnv): ChildProcess {
   return child;
 }
 
-/** The directory answers every path, `/health` included, only to the service key. */
-async function waitForHealth(
-  name: ServiceName,
-  port: number,
-  child: ChildProcess,
-  serviceKey: string,
-): Promise<void> {
+async function waitForHealth(name: ServiceName, port: number, child: ChildProcess, serviceKey: string): Promise<void> {
   const url = `http://${LOOPBACK_HOST}:${port}/health`;
   const deadline = Date.now() + HEALTH_TIMEOUT_MS;
   let lastError = 'no response yet';
@@ -110,6 +104,7 @@ async function waitForHealth(
     }
 
     try {
+      // The fake systems answer 401 to every request without the service key, /health included.
       const response = await fetch(url, {
         headers: { authorization: `Bearer ${serviceKey}` },
         signal: AbortSignal.timeout(1_000),

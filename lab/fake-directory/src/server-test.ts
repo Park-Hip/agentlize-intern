@@ -86,8 +86,8 @@ test('directory: every path answers 401 without the service key, /health include
   const probes: ReadonlyArray<[string, string]> = [
     ['GET', '/health'],
     ['GET', '/employees'],
-    ['GET', '/employees/NV-03'],
-    ['PATCH', '/employees/NV-03'],
+    ['GET', `/employees/${PERSONAS.hoa.employeeId}`],
+    ['PATCH', `/employees/${PERSONAS.hoa.employeeId}`],
     ['POST', '/admin/reset'],
     ['POST', '/admin/add-field'],
     ['GET', '/nowhere'],
@@ -211,7 +211,7 @@ test('directory: a phone number fragment finds nobody, by name or as a filter', 
 test('directory: GET by code returns one employee, 404 for an unknown or malformed code', async (t) => {
   const { call } = await start(t);
 
-  const found = await call('/employees/NV-06');
+  const found = await call(`/employees/${PERSONAS.minh.employeeId}`);
   assert.equal(found.status, 200);
   assert.equal(((await found.json()) as Json)['full_name'], PERSONAS.minh.fullName);
 
@@ -317,7 +317,7 @@ test('directory: wrong methods answer 405 with an Allow header', async (t) => {
 
   const cases: ReadonlyArray<[string, string, string]> = [
     ['POST', '/employees', 'GET'],
-    ['DELETE', '/employees/NV-03', 'GET, PATCH'],
+    ['DELETE', `/employees/${PERSONAS.hoa.employeeId}`, 'GET, PATCH'],
     ['GET', '/admin/reset', 'POST'],
     ['POST', '/health', 'GET'],
   ];

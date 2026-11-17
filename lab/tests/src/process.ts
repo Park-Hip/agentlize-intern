@@ -76,8 +76,7 @@ export function spawnBuiltService(packageDir: string, env: NodeJS.ProcessEnv): S
   };
 }
 
-/** Poll `/health` until it answers 200. Pass the key for a service that requires one. */
-export async function waitForHealth(service: SpawnedService, port: number, serviceKey?: string): Promise<void> {
+export async function waitForHealth(service: SpawnedService, port: number, serviceKey: string): Promise<void> {
   const url = `http://${LOOPBACK_HOST}:${port}/health`;
   const deadline = Date.now() + HEALTH_TIMEOUT_MS;
 
@@ -88,7 +87,7 @@ export async function waitForHealth(service: SpawnedService, port: number, servi
 
     try {
       const response = await fetch(url, {
-        ...(serviceKey === undefined ? {} : { headers: { authorization: `Bearer ${serviceKey}` } }),
+        headers: { authorization: `Bearer ${serviceKey}` },
         signal: AbortSignal.timeout(1_000),
       });
       await response.text();
