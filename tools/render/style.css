@@ -162,6 +162,13 @@ pre {
   page-break-inside: avoid;
 }
 
+pre code {
+  padding: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+}
+
 ul,
 ol {
   margin: 4px 0 8px;

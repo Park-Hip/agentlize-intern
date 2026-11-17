@@ -786,7 +786,7 @@ python -c "import csv; rows=list(csv.DictReader(open('docs/research/appota-test-
 python -c "import csv; rows=list(csv.DictReader(open('docs/research/appota-test-matrix.csv', encoding='utf-8'))); print(sum(1 for r in rows if r['tier']=='core'))"
 
 # Không có em dash trong tài liệu
-grep -n $'\u2014' rd/01-explore/appota-cases.md || echo "khong co em dash"
+grep -n $'\u2014' rd/appota/appota-cases.md || echo "khong co em dash"
 ```
 
 Khi POC bắt đầu, mỗi nhóm test phải có một lệnh chạy duy nhất và in ra bảng đạt hoặc không đạt.

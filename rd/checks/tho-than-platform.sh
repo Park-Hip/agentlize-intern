@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Kiểm chéo nguồn cho rd/01-explore/tho-than-platform.md
+# Kiểm chéo nguồn cho rd/appota/tho-than-platform.md
 # Mỗi dòng kiểm một câu trích hoặc một quan sát: mở URL, bỏ thẻ HTML, gộp khoảng trắng, so khớp nguyên văn.
 # Ba hàm đặc biệt cho thứ không kiểm được bằng chuỗi trong body:
 #   check_redirect: mã HTTP và vị trí Location
 #   check_header:   header phản hồi
 #   check_mcp:      bắt tay MCP initialize rồi tools/list bằng POST
-# Cách chạy: bash rd/01-explore/checks/tho-than-platform.sh
+# Cách chạy: bash rd/checks/tho-than-platform.sh
 # Ngày chạy đầu: 2026-11-13.
 
 set -u

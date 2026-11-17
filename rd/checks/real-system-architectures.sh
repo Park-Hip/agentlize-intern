@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Kiểm chéo nguồn cho rd/01-explore/real-system-architectures.md
+# Kiểm chéo nguồn cho rd/research/real-system-architectures.md
 # Mỗi dòng kiểm một câu trích: mở URL, bỏ thẻ HTML, gộp khoảng trắng, so khớp nguyên văn.
-# Cách chạy: bash rd/01-explore/checks/real-system-architectures.sh
+# Cách chạy: bash rd/checks/real-system-architectures.sh
 # Kỳ vọng: 50 PASS, 1 BLOCKED (S52, Salesforce trả Access Denied).
 # Ngày chạy đầu: 2026-11-12.
 

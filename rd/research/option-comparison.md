@@ -3,7 +3,7 @@
 Ngày: 2026-11-15. Trạng thái: bản nháp, chưa chọn kiến trúc, chưa có số đo của Lab.
 
 Mọi đánh giá dưới đây là kết quả đọc tài liệu nguồn, chưa thử trên Lab.
-Tám yêu cầu dùng để đối chiếu lấy từ [PRD](../00-frame/prd-ai-platform.md).
+Tám yêu cầu dùng để đối chiếu lấy từ [PRD](../problem/prd-ai-platform.md).
 
 ## Đọc nhanh
 
@@ -15,7 +15,7 @@ Tám yêu cầu dùng để đối chiếu lấy từ [PRD](../00-frame/prd-ai-p
 
 ## Nhân vật và tình huống
 
-Ví dụ trong bài dùng chung một câu chuyện ở phòng Vận hành, lấy từ [PRD, mục 1.1 và 3.2](../00-frame/prd-ai-platform.md#11-một-buổi-sáng-của-chị-hoa).
+Ví dụ trong bài dùng chung một câu chuyện ở phòng Vận hành, lấy từ [PRD, mục 1.1 và 3.2](../problem/prd-ai-platform.md#11-một-buổi-sáng-của-chị-hoa).
 Mọi người và dữ liệu đều là giả lập.
 
 | Ai | Là ai | Được làm gì với task |
@@ -52,7 +52,7 @@ Các cách ghép được với nhau, ví dụ MCP cung cấp công cụ còn c�
 
 # 2. Mỗi cách làm sẵn thành phần nào
 
-PRD chia hệ thống thành bảy thành phần ([PRD, phụ lục A](../00-frame/prd-ai-platform.md#phụ-lục-a---bảy-thành-phần-và-ranh-giới)).
+PRD chia hệ thống thành bảy thành phần ([PRD, phụ lục A](../problem/prd-ai-platform.md#phụ-lục-a---bảy-thành-phần-và-ranh-giới)).
 Sơ đồ dưới tô màu theo kết quả đối chiếu: màu xanh là thành phần có cách làm sẵn một phần, màu cam là thành phần không cách nào làm sẵn.
 
 ```mermaid
@@ -91,12 +91,12 @@ flowchart LR
 | Sổ ghi vết (observability) | Trả lời anh Quang ai dời hạn T-12, vì sao, tốn bao nhiêu. | Công cụ chạy quy trình lưu lịch sử từng lần chạy; điều phối agent có vết và thống kê token (đơn vị tính lượng chữ model đọc và viết). | Một vết nối người yêu cầu, quyết định, lời duyệt, thay đổi và chi phí; không để dữ liệu cá nhân lọt vào vết. |
 
 Ba thành phần không cách nào làm sẵn là cổng kiểm soát, bộ luật quyền và danh tính.
-Đó đúng là ba thành phần trả lời gốc vấn đề của PRD: quyền phải theo người yêu cầu, không theo tài khoản bấm nút ([PRD, mục 1.2](../00-frame/prd-ai-platform.md#12-nguyên-nhân-gốc)).
+Đó đúng là ba thành phần trả lời gốc vấn đề của PRD: quyền phải theo người yêu cầu, không theo tài khoản bấm nút ([PRD, mục 1.2](../problem/prd-ai-platform.md#12-nguyên-nhân-gốc)).
 Bốn thành phần còn lại có làm sẵn một phần, nhưng phần thiếu vẫn thuộc về Lab.
 
 # 3. Mỗi cách đáp ứng tám yêu cầu đến đâu
 
-PRD đặt tám yêu cầu SR1-SR8, mỗi yêu cầu có một phép thử trong Lab ([PRD, mục 6](../00-frame/prd-ai-platform.md#6-yêu-cầu-bắt-buộc)).
+PRD đặt tám yêu cầu SR1-SR8, mỗi yêu cầu có một phép thử trong Lab ([PRD, mục 6](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc)).
 Bảng dưới hỏi: nếu chỉ dùng một cách, phép thử đó có tự đạt không?
 "Một phần" nghĩa là tài liệu nguồn nêu cơ chế giúp được một phần.
 "Không" nghĩa là tài liệu nguồn không nêu cơ chế nào cho việc đó.
@@ -142,11 +142,11 @@ Quyết định cuối nằm trong bản ghi quyết định kiến trúc (ADR).
 | Nối công cụ | Đặt cạnh nhau gọi hàm trực tiếp và MCP, trên cùng cửa kiểm soát và cùng bộ phép thử. | Cả hai chỉ cung cấp bộ nối và mô tả tool; chương trình yêu cầu dựng hai cách để so. | Số đo M6 (công sức dùng lại), M1 (thời gian), M3 (chi phí) và M5 (độ phức tạp vận hành) cho thấy một cách trội hơn. |
 | Chờ duyệt | Ứng dụng tự lưu đề xuất đang chờ. | Mỗi thành phần thêm là thêm một chỗ có thể sai. | Lệnh 30 task đã duyệt bị đứt giữa chừng mà ứng dụng không chạy tiếp đúng; khi đó mới thêm công cụ chạy quy trình. |
 | Điều phối agent | Chưa thêm. | SR8 (dùng lại, quyền theo người) chỉ cần một agent gọi từ hai nơi, không cần hai agent phối hợp. | Có nhiệm vụ thật sự cần chia vai. |
-| Sự kiện | Chưa thêm. | Nó chỉ báo tin sau khi đã ghi, không thay bước duyệt hay xác nhận việc ghi. | Cần báo cho nhiều bên, ví dụ thông báo anh Minh khi nhận việc ([PRD, mục 8.2](../00-frame/prd-ai-platform.md#82-ngoài-phạm-vi)). |
+| Sự kiện | Chưa thêm. | Nó chỉ báo tin sau khi đã ghi, không thay bước duyệt hay xác nhận việc ghi. | Cần báo cho nhiều bên, ví dụ thông báo anh Minh khi nhận việc ([PRD, mục 8.2](../problem/prd-ai-platform.md#82-ngoài-phạm-vi)). |
 
-Tổ hợp này khớp phạm vi thử ở [PRD, mục 3.3](../00-frame/prd-ai-platform.md#33-phạm-vi-thử).
+Tổ hợp này khớp phạm vi thử ở [PRD, mục 3.3](../problem/prd-ai-platform.md#33-phạm-vi-thử).
 Nếu bản ghi quyết định chọn khác, PRD mục 3.3 phải sửa theo.
-Bước sau biến những điều còn chưa biết thành câu hỏi và phép thử ([câu hỏi kiểm chứng](../03-question/research-questions-and-validation-plan.md)), rồi bước đề xuất mới chọn.
+Bước sau biến những điều còn chưa biết thành câu hỏi và phép thử ([câu hỏi kiểm chứng](../design/research-questions-and-validation-plan.md)), rồi bước đề xuất mới chọn.
 
 # Phụ lục A - Căn cứ từng ô của mục 3
 
@@ -227,7 +227,7 @@ Mọi yêu cầu đều có phần Lab tự dựng, kể cả ở dòng có nhi�
 
 - [Phụ lục bằng chứng](comparison-framework.md): 26 nguồn, 16 trích dẫn ngắn, phân tích chi tiết từng cách.
   Mọi nhận định ở mục 2, 3 và Phụ lục A truy được về đó.
-- [PRD, mục 6](../00-frame/prd-ai-platform.md#6-yêu-cầu-bắt-buộc) và [mục 7.3](../00-frame/prd-ai-platform.md#73-sáu-chỉ-số-đo): tám yêu cầu SR1-SR8 và sáu chỉ số M1-M6.
+- [PRD, mục 6](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc) và [mục 7.3](../problem/prd-ai-platform.md#73-sáu-chỉ-số-đo): tám yêu cầu SR1-SR8 và sáu chỉ số M1-M6.
 - [Chương trình R&D, trang 5-6](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt): năm cách cần khảo sát và mục tiêu của Lab.
 
 Các sản phẩm trong phụ lục bằng chứng (OpenAI, MCP, AWS Step Functions, OpenAI Agents SDK, AWS EventBridge) chỉ đại diện minh họa cho từng nhóm, không phải lựa chọn đã duyệt.
