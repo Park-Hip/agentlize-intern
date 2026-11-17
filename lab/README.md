@@ -11,7 +11,7 @@ Danh sách task giả, danh bạ giả, đường đọc của cổng và cửa 
 | `gateway` | Cổng kiểm soát: `GET /health`, cửa `/mcp` (`src/mcp.ts`), module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`), bộ luật quyền (`src/policy/`), ba tool đọc (`src/tools/`) và bảng vết (`src/trace/`, lệnh `npm run trace`) |
 | `fake-directory` | Danh bạ giả 20 nhân viên, xem mục Danh bạ giả |
 | `fake-tasks` | Danh sách task giả: 100 task nạp cố định, đọc, ghi có mã chống ghi trùng và số phiên bản |
-| `tests` | Phép thử `node:test`, gồm phép thử khói ba dịch vụ |
+| `tests` | Phép thử `node:test`, gồm phép thử khói ba dịch vụ và client giả máy chủ Thổ Thần (`src/fake-host.ts`) |
 
 Thư viện dùng chung nằm ở `package.json` gốc của workspace, để cả ba dịch vụ chạy trên một lần cài và một phiên bản.
 
@@ -159,7 +159,10 @@ Thử bằng MCP Inspector sau `npm start` và `npm run seed-keys`:
 npx --yes @modelcontextprotocol/inspector@2.15.0 --cli --transport http --server-url http://127.0.0.1:8790/mcp --header "Authorization: Bearer <khoá của chị Hoa>" --method tools/list
 ```
 
-Phép thử nghiệm thu đọc (`tests/src/gateway-read-test.ts`) chạy cùng một bộ ca qua hai cửa `http` và `mcp-http`; `npm test -w @lab/gateway -- --test-name-pattern mcp` chạy riêng phép thử của cửa này.
+Phép thử nghiệm thu đọc (`tests/src/gateway-read-test.ts`) chạy cùng một bộ ca qua ba cửa `http`, `mcp-http` và `tho-than-host`; `npm test -w @lab/gateway -- --test-name-pattern mcp` chạy riêng phép thử của cửa này.
+Cửa `tho-than-host` dùng client giả ở `tests/src/fake-host.ts`.
+Mỗi lời gọi mở một phiên Streamable HTTP mới (`initialize`, rồi `tools/list` hoặc `tools/call`, rồi đóng), gửi `Authorization: Bearer <khoá lab_>` cùng bốn header `x-user-id`, `x-user-email`, `x-agent-id`, `x-executor-id` giả, và cắt ở 60 giây.
+Con số 60 giây là giả định lấy từ phép đo qua stdio, chưa đo qua HTTPS; client ghi lại thời gian mở phiên và thời gian gọi để dùng cho M1.
 
 ## Bảng vết
 
