@@ -35,7 +35,7 @@ test('smoke: three services start on temporary ports and answer /health', async 
 
   const directory = spawnBuiltService('fake-directory', env);
   started.push(directory);
-  await waitForHealth(directory, ports.directory);
+  await waitForHealth(directory, ports.directory, key);
 
   const tasks = spawnBuiltService('fake-tasks', env);
   started.push(tasks);
@@ -46,7 +46,6 @@ test('smoke: three services start on temporary ports and answer /health', async 
   await waitForHealth(gateway, ports.gateway);
 
   const expected: ReadonlyArray<[ServiceName, number]> = [
-    ['directory', ports.directory],
     ['tasks', ports.tasks],
     ['gateway', ports.gateway],
   ];
@@ -56,6 +55,15 @@ test('smoke: three services start on temporary ports and answer /health', async 
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { status: 'ok', service });
   }
+
+  // The directory answers only to the service key, even on /health.
+  const directoryUrl = `http://${LOOPBACK_HOST}:${ports.directory}/health`;
+  const anonymous = await fetch(directoryUrl);
+  assert.equal(anonymous.status, 401);
+  await anonymous.text();
+  const authorized = await fetch(directoryUrl, { headers: { authorization: `Bearer ${key}` } });
+  assert.equal(authorized.status, 200);
+  assert.deepEqual(await authorized.json(), { status: 'ok', service: 'directory' });
 
   const logs = started.map((service) => service.output()).join('\n');
   assert.equal(logs.includes(key), false, 'the service key must never appear in service output');

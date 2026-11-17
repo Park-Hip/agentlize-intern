@@ -93,7 +93,13 @@ function spawnService(name: ServiceName, env: NodeJS.ProcessEnv): ChildProcess {
   return child;
 }
 
-async function waitForHealth(name: ServiceName, port: number, child: ChildProcess): Promise<void> {
+/** The directory answers every path, `/health` included, only to the service key. */
+async function waitForHealth(
+  name: ServiceName,
+  port: number,
+  child: ChildProcess,
+  serviceKey: string,
+): Promise<void> {
   const url = `http://${LOOPBACK_HOST}:${port}/health`;
   const deadline = Date.now() + HEALTH_TIMEOUT_MS;
   let lastError = 'no response yet';
@@ -104,7 +110,10 @@ async function waitForHealth(name: ServiceName, port: number, child: ChildProces
     }
 
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(1_000) });
+      const response = await fetch(url, {
+        headers: { authorization: `Bearer ${serviceKey}` },
+        signal: AbortSignal.timeout(1_000),
+      });
       await response.text();
       if (response.ok) return;
       lastError = `HTTP ${response.status}`;
@@ -152,12 +161,12 @@ async function main(): Promise<void> {
   // ADR-0003: the fake systems become healthy before the gateway opens.
   for (const name of START_ORDER) {
     const child = spawnService(name, serviceEnv);
-    await waitForHealth(name, ports[name], child);
+    await waitForHealth(name, ports[name], child, serviceKey);
     console.log(`[start] ${name} ready at http://${LOOPBACK_HOST}:${ports[name]}`);
   }
 
   const gateway = spawnService('gateway', serviceEnv);
-  await waitForHealth('gateway', ports.gateway, gateway);
+  await waitForHealth('gateway', ports.gateway, gateway, serviceKey);
   console.log(`[start] gateway ready at http://${LOOPBACK_HOST}:${ports.gateway}`);
   console.log('[start] all services ready, press Ctrl+C to stop');
 }
