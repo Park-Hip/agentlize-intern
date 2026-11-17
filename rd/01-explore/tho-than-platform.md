@@ -1,15 +1,20 @@
-> Bản nháp v0.1 do agent soạn.
-> Toàn bộ quan sát dưới đây làm ngày 2026-11-13, không đăng nhập, chỉ dùng dữ liệu công khai mà máy chủ trả về.
-> Hai mươi mốt câu trích đã được kiểm chéo bằng script, kết quả 21 PASS, 0 MISS, 0 BLOCKED; lệnh và kết quả ghi ở mục 11.
-> Không có số đo hiệu năng, không chọn kiến trúc, không phải ADR.
-
 # Thổ Thần: cùng một cái tên, bốn thứ khác nhau
 
-Ngày: 2026-11-13. Trạng thái: bản nháp do agent soạn, chưa có số đo hiệu năng.
+Ngày: 2026-11-17. Trạng thái: đã đọc mã LobeHub 2.1.56; phần đo trên Thổ Thần vẫn là quan sát công khai, chưa có tài khoản.
+
+## Đọc nhanh
+
+- "Thổ Thần" là bốn thứ khác nhau; bản web đang chạy là LobeHub 2.1.56 đổi nhãn, không phải mã của Appota.
+- Mã LobeHub không tự gắn danh tính người dùng vào lời gọi công cụ; nó chỉ gửi những gì người dùng cấu hình.
+- Lời gọi tới nhà cung cấp mô hình có gửi mã người dùng, nhưng nằm trong nội dung gửi đi, không phải ở phần thông tin kèm theo.
+- Có một chế độ duyệt thứ tư bị ẩn, cho phép công cụ chạy mà không hỏi; một lời gọi hợp lệ vẫn chọn được chế độ này.
+- Vì vậy cổng của Lab vẫn phải tự kiểm danh tính và tự chặn ghi, không dựa vào phần mềm chat.
 
 ## 0. Câu hỏi
 
 Câu hỏi của file này hẹp: khi repo này nói "chạy trên Thổ Thần AI", thực thể nào đang thực sự tồn tại, cái nào chạy thật, cái nào chỉ là tài liệu, và có chỗ nào cắm được một tool hoặc MCP server của lab vào hay không.
+
+Câu hỏi thứ hai, thêm ngày 2026-11-17: mã LobeHub 2.1.56 có gắn danh tính người dùng vào lời gọi MCP trong chat và lời gọi tới nhà cung cấp mô hình không, và có chế độ duyệt công cụ nào bị ẩn không.
 
 Nguồn gốc câu hỏi: [`../context/appota-ai-ecosystem.md`](../../docs/context/appota-ai-ecosystem.md) đặt Thổ Thần AI vào vai AI Execution Plane, nhưng ghi rõ đó là bản chép từ ảnh chụp chưa ai xác nhận.
 Báo cáo MCP để mở ba câu hỏi đúng vào chỗ này: Tool/MCP Runtime đã có chưa, duyệt người trước khi ghi nằm ở đâu, và telemetry có đủ trường không.
@@ -19,14 +24,15 @@ Ngoài phạm vi: chọn nơi chạy cho lab, xếp hạng phương án, báo gi
 ## 1. Cách làm
 
 Trang đích là một ứng dụng một trang nằm sau đăng nhập, nên phần đọc nội dung phải đi vòng.
-Sáu bước, tất cả chạy lại được:
+Bảy bước, tất cả chạy lại được:
 
 1. Gọi thẳng `https://thothan.appota.ai/` bằng curl và đọc header phản hồi, `robots.txt`, `sitemap.xml`, `manifest.webmanifest`.
 2. Đọc HTML tĩnh và toàn bộ 28 file JavaScript mà HTML đó nạp, để lấy chuỗi định danh, phiên bản và danh sách gói nội bộ.
 3. Tải năm ảnh trong `screenshots/` của manifest và xem trực tiếp.
 4. Đọc bộ tài liệu ở `docs-srd.appota.ai/tho-than`: `sitemap-pages.xml`, `llms.txt`, `llms-full.txt` (78.220 byte), và từng trang `.md`.
 5. Gửi yêu cầu JSON-RPC vào endpoint MCP của bộ tài liệu để bắt tay và liệt kê tool.
-6. Viết script `checks/tho-than-platform.sh` mở lại từng nguồn và so khớp nguyên văn câu trích, gồm một hàm riêng cho redirect, một cho header, một cho bắt tay MCP.
+6. Viết script `checks/tho-than-platform.sh` mở lại từng nguồn và so khớp nguyên văn câu trích, gồm hàm riêng cho redirect, header, bắt tay MCP và mã nguồn.
+7. Tải tarball tag `v2.1.56` của LobeHub, đọc các tệp MCP client, MCP service, model runtime và chế độ duyệt; ghi đường dẫn và số dòng, không chép mã.
 
 Không tạo tài khoản, không đăng nhập, không gửi dữ liệu nào vào hệ thống.
 
@@ -59,7 +65,7 @@ Năm dấu vết độc lập:
 | --- | --- | --- |
 | `robots.txt` vẫn là của LobeChat | `Host: https://lobechat.com`, và `Sitemap:` trỏ về `lobechat.com/sitemap-index.xml` | S2 |
 | Route cũ tự chuyển sang route mới | `/discover` trả 308 về `/community`, `/chat` trả 308 về `/` | quan sát trực tiếp |
-| Bundle chứa `package.json` của chính monorepo | `{"name":"@lobehub/lobehub","version":"2.1.56","repository":{"type":"git","url":"https://github.com/lobehub/lobehub.git"}}` | quan sát trực tiếp, mục 11 |
+| Bundle chứa `package.json` của chính monorepo | `{"name":"@lobehub/lobehub","version":"2.1.56","repository":{"type":"git","url":"https://github.com/lobehub/lobehub.git"}}` | quan sát trực tiếp, mục 12 |
 | Tên gói nội bộ | 90 tên gói `@lobechat/*`, gồm `@lobechat/agent-runtime`, `@lobechat/builtin-skills`, `@lobechat/observability-otel` | quan sát trực tiếp |
 | Ảnh trong manifest | Năm ảnh `screenshots/shot-1..5.desktop.png` vẫn là ảnh tiếp thị gốc, còn chữ "LobeChat", còn chữ "LobeHub", còn quảng cáo "gpt-4-vision" | S1, xem trực tiếp |
 
@@ -173,7 +179,8 @@ Nó là bằng chứng rằng tổ chức này đã có ít nhất một endpoin
 ### 5.2 LobeHub là MCP host, nên thực thể 1 có thể cắm được MCP server
 
 Phía thượng nguồn, LobeHub đã làm MCP client từ RFC 112, và từ commit `85454c5` thì cài được MCP server Streamable HTTP ngay trên bản web, không cần bản desktop.
-Cấu hình nhận ba dạng xác thực: không xác thực, bearer, và OAuth2.
+Mã có ba dạng xác thực: không xác thực, bearer, và OAuth2.
+Form hiện chỉ cho chọn hai dạng đầu; mục 6.2 nói rõ.
 
 Bản đang chạy là 2.1.56, tức sau mốc đó.
 Trong bundle có tham chiếu `apps/mcp-gateway`, và `mcp-hello-world` chỉ nằm ở `devDependencies`, tức là công cụ kiểm thử của chính monorepo.
@@ -187,22 +194,133 @@ Trang Marketplace của extension VS Code ghi rõ một trong các tính năng: 
 Nghĩa là cùng một tool của lab có thể được khai báo ở hai nơi khác nhau, bởi hai sản phẩm khác nhau, mà không cần viết lại.
 Đây là chất liệu trực tiếp cho tiêu chí "agent thứ hai dùng lại cùng tool" trong phần định nghĩa hoàn thành của Track 01.
 
-## 6. Đối chiếu với câu hỏi đang mở trong repo
+## 6. Đọc mã LobeHub 2.1.56: danh tính và duyệt công cụ
+
+### 6.1. Phạm vi đọc
+
+Câu hỏi: LobeHub 2.1.56 có tự gắn danh tính người dùng vào lời gọi MCP trong chat và lời gọi tới nhà cung cấp mô hình không, và có chế độ duyệt công cụ nào bị ẩn không.
+
+Cách làm: tải tarball của tag `v2.1.56`, commit `eddb0c991bb8263928ad304cf9c340a6cadd7e90`, phát hành ngày 2026-05-01, rồi đọc các tệp nêu trong mục này.
+Không chạy LobeHub, không đăng nhập, không sửa mã.
+Mọi đường dẫn tính từ gốc kho mã nguồn LobeHub.
+
+### 6.2. Lời gọi MCP trong chat: không có danh tính do LobeHub đặt
+
+**Trả lời: không.**
+LobeHub 2.1.56 chỉ gửi header do người dùng cấu hình cho skill, cộng thêm khoá xác thực nếu có.
+Nó không thêm `x-user-id`, `x-user-email`, `x-agent-id` hay `x-executor-id`.
+Trong mã có một header danh tính duy nhất, `X-lobe-user-id`, nhưng chỉ dùng cho đọc văn bản thành tiếng và nghe thành văn bản, không dùng cho MCP (`packages/const/src/fetch.ts:3`, `src/services/_header.ts:19`, `src/hooks/useTTS.ts:41`, `src/features/ChatInput/ActionBar/STT/openai.tsx:47`).
+
+| Câu hỏi | Trả lời | Tệp và dòng |
+| --- | --- | --- |
+| Header của lời gọi MCP lấy từ đâu? | Từ `params.headers`, tức cấu hình của skill. Sau đó client thêm `Authorization` nếu có bearer hoặc OAuth2 token. | `src/libs/mcp/client.ts:170-201` |
+| Chat khác Test connection ở đâu? | Chat gộp thêm `pluginSettings` vào header. Test connection chỉ dùng header của kết nối. Cả hai đều do người dùng đặt. | `src/services/mcp.ts:68-78`, `src/store/tool/slices/mcpStore/action.ts:735-787` |
+| Máy chủ LobeHub có thay header bằng danh tính thật không? | Không. Route chỉ chuyển `input.headers` và `input.auth` xuống client MCP. | `src/server/routers/tools/mcp.ts:78-88`, `src/server/services/mcp/index.ts:349-389` |
+| Có trường `_meta` mang danh tính trên lời gọi không? | Không. `_meta` chỉ có trong kiểu dữ liệu kết quả. `meta` trong route là dữ liệu báo cáo cho chợ skill, không nằm trong JSON-RPC gửi tới MCP server. | `src/libs/mcp/client.ts:379-386`, `src/libs/mcp/types.ts:36-95`, `src/server/routers/tools/mcp.ts:46-64` |
+| Có đăng nhập uỷ quyền OAuth cho MCP không? | Chưa có luồng cho skill tự thêm. Kiểu dữ liệu có `oauth2` và ghi chú "Stage 2 & 3", nhưng form chỉ cho "No auth" và "API Key". | `src/libs/mcp/types.ts:104-134`, `src/features/PluginDevModal/MCPManifestForm/index.tsx:210-239` |
+| Người dùng có tự đặt header bất kỳ không? | Có. Mục Advanced Headers nhận cặp khoá-giá trị. Vì vậy `x-user-id` là giá trị người dùng gửi được, trừ khi máy chủ ghi đè. | `src/features/PluginDevModal/MCPManifestForm/index.tsx:240-248` |
+
+Ba kết luận rút ra.
+
+1. Header `x-user-id` thấy trong phép đo ngày 2026-11-17 không do LobeHub 2.1.56 sinh ra.
+   Nó phải đến từ phần Appota thêm vào, hoặc từ proxy đứng trước, và chưa đọc được mã đó.
+2. LobeHub không phải nơi bảo đảm header này.
+   Nếu Thổ Thần thêm header sau khi đã gộp header người dùng và ghi đè giá trị trùng, thì mới tin được.
+   Nếu chỉ nối thêm, người dùng có thể gửi hai giá trị hoặc gửi giá trị giả.
+3. Client MCP được nhớ theo tham số kết nối, không theo người dùng (`src/server/services/mcp/index.ts:284-301` và `:331-347`).
+   Nếu danh tính được thêm vào tham số, mỗi người có client riêng.
+   Nếu danh tính được thêm ở tầng transport dùng chung, phiên có thể bị chia sẻ giữa những người dùng cùng cấu hình.
+   Phép đo chưa kiểm trường hợp hai người dùng.
+
+### 6.3. Lời gọi model: có danh tính, nhưng trong body
+
+**Trả lời: có, với phần lớn nhà cung cấp.**
+LobeHub gửi mã người dùng nội bộ trong trường `user` của OpenAI-compatible, `safety_identifier` của Responses API, và `metadata.user_id` của Anthropic-compatible.
+Giá trị là `userId` thô lấy từ phiên đăng nhập, không băm.
+
+| Đường gọi | Trường gửi đi | Tệp và dòng |
+| --- | --- | --- |
+| Chat qua webapi | `user` | `src/app/(backend)/webapi/chat/[provider]/route.ts:34-37` |
+| Chat qua agent runtime | `user` | `src/server/modules/AgentRuntime/RuntimeExecutors.ts:727-823` |
+| OpenAI-compatible | `user` | `packages/model-runtime/src/core/openaiCompatibleFactory/index.ts:483-491` |
+| OpenAI Responses | `safety_identifier` | `packages/model-runtime/src/core/openaiCompatibleFactory/index.ts:1097-1119` |
+| Anthropic-compatible | `metadata.user_id` | `packages/model-runtime/src/core/anthropicCompatibleFactory/index.ts:492-496` |
+| GitHub Copilot dùng Anthropic | `metadata.user_id` | `packages/model-runtime/src/providers/githubCopilot/index.ts:208` |
+| Cohere, Mistral, Spark | không gửi, vì `noUserId: true` | `packages/model-runtime/src/providers/cohere/index.ts:39`, `packages/model-runtime/src/providers/mistral/index.ts:39`, `packages/model-runtime/src/providers/spark/index.ts:52` |
+| Header trace | chỉ `LOBE_CHAT_TRACE_ID` và `LOBE_CHAT_OBSERVATION_ID`, không có mã người dùng | `src/server/modules/ModelRuntime/trace.ts:46-54` |
+
+Hai hệ quả.
+
+- Đây là mã nội bộ, không phải email, nhưng vẫn là định danh ổn định và nhà cung cấp model thấy được.
+  Lab không được giả định lời gọi model là ẩn danh.
+- Nếu cắm probe làm nhà cung cấp OpenAI-compatible, probe sẽ thấy trường `user` trong body.
+  Đây là cách kiểm lại kết luận này mà không cần đọc mã.
+
+### 6.4. Bốn chế độ duyệt, ba chế độ hiện trên giao diện
+
+**Trả lời: có một chế độ bị ẩn, tên là `headless`.**
+
+| Chế độ | Hiện trên giao diện | Hành vi | Tệp và dòng |
+| --- | --- | --- | --- |
+| `auto-run` | Có | Chạy mọi tool, trừ tool bị chính sách "always"; tool đó vẫn hỏi. | `packages/agent-runtime/src/agents/GeneralChatAgent.ts:212-222` |
+| `allow-list` | Có | Chỉ chạy tool trong danh sách, còn lại hỏi; tool "always" vẫn hỏi. | `packages/agent-runtime/src/agents/GeneralChatAgent.ts:234-242` |
+| `manual` | Có | Theo chính sách của từng tool; tool không khai báo thì chạy. | `packages/agent-runtime/src/agents/GeneralChatAgent.ts:244-255` |
+| `headless` | Không | Chạy mọi tool, kể cả tool có chính sách "always" riêng; chỉ tool bị blacklist an ninh toàn cục mới bị bỏ qua im lặng. | `packages/agent-runtime/src/agents/GeneralChatAgent.ts:169-178` |
+
+Năm điểm cần đọc kỹ.
+
+- Giao diện chỉ dựng menu cho ba chế độ đầu (`src/features/ChatInput/RuntimeConfig/ApprovalMode.tsx:56-110`).
+  Selector còn ghi rõ `headless` không cho người dùng chọn (`src/store/user/slices/settings/selectors/toolIntervention.ts:5-16`).
+- Schema API nhận `headless` (`packages/types/src/tool/intervention.ts:124-150`), và route `execAgent` nhận `userInterventionConfig` tuỳ chọn (`src/server/routers/lambda/aiAgent.ts:186-191`).
+- Nếu client không gửi cấu hình, `AiAgentService.execAgent` mặc định `headless` (`src/server/services/aiAgent/index.ts:266`).
+  Nghĩa là một lời gọi hợp lệ có thể chạy tool mà không hỏi ai.
+- Trong `headless`, tool bị blacklist an ninh toàn cục không được hỏi mà bị bỏ qua (`packages/agent-runtime/src/agents/GeneralChatAgent.ts:170-178`).
+  Tool có chính sách "always" riêng vẫn chạy, vì nhánh `headless` được kiểm tra trước chính sách của tool.
+  `auto-run` thì vẫn hỏi cả hai loại.
+- Chế độ `manual` không có nghĩa là mọi tool đều hỏi.
+  Nó đọc chính sách `humanIntervention` của tool.
+  Tool MCP do LobeHub khám phá chỉ có tên, mô tả và schema, không có trường này (`src/server/services/mcp/index.ts:489-496`).
+  Vì vậy `fake_write` chạy ngay trong chế độ Manual, đúng như phép đo ngày 2026-11-17.
+
+Kết luận cho Lab: hộp duyệt của LobeHub là tính năng giao diện, không phải ranh giới an ninh.
+Cổng của Lab phải tự kiểm danh tính, tự kiểm quyền và tự chặn ghi.
+
+### 6.5. Hệ quả cho ADR-0005
+
+- Khoá riêng từng người vẫn là cách chính.
+  LobeHub 2.1.56 không cung cấp danh tính đáng tin cho lời gọi MCP.
+- `x-user-id` của Thổ Thần chỉ dùng làm lớp thứ hai khi cả ba điều đúng.
+  Một, Thổ Thần ghi đè header người dùng trên mọi lời gọi.
+  Hai, cổng của Lab chỉ nhận lời gọi từ Thổ Thần.
+  Ba, bảng nối `x-user-id` với mã nhân viên nằm ở phía máy chủ.
+- Chưa có điều nào được chứng minh.
+  Phép đo ngày 2026-11-17 chỉ thấy header có mặt, chưa thử gửi header giả.
+- Nếu thiếu một điều, bỏ `x-user-id` khỏi ADR-0005.
+  Khi đó khoá riêng là cách duy nhất, và cổng phải chặn gọi trực tiếp.
+- Việc duyệt ghi cũng không thể giao cho LobeHub.
+  Cổng phải giữ đề xuất, kiểm lại nội dung và chỉ ghi sau xác nhận, đúng SR1 (danh tính và một cửa ghi) và SR6 (không ghi trùng).
+
+Ba phép kiểm còn thiếu nằm ở mục 9, H7 tới H9.
+
+## 7. Đối chiếu với câu hỏi đang mở trong repo
 
 | Câu hỏi đang mở | Trả lời sau lần khảo sát này | Mức tin cậy |
 | --- | --- | --- |
 | Trong sáu ô của Thổ Thần AI, ô nào đã chạy thật? | Chắc chắn có ô giao diện chat, agent runtime, skill, công cụ dựng sẵn, và một MCP host. Không xác minh được ô lớn hơn vì không có tài khoản. | Trung bình |
 | Tool/MCP Runtime đã có chưa? | Có MCP host ở tầng sản phẩm, và có một MCP server chỉ đọc tài liệu. Chưa thấy runtime MCP cho nghiệp vụ. | Trung bình |
-| Duyệt người trước khi ghi nằm ở đâu? | KHÔNG TÌM THẤY trong mọi nguồn công khai đã đọc. | - |
+| Duyệt người trước khi ghi nằm ở đâu? | Có ở tầng agent runtime, nhưng không phải ranh giới an ninh. Tool MCP không khai báo chính sách nên chạy ngay trong chế độ Manual; chế độ `headless` bị ẩn và là mặc định khi thiếu cấu hình. | Cao |
+| Lời gọi MCP trong chat có mang danh tính do LobeHub gắn không? | Không. Chỉ có header cấu hình và khoá xác thực. `x-user-id` thấy trong phép đo là do phần Appota thêm, chưa chứng minh được ghi đè. | Cao |
+| Lời gọi model có mang danh tính người dùng không? | Có, trong body: `user`, `safety_identifier`, hoặc `metadata.user_id`, tuỳ nhà cung cấp. Giá trị là mã người dùng thô. | Cao |
+| Có chế độ duyệt công cụ nào bị ẩn không? | Có: `headless`, không hiện trong menu, API nhận, và là mặc định khi thiếu cấu hình. | Cao |
 | Telemetry có đủ trường cho Value Intelligence? | Mã có OpenTelemetry. Chưa biết có bật và có trường nào. | Thấp |
 | Lab đứng độc lập, hay là Tool/MCP Runtime cắm vào Thổ Thần, hay là lớp policy đứng trước runtime? | Chưa chọn. Nhưng lựa chọn thứ hai giờ có một đường cắm cụ thể để thử, thay vì là giả định. | - |
 
-Ba câu hỏi trên không được trả lời bởi tài liệu.
-Chúng chỉ trả lời được bằng một tài khoản thật, hoặc bằng một buổi hỏi trực tiếp người sở hữu sản phẩm.
+Ba câu hỏi về danh tính và duyệt công cụ đã có câu trả lời từ mã nguồn.
+Việc còn lại là kiểm trên instance thật, ở H1, H7, H8 và H9.
 
-## 7. Cảnh báo khi dùng tài liệu này
+## 8. Cảnh báo khi dùng tài liệu này
 
-Ba điều dễ làm sai, ghi ra để người sau không mắc lại.
+Bốn điều dễ làm sai, ghi ra để người sau không mắc lại.
 
 1. Không trích dẫn bộ tài liệu ở mục 4 như đặc tả của nền tảng đang chạy.
    Nó mô tả một bản Dify của năm 2024.
@@ -210,8 +328,10 @@ Ba điều dễ làm sai, ghi ra để người sau không mắc lại.
    Đó là bằng chứng mã có trong bản triển khai, không phải bằng chứng người dùng thấy được.
 3. Không dùng "Thổ Thần" làm từ khoá duy nhất khi tra cứu.
    Tên đó trùng với một IP văn hoá và một sự kiện nội bộ, kết quả sẽ bị nhiễu.
+4. Không đọc chế độ "Manual" là mọi công cụ đều hỏi duyệt.
+   Tool MCP không có chính sách duyệt, nên chạy ngay; chế độ duyệt của host không phải lớp bảo vệ ghi.
 
-## 8. Câu hỏi mở và giả thuyết kiểm được
+## 9. Câu hỏi mở và giả thuyết kiểm được
 
 Mỗi giả thuyết kèm cách kiểm và người có thể trả lời.
 
@@ -219,15 +339,19 @@ Mỗi giả thuyết kèm cách kiểm và người có thể trả lời.
 | --- | --- | --- | --- |
 | H1 | Instance `thothan.appota.ai` bật tính năng skill và MCP cho người dùng | Đăng nhập, mở Cài đặt, tìm mục thêm MCP server tùy chỉnh; thử cắm một MCP server cục bộ | Người có tài khoản, Kevin |
 | H2 | Có một Tool/MCP Runtime dùng chung cho nghiệp vụ, tách khỏi LobeHub | Hỏi trực tiếp; tìm tên miền nội bộ dạng `mcp.*` hoặc `gateway.*` | Kevin |
-| H3 | Duyệt người trước khi ghi chưa tồn tại ở tầng nền tảng | Hỏi trực tiếp; nếu chưa có thì lab được phép đề xuất đặt ở runtime | Kevin |
+| H3 | Đã trả lời: duyệt người trước khi ghi có tồn tại ở tầng agent, nhưng tool MCP không có chính sách nên chạy ngay trong chế độ Manual | Phép đo ngày 2026-11-17 đã thấy không hỏi; mã ở mục 6.4 giải thích | Đã đủ, không cần hỏi thêm |
 | H4 | Bộ tài liệu 2024 đã bị bỏ, không còn người cập nhật | Gửi `sendFeedback` qua chính MCP server của tài liệu và xem có phản hồi | Phòng SRD, `srd@appota.com` |
 | H5 | Ngôn ngữ mặc định của instance là tiếng Anh, tiếng Việt chỉ là bản dịch có sẵn | Kiểm sau khi đăng nhập, đổi ngôn ngữ, xem chất lượng bản dịch ở màn hình agent và skill | Người có tài khoản |
 | H6 | App mobile AppotaHub nhúng chính trang này qua Capacitor, nên là cùng một phiên đăng nhập | Mở app, kiểm luồng `mobileAuthCallback` | Người có app |
+| H7 | Thổ Thần ghi đè header `x-user-id` người dùng gửi, không nối thêm | Thêm header `x-user-id: spoof-test` vào skill, gọi `whoami`, xem probe nhận giá trị nào; nếu thấy giá trị đánh dấu hoặc hai giá trị thì H7 sai | Người có tài khoản, Kevin |
+| H8 | Phiên MCP tách theo người dùng, không dùng chung cho hai người cùng cấu hình | Hai tài khoản cùng skill URL, so `mcp-session-id` và `x-user-id`; nếu chung phiên hoặc sai người thì H8 sai | Người có hai tài khoản |
+| H9 | Gọi `execAgent` không kèm cấu hình duyệt sẽ chạy tool ghi mà không hỏi | Gọi API với tool ghi giả lập, xem có bản ghi chờ duyệt không; chỉ dùng dữ liệu giả lập | Người có quyền gọi API, Kevin |
 
 H1 là giả thuyết quan trọng nhất.
 Nó quyết định lựa chọn "lab là Tool/MCP Runtime cắm vào Thổ Thần" có phải là một thử nghiệm làm được trong tuần hay chỉ là một giả định trên giấy.
+H7 tới H9 quyết định ADR-0005 có dùng được `x-user-id` làm lớp kiểm thứ hai hay không.
 
-## 9. Giới hạn
+## 10. Giới hạn
 
 - Không có tài khoản, nên toàn bộ mục 3.4 là khoảng trắng, không phải kết luận.
 - Chưa mở được giao diện sau đăng nhập, nên chưa có ảnh chụp nào của sản phẩm thật, chỉ có ảnh tiếp thị của LobeChat.
@@ -235,10 +359,19 @@ Nó quyết định lựa chọn "lab là Tool/MCP Runtime cắm vào Thổ Th�
 - Chưa xác minh quan hệ giữa extension VS Code và nền tảng web; hai bên có thể dùng chung tài khoản hoặc không.
 - Chưa đo gì. Không có số liệu độ trễ, độ ổn định hay chi phí.
 - Con số phiên bản 2.1.56 đọc từ bundle có thể đổi sau mỗi lần triển khai, vì tên file chunk đổi theo bản dựng.
+- Mục 6 chỉ đọc mã nguồn công khai của LobeHub, không đọc mã Thổ Thần đang chạy.
+  Không biết header được thêm ở tầng ứng dụng hay ở proxy, và không biết nó ghi đè hay nối thêm.
+- Chưa chạy LobeHub và chưa gọi thử API `execAgent`.
+  Kết luận về chế độ ẩn là đọc mã, chưa đo trên instance.
+- Tag `v2.1.56` phát hành ngày 2026-05-01.
+  Số 2.1.56 đọc từ bundle khớp tag, nhưng không chứng minh bản chạy giống hệt mã công khai.
+- Chưa kiểm hai người dùng cùng lúc, nên chưa biết phiên MCP có tách theo người hay không.
+- Chưa gọi thử nhà cung cấp model thật.
+  Chỉ đọc đường mã; một số provider có thể bỏ trường `user` hoặc từ chối trường đó.
 
-## 10. Sổ nguồn
+## 11. Sổ nguồn
 
-Cột "khớp" là `có` khi script ở mục 11 mở lại URL ngày 2026-11-13 và so khớp nguyên văn câu trích dùng trong file này.
+Cột "khớp" là `có` khi script ở mục 12 mở lại URL ngày 2026-11-17 và so khớp nguyên văn câu trích dùng trong file này.
 
 | ID | Nguồn | Loại | URL | Ngày | Khớp | Dùng ở |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -260,14 +393,18 @@ Cột "khớp" là `có` khi script ở mục 11 mở lại URL ngày 2026-11-13
 | S16 | LobeHub, kho mã nguồn | Mã nguồn | https://github.com/lobehub/lobehub | không có ngày | không kiểm trong script | 3.1 |
 | S17 | Appota, Huyền Thoại Thổ Thần ra mắt | Bài đăng chính thức | https://vn.linkedin.com/posts/appota_appota-huyenthoaithothan-ipviet-activity-7403703635899293696-gKUR | 2025-12-08 | không kiểm trong script | 2 |
 | S18 | Nhân Dân, Huyền thoại thổ thần | Báo | https://nhandan.vn/huyen-thoai-tho-than-dau-an-moi-cua-van-hoc-fantasy-viet-nam-post928299.html | 2025-12-05 | không kiểm trong script | 2 |
+| S19 | LobeHub 2.1.56, mã nguồn | Mã nguồn | https://github.com/lobehub/lobehub/tree/v2.1.56 | 2026-05-01, commit `eddb0c9` | có, 29 câu kiểm L1-L29 | 6 |
 
 Ghi chú S16 tới S18: ba nguồn này chỉ dùng cho dòng 4 của bảng ở mục 2, tức phần nhận dạng tên, không dùng cho bất kỳ khẳng định kỹ thuật nào.
 Chúng không nằm trong script vì hai trang LinkedIn và báo dễ chặn truy cập tự động.
 
+Ghi chú S19: mục 6 đọc từng tệp con của tag này.
+Script mở lại từng tệp bằng địa chỉ `https://raw.githubusercontent.com/lobehub/lobehub/v2.1.56/<đường dẫn>`, không tải cả cây.
+
 Ghi chú về S12: endpoint MCP không phải tệp tĩnh, phải gửi POST đúng định dạng JSON-RPC mới trả lời.
 GET vào cùng đường dẫn trả 405, nên một lần kiểm bằng trình duyệt sẽ cho kết quả sai.
 
-## 11. Chạy lại
+## 12. Chạy lại
 
 Kiểm chéo tự động:
 
@@ -275,7 +412,15 @@ Kiểm chéo tự động:
 bash rd/01-explore/checks/tho-than-platform.sh
 ```
 
-Kết quả ngày 2026-11-13: 21 PASS, 0 MISS, 0 BLOCKED, mã thoát 0.
+Kết quả ngày 2026-11-17: 50 PASS, 0 MISS, 0 BLOCKED, mã thoát 0.
+
+Kiểm lại tag và commit của LobeHub 2.1.56:
+
+```bash
+git ls-remote https://github.com/lobehub/lobehub 'refs/tags/v2.1.56*'
+```
+
+Kết quả ngày 2026-11-17: tag object `b9cd900b2c2510c2a248ea105c02254b2ec98431`, commit `eddb0c991bb8263928ad304cf9c340a6cadd7e90`.
 
 Đọc phiên bản LobeHub từ bundle, khi cần kiểm lại con số 2.1.56:
 
