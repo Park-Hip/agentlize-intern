@@ -4,6 +4,7 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
+      "@lab/gateway": ["./gateway/src/lib.ts"],
       "@lab/shared": ["./shared/src/index.ts"]
     }
   },
