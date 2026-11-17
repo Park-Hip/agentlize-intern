@@ -111,6 +111,13 @@ Override the ports with `LAB_GATEWAY_PORT`, `LAB_DIRECTORY_PORT` and `LAB_TASKS_
 `npm test -w fake-directory` runs only the directory tests.
 The fake directory answers every path, `/health` included, with 401 unless the request carries `Authorization: Bearer <LAB_SERVICE_KEY>`; `LAB_TEST_HOOKS=1` turns on its `/admin/*` test routes.
 
+Run only the gateway tests, for example the policy engine tests (the rule file is `lab/gateway/policy/rules.json`):
+
+```
+cd lab
+npm test -w gateway -- --test-name-pattern policy
+```
+
 ### MCP probe for Thổ Thần
 
 The probe in `tools/mcp-probe` records what Thổ Thần sends as an MCP host.
