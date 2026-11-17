@@ -148,6 +148,25 @@ npm run trace -- --employee <NV-xx>
 npm run trace -- --task <T-n>
 ```
 
+### Tunnel for one acceptance session
+
+`npm run tunnel` builds the workspace, starts the three services, opens a Cloudflare quick tunnel to the gateway and prints the public `/mcp` address.
+It stops the tunnel and the three services after 45 minutes, and also when you press Ctrl+C.
+It takes no key and prints none; a key is pasted only into the skill form in Thổ Thần.
+
+```
+cd lab
+npm run tunnel
+```
+
+Only the gateway on 127.0.0.1:8790 goes through the tunnel.
+The fake systems on 8791 and 8792, and the operator console on 8793, are never exposed.
+The command refuses to run when `LAB_GATEWAY_PORT` equals `LAB_CONSOLE_PORT`.
+`cloudflared` is expected at `C:\Program Files (x86)\cloudflared\cloudflared.exe` on Windows; set `LAB_CLOUDFLARED_PATH` to use another binary.
+`LAB_TUNNEL_MINUTES` shortens the limit for a demo (1 to 45); a session cannot last longer than 45 minutes.
+`LAB_CONSOLE_PORT` moves the console port the command must avoid (default 8793).
+The step by step acceptance script is `rd/evaluation/milestone-1-tho-than.md`.
+
 ### MCP probe for Thổ Thần
 
 The probe in `tools/mcp-probe` records what Thổ Thần sends as an MCP host.

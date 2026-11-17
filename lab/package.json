@@ -23,8 +23,9 @@
     "build:tests": "npm run build -w @lab/tests",
     "build:scripts": "tsc -p tsconfig-scripts.json",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test \"shared/dist/**/*-test.js\" \"gateway/dist/**/*-test.js\" \"fake-directory/dist/**/*-test.js\" \"fake-tasks/dist/**/*-test.js\" \"tests/dist/**/*-test.js\"",
+    "test": "npm run build && node --test \"shared/dist/**/*-test.js\" \"gateway/dist/**/*-test.js\" \"fake-directory/dist/**/*-test.js\" \"fake-tasks/dist/**/*-test.js\" \"tests/dist/**/*-test.js\" \"dist/scripts/**/*-test.js\"",
     "start": "npm run build && node dist/scripts/start.js",
+    "tunnel": "npm run build && node dist/scripts/tunnel.js",
     "keys": "npm run build:shared && npm run build:gateway && node gateway/dist/cli/keys-main.js",
     "seed-keys": "npm run build:shared && npm run build:gateway && node gateway/dist/cli/seed-keys-main.js",
     "trace": "npm run build:shared && npm run build:gateway && node gateway/dist/cli/trace-main.js"
