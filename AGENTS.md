@@ -118,6 +118,19 @@ cd lab
 npm test -w gateway -- --test-name-pattern policy
 ```
 
+Per-person keys live in the `api_keys` table of `lab/.data/gateway.sqlite` (hash only).
+Run the identity tests alone with `npm test -w gateway -- --test-name-pattern identity`.
+
+```
+npm run keys -- issue --employee NV-07 --caller tho-than-desktop [--scope read_only]
+npm run keys -- revoke --key-id <key-id>
+npm run keys -- list
+npm run seed-keys [-- --rotate]
+```
+
+`issue` and `seed-keys` print each raw key once and never write it to disk; `list` shows only the first six characters.
+`seed-keys` issues one key per persona plus the guest, and refuses to run again until `--rotate` revokes the old ones.
+
 ### MCP probe for Thổ Thần
 
 The probe in `tools/mcp-probe` records what Thổ Thần sends as an MCP host.

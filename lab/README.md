@@ -7,8 +7,8 @@ Danh sách task giả và danh bạ giả đã có logic; các gói còn lại l
 
 | Gói | Vai trò |
 | --- | --- |
-| `shared` | Cổng mạng, mã lý do, câu từ chối, kiểu danh mục tool và phản hồi tool, sáu nhân vật cố định, kiểm khoá dịch vụ |
-| `gateway` | Cổng kiểm soát, hiện chỉ có `GET /health` |
+| `shared` | Cổng mạng, mã lý do, câu từ chối, kiểu danh mục tool và phản hồi tool, sáu nhân vật cố định, kiểm khoá dịch vụ, che khoá trong log |
+| `gateway` | Cổng kiểm soát: `GET /health` và module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`) |
 | `mcp-adapter` | Chỗ đặt chương trình nối stdio, chưa có tool |
 | `fake-directory` | Danh bạ giả 20 nhân viên, xem mục Danh bạ giả |
 | `fake-tasks` | Danh sách task giả: 100 task nạp cố định, đọc, ghi có mã chống ghi trùng và số phiên bản |

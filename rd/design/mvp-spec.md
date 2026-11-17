@@ -370,6 +370,7 @@ Quyết định 2 vẫn để mở: phép đo HTTPS ngày 2026-11-17 đã trả 
 Để sau, không chặn mốc 0 tới mốc 2:
 
 - Mức dữ liệu tối đa theo từng nơi gọi: xem lại sau mốc 4, vì chưa có yêu cầu SR nào đòi.
+- Thu hồi mọi khoá của một nơi gọi cùng lúc: chưa làm ở mốc 1 và 2, vì không phép thử SR nào đòi; hiện chỉ thu hồi từng khoá theo mã khoá.
 - Model cho trợ lý gọi hàm: chọn ở mốc 4.
 - Cách nối thứ ba, cổng đóng vai một mô hình AI cho Thổ Thần: chỉ đo bằng probe, chưa dựng; mã LobeHub gửi mã người dùng trong lời gọi tới mô hình, nên đường này có thể mang danh tính ([khảo sát Thổ Thần, mục 6.3](../appota/tho-than-platform.md#63-lời-gọi-model-có-danh-tính-nhưng-trong-body)).
 
