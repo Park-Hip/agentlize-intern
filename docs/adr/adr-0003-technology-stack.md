@@ -31,7 +31,7 @@ Quyết định 5 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md
 | Lưu dữ liệu | SQLite qua `better-sqlite3`, mỗi dịch vụ một file | Bản ổn định; ngày 2026-11-17 cài trên máy Lab mất 3 giây, có sẵn bản dựng cho Windows, không phải biên dịch |
 | Bộ luật quyền | Tự viết: file luật JSON có số phiên bản, kiểm cấu trúc bằng `zod`, trả quyết định kèm mã lý do và mã luật | Ma trận nhỏ (sáu nhân vật, vài hành động); phép thử theo từng ô dễ viết |
 | Trang xác nhận, duyệt, tra vết | HTML do cổng dựng, không dùng framework giao diện; mọi giá trị được thoát ký tự | Ba trang, ít trạng thái; không thêm bước build |
-| Chia mã | `lab/` là một npm workspace: `shared`, `gateway`, `mcp-adapter`, `fake-directory`, `fake-tasks`, `tests` | Ranh giới mã trùng ranh giới tiến trình; mã lý do và kiểu dữ liệu dùng chung nằm ở `shared` |
+| Chia mã | `lab/` là một npm workspace: `shared`, `gateway`, `fake-directory`, `fake-tasks`, `tests` | Ranh giới mã trùng ranh giới tiến trình; mã lý do và kiểu dữ liệu dùng chung nằm ở `shared` |
 | Cổng mạng | Cổng 8790, danh bạ giả 8791, task giả 8792, chỉ nghe ở `127.0.0.1` | Không mở ra ngoài khi chưa có ADR về nơi chạy |
 | Khoá | Khoá người dùng dạng `lab_` cộng 32 byte ngẫu nhiên; lưu mã băm SHA-256; so sánh thời gian hằng; log chỉ hiện 6 ký tự đầu. Khoá dịch vụ của cổng sinh lúc khởi tạo, chỉ nằm trong biến môi trường | Khoá đủ dài nên băm một lần là đủ; repo không chứa khoá thô |
 | Phép thử | `node:test` có sẵn, chạy trên mã đã build; một client giả Thổ Thần mở tiến trình mới cho mỗi lần gọi và cắt ở 60 giây | Không thêm công cụ; client giả lấy từ cách probe tự kiểm |

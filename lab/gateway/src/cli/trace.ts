@@ -11,7 +11,7 @@ const USAGE = [
   '  npm run trace -- --limit <n>          show at most n lines (default 200)',
 ].join('\n');
 
-const COLUMNS = ['time', 'trace', 'requester', 'caller', 'entry', 'tool', 'object', 'outcome', 'reason', 'scope', 'rule', 'policy', 'ms'] as const;
+const COLUMNS = ['time', 'trace', 'requester', 'caller', 'entry', 'tool', 'object', 'outcome', 'reason', 'scope', 'rule', 'policy', 'host_user', 'ms'] as const;
 
 function cells(row: TraceRow): string[] {
   return [
@@ -27,6 +27,7 @@ function cells(row: TraceRow): string[] {
     row.outOfScope ? 'out_of_scope' : '-',
     row.ruleId ?? '-',
     row.policyVersion === null ? '-' : `v${row.policyVersion}`,
+    row.hostUser ?? '-',
     String(row.durationMs),
   ];
 }

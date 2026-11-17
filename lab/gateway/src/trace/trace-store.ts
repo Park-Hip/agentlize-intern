@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import type { ReasonCode } from '@lab/shared';
 import type { GatewayDatabase } from '../database.js';
 
-/** Where a call came in. `mcp` is reserved for the `/mcp` door of a later milestone. */
+/** Where a call came in: `http` is `POST /v1/tools/<name>`, `mcp` is the `/mcp` door. */
 export const ENTRIES = ['http', 'mcp'] as const;
 export type TraceEntry = (typeof ENTRIES)[number];
 
@@ -33,6 +33,11 @@ export interface TraceRecord {
   readonly outOfScope: boolean;
   readonly ruleId: string | null;
   readonly policyVersion: number | null;
+  /**
+   * The `x-user-id` the host attached, already masked like a key (`user_a...(len=29)`).
+   * A claim to look at later, never an input to a permission decision (ADR-0005).
+   */
+  readonly hostUser: string | null;
   readonly durationMs: number;
 }
 
@@ -59,6 +64,7 @@ interface Row {
   out_of_scope: number;
   rule_id: string | null;
   policy_version: number | null;
+  host_user: string | null;
   duration_ms: number;
 }
 
@@ -85,6 +91,7 @@ function toRow(row: Row): TraceRow {
     outOfScope: row.out_of_scope === 1,
     ruleId: row.rule_id,
     policyVersion: row.policy_version,
+    hostUser: row.host_user,
     durationMs: row.duration_ms,
   };
 }
@@ -113,6 +120,7 @@ export class TraceStore {
         out_of_scope   INTEGER NOT NULL CHECK (out_of_scope IN (0, 1)),
         rule_id        TEXT,
         policy_version INTEGER,
+        host_user      TEXT,
         duration_ms    INTEGER NOT NULL
       );
       CREATE INDEX IF NOT EXISTS trace_requester ON trace (requester);
@@ -122,6 +130,11 @@ export class TraceStore {
       CREATE TRIGGER IF NOT EXISTS trace_no_delete BEFORE DELETE ON trace
       BEGIN SELECT RAISE(ABORT, 'trace is append-only'); END;
     `);
+    // A table made before `host_user` existed gets the column; ADD COLUMN is not an UPDATE, so the triggers stay quiet.
+    const columns = db.prepare('PRAGMA table_info(trace)').all() as { name: string }[];
+    if (!columns.some((column) => column.name === 'host_user')) {
+      db.exec('ALTER TABLE trace ADD COLUMN host_user TEXT');
+    }
   }
 
   append(record: TraceRecord): void {
@@ -138,14 +151,15 @@ export class TraceStore {
       out_of_scope: record.outOfScope ? 1 : 0,
       rule_id: record.ruleId,
       policy_version: record.policyVersion,
+      host_user: record.hostUser,
       duration_ms: Math.max(0, Math.round(record.durationMs)),
     };
     this.db
       .prepare(
         `INSERT INTO trace (trace_id, at, requester, caller, entry, tool, object_id, outcome, reason_code,
-                            out_of_scope, rule_id, policy_version, duration_ms)
+                            out_of_scope, rule_id, policy_version, host_user, duration_ms)
          VALUES (@trace_id, @at, @requester, @caller, @entry, @tool, @object_id, @outcome, @reason_code,
-                 @out_of_scope, @rule_id, @policy_version, @duration_ms)`,
+                 @out_of_scope, @rule_id, @policy_version, @host_user, @duration_ms)`,
       )
       .run(row);
   }

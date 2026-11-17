@@ -1,4 +1,4 @@
-﻿{
+{
   "extends": "./tsconfig-base.json",
   "compilerOptions": {
     "noEmit": true,
@@ -10,7 +10,6 @@
   "include": [
     "shared/src/**/*.ts",
     "gateway/src/**/*.ts",
-    "mcp-adapter/src/**/*.ts",
     "fake-directory/src/**/*.ts",
     "fake-tasks/src/**/*.ts",
     "tests/src/**/*.ts",
