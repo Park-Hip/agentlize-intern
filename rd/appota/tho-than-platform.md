@@ -378,12 +378,12 @@ Cổng của Lab phải tự kiểm danh tính, tự kiểm quyền và tự ch�
   Ba, bảng nối `x-user-id` với mã nhân viên nằm ở phía máy chủ.
 - Chưa có điều nào được chứng minh.
   Phép đo HTTPS ngày 2026-11-17 (mục 3.6) chỉ thấy header có mặt trong lời gọi chat, chưa thử gửi header giả và chưa thử hai tài khoản.
-- Nếu thiếu một điều, bỏ `x-user-id` khỏi ADR-0005.
+- Nếu thiếu một điều, ADR-0005 không được dùng `x-user-id` để cấp quyền.
   Khi đó khoá riêng là cách duy nhất, và cổng phải chặn gọi trực tiếp.
 - Việc duyệt ghi cũng không thể giao cho LobeHub.
   Cổng phải giữ đề xuất, kiểm lại nội dung và chỉ ghi sau xác nhận, đúng SR1 (danh tính và một cửa ghi) và SR6 (không ghi trùng).
 
-Ba phép kiểm còn thiếu nằm ở mục 9, H9 tới H11.
+Hai phép kiểm còn thiếu cho danh tính nằm ở mục 9, H9 và H10; H11 kiểm kênh duyệt.
 
 ## 7. Đối chiếu với câu hỏi đang mở trong repo
 
@@ -437,7 +437,7 @@ Mỗi giả thuyết kèm cách kiểm và người có thể trả lời.
 
 H1 đã đúng, nên "lab là Tool/MCP Runtime cắm vào Thổ Thần" là một thử nghiệm làm được ngay.
 
-H9 tới H11 quyết định ADR-0005 có dùng được `x-user-id` làm lớp kiểm thứ hai hay không.
+H9 và H10 quyết định ADR-0005 có dùng được `x-user-id` làm lớp kiểm thứ hai hay không; H11 quyết định kênh duyệt.
 
 **Kết luận:** H1, H3 và H8 đã đúng, đủ để viết ADR; H7 là giả thuyết mở quan trọng nhất, vì nó quyết định cổng có chạy được ở máy chủ chung hay chỉ qua stdio trên máy người dùng.
 
