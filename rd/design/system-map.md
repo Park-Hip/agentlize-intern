@@ -48,9 +48,6 @@ PRD Skill Studio là bản nháp; chính nó ghi bảng phân quyền "cần xá
 Kdata giữ máy chủ, khoá bí mật và mạng.
 Bản thử chạy trên máy cá nhân với dữ liệu giả, nên chưa cần Kdata.
 
-Ngoài năm mảnh ghép còn các bản R&D của đồng nghiệp cho cùng bài toán, như [bản R&D AgentLize Gateway](../appota/agentlize-gateway.md).
-Chúng là nguồn tham khảo, không phải một phần của hệ thống; Lab vẫn tự dựng và tự quyết.
-
 **Kết luận:** chỉ Thổ Thần desktop là phần mềm đang chạy mà Lab đã đo; AgentLize hiện là slide và PRD nháp, nên mọi mối nối với AgentLize là giả thuyết.
 
 ## 3. Bản đồ mối nối
@@ -148,8 +145,6 @@ Hôm nay cổng nhận người qua khoá riêng, vì Thổ Thần không chuy�
 Về lâu dài, cổng nên nhận cùng danh tính mà Hook dùng: tài khoản Appota, phòng ban lấy từ Lark.
 Vì vậy phần "đổi khoá thành người" trong cổng phải là một module thay được, không rải khắp code.
 
-Một bản R&D của đồng nghiệp, làm độc lập, cũng chọn cùng cách: AI không giữ quyền, AI chỉ soạn bản nháp, người duyệt trên trang của cổng ([bản R&D AgentLize Gateway, mục 2](../appota/agentlize-gateway.md#2-điều-bản-rd-đó-xác-nhận-cho-thiết-kế-của-lab)).
-
 **Kết luận:** Lab là lớp ghi an toàn phía sau Hook, đúng như [PRD của Lab, mục 2.3](../problem/prd-ai-platform.md#23-vị-trí-trong-hệ-sinh-thái-ai-của-appota) đã đặt.
 Tuần này cần Kevin xác nhận vị trí đó, và ADR về danh tính phải ghi rõ khoá riêng là cách tạm.
 
@@ -216,7 +211,7 @@ Tuần 2 chạy từ 16/11 tới 22/11; hôm nay là thứ Ba 17/11.
 | Ngày | Việc | Xong khi |
 | --- | --- | --- |
 | Thứ Ba 17/11 | Gửi Kevin năm câu ở 6.1 cùng ba giới hạn của Thổ Thần; chạy V1, gồm cả lời gọi mô hình | Tin nhắn đã gửi; kết quả V1 ghi vào [khảo sát Thổ Thần](../appota/tho-than-platform.md) |
-| Thứ Tư 18/11 | Viết năm ADR ở [spec, mục 11](mvp-spec.md#11-cần-chốt-trước-khi-dựng), mỗi ADR có mục "xem lại khi" gắn với U1-U4; quyết từng mẫu ở [bản R&D AgentLize Gateway, mục 3](../appota/agentlize-gateway.md#3-điều-lab-chép-hoặc-sửa-lại); chạy V5 và V6 | Có `docs/adr/adr-0001-<slug>.md` tới `adr-0005-<slug>.md` |
+| Thứ Tư 18/11 | Viết năm ADR ở [spec, mục 11](mvp-spec.md#11-cần-chốt-trước-khi-dựng), mỗi ADR có mục "xem lại khi" gắn với U1-U4; chạy V5 và V6 | Có `docs/adr/adr-0001-<slug>.md` tới `adr-0005-<slug>.md` |
 | Thứ Năm 19/11 và thứ Sáu 20/11 | Mốc 1: danh bạ giả, cổng đổi khoá thành người, `find_employee` chỉ trả trường đã khai, chương trình nối stdio, vết; chạy kịch bản D (tra cứu có lọc) trong Thổ Thần | Kịch bản D có ảnh và log; phép thử SR3 (phạm vi quyền) đạt bằng một lệnh |
 | Thứ Bảy 21/11 | V3 và V7; còn thời gian thì V4; cập nhật [tổng hợp phát hiện](../findings.md) và viết báo cáo tuần | Báo cáo tuần 2 trong `submitted/weekly-report/` |
 
@@ -226,7 +221,7 @@ Khi Kevin trả lời, Lab đổi hướng theo bảng dưới:
 
 | Kevin trả lời | Lab làm |
 | --- | --- |
-| Người dùng thật ở điện thoại hay web | Mốc 2 làm qua `/mcp`; xin địa chỉ công khai; chạy V2; đo thêm cách cổng đóng vai mô hình AI ([bản R&D AgentLize Gateway, mục 5](../appota/agentlize-gateway.md#5-một-cách-nối-thổ-thần-thứ-ba-để-so-cổng-đóng-vai-mô-hình-ai)) |
+| Người dùng thật ở điện thoại hay web | Mốc 2 làm qua `/mcp`; xin địa chỉ công khai; chạy V2; đo thêm cách cổng đóng vai mô hình AI ([khảo sát Thổ Thần, mục 6.3](../appota/tho-than-platform.md#63-lời-gọi-model-có-danh-tính-nhưng-trong-body)) |
 | Có người đang dựng Hook | Hẹn một buổi khớp hợp đồng danh tính và vết; Lab không dựng phần lọc danh mục Skill |
 | Thổ Thần sẽ chuyển danh tính | Module danh tính thêm cách thứ hai; khoá riêng giữ cho MausBot và trợ lý gọi hàm |
 | Chưa trả lời | Không chờ: mốc 1 và mốc 2 có ích với mọi câu trả lời |

@@ -96,10 +96,6 @@ Bốn điểm cần báo Kevin: người dùng thật ở web hay desktop, heade
 
 ## 5. Làm gì bây giờ
 
-Một đồng nghiệp đã làm bản R&D "AgentLize Gateway" cho cùng bài toán, và Kevin đã review bản đó.
-Lab vẫn tự dựng cổng riêng và tự quyết thiết kế; bản R&D đó chỉ là nguồn tham khảo.
-Nó xác nhận các quyết định lõi của Lab, và gợi ý hai chỗ vá cho spec: chỉ trả trường đã khai, và dừng khi dữ liệu đích đã đổi trong lúc chờ duyệt ([bản R&D AgentLize Gateway, mục 3](appota/agentlize-gateway.md#3-điều-lab-chép-hoặc-sửa-lại)).
-
 Mục tiêu: trong Thổ Thần, chị Hoa gõ "chuyển T-12 cho anh Minh".
 AI đề xuất, người có quyền duyệt ở chỗ AI không tự bấm được, hệ thống ghi đúng một lần và để lại vết.
 Tám phép thử SR1-SR8 chạy tự động.
@@ -187,6 +183,5 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 - [MausBot](research/mausbot.md): ứng dụng agent mã nguồn mở, ứng viên nơi chạy thứ hai cho bộ công cụ của Lab; đứng ở lớp thực thi cạnh Thổ Thần desktop và trùng vai một phần với AgentLize.
 - [Khảo sát Thổ Thần](appota/tho-than-platform.md), [kịch bản đo MCP trong Thổ Thần](appota/tho-than-mcp-probe.md), [tình huống Appota](appota/appota-cases.md), [skill của AppotaPay](appota/appotapay-skills.md).
 - [Spec bản thử đầu](design/mvp-spec.md): bản thử chứng minh gì, kiến trúc, phép thử và bốn mốc.
-- [Bản R&D AgentLize Gateway của đồng nghiệp](appota/agentlize-gateway.md): điều Lab xác nhận, chép, mượn phép thử và bỏ qua từ một bản R&D cùng bài toán; Lab vẫn tự dựng.
 - [Bản đồ hệ thống](design/system-map.md) và [bản vẽ](design/system-map.html): năm mảnh ghép nối với nhau thế nào, mối nối nào đã đo, điều gì chưa biết và cách kiểm.
 - [Giải pháp ứng viên](design/solution-candidates.md) và [câu hỏi kiểm chứng](design/research-questions-and-validation-plan.md).
