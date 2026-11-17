@@ -1,0 +1,64 @@
+name: Kết quả (feature)
+description: Một kết quả kiểm chứng được. Việc lớn thì chia thành sub-issue.
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Issue này cũng là prompt cho agent: viết sao cho người hoặc agent làm được chỉ từ nội dung issue.
+        Không dán dữ liệu thật, khóa, token hay dữ liệu khách hàng (AGENTS.md mục 5).
+  - type: textarea
+    id: summary
+    attributes:
+      label: Đọc nhanh
+      description: Tối đa 5 câu. Vấn đề là gì, kết quả mong muốn là gì. Không viết tắt, không mã.
+      placeholder: Agent cần tra số điện thoại của một nhân viên trong danh bạ giả lập, gọi từ Thổ Thần desktop.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Liên quan
+      description: Yêu cầu SR1-SR8 (ghi kèm tên), ADR, spec hoặc tài liệu trong rd/.
+      placeholder: |
+        - SR2 (kiểm tra quyền) trong rd/problem/prd-ai-platform.md
+        - rd/design/mvp-spec.md
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Tiêu chí hoàn thành
+      description: Mỗi dòng một điều kiện kiểm tra được.
+      value: |
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Cách kiểm chứng
+      description: Lệnh chạy lại được, test, hoặc số đo chứng minh tiêu chí đã đạt.
+      placeholder: npm test, hoặc gọi tool trong Thổ Thần và ghi lại log ở scratch/.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Ngoài phạm vi
+      description: Những gì issue này cố ý không làm.
+  - type: textarea
+    id: files
+    attributes:
+      label: File hoặc thư mục liên quan
+      description: Chỗ nên bắt đầu đọc hoặc sửa. Giúp agent đỡ phải dò.
+  - type: textarea
+    id: breakdown
+    attributes:
+      label: Việc con
+      description: Checklist các bước, hoặc để trống nếu đã tạo sub-issue.
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Ranh giới dữ liệu
+      options:
+        - label: Issue không chứa dữ liệu thật, khóa, token hay dữ liệu khách hàng.
+          required: true

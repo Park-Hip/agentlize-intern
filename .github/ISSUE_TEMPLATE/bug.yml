@@ -1,0 +1,62 @@
+name: Lỗi (bug)
+description: Một hành vi sai, kèm cách tái hiện giống trải nghiệm của người dùng.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tái hiện ở môi trường gần người dùng nhất (ví dụ trong Thổ Thần desktop), không chỉ trong unit test.
+        Xóa dữ liệu nhạy cảm khỏi log trước khi dán.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Đọc nhanh
+      description: Một hai câu. Sai ở đâu, ảnh hưởng ai.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Các bước tái hiện
+      placeholder: |
+        1. Mở Thổ Thần desktop, kết nối MCP server lab.
+        2. Hỏi "giao task T-12 cho nhân viên E-03".
+        3. Bấm xác nhận.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Kỳ vọng
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Thực tế
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Môi trường
+      description: Commit, hệ điều hành, phiên bản Node và Thổ Thần, transport (stdio hoặc HTTP).
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log
+      render: text
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Cách kiểm chứng đã sửa
+      description: Test hỏng trước khi sửa và qua sau khi sửa, cộng bước tái hiện ở trên chạy đúng.
+    validations:
+      required: true
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Ranh giới dữ liệu
+      options:
+        - label: Issue và log không chứa dữ liệu thật, khóa, token hay dữ liệu khách hàng.
+          required: true

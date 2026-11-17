@@ -1,0 +1,45 @@
+name: Nghiên cứu (research)
+description: Một câu hỏi mà prototype đặt ra, có giới hạn thời gian và nơi ghi kết quả.
+labels: ["research"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Câu hỏi
+      description: Một câu hỏi trả lời được. Nêu prototype gặp vấn đề gì nên mới cần hỏi.
+      placeholder: Thổ Thần có gửi danh tính người dùng trong request MCP không?
+    validations:
+      required: true
+  - type: textarea
+    id: decision
+    attributes:
+      label: Câu trả lời sẽ quyết định điều gì
+      description: Mỗi câu trả lời khả dĩ dẫn tới lựa chọn nào.
+    validations:
+      required: true
+  - type: input
+    id: timebox
+    attributes:
+      label: Giới hạn thời gian
+      placeholder: 2 giờ
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Nguồn sẽ đọc hoặc thử nghiệm sẽ chạy
+  - type: input
+    id: output
+    attributes:
+      label: Ghi kết quả vào
+      description: rd/findings.md hoặc tài liệu mà kết quả làm thay đổi.
+      placeholder: rd/findings.md mục 4
+    validations:
+      required: true
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Ranh giới dữ liệu
+      options:
+        - label: Chỉ dùng dữ liệu giả lập, công khai hoặc được phép.
+          required: true

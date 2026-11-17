@@ -1,0 +1,29 @@
+name: Việc nhỏ (task)
+description: Một việc nhỏ, thường là việc con của một issue kết quả.
+labels: ["task"]
+body:
+  - type: input
+    id: parent
+    attributes:
+      label: Issue cha
+      placeholder: "#12"
+  - type: textarea
+    id: what
+    attributes:
+      label: Việc cần làm
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Xong khi
+      description: Điều kiện kiểm tra được, kèm lệnh hoặc bằng chứng.
+    validations:
+      required: true
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Ranh giới dữ liệu
+      options:
+        - label: Issue không chứa dữ liệu thật, khóa, token hay dữ liệu khách hàng.
+          required: true
