@@ -18,30 +18,30 @@ Read the  TXT for the full acceptance criteria, the R&D framework and the week b
 
 ## 2. Current state
 
-The repository holds documents only. There is no code yet.
+The research phase is done and summarized in `rd/findings.md`: the five integration models, real systems and the 2026 market were surveyed, and no product covers the Lab's problem end to end.
+There is no lab code yet.
+The only code is `tools/mcp-probe`, a throwaway MCP server that recorded how Thổ Thần desktop behaves as an MCP host; its results are in `rd/appota/tho-than-mcp-probe.md`.
+The current goal is a first prototype that plugs into Thổ Thần AI as an MCP server: the intern has a Thổ Thần account, and the Thổ Thần desktop app connects to MCP servers.
+Host facts that constrain the design (stdio only in chat, no user identity, no approval step, 60 second cut-off) are summarized in `rd/findings.md` section 4.
 
-The company ecosystem the lab will eventually plug into is recorded in `docs/context/appota-ai-ecosystem.md` (AgentLize control plane, Thổ Thần AI execution plane, Kdata infrastructure, business data owners).
+The company ecosystem the lab plugs into is recorded in `docs/context/appota-ai-ecosystem.md` (AgentLize control plane, Thổ Thần AI execution plane, Kdata infrastructure, business data owners).
 It is context for where the work lands, not a decision on stack or architecture, and it needs Kevin to confirm it.
 
-Stack, architecture and MVP scope are not decided. They must land in an ADR before any code is written.
+Stack, architecture and prototype scope must land in a short ADR before code is written.
 
-When code arrives, add a real `## 6. Commands` section to this file with the actual setup, run and test commands. The render and source-check commands are already there.
+When code arrives, add the actual setup, run and test commands to `## 6. Commands`.
 
-## 3. Required way of working
+## 3. Way of working
 
-The program forbids starting from "what should we code". The order is fixed:
+The program's R&D framework (explore, compare, question, propose, build, evaluate, package) is no longer the folder layout or a fixed gate order.
+Explore, compare, question and propose are done; their results live in `rd/findings.md`.
 
-1. **Explore**: survey at least 3 existing models or solutions, link the original sources.
-2. **Compare**: table of tradeoffs covering cost, scalability, security and maintenance.
-3. **Question**: name what is still unknown, turn assumptions into testable hypotheses.
-4. **Propose**: pick the approach to try, explain why the alternatives lost, record an ADR.
-5. **Build**: a small POC or MVP that runs, with run instructions.
-6. **Evaluate**: baseline and test suite established before any claim of success.
-7. **Package**: docs, test suite, demo, follow up backlog.
+What still applies:
 
-For Track 01, these five models must be surveyed before the approach is chosen: API/Function Calling, MCP, Workflow Engine, Agent Orchestration, Event driven Integration.
-
-Do not skip steps 1 to 4, even when the request looks small.
+- **Prototype first, in the real host.** Build the smallest thing that runs inside Thổ Thần, then measure it.
+- **Evidence before claims.** A baseline and a test suite exist before any claim of success.
+- **Research on demand.** Read an outside system only to answer a question the prototype raises, with a time box, and record what was learned in `rd/findings.md` or the document it changes.
+- **Package at the end.** Docs, test suite, demo, follow up backlog.
 
 ## 4. Definition of done for Track 01
 
@@ -64,7 +64,7 @@ Render a Markdown document to A4 PDF. Requires Node/npx, Python 3, and Chrome or
 The PDF is written to `dist/<name>.pdf` (git-ignored) unless an output path is given.
 
 ```
-bash tools/render/render.sh rd/design/solution-candidates.md
+bash tools/render/render.sh rd/findings.md
 ```
 
 The render step drops the metadata line (date and status), so a handed-in PDF never carries it.
@@ -83,6 +83,8 @@ Re-run the source quote checks (they open the cited URLs, so they need network).
 bash rd/checks/prd-ai-platform.sh
 bash rd/checks/real-system-architectures.sh
 bash rd/checks/tho-than-platform.sh
+bash rd/checks/market-landscape.sh
+bash rd/checks/mausbot.sh
 ```
 
 ### MCP probe for Thổ Thần
@@ -147,14 +149,16 @@ docs/
   context/       company context (ecosystem, track comparison)
   adr/           one file per decision: adr-0001-<slug>.md
 rd/              the R&D work, grouped by topic
+  findings.md    what the research found and what we do next; start here
   problem/       problem, users, requirements SR1-SR8 (PRD), glossary
-  research/      outside solutions: MCP, five integration models, real systems, comparison
+  research/      outside solutions: MCP, five integration models, real systems, market, comparison
   appota/        Appota's own systems: member company cases, AppotaPay skills, Thổ Thần
   design/        solution candidates, open questions and how to test them
   checks/        scripts that re-verify quoted claims, one per document: <doc-slug>.sh
-lab/             POC code, created after the first ADR
+lab/             prototype code, created after the first ADR
 submitted/       PDFs handed in to the program, never edited afterwards
   weekly-report/ weekly reports sent to Lark: Markdown source and its PDF
+  weekly-plan/   weekly plans sent to the mentor, named like weekly reports
 tools/           render and doc-check scripts
 dist/            generated PDFs (git-ignored)
 scratch/         agent working files and raw captures (git-ignored)
@@ -164,10 +168,11 @@ Rules:
 
 - Put a document in the folder of its topic. File names carry no number or step.
   Add a new topic folder only when it will hold at least two documents; evaluation reports go in `rd/evaluation/` when that work starts.
+- New findings that change the direction go into `rd/findings.md`, and the detailed document links back to it.
 - File names are lowercase ASCII kebab-case with a short English slug, for example `option-comparison.md`. Content stays Vietnamese.
 - Files whose name GitHub fixes (`.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/`) keep that name.
 - Two exceptions allow a number or date: `adr-0001-<slug>.md` (never renumbered) and `YYYY-MM-DD-<slug>.pdf` in `submitted/` (the submission date).
-  A weekly report keeps its Markdown source next to its PDF, both named `YYYY-MM-DD-week-<n>` after the Monday it is sent.
+  A weekly report or weekly plan keeps its Markdown source next to its PDF, both named `YYYY-MM-DD-week-<n>` after the Monday of its week.
 - No version or draft markers in file names (`v2`, `final`, `old`). Version history is git. A document that is replaced is deleted, not kept beside the new one.
 - A summary page for a document sits next to it with the same slug (`appota-cases.md` and `appota-cases.html`).
 - Every claim that rests on an external quote has a script in `rd/checks/`, named after its document, that can re-verify it.
@@ -176,7 +181,7 @@ Rules:
 ## 9. Issues and pull requests
 
 The remote is `Park-Hip/agentlize-intern` on GitHub.
-Plans and decisions live in the repo (ADR, spec); issues track the work and link to them.
+Plans and decisions live in the repo (ADR, spec, `rd/findings.md`); issues track the work and link to them.
 
 Issues:
 
