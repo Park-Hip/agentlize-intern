@@ -19,7 +19,7 @@ Read the  TXT for the full acceptance criteria, the R&D framework and the week b
 ## 2. Current state
 
 The research phase is done and summarized in `rd/findings.md`: the five integration models, real systems and the 2026 market were surveyed, and no product covers the Lab's problem end to end.
-The `lab/` scaffold now runs three local services with health checks; it has no business logic yet.
+The `lab/` scaffold runs three local services with health checks; the fake task list (100 seeded tasks, idempotency keys, version checks) is built, the other services have no business logic yet.
 `tools/mcp-probe` is a throwaway MCP server that recorded how Thổ Thần web and desktop behave as an MCP host; its results are in `rd/appota/tho-than-mcp-probe.md`, and it is not part of the lab.
 The current goal is a first prototype that plugs into Thổ Thần AI as an MCP server: the intern has a Thổ Thần account, and both the web and desktop apps connect to MCP servers.
 Host facts that constrain the design are summarized in `rd/findings.md` section 4: chat can call tools over stdio or over Streamable HTTP when the server has a public HTTPS address, chat calls in both web and desktop go through the Thổ Thần server, the host attaches identity headers but the Bearer key is set by whoever adds the skill, there is no approval step, and calls are cut at 60 seconds.
@@ -93,7 +93,7 @@ bash rd/checks/mausbot.sh
 ### Lab POC
 
 The lab is an npm workspace in `lab/`. It needs Node 22 or newer.
-It starts three local services and has no business logic yet.
+It starts three local services; so far only the fake task list has business logic.
 
 ```
 cd lab

@@ -76,7 +76,7 @@ export function spawnBuiltService(packageDir: string, env: NodeJS.ProcessEnv): S
   };
 }
 
-export async function waitForHealth(service: SpawnedService, port: number): Promise<void> {
+export async function waitForHealth(service: SpawnedService, port: number, serviceKey: string): Promise<void> {
   const url = `http://${LOOPBACK_HOST}:${port}/health`;
   const deadline = Date.now() + HEALTH_TIMEOUT_MS;
 
@@ -86,7 +86,10 @@ export async function waitForHealth(service: SpawnedService, port: number): Prom
     }
 
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(1_000) });
+      const response = await fetch(url, {
+        headers: { authorization: `Bearer ${serviceKey}` },
+        signal: AbortSignal.timeout(1_000),
+      });
       await response.text();
       if (response.ok) return;
     } catch {

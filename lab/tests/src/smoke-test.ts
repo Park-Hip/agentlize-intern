@@ -35,15 +35,15 @@ test('smoke: three services start on temporary ports and answer /health', async 
 
   const directory = spawnBuiltService('fake-directory', env);
   started.push(directory);
-  await waitForHealth(directory, ports.directory);
+  await waitForHealth(directory, ports.directory, key);
 
   const tasks = spawnBuiltService('fake-tasks', env);
   started.push(tasks);
-  await waitForHealth(tasks, ports.tasks);
+  await waitForHealth(tasks, ports.tasks, key);
 
   const gateway = spawnBuiltService('gateway', env);
   started.push(gateway);
-  await waitForHealth(gateway, ports.gateway);
+  await waitForHealth(gateway, ports.gateway, key);
 
   const expected: ReadonlyArray<[ServiceName, number]> = [
     ['directory', ports.directory],
@@ -52,7 +52,9 @@ test('smoke: three services start on temporary ports and answer /health', async 
   ];
 
   for (const [service, port] of expected) {
-    const response = await fetch(`http://${LOOPBACK_HOST}:${port}/health`);
+    const response = await fetch(`http://${LOOPBACK_HOST}:${port}/health`, {
+      headers: { authorization: `Bearer ${key}` },
+    });
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { status: 'ok', service });
   }
