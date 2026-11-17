@@ -1,5 +1,6 @@
 import type { ReasonCode, ToolDefinition } from '@lab/shared';
-import type { FieldsDecision } from '../policy/index.js';
+import type { FieldsDecision, PolicyEngine } from '../policy/index.js';
+import type { ProposalStore } from '../proposals/index.js';
 import type { Systems } from '../systems.js';
 import type { TraceOutcome } from '../trace/index.js';
 import type { Identity } from '../identity/index.js';
@@ -15,6 +16,11 @@ export interface Actor {
 export interface ToolContext {
   readonly actor: Actor;
   readonly systems: Systems;
+  readonly policy: PolicyEngine;
+  readonly proposals: ProposalStore;
+  /** Address of the gateway as people open it, without a trailing slash. Read at the moment of the call. */
+  readonly publicBaseUrl: string;
+  readonly now: () => Date;
   /** What the rule file lets this role see of an employee. Already checked: the engine could read the file and knows the role. */
   readonly rules: FieldsDecision;
 }
@@ -29,6 +35,8 @@ export interface ToolResult {
   /** The reason the trace keeps when it differs from the one the caller sees. */
   readonly traceReasonCode?: ReasonCode | null;
   readonly outOfScope?: boolean;
+  /** The proposal this call drafted or asked about, so the trace line can be followed from draft to send. */
+  readonly proposalId?: string | null;
   readonly ruleId?: string | null;
   readonly policyVersion?: number | null;
 }

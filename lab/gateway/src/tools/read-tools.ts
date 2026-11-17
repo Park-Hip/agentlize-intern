@@ -13,8 +13,8 @@ export const MAX_ROWS = 50;
  */
 export const TASK_READ_RULE_ID = 'READ_SCOPE.own_department';
 
-const TASK_ID_PATTERN = /^T-[1-9][0-9]*$/;
-const TASK_STATUSES = ['todo', 'doing', 'done'] as const;
+export const TASK_ID_PATTERN = /^T-[1-9][0-9]*$/;
+export const TASK_STATUSES = ['todo', 'doing', 'done'] as const;
 
 /** Rule files name employee fields `id` and `name`; the directory stores `employee_id` and `full_name`. */
 const DIRECTORY_KEY: Readonly<Record<string, string>> = { id: 'employee_id', name: 'full_name' };
@@ -48,7 +48,7 @@ const listTasksInput = z.strictObject({
   status: z.enum(TASK_STATUSES).optional(),
 });
 
-function defineTool<S extends z.ZodType>(
+export function defineTool<S extends z.ZodType>(
   name: string,
   description: string,
   inputSchema: S,
@@ -91,7 +91,7 @@ function taskDetail(task: TaskRecord): string {
   ].join('\n');
 }
 
-function notFoundTask(taskId: string, extra: Partial<ToolResult> = {}): ToolResult {
+export function notFoundTask(taskId: string, extra: Partial<ToolResult> = {}): ToolResult {
   return {
     status: 200,
     text: `Không tìm thấy task ${taskId}.`,

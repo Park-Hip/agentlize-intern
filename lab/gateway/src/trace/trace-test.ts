@@ -22,6 +22,7 @@ const sample: TraceRecord = {
   ruleId: 'READ_SCOPE.own_department',
   policyVersion: 1,
   hostUser: null,
+  proposalId: null,
   durationMs: 3.4,
 };
 
@@ -190,6 +191,42 @@ test('trace: a table made before host_user existed gets the column and keeps its
   }
 });
 
+test('trace: a table made before the web entry is copied, keeps every line and its numbering, and still refuses UPDATE and DELETE', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lab-trace-web-'));
+  const db = openGatewayDatabase(dir);
+  try {
+    db.exec(`
+      CREATE TABLE trace (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT, trace_id TEXT NOT NULL UNIQUE, at TEXT NOT NULL,
+        requester TEXT, caller TEXT, entry TEXT NOT NULL CHECK (entry IN ('http', 'mcp')), tool TEXT NOT NULL, object_id TEXT,
+        outcome TEXT NOT NULL, reason_code TEXT, out_of_scope INTEGER NOT NULL, rule_id TEXT,
+        policy_version INTEGER, host_user TEXT, duration_ms INTEGER NOT NULL
+      );
+      CREATE INDEX trace_requester ON trace (requester);
+      CREATE TRIGGER trace_no_update BEFORE UPDATE ON trace BEGIN SELECT RAISE(ABORT, 'trace is append-only'); END;
+      INSERT INTO trace (seq, trace_id, at, requester, caller, entry, tool, outcome, out_of_scope, duration_ms)
+      VALUES (7, 'tr-0000000000000007', '2026-11-16T09:00:00.000Z', 'NV-02', 'test', 'mcp', 'get_task', 'ok', 0, 2);
+    `);
+    const store = new TraceStore(db);
+    store.append({ ...sample, entry: 'web', tool: 'proposal_send', proposalId: 'dx-0123456789abcdef' });
+    new TraceStore(db); // opening it again must not copy it again
+
+    const rows = store.list();
+    assert.equal(rows.length, 2);
+    assert.equal(rows[0]?.entry, 'web');
+    assert.equal(rows[0]?.proposalId, 'dx-0123456789abcdef');
+    assert.equal(rows[1]?.traceId, 'tr-0000000000000007');
+    assert.equal(rows[1]?.entry, 'mcp');
+    assert.equal(rows[1]?.proposalId, null);
+    assert.equal((db.prepare('SELECT seq FROM trace ORDER BY seq').all() as { seq: number }[])[0]?.seq, 7);
+    assert.throws(() => db.prepare("UPDATE trace SET tool = 'x'").run(), /append-only/);
+    assert.throws(() => db.prepare('DELETE FROM trace').run(), /append-only/);
+  } finally {
+    db.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('trace cli: --employee and --task print a table, other input is a usage error', () => {
   const { store, close } = memoryStore();
   try {
@@ -205,8 +242,8 @@ test('trace cli: --employee and --task print a table, other input is a usage err
 
     const byEmployee = run('--employee', 'NV-05');
     assert.equal(byEmployee.length, 2, 'header and one line');
-    assert.match(byEmployee[0] ?? '', /^time\s+trace\s+requester\s+caller\s+entry\s+tool\s+object\s+outcome\s+reason\s+scope\s+rule\s+policy\s+host_user\s+ms$/);
-    assert.match(byEmployee[1] ?? '', /tr-0000000000000002\s+NV-05\s+test\s+http\s+get_task\s+T-70\s+not_found\s+NOT_PERMITTED\s+out_of_scope\s+READ_SCOPE\.own_department\s+v1\s+-\s+3$/);
+    assert.match(byEmployee[0] ?? '', /^time\s+trace\s+requester\s+caller\s+entry\s+tool\s+object\s+outcome\s+reason\s+scope\s+rule\s+policy\s+host_user\s+proposal\s+ms$/);
+    assert.match(byEmployee[1] ?? '', /tr-0000000000000002\s+NV-05\s+test\s+http\s+get_task\s+T-70\s+not_found\s+NOT_PERMITTED\s+out_of_scope\s+READ_SCOPE\.own_department\s+v1\s+-\s+-\s+3$/);
 
     const byTask = run('--task', 'T-12');
     assert.equal(byTask.length, 2);

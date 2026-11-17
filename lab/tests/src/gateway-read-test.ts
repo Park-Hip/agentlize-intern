@@ -212,9 +212,9 @@ test(`gateway read path (${door.name}): the real three services answer the read 
     assert.equal(refused.status, 401);
     assert.equal(refused.reasonCode, 'KEY_INVALID');
 
-    assert.deepEqual(await door.toolNames(base, hoa), ['find_employee', 'get_task', 'list_tasks']);
+    assert.deepEqual(await door.toolNames(base, hoa), ['find_employee', 'get_task', 'list_tasks', 'propose_task_change', 'get_request_status']);
     const open = (await (await fetch(`${base}/v1/tools`)).json()) as { tools: { name: string }[] };
-    assert.deepEqual(open.tools.map((tool) => tool.name), ['find_employee', 'get_task', 'list_tasks']);
+    assert.deepEqual(open.tools.map((tool) => tool.name), ['find_employee', 'get_task', 'list_tasks', 'propose_task_change', 'get_request_status']);
   });
 
   await t.test('trace by employee lists the calls of one person, and no log holds a key or a personal field', () => {

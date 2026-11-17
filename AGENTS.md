@@ -93,7 +93,7 @@ bash rd/checks/mausbot.sh
 ### Lab POC
 
 The lab is an npm workspace in `lab/`. It needs Node 22 or newer.
-It starts three local services; the fake task list, the fake employee directory and the gateway's read path (`find_employee`, `get_task`, `list_tasks`, `/v1/tools`, and the same tools at `/mcp`) have business logic.
+It starts three local services; the fake task list, the fake employee directory and the gateway's read path (`find_employee`, `get_task`, `list_tasks`, `/v1/tools`, and the same tools at `/mcp`) and its draft path (`propose_task_change`, `get_request_status`, the login and confirmation pages) have business logic.
 
 ```
 cd lab
@@ -106,6 +106,7 @@ npm start
 `npm start` builds the workspace, generates a random service key when `LAB_SERVICE_KEY` is not set, starts the fake directory on 127.0.0.1:8791 and the fake task list on 127.0.0.1:8792, waits for both `/health` endpoints to return 200, then opens the gateway on 127.0.0.1:8790.
 The key is passed to the three processes through the environment and is never printed.
 Override the ports with `LAB_GATEWAY_PORT`, `LAB_DIRECTORY_PORT` and `LAB_TASKS_PORT`, and the data folder with `LAB_DATA_DIR`.
+Set `LAB_PUBLIC_BASE_URL` (for example the HTTPS address of a tunnel) to change the address in the confirmation links that `propose_task_change` returns; without it the links use `http://127.0.0.1:<gateway port>`.
 `npm test` builds, then runs every `*-test.js` file in the workspace, including a smoke test that starts the three services on temporary ports and checks `/health`.
 `npm run lint` type-checks the whole workspace with `tsc --noEmit`.
 `npm test -w fake-directory` runs only the directory tests.
@@ -131,7 +132,10 @@ npm run seed-keys [-- --rotate]
 `issue` and `seed-keys` print each raw key once and never write it to disk; `list` shows only the first six characters.
 `seed-keys` issues one key per persona plus the guest, and refuses to run again until `--rotate` revokes the old ones.
 
-Every gateway call leaves one line in the append-only `trace` table of the same database; print it as a table (the lines hold no personal data and no key).
+A person confirms a draft in a browser: open the link a draft returns (`<base>/xac-nhan/<proposal code>`), pick the character and paste that character's key on `/dang-nhap` (a simulated login, 15 minutes), then press Gửi or Sửa.
+In this version Gửi only hands the proposal to an executor that acknowledges it and writes nothing; the real write comes with issue #12.
+
+Every gateway call, and every press of Gửi or Sửa, leaves one line in the append-only `trace` table of the same database; print it as a table (the lines hold no personal data and no key).
 
 ```
 npm run trace -- --employee <NV-xx>

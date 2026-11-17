@@ -1,10 +1,12 @@
 import { performance } from 'node:perf_hooks';
 import { BodyError, maskKey, refusalMessage, type ReasonCode } from '@lab/shared';
 import { z } from 'zod';
-import type { IdentityHeaders, IdentityProvider, IdentityResult } from './identity/index.js';
+import type { IdentityHeaders, IdentityProvider, IdentityResult, KeyStore } from './identity/index.js';
 import { RULE_IDS, type PolicyEngine } from './policy/index.js';
+import type { ProposalExecutor, ProposalStore } from './proposals/index.js';
 import { SystemUnavailableError, type Systems } from './systems.js';
 import type { RegisteredTool, ToolResult } from './tools/types.js';
+import type { SessionStore } from './web/session-store.js';
 import { newTraceId, type TraceEntry, type TraceStore } from './trace/index.js';
 
 /**
@@ -24,6 +26,15 @@ export interface GatewayDeps {
   readonly systems: Systems;
   readonly trace: TraceStore;
   readonly tools: readonly RegisteredTool[];
+  /** Read by the pages to check that the key behind a login is still valid. */
+  readonly keys: KeyStore;
+  readonly proposals: ProposalStore;
+  readonly sessions: SessionStore;
+  /** Takes a proposal once its owner has pressed Gửi. */
+  readonly executor: ProposalExecutor;
+  /** The address people open the links on; asked at the moment of use because the port may be known only after listening. */
+  readonly publicBaseUrl: () => string;
+  readonly now: () => Date;
 }
 
 /** What the trace line needs besides the tool's own result. Filled in as the call learns it, so a failure midway keeps what is known. */
@@ -53,10 +64,11 @@ const REFUSAL_SENTENCE: Readonly<Partial<Record<ReasonCode, string>>> = {
   GATEWAY_UNAVAILABLE: 'Cổng không nối được với danh bạ hoặc danh sách task. Hãy thử lại sau, hoặc báo người vận hành Lab.',
 };
 
-export function refuse(code: ReasonCode, ruleId: string): ToolResult {
+/** `sentence` replaces the default one when the caller can say more, such as who to ask. */
+export function refuse(code: ReasonCode, ruleId: string, sentence?: string): ToolResult {
   return {
     status: REFUSAL_STATUS[code] ?? 403,
-    text: refusalMessage(code, REFUSAL_SENTENCE[code] ?? 'Cổng từ chối yêu cầu này.'),
+    text: refusalMessage(code, sentence ?? REFUSAL_SENTENCE[code] ?? 'Cổng từ chối yêu cầu này.'),
     reasonCode: code,
     outcome: 'refused',
     ruleId,
@@ -133,7 +145,15 @@ async function answerCall(
   }
 
   return tool.run(
-    { actor: { identity, employeeId: identity.employeeId, role, department }, systems: deps.systems, rules },
+    {
+      actor: { identity, employeeId: identity.employeeId, role, department },
+      systems: deps.systems,
+      policy: deps.policy,
+      proposals: deps.proposals,
+      publicBaseUrl: deps.publicBaseUrl(),
+      now: deps.now,
+      rules,
+    },
     parsed.data,
   );
 }
@@ -197,6 +217,7 @@ export function writeTrace(
       ruleId: result.ruleId ?? null,
       policyVersion: result.policyVersion ?? null,
       hostUser,
+      proposalId: result.proposalId ?? null,
       durationMs: performance.now() - startedAt,
     });
   } catch (error) {

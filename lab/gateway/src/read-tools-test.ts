@@ -22,7 +22,7 @@ async function withGateway(run: (f: GatewayFixture) => Promise<void>): Promise<v
   }
 }
 
-test('read: the catalog lists exactly the three read tools, in Vietnamese, with no write tool', async () => {
+test('read: the catalog lists the three read tools and the two proposal tools, in Vietnamese, with no tool that writes or confirms', async () => {
   await withGateway(async (f) => {
     const response = await fetch(`${f.gateway.url}/v1/tools`);
     assert.equal(response.status, 200);
@@ -30,12 +30,12 @@ test('read: the catalog lists exactly the three read tools, in Vietnamese, with 
       tools: { name: string; description: string; input_schema: { properties: Record<string, unknown> } }[];
     };
 
-    assert.deepEqual(body.tools.map((tool) => tool.name), ['find_employee', 'get_task', 'list_tasks']);
+    assert.deepEqual(body.tools.map((tool) => tool.name), ['find_employee', 'get_task', 'list_tasks', 'propose_task_change', 'get_request_status']);
     for (const tool of body.tools) {
       assert.ok(tool.description.length > 40, `${tool.name} needs a real description`);
       assert.match(tool.description, /[ăâđêôơư]/i, `${tool.name} description is Vietnamese`);
       assert.ok(tool.input_schema.properties !== undefined, `${tool.name} publishes its parameters`);
-      assert.doesNotMatch(tool.name, /confirm|approve|write|propose|update|set_|delete|assign/);
+      assert.doesNotMatch(tool.name, /confirm|approve|write|update|set_|delete|assign|send/);
     }
     assert.deepEqual(Object.keys(body.tools[0]?.input_schema.properties ?? {}).sort(), ['department', 'name']);
   });
@@ -259,12 +259,12 @@ test('read: a key declared read_only can read', async () => {
 
 test('read: an unknown tool is a 404 for a known key and a refusal for an unknown one', async () => {
   await withGateway(async (f) => {
-    const known = await f.call('propose_task_change', {}, f.keyFor(HOA));
+    const known = await f.call('confirm_proposal', {}, f.keyFor(HOA));
     assert.equal(known.status, 404);
     assert.equal(known.body.reason_code, null);
 
     // Without a key the gateway does not even say which tool names exist.
-    const unknown = await f.call('propose_task_change', {});
+    const unknown = await f.call('confirm_proposal', {});
     assert.equal(unknown.status, 401);
     assert.equal(unknown.body.reason_code, 'KEY_INVALID');
 

@@ -74,7 +74,7 @@ test('mcp: tools/list is the same catalog as GET /v1/tools', async () => {
       listed.tools.map((tool) => ({ name: tool.name, description: tool.description, input_schema: tool.inputSchema })),
       rest.tools,
     );
-    assert.deepEqual(rest.tools.map((tool) => tool.name), ['find_employee', 'get_task', 'list_tasks']);
+    assert.deepEqual(rest.tools.map((tool) => tool.name), ['find_employee', 'get_task', 'list_tasks', 'propose_task_change', 'get_request_status']);
   });
 });
 
