@@ -7,13 +7,9 @@ export const MIN_TUNNEL_MINUTES = 1;
 
 export const TUNNEL_MINUTES_ENV = 'LAB_TUNNEL_MINUTES';
 export const CLOUDFLARED_PATH_ENV = 'LAB_CLOUDFLARED_PATH';
-export const CONSOLE_PORT_ENV = 'LAB_CONSOLE_PORT';
 
 /** The probe key variable; cloudflared never needs it. */
 const USER_KEY_ENV = 'LAB_USER_KEY';
-
-/** ADR-0006: the operator console listens here and must never reach the tunnel. */
-export const DEFAULT_CONSOLE_PORT = 8793;
 
 /** The default install path on the lab machine. Override it with `LAB_CLOUDFLARED_PATH`. */
 export const WINDOWS_CLOUDFLARED_PATH = 'C:\\Program Files (x86)\\cloudflared\\cloudflared.exe';
@@ -38,7 +34,7 @@ export function resolveTunnelMinutes(raw: string | undefined): number {
 
 /** The console port is read here only to keep the tunnel away from it (ADR-0006). */
 export function resolveConsolePort(env: NodeJS.ProcessEnv = process.env): number {
-  return wholeNumber(env[CONSOLE_PORT_ENV], CONSOLE_PORT_ENV, 1, 65_535, DEFAULT_CONSOLE_PORT);
+  return resolvePort('console', env);
 }
 
 /** `cloudflared` from `PATH` outside Windows; the lab machine keeps it under Program Files. */
@@ -59,7 +55,7 @@ export function buildTunnelTarget(gatewayPort: number): string {
 export function assertConsoleIsSeparate(gatewayPort: number, consolePort: number): void {
   if (gatewayPort === consolePort) {
     throw new Error(
-      `${PORT_ENV.gateway} must differ from ${CONSOLE_PORT_ENV} (${consolePort}): ` +
+      `${PORT_ENV.gateway} must differ from ${PORT_ENV.console} (${consolePort}): ` +
         'the operator console never goes through the tunnel',
     );
   }

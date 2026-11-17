@@ -156,6 +156,7 @@ async function main(): Promise<void> {
     log(`operator console 127.0.0.1:${plan.consolePort} is not part of the tunnel`);
 
     stack = await startStack({
+      includeConsole: false,
       onUnexpectedExit: (name) => void stop(1, `${name} stopped unexpectedly`),
     });
     log(`local stack ready at ${stack.gatewayUrl}`);

@@ -1,5 +1,5 @@
 import { performance } from 'node:perf_hooks';
-import { BodyError, maskKey, refusalMessage, type ReasonCode } from '@lab/shared';
+import { BodyError, maskKey, refusalMessage, type ReasonCode, type ToolKind } from '@lab/shared';
 import { z } from 'zod';
 import type { IdentityHeaders, IdentityProvider, IdentityResult, KeyStore } from './identity/index.js';
 import { RULE_IDS, type PolicyEngine } from './policy/index.js';
@@ -255,12 +255,13 @@ export async function performCall(
 export interface CatalogEntry {
   readonly name: string;
   readonly description: string;
+  readonly kind: ToolKind;
   readonly input_schema: Record<string, unknown>;
 }
 
 export function catalogEntries(tools: readonly RegisteredTool[]): readonly CatalogEntry[] {
   return tools.map((tool) => {
     const { $schema: _ignored, ...schema } = z.toJSONSchema(tool.inputSchema) as Record<string, unknown>;
-    return { name: tool.name, description: tool.description, input_schema: schema };
+    return { name: tool.name, description: tool.description, kind: tool.kind, input_schema: schema };
   });
 }

@@ -8,6 +8,7 @@ import {
   LOOPBACK_HOST,
   PORT_ENV,
   SERVICE_KEY_ENV,
+  SERVICES,
   readServiceKey,
   resolvePort,
   type ServiceName,
@@ -22,6 +23,7 @@ const PACKAGE_DIR: Readonly<Record<ServiceName, string>> = {
   gateway: 'gateway',
   directory: 'fake-directory',
   tasks: 'fake-tasks',
+  console: 'console',
 };
 
 const START_ORDER = ['directory', 'tasks'] as const;
@@ -58,6 +60,8 @@ export interface StartStackOptions {
   readonly error?: (line: string) => void;
   /** Called once when a service dies while the stack is not stopping. */
   readonly onUnexpectedExit?: (name: ServiceName, code: number | null, signal: NodeJS.Signals | null) => void;
+  /** Start the operator console too. `npm run tunnel` leaves it out because it never goes through the tunnel. */
+  readonly includeConsole?: boolean;
 }
 
 export interface LabStack {
@@ -147,24 +151,32 @@ async function waitForHealth(
 }
 
 /**
- * Start the three lab services on loopback and wait until each answers `/health`.
- * The caller owns the returned stack and must call `stop()`. The service key is
- * generated here when the environment has none and is never printed.
+ * Start the lab services on loopback and wait until each answers `/health`.
+ * The gateway, the fake directory, the fake task list and, unless the caller
+ * opts out, the operator console start here. The caller owns the returned stack
+ * and must call `stop()`. The service key is generated here when the
+ * environment has none and is never printed.
  */
 export async function startStack(options: StartStackOptions = {}): Promise<LabStack> {
   const env = options.env ?? process.env;
   const log = options.log ?? ((line: string) => console.log(line));
   const error = options.error ?? ((line: string) => console.error(line));
   const dataDir = resolve(env[DATA_DIR_ENV] ?? join(labRoot, '.data'));
+  const includeConsole = options.includeConsole ?? true;
+  const startedServices: readonly ServiceName[] = includeConsole
+    ? SERVICES
+    : ['gateway', 'directory', 'tasks'];
 
   const ports: Record<ServiceName, number> = {
     gateway: resolvePort('gateway', env),
     directory: resolvePort('directory', env),
     tasks: resolvePort('tasks', env),
+    console: resolvePort('console', env),
   };
 
-  if (new Set(Object.values(ports)).size !== 3) {
-    throw new Error(`${PORT_ENV.gateway}, ${PORT_ENV.directory} and ${PORT_ENV.tasks} must be different`);
+  if (new Set(startedServices.map((name) => ports[name])).size !== startedServices.length) {
+    const names = startedServices.map((name) => PORT_ENV[name]).join(', ');
+    throw new Error(`${names} must be different`);
   }
 
   const serviceKey = env[SERVICE_KEY_ENV] ?? randomBytes(32).toString('base64url');
@@ -177,7 +189,7 @@ export async function startStack(options: StartStackOptions = {}): Promise<LabSt
   // Fail before spawning anything if an inherited key is too short.
   readServiceKey(serviceEnv);
 
-  for (const name of ['gateway', 'directory', 'tasks'] as const) {
+  for (const name of startedServices) {
     serviceEnv[PORT_ENV[name]] = String(ports[name]);
   }
 
@@ -214,6 +226,13 @@ export async function startStack(options: StartStackOptions = {}): Promise<LabSt
     const gateway = spawnService('gateway', serviceEnv, children, options, error, () => stopping, () => ready, failStartup);
     await waitForHealth('gateway', ports.gateway, gateway, serviceKey);
     log(`[start] gateway ready at http://${LOOPBACK_HOST}:${ports.gateway}`);
+
+    // ADR-0006: the console opens only after the gateway answers, because its pages read the gateway.
+    if (includeConsole) {
+      const consoleService = spawnService('console', serviceEnv, children, options, error, () => stopping, () => ready, failStartup);
+      await waitForHealth('console', ports.console, consoleService, serviceKey);
+      log(`[start] console ready at http://${LOOPBACK_HOST}:${ports.console}`);
+    }
 
     if (startupFailure !== null) throw new Error(startupFailure);
     for (const [name, child] of children) {

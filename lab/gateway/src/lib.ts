@@ -11,4 +11,4 @@ export type { GatewayDatabase } from './database.js';
 export * from './identity/index.js';
 export * from './policy/index.js';
 export * from './trace/index.js';
-export { esc } from './web/html.js';
+export { esc, PAGE_SECURITY_HEADERS } from './web/html.js';
