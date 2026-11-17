@@ -85,6 +85,27 @@ bash rd/01-explore/checks/real-system-architectures.sh
 bash rd/01-explore/checks/tho-than-platform.sh
 ```
 
+### MCP probe for Thổ Thần
+
+The probe in `tools/mcp-probe` records what Thổ Thần sends as an MCP host.
+It gathers evidence for P1-P5 in `rd/appota/tho-than-mcp-probe.md`; it is not a lab component and does not decide architecture.
+It uses local npm dependencies only and writes one JSON line per event to `scratch/mcp-probe/log-<timestamp>.jsonl` (git-ignored).
+Requires Node 20+.
+
+```
+cd tools/mcp-probe
+npm install
+npm run build
+node dist/index.js --stdio                     # stdio transport, the host spawns this
+node dist/index.js --http --port 8787          # Streamable HTTP at http://localhost:8787/mcp
+node dist/index.js --http --port 8787 --bearer <token>
+npm run selftest                               # build, run both transports, assert the log lines
+npm run summarize -- <log-file-or-directory>   # print the facts needed for the P1-P5 tables
+```
+
+The self-test must print a `SELFTEST PASSED: <n> checks` line.
+Build, run and troubleshooting details are in `tools/mcp-probe/README.md`.
+
 ## 7. Writing conventions
 
 - Never use an em dash. Use a plain hyphen.
