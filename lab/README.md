@@ -44,6 +44,7 @@ Mọi dịch vụ chỉ nghe ở `127.0.0.1`.
 File luật gốc là `lab/gateway/policy/rules.json`, chỉ đổi qua PR.
 Lần khởi động đầu, cổng chép bản gốc sang đường dẫn ở trên khi file đó chưa có, và không đụng vào file đã có.
 Bộ luật đọc lại file ở mỗi lần quyết định, nên sửa file đó áp dụng ngay ở lời gọi sau mà không cần khởi động lại; file hỏng thì mọi lời gọi bị từ chối với `POLICY_UNAVAILABLE`.
+Phép thử nghiệm thu trỏ `LAB_RULES_PATH` vào bản sao trong thư mục tạm, nên file luật hỏng không chạm vào repo.
 Cơ sở dữ liệu `gateway.sqlite` bật chế độ ghi nhật ký trước (WAL) và chờ khoá 5 giây, để tiến trình khác đọc được trong lúc cổng đang ghi.
 
 ## Danh bạ giả
@@ -111,7 +112,7 @@ Khi `LAB_TEST_HOOKS=1`:
 | Đường | Làm gì |
 | --- | --- |
 | `POST /admin/reset` | Nạp lại dữ liệu gốc, xoá mã đã lưu, số đếm ghi và lỗi đang chờ |
-| `POST /admin/faults` | Thân `{ "mode": "drop_response_after_commit", "count": N }`: N lần ghi thật kế tiếp được ghi xong rồi đóng kết nối không trả lời; lần gửi lại không bị tính |
+| `POST /admin/faults` | Thân `{ "mode": "drop_response_after_commit", "count": N }`: N lần ghi thật kế tiếp được ghi xong rồi đóng kết nối không trả lời; lần gửi lại không bị tính. Thân `{ "mode": "delay_response_after_commit", "count": N, "delay_ms": M }`: như trên nhưng giữ kết nối M mili giây rồi mới trả lời, để phép thử dừng cổng trước khi đọc kết quả |
 | `GET /admin/write-count?task=<mã>` | `{ "task", "count" }`: số lần ghi thật của task, không tính lần gửi lại |
 
 Chạy riêng phép thử của gói này: `npm test -w fake-tasks`.
@@ -165,7 +166,7 @@ Thử bằng MCP Inspector sau `npm start` và `npm run seed-keys`:
 npx --yes @modelcontextprotocol/inspector@2.15.0 --cli --transport http --server-url http://127.0.0.1:8790/mcp --header "Authorization: Bearer <khoá của chị Hoa>" --method tools/list
 ```
 
-Phép thử nghiệm thu đọc (`tests/src/gateway-read-test.ts`) chạy cùng một bộ ca qua ba cửa `http`, `mcp-http` và `tho-than-host`; `npm test -w @lab/gateway -- --test-name-pattern mcp` chạy riêng phép thử của cửa này.
+Phép thử nghiệm thu (`tests/src/gateway-read-test.ts` và `tests/src/gateway-write-test.ts`) chạy cùng một bộ ca qua ba lối vào `http`, `mcp-http` và `tho-than-host`; `npm test -w @lab/gateway -- --test-name-pattern mcp` chạy riêng phép thử của cửa này.
 Cửa `tho-than-host` dùng client giả ở `tests/src/fake-host.ts`.
 Mỗi lời gọi mở một phiên Streamable HTTP mới (`initialize`, rồi `tools/list` hoặc `tools/call`, rồi đóng), gửi `Authorization: Bearer <khoá lab_>` cùng bốn header `x-user-id`, `x-user-email`, `x-agent-id`, `x-executor-id` giả, và cắt ở 60 giây.
 Con số 60 giây là giả định lấy từ phép đo qua stdio, chưa đo qua HTTPS; client ghi lại thời gian mở phiên và thời gian gọi để dùng cho M1.
@@ -189,7 +190,8 @@ Lệnh ghi chỉ có một bước ghi thật vì bản này chỉ soạn thay �
 Bảng đã có cột số thứ tự để đề xuất hàng loạt dùng lại, mỗi task một lệnh và một mã riêng.
 
 Phép thử của đường ghi nằm ở `gateway/src/write-test.ts` và chạy trên hệ thống giả trong bộ nhớ.
-Phép thử đầu cuối `tests/src/gateway-write-test.ts` chạy ba dịch vụ thật, làm rơi phản hồi bằng `POST /admin/faults` và đếm bằng `GET /admin/write-count`.
+Phép thử đầu cuối `tests/src/gateway-write-test.ts` chạy ba dịch vụ thật qua cả ba lối vào, làm rơi hoặc giữ phản hồi bằng `POST /admin/faults`, đếm bằng `GET /admin/write-count`, và dừng cổng bằng SIGKILL để kiểm lần gửi lại lúc khởi động.
+File luật của phép thử là bản sao trong thư mục tạm, nên lúc làm hỏng nó repo không đổi.
 
 ## Đường hầm cho một phiên nghiệm thu
 

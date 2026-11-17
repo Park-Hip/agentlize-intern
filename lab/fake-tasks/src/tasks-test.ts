@@ -207,6 +207,24 @@ test('write: the fault drops only the next N committed writes', async (t) => {
   assert.equal(replay.status, 200);
 });
 
+test('write: the delay fault commits, then answers instead of dropping', async (t) => {
+  const h = await harness(t);
+  const fault = await h.call('POST', '/admin/faults', {
+    body: { mode: 'delay_response_after_commit', count: 1, delay_ms: 50 },
+  });
+  assert.equal(fault.status, 200);
+  assert.deepEqual(await fault.json(), { mode: 'delay_response_after_commit', count: 1, delay_ms: 50 });
+
+  const response = await patch(h, 'T-12', 'delay-1', { status: 'doing' }, 1);
+  assert.equal(response.status, 200);
+  assert.equal((await getTask(h, 'T-12')).version, 2);
+  assert.equal(await writeCount(h, 'T-12'), 1);
+
+  // The one delayed answer is used up; the next write answers at once.
+  const next = await patch(h, 'T-13', 'delay-2', { status: 'doing' }, 1);
+  assert.equal(next.status, 200);
+});
+
 test('write: an acknowledged write can be sent again and gets the same bytes back', async (t) => {
   const h = await harness(t);
 
@@ -413,7 +431,13 @@ test('hooks: reset restores the seed, clears saved keys and pending faults', asy
 
 test('hooks: bad fault and write-count requests are rejected', async (t) => {
   const h = await harness(t);
-  for (const body of [{ mode: 'explode', count: 1 }, { count: 1 }, { mode: 'drop_response_after_commit', count: -1 }]) {
+  for (const body of [
+    { mode: 'explode', count: 1 },
+    { count: 1 },
+    { mode: 'drop_response_after_commit', count: -1 },
+    { mode: 'delay_response_after_commit', count: 1, delay_ms: 0 },
+    { mode: 'delay_response_after_commit', count: 1, delay_ms: 'soon' },
+  ]) {
     assert.equal((await h.call('POST', '/admin/faults', { body })).status, 400);
   }
   assert.equal((await h.call('GET', '/admin/write-count')).status, 400);

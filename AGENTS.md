@@ -109,6 +109,7 @@ Override the ports with `LAB_GATEWAY_PORT`, `LAB_DIRECTORY_PORT` and `LAB_TASKS_
 `LAB_RULES_PATH` points at the rule file the gateway reads; by default that is `rules.json` in the data folder.
 At startup the gateway copies `lab/gateway/policy/rules.json` there when the file is missing and never overwrites a file that already exists; the engine reads it on every decision, so an edit applies to the next call without a restart.
 The committed `lab/gateway/policy/rules.json` stays the base copy.
+The acceptance tests point `LAB_RULES_PATH` at a temporary copy, so a deliberately broken file never touches the repository.
 Set `LAB_PUBLIC_BASE_URL` (for example the HTTPS address of a tunnel) to change the address in the confirmation links that `propose_task_change` returns; without it the links use `http://127.0.0.1:<gateway port>`.
 `npm test` builds, then runs every `*-test.js` file in the workspace, including a smoke test that starts the three services on temporary ports and checks `/health`.
 `npm run lint` type-checks the whole workspace with `tsc --noEmit`.
@@ -142,6 +143,7 @@ Every command left `not_sent` or `sent_unknown` is sent again, with its old key,
 
 Every gateway call, every press of Gửi or Sửa, and every write command a press sends leaves one line in the append-only `trace` table of the same database; print it as a table (the lines hold no personal data and no key).
 The line of a write command carries its idempotency key and how many times it was sent.
+The acceptance tests for reads and writes run the same cases through the three doors `http`, `mcp-http` and `tho-than-host` (`tests/src/gateway-read-test.ts`, `tests/src/gateway-write-test.ts`); the write test drops or holds the task list's answer and kills the gateway to prove one write per command.
 
 ```
 npm run trace -- --employee <NV-xx>

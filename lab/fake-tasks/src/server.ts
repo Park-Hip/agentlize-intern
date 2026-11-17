@@ -38,10 +38,18 @@ const patchBodySchema = z.strictObject({
   expected_version: z.number().int().min(1),
 });
 
-const faultBodySchema = z.strictObject({
-  mode: z.literal('drop_response_after_commit'),
-  count: z.number().int().min(0).max(1_000).default(1),
-});
+const faultBodySchema = z.discriminatedUnion('mode', [
+  z.strictObject({
+    mode: z.literal('drop_response_after_commit'),
+    count: z.number().int().min(0).max(1_000).default(1),
+  }),
+  z.strictObject({
+    /** Commit, then hold the answer open so a test can stop the caller before it hears the result. */
+    mode: z.literal('delay_response_after_commit'),
+    count: z.number().int().min(0).max(1_000).default(1),
+    delay_ms: z.number().int().min(1).max(60_000).default(1_500),
+  }),
+]);
 
 export interface TasksServerOptions {
   readonly env?: NodeJS.ProcessEnv;
@@ -156,6 +164,9 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
 
   /** Committed writes whose response is still to be dropped (test hook). */
   let dropsLeft = 0;
+  /** Committed writes whose response is held open for a while (test hook). */
+  let delaysLeft = 0;
+  let delayMs = 0;
 
   function handlePatch(req: IncomingMessage, res: ServerResponse, taskId: string, body: unknown): void {
     const key = req.headers['idempotency-key'];
@@ -187,6 +198,19 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
           // The write is committed; the caller never hears about it.
           dropsLeft -= 1;
           req.socket.destroy();
+          return;
+        }
+        if (delaysLeft > 0) {
+          // The write is committed; the answer is held so a caller can be stopped before reading it.
+          delaysLeft -= 1;
+          const timer = setTimeout(() => {
+            try {
+              if (!res.writableEnded && !res.destroyed) sendRaw(res, outcome.response);
+            } catch {
+              // The caller is gone; the committed write is what the test needs.
+            }
+          }, delayMs);
+          timer.unref();
           return;
         }
         sendRaw(res, outcome.response);
@@ -237,12 +261,23 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
       if (path === '/admin/reset' && method === 'POST') {
         store.reset();
         dropsLeft = 0;
+        delaysLeft = 0;
+        delayMs = 0;
         sendJson(res, 200, { status: 'reset' });
         return;
       }
       if (path === '/admin/faults' && method === 'POST') {
         const fault = parseBody(faultBodySchema, await readJson(req));
+        if (fault.mode === 'delay_response_after_commit') {
+          dropsLeft = 0;
+          delaysLeft = fault.count;
+          delayMs = fault.delay_ms;
+          sendJson(res, 200, { mode: fault.mode, count: delaysLeft, delay_ms: delayMs });
+          return;
+        }
         dropsLeft = fault.count;
+        delaysLeft = 0;
+        delayMs = 0;
         sendJson(res, 200, { mode: fault.mode, count: dropsLeft });
         return;
       }
