@@ -1,12 +1,13 @@
 # Thổ Thần: cùng một cái tên, bốn thứ khác nhau
 
-Ngày: 2026-11-17. Trạng thái: khảo sát công khai ngày 2026-11-13, cắm MCP thử bằng tài khoản ngày 2026-11-16 (mục 3.5), đọc mã LobeHub 2.1.56 ngày 2026-11-17 (mục 6).
+Ngày: 2026-11-17. Trạng thái: khảo sát công khai ngày 2026-11-13, cắm MCP thử bằng tài khoản ngày 2026-11-16 (mục 3.5), đo HTTPS công khai và đọc mã LobeHub 2.1.56 ngày 2026-11-17 (mục 3.6 và 6).
 
 ## Đọc nhanh
 
 - "Thổ Thần" là bốn thứ khác nhau; bản web đang chạy là LobeHub 2.1.56 đổi nhãn, không phải mã của Appota.
-- Lần cắm thử bằng tài khoản cho thấy công cụ của Lab chạy được trong chat, nhưng chỉ khi chạy ngay trên máy người dùng.
-- Mã LobeHub không tự gắn danh tính người dùng vào lời gọi công cụ, và có một chế độ duyệt bị ẩn cho phép công cụ chạy mà không hỏi.
+- Lần cắm thử bằng tài khoản cho thấy công cụ của Lab chạy được trong chat: qua stdio trên máy người dùng, và qua một địa chỉ HTTPS công khai (mục 3.6).
+- Mã LobeHub 2.1.56 không tự gắn danh tính người dùng vào lời gọi công cụ, nhưng phép đo HTTPS thấy máy chủ Thổ Thần gắn thêm header danh tính; chưa biết người dùng có giả được không.
+- Mã LobeHub có một chế độ duyệt bị ẩn cho phép công cụ chạy mà không hỏi.
 - Lời gọi tới nhà cung cấp mô hình có gửi mã người dùng, nằm trong nội dung gửi đi.
 - Vì vậy cổng của Lab phải tự kiểm danh tính và tự chặn ghi, không dựa vào phần mềm chat.
 
@@ -157,6 +158,48 @@ Lời giải thích cho lỗi `fetch failed` (lời gọi trong chat đi qua má
 **Kết luận:** Thổ Thần chạy được tool của lab ngay hôm nay, nhưng chỉ qua stdio trên máy người dùng.
 Host không cho biết ai đang hỏi, không chặn lệnh ghi và cắt mọi lệnh sau 60 giây, nên cả ba việc này thuộc về cổng của lab.
 Cổng nhận ra người hỏi bằng khoá riêng mà mỗi người đặt vào cấu hình skill.
+Kết luận này chỉ đúng cho hai đường đã thử ở lần đo này: stdio và HTTP tới `localhost`.
+Một ngày sau, Lab đo thêm đường HTTPS công khai và thấy kết quả khác về danh tính (mục 3.6).
+
+### 3.6 Phép đo HTTPS công khai (2026-11-17)
+
+Ngày 2026-11-17, Lab đo lần thứ hai: đưa probe ra một địa chỉ HTTPS công khai bằng đường hầm tạm (tunnel, cloudflared), rồi cắm vào Thổ Thần web và Thổ Thần desktop.
+Đây là phép đo khác mục 3.5.
+Bảng dưới nêu chỗ khác nhau và vì sao hai kết quả không mâu thuẫn.
+
+| Điều so sánh | Mục 3.5 (2026-11-16) | Phép đo HTTPS (2026-11-17) |
+| --- | --- | --- |
+| Ứng dụng | Thổ Thần desktop | Thổ Thần web và Thổ Thần desktop |
+| Cách nối | stdio, và HTTP tới `localhost` | Streamable HTTP tới địa chỉ HTTPS công khai, xác thực kiểu "API Key" (Bearer) |
+| Lời gọi trong chat tới server | stdio: tiến trình chạy trên máy người dùng. HTTP `localhost`: không tới được, báo `fetch failed`. | Tới được, qua máy chủ của Thổ Thần (địa chỉ nguồn ở Singapore), cả web lẫn desktop |
+| Công cụ gọi | Bảy công cụ, trong đó `whoami` | `whoami` và `fake_write` trong chat; Test connection |
+| Header danh tính server nhận | Không có (stdio không có header) | `x-user-id`, `x-user-email`, `x-agent-id`, `x-executor-id` |
+| Tên client trong `initialize` | `thothan-desktop-mcp-client` | `lobehub-mcp-client` (desktop qua HTTP) |
+
+Header danh tính là phần mới.
+Với stdio, lời gọi không đi qua máy chủ của Thổ Thần nên không có header nào để gắn.
+Với HTTP, lời gọi đi qua máy chủ của Thổ Thần, và máy chủ gắn thêm bốn header trên.
+Ở lời gọi `whoami` trong chat web, `x-user-id` có dạng `user_` cộng 24 ký tự và `x-executor-id` trùng `x-user-id`.
+Ở Test connection chỉ có `x-user-id` và `x-user-email`, không có `x-agent-id` và `x-executor-id`.
+
+Ba điều mà phép đo này không cho biết.
+
+- Máy chủ Thổ Thần ghi đè hay nối thêm header người dùng tự đặt: chưa gửi header giả, nên đây là H9 (ghi đè `x-user-id`) ở mục 9.
+- Hai tài khoản có thấy `x-user-id` khác nhau không: chỉ đo một tài khoản, nên đây là H10 (phiên tách theo người dùng).
+- Khoá Bearer là của riêng từng người hay dùng chung: chỉ có một tài khoản và một skill, nên chưa kết luận được. Kết luận "khoá riêng từng người tới được server" ở mục 3.5 vẫn đứng, vì nó đo trên stdio và `Authorization` của HTTP localhost.
+
+Bằng chứng và cách chạy lại.
+
+- Probe ghi `log-20261117-171748-473.jsonl`: dòng 139 là `tool_call whoami` từ chat web, dòng 119 là `whoami` từ chat desktop, dòng 158 là `fake_write`.
+  Test connection nằm ở `log-20261117-130339-240.jsonl:17`.
+- Các log này nằm trong `scratch/mcp-probe/` của máy đo (git-ignored), và không tìm thấy trên máy đo khi kiểm lại ngày 2026-11-17.
+  Cái còn lại là bản tóm tắt bảng S1 tới S6 của phiên đo, đã che email; email thật không được chép vào repo.
+  Vì vậy độ tin cậy của phép đo này là trung bình: có số dòng log và bản tóm tắt, chưa có log gốc để đối chiếu.
+- Chạy lại: mở đường hầm HTTPS tới probe (`node dist/index.js --http --port 8787 --bearer <token tạm> --public-url <địa chỉ đường hầm>`, [kịch bản đo, mục 4.4](tho-than-mcp-probe.md#44-thử-https-từ-xa)), cắm vào Thổ Thần, gọi `whoami`, rồi `npm run summarize -- <file log>` trong `tools/mcp-probe` để đọc các header.
+
+**Kết luận:** hai phép đo bổ sung cho nhau, không mâu thuẫn.
+Trên stdio, Thổ Thần không cho server biết ai đang hỏi; trên HTTP công khai, máy chủ Thổ Thần gắn danh tính vào lời gọi.
+Danh tính này chỉ dùng được cho cổng sau khi H9 và H10 đúng; trước đó khoá riêng từng người vẫn là cách chính.
 
 ## 4. Tài liệu Thổ Thần: mô tả một nền tảng khác
 
@@ -260,8 +303,10 @@ Trong mã có một header danh tính duy nhất, `X-lobe-user-id`, nhưng chỉ
 
 Ba kết luận rút ra.
 
-1. Header `x-user-id` thấy trong phép đo ngày 2026-11-17 không do LobeHub 2.1.56 sinh ra.
-   Nó phải đến từ phần Appota thêm vào, hoặc từ proxy đứng trước, và chưa đọc được mã đó.
+1. Header `x-user-id` thấy trong phép đo HTTPS ngày 2026-11-17 (mục 3.6: Thổ Thần web, đường hầm HTTPS, lời gọi `whoami` trong chat, `log-20261117-171748-473.jsonl:139`) không do LobeHub 2.1.56 sinh ra.
+   Phép đo đó cũng thấy `x-user-email`, `x-agent-id` và `x-executor-id`, đúng ba tên mà mã 2.1.56 không gắn.
+   Vậy header phải đến từ phần Appota thêm vào, hoặc từ proxy đứng trước, hoặc từ bản chạy khác tag công khai; chưa đọc được mã đó.
+   Phép đo ngày 2026-11-16 (mục 3.5) không thấy header nào vì chạy qua stdio, không đi qua máy chủ Thổ Thần.
 2. LobeHub không phải nơi bảo đảm header này.
    Nếu Thổ Thần thêm header sau khi đã gộp header người dùng và ghi đè giá trị trùng, thì mới tin được.
    Nếu chỉ nối thêm, người dùng có thể gửi hai giá trị hoặc gửi giá trị giả.
@@ -318,7 +363,7 @@ Năm điểm cần đọc kỹ.
 - Chế độ `manual` không có nghĩa là mọi tool đều hỏi.
   Nó đọc chính sách `humanIntervention` của tool.
   Tool MCP do LobeHub khám phá chỉ có tên, mô tả và schema, không có trường này (`src/server/services/mcp/index.ts:489-496`).
-  Vì vậy `fake_write` chạy ngay trong chế độ Manual, đúng như phép đo ngày 2026-11-17.
+  Vì vậy `fake_write` chạy ngay trong chế độ Manual, đúng như các phép đo ở mục 3.5 và 3.6.
 
 Kết luận cho Lab: hộp duyệt của LobeHub là tính năng giao diện, không phải ranh giới an ninh.
 Cổng của Lab phải tự kiểm danh tính, tự kiểm quyền và tự chặn ghi.
@@ -332,7 +377,7 @@ Cổng của Lab phải tự kiểm danh tính, tự kiểm quyền và tự ch�
   Hai, cổng của Lab chỉ nhận lời gọi từ Thổ Thần.
   Ba, bảng nối `x-user-id` với mã nhân viên nằm ở phía máy chủ.
 - Chưa có điều nào được chứng minh.
-  Phép đo ngày 2026-11-17 chỉ thấy header có mặt, chưa thử gửi header giả.
+  Phép đo HTTPS ngày 2026-11-17 (mục 3.6) chỉ thấy header có mặt trong lời gọi chat, chưa thử gửi header giả và chưa thử hai tài khoản.
 - Nếu thiếu một điều, bỏ `x-user-id` khỏi ADR-0005.
   Khi đó khoá riêng là cách duy nhất, và cổng phải chặn gọi trực tiếp.
 - Việc duyệt ghi cũng không thể giao cho LobeHub.
@@ -347,7 +392,7 @@ Ba phép kiểm còn thiếu nằm ở mục 9, H9 tới H11.
 | Trong sáu ô của Thổ Thần AI, ô nào đã chạy thật? | Chắc chắn có ô giao diện chat, agent runtime, skill, công cụ dựng sẵn, và một MCP host. Không xác minh được ô lớn hơn vì không có tài khoản. | Trung bình |
 | Tool/MCP Runtime đã có chưa? | Có MCP host ở tầng sản phẩm, và có một MCP server chỉ đọc tài liệu. Chưa thấy runtime MCP cho nghiệp vụ. | Trung bình |
 | Duyệt người trước khi ghi nằm ở đâu? | Có ở tầng agent runtime, nhưng không phải ranh giới an ninh. Lần cắm thử thấy tool ghi chạy ngay kể cả ở chế độ Manual (mục 3.5); mã giải thích vì sao: tool MCP không khai báo chính sách duyệt, và chế độ `headless` bị ẩn là mặc định khi thiếu cấu hình (mục 6.4). | Cao |
-| Lời gọi MCP trong chat có mang danh tính do LobeHub gắn không? | Không. Chỉ có header cấu hình và khoá xác thực. `x-user-id` thấy trong phép đo là do phần Appota thêm, chưa chứng minh được ghi đè. | Cao |
+| Lời gọi MCP trong chat có mang danh tính do LobeHub gắn không? | Không. Chỉ có header cấu hình và khoá xác thực. `x-user-id` thấy trong phép đo HTTPS ngày 2026-11-17 (mục 3.6) không do mã 2.1.56 gắn, nên là phần Appota thêm; chưa chứng minh được ghi đè. | Cao |
 | Lời gọi model có mang danh tính người dùng không? | Có, trong body: `user`, `safety_identifier`, hoặc `metadata.user_id`, tuỳ nhà cung cấp. Giá trị là mã người dùng thô. | Cao |
 | Có chế độ duyệt công cụ nào bị ẩn không? | Có: `headless`, không hiện trong menu, API nhận, và là mặc định khi thiếu cấu hình. | Cao |
 | Telemetry có đủ trường cho Value Intelligence? | Mã có OpenTelemetry, nhưng host không gửi mã vết nào sang server MCP (mục 3.5). Chưa biết phía Thổ Thần lưu gì. | Trung bình |
@@ -378,15 +423,15 @@ Mỗi giả thuyết kèm cách kiểm và người có thể trả lời.
 
 | ID | Giả thuyết | Cách kiểm | Ai trả lời được | Kết quả đến 2026-11-17 |
 | --- | --- | --- | --- | --- |
-| H1 | Instance `thothan.appota.ai` bật tính năng skill và MCP cho người dùng | Đăng nhập, mở Cài đặt, tìm mục thêm MCP server tùy chỉnh; thử cắm một MCP server cục bộ | Người có tài khoản, Kevin | Đúng ở bản desktop: cắm được, nhưng trong chat chỉ stdio chạy (mục 3.5). Bản web chưa thử. |
+| H1 | Instance `thothan.appota.ai` bật tính năng skill và MCP cho người dùng | Đăng nhập, mở Cài đặt, tìm mục thêm MCP server tùy chỉnh; thử cắm một MCP server cục bộ | Người có tài khoản, Kevin | Đúng ở cả hai bản: cắm được. Desktop 2026-11-16: trong chat chỉ stdio chạy (mục 3.5). Web và desktop 2026-11-17: HTTPS công khai chạy (mục 3.6). |
 | H2 | Có một Tool/MCP Runtime dùng chung cho nghiệp vụ, tách khỏi LobeHub | Hỏi trực tiếp; tìm tên miền nội bộ dạng `mcp.*` hoặc `gateway.*` | Kevin | Chưa kiểm. |
 | H3 | Duyệt người trước khi ghi chưa tồn tại ở tầng nền tảng | Hỏi trực tiếp; nếu chưa có thì lab được phép đề xuất đặt ở runtime | Kevin | Đúng ở tầng MCP tool: không có bước duyệt, kể cả chế độ Manual (mục 3.5). Mã ở mục 6.4 giải thích: tool MCP không khai báo chính sách duyệt. Cần Kevin xác nhận không có cơ chế khác. |
 | H4 | Bộ tài liệu 2024 đã bị bỏ, không còn người cập nhật | Gửi `sendFeedback` qua chính MCP server của tài liệu và xem có phản hồi | Phòng SRD, `srd@appota.com` | Chưa kiểm. |
 | H5 | Ngôn ngữ mặc định của instance là tiếng Anh, tiếng Việt chỉ là bản dịch có sẵn | Kiểm sau khi đăng nhập, đổi ngôn ngữ, xem chất lượng bản dịch ở màn hình agent và skill | Người có tài khoản | Một phần: giao diện desktop hiện tiếng Anh; chưa đổi ngôn ngữ. |
 | H6 | App mobile AppotaHub nhúng chính trang này qua Capacitor, nên là cùng một phiên đăng nhập | Mở app, kiểm luồng `mobileAuthCallback` | Người có app | Chưa kiểm. |
-| H7 | Lời gọi tool trong chat qua HTTP đi qua máy chủ Thổ Thần, nên server phải có địa chỉ công khai | Hỏi Kevin; hoặc mở tunnel HTTPS khi được phép rồi gọi lại | Kevin | Mới: suy ra từ lỗi `fetch failed` khi server ở localhost (mục 3.5). |
+| H7 | Lời gọi tool trong chat qua HTTP đi qua máy chủ Thổ Thần, nên server phải có địa chỉ công khai | Hỏi Kevin; hoặc mở tunnel HTTPS khi được phép rồi gọi lại | Kevin | Đúng: lỗi `fetch failed` ở localhost (mục 3.5), và địa chỉ công khai gọi được từ máy chủ Thổ Thần ở cả web lẫn desktop (mục 3.6). |
 | H8 | Khoá riêng của từng người (API Key hoặc biến môi trường stdio) tới được server, nên dùng được để biết ai đang hỏi | Cài lại skill stdio với `LAB_USER_KEY`, gọi `whoami`, xem trường `labEnv` | Người có tài khoản | Đúng: khoá tới server qua biến môi trường stdio và qua `Authorization: Bearer` của kiểu "API Key"; đổi khoá có hiệu lực ngay ([kịch bản đo, mục 5.5](tho-than-mcp-probe.md#55-khoá-riêng-của-từng-người-h8)). |
-| H9 | Thổ Thần ghi đè header `x-user-id` người dùng gửi, không nối thêm | Thêm header `x-user-id: spoof-test` vào skill, gọi `whoami`, xem probe nhận giá trị nào; nếu thấy giá trị đánh dấu hoặc hai giá trị thì H9 sai | Người có tài khoản, Kevin | Chưa kiểm. |
+| H9 | Thổ Thần ghi đè header `x-user-id` người dùng gửi, không nối thêm | Thêm header `x-user-id: spoof-test` vào skill, gọi `whoami`, xem probe nhận giá trị nào; nếu thấy giá trị đánh dấu hoặc hai giá trị thì H9 sai | Người có tài khoản, Kevin | Chưa kiểm. Phép đo HTTPS (mục 3.6) mới thấy header có mặt, chưa gửi header giả. |
 | H10 | Phiên MCP tách theo người dùng, không dùng chung cho hai người cùng cấu hình | Hai tài khoản cùng skill URL, so `mcp-session-id` và `x-user-id`; nếu chung phiên hoặc sai người thì H10 sai | Người có hai tài khoản | Chưa kiểm. |
 | H11 | Gọi `execAgent` không kèm cấu hình duyệt sẽ chạy tool ghi mà không hỏi | Gọi API với tool ghi giả lập, xem có bản ghi chờ duyệt không; chỉ dùng dữ liệu giả lập | Người có quyền gọi API, Kevin | Chưa kiểm; mã ở mục 6.4 cho thấy mặc định là `headless`. |
 
@@ -398,8 +443,8 @@ H9 tới H11 quyết định ADR-0005 có dùng được `x-user-id` làm lớp 
 
 ## 10. Giới hạn
 
-- Mục 3.1 đến 3.3 viết khi chưa có tài khoản; lần cắm thử ở mục 3.5 chỉ dùng bản desktop, chưa thử bản web.
-- Lần cắm thử dùng một tài khoản và một máy; ảnh chụp sản phẩm thật nằm trong `scratch/` của máy đo, không đưa vào repo.
+- Mục 3.1 đến 3.3 viết khi chưa có tài khoản; lần cắm thử ở mục 3.5 chỉ dùng bản desktop; bản web chỉ thử ở phép đo HTTPS mục 3.6.
+- Hai lần đo dùng một tài khoản và một máy; ảnh chụp sản phẩm thật nằm trong `scratch/` của máy đo, không đưa vào repo.
 - Chưa kiểm phiên bản Dify mà Appota dùng năm 2024; chỉ khẳng định đường dẫn và câu lệnh trong tài liệu khớp Dify 0.15.3.
 - Chưa xác minh quan hệ giữa extension VS Code và nền tảng web; hai bên có thể dùng chung tài khoản hoặc không.
 - Chưa đo hiệu năng. Ngưỡng 60 giây ở mục 3.5 là hành vi của host, không phải số đo độ trễ, độ ổn định hay chi phí.
@@ -410,6 +455,7 @@ H9 tới H11 quyết định ADR-0005 có dùng được `x-user-id` làm lớp 
   Kết luận về chế độ ẩn là đọc mã, chưa đo trên instance.
 - Tag `v2.1.56` phát hành ngày 2026-05-01.
   Số 2.1.56 đọc từ bundle khớp tag, nhưng không chứng minh bản chạy giống hệt mã công khai.
+- Log gốc của phép đo HTTPS (mục 3.6) không tìm thấy trên máy đo; chỉ còn bản tóm tắt phiên đo.
 - Chưa kiểm hai người dùng cùng lúc, nên chưa biết phiên MCP có tách theo người hay không.
 - Chưa gọi thử nhà cung cấp model thật.
   Chỉ đọc đường mã; một số provider có thể bỏ trường `user` hoặc từ chối trường đó.
