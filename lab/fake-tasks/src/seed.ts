@@ -1,19 +1,20 @@
+import { PERSONAS } from '@lab/shared';
 import type { Task, TaskStatus } from './types.js';
 
 /**
  * Fixed seed data. Nothing here is random, so every reset gives the same 100
  * tasks and the acceptance tests can name exact ids.
  *
- * Employee codes are the lab's tentative codes for the six main characters.
- * The directory service has to use the same codes.
+ * Employee codes of the six main characters come from `@lab/shared`, the
+ * same place the directory takes them from.
  */
 export const EMPLOYEE = {
-  quang: 'NV-01',
-  hoa: 'NV-02',
-  lan: 'NV-03',
-  minh: 'NV-04',
-  nam: 'NV-05',
-  nhung: 'NV-06',
+  quang: PERSONAS.quang.employeeId,
+  hoa: PERSONAS.hoa.employeeId,
+  lan: PERSONAS.lan.employeeId,
+  minh: PERSONAS.minh.employeeId,
+  nam: PERSONAS.nam.employeeId,
+  nhung: PERSONAS.nhung.employeeId,
 } as const;
 
 /** The marker the gateway wraps system data in. T-14 carries a fake copy. */

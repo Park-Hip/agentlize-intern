@@ -93,7 +93,7 @@ bash rd/checks/mausbot.sh
 ### Lab POC
 
 The lab is an npm workspace in `lab/`. It needs Node 22 or newer.
-It starts three local services; so far only the fake task list has business logic.
+It starts three local services; so far the fake task list and the fake employee directory have business logic.
 
 ```
 cd lab
@@ -108,6 +108,8 @@ The key is passed to the three processes through the environment and is never pr
 Override the ports with `LAB_GATEWAY_PORT`, `LAB_DIRECTORY_PORT` and `LAB_TASKS_PORT`, and the data folder with `LAB_DATA_DIR`.
 `npm test` builds, then runs every `*-test.js` file in the workspace, including a smoke test that starts the three services on temporary ports and checks `/health`.
 `npm run lint` type-checks the whole workspace with `tsc --noEmit`.
+`npm test -w fake-directory` runs only the directory tests.
+The fake directory answers every path, `/health` included, with 401 unless the request carries `Authorization: Bearer <LAB_SERVICE_KEY>`; `LAB_TEST_HOOKS=1` turns on its `/admin/*` test routes.
 
 ### MCP probe for Thổ Thần
 
