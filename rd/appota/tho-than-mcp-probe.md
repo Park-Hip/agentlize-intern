@@ -648,7 +648,7 @@ Riêng P2 (danh tính) cần thêm tài khoản thứ hai nếu có, để nâng
 3. Ghi phát hiện HTTP chat `fetch failed` vào P1 (giao thức và xác thực), mục 4.6.
 4. Điền bảng kết quả của năm câu hỏi và bảng tổng hợp mục 9.
 
-5. Cập nhật [khảo sát Thổ Thần](tho-than-platform.md) (mục 3.4, 3.5 và 8) và [tổng hợp phát hiện](../findings.md) (mục 4, 6, 8).
+5. Cập nhật [khảo sát Thổ Thần](tho-than-platform.md) (mục 3.4, 3.5 và 9) và [tổng hợp phát hiện](../findings.md) (mục 4, 6, 8).
 
 Còn phải làm:
 
