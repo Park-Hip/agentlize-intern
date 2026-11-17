@@ -229,7 +229,16 @@ export async function startStack(options: StartStackOptions = {}): Promise<LabSt
 
     // ADR-0006: the console opens only after the gateway answers, because its pages read the gateway.
     if (includeConsole) {
-      const consoleService = spawnService('console', serviceEnv, children, options, error, () => stopping, () => ready, failStartup);
+      const consoleService = spawnService(
+        'console',
+        serviceEnv,
+        children,
+        options,
+        error,
+        () => stopping,
+        () => ready,
+        failStartup,
+      );
       await waitForHealth('console', ports.console, consoleService, serviceKey);
       log(`[start] console ready at http://${LOOPBACK_HOST}:${ports.console}`);
     }
