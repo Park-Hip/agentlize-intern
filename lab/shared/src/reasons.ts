@@ -1,0 +1,41 @@
+/**
+ * The ten refusal codes from spec section 4.4, in the order the spec lists
+ * them. Tests compare codes, never sentences.
+ */
+export const POLICY_REASON_CODES = [
+  'KEY_INVALID',
+  'KEY_REVOKED',
+  'NOT_PERMITTED',
+  'NEEDS_APPROVAL',
+  'POLICY_UNAVAILABLE',
+  'TARGET_CHANGED',
+  'CONTENT_CHANGED',
+  'APPROVAL_EXPIRED',
+  'APPROVAL_USED',
+  'SELF_APPROVAL',
+] as const;
+
+/** The adapter adds this code when the gateway cannot be reached at all. */
+export const GATEWAY_UNAVAILABLE = 'GATEWAY_UNAVAILABLE' as const;
+
+export const REASON_CODES = [...POLICY_REASON_CODES, GATEWAY_UNAVAILABLE] as const;
+
+export type PolicyReasonCode = (typeof POLICY_REASON_CODES)[number];
+
+export type ReasonCode = (typeof REASON_CODES)[number];
+
+/** Fixed prefix for every refusal, so a host can recognise it without parsing. */
+export const REFUSAL_PREFIX = 'CHƯA THỰC HIỆN' as const;
+
+/**
+ * Build the one-line refusal text: `CHƯA THỰC HIỆN [<MÃ>] <câu>`.
+ * Whitespace is collapsed so a multi-line sentence cannot break the block a
+ * host renders.
+ */
+export function refusalMessage(code: ReasonCode, sentence: string): string {
+  const normalized = sentence.trim().replace(/\s+/g, ' ');
+  if (normalized.length === 0) {
+    throw new Error('A refusal needs one Vietnamese sentence explaining why and who to ask');
+  }
+  return `${REFUSAL_PREFIX} [${code}] ${normalized}`;
+}

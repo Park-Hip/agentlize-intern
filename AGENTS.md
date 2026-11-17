@@ -18,14 +18,16 @@ Read the  TXT for the full acceptance criteria, the R&D framework and the week b
 
 ## 2. Current state
 
-The repository holds documents only. There is no code yet.
+The repository holds the research documents plus the `lab/` scaffold for the POC, which currently runs three local services with health checks only.
+`tools/mcp-probe` is a measurement tool, not part of the lab.
 
 The company ecosystem the lab will eventually plug into is recorded in `docs/context/appota-ai-ecosystem.md` (AgentLize control plane, Thổ Thần AI execution plane, Kdata infrastructure, business data owners).
 It is context for where the work lands, not a decision on stack or architecture, and it needs Kevin to confirm it.
 
-Stack, architecture and MVP scope are not decided. They must land in an ADR before any code is written.
+Stack, architecture and MVP scope are recorded in ADR-0001 to ADR-0003 and the MVP spec.
+Read them before adding business logic.
 
-When code arrives, add a real `## 6. Commands` section to this file with the actual setup, run and test commands. The render and source-check commands are already there.
+Setup, run and test commands are in section 6, together with the render and source-check commands.
 
 ## 3. Required way of working
 
@@ -84,6 +86,25 @@ bash rd/00-frame/checks/prd-quotes.sh
 bash rd/01-explore/checks/real-system-architectures.sh
 bash rd/01-explore/checks/tho-than-platform.sh
 ```
+
+### Lab POC
+
+The lab is an npm workspace in `lab/`. It needs Node 22 or newer.
+It starts three local services and has no business logic yet.
+
+```
+cd lab
+npm install
+npm run lint
+npm test
+npm start
+```
+
+`npm start` builds the workspace, generates a random service key when `LAB_SERVICE_KEY` is not set, starts the fake directory on 127.0.0.1:8791 and the fake task list on 127.0.0.1:8792, waits for both `/health` endpoints to return 200, then opens the gateway on 127.0.0.1:8790.
+The key is passed to the three processes through the environment and is never printed.
+Override the ports with `LAB_GATEWAY_PORT`, `LAB_DIRECTORY_PORT` and `LAB_TASKS_PORT`, and the data folder with `LAB_DATA_DIR`.
+`npm test` builds, then runs every `*-test.js` file in the workspace, including a smoke test that starts the three services on temporary ports and checks `/health`.
+`npm run lint` type-checks the whole workspace with `tsc --noEmit`.
 
 ### MCP probe for Thổ Thần
 
