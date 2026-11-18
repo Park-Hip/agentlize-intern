@@ -76,24 +76,55 @@ function toRecord(row: KeyRow): KeyRecord {
 
 const quoted = (values: readonly string[]): string => values.map((value) => `'${value}'`).join(', ');
 
-/** Owns the `api_keys` table. Holds hashes only, never a raw key. */
+function createKeysSql(table: string): string {
+  return `
+    CREATE TABLE IF NOT EXISTS ${table} (
+      key_id      TEXT PRIMARY KEY,
+      key_hash    TEXT NOT NULL UNIQUE,
+      key_prefix  TEXT NOT NULL,
+      employee_id TEXT NOT NULL,
+      caller      TEXT NOT NULL CHECK (caller IN (${quoted(CALLERS)})),
+      scope       TEXT NOT NULL CHECK (scope IN (${quoted(SCOPES)})),
+      created_at  TEXT NOT NULL,
+      revoked_at  TEXT
+    )
+  `;
+}
+
+/**
+ * Owns the `api_keys` table. Holds hashes only, never a raw key.
+ * The `caller` and `scope` checks are copied into the table, so a table made
+ * before a caller existed is rebuilt once to accept it (same approach as the
+ * trace table). Rows, and so every issued key, survive the rebuild.
+ */
 export class KeyStore {
   constructor(
     private readonly db: GatewayDatabase,
     private readonly now: () => Date = () => new Date(),
   ) {
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS api_keys (
-        key_id      TEXT PRIMARY KEY,
-        key_hash    TEXT NOT NULL UNIQUE,
-        key_prefix  TEXT NOT NULL,
-        employee_id TEXT NOT NULL,
-        caller      TEXT NOT NULL CHECK (caller IN (${quoted(CALLERS)})),
-        scope       TEXT NOT NULL CHECK (scope IN (${quoted(SCOPES)})),
-        created_at  TEXT NOT NULL,
-        revoked_at  TEXT
-      )
-    `);
+    const existing = db
+      .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'api_keys'")
+      .get() as { sql: string } | undefined;
+    if (existing === undefined) {
+      db.exec(createKeysSql('api_keys'));
+      return;
+    }
+    const known = [...CALLERS, ...SCOPES];
+    if (known.some((value) => !existing.sql.includes(`'${value}'`))) this.rebuild();
+  }
+
+  /** Copy every key into a table whose checks know every caller and scope, keeping each key code. */
+  private rebuild(): void {
+    this.db.transaction(() => {
+      this.db.exec('ALTER TABLE api_keys RENAME TO api_keys_before_caller');
+      this.db.exec(createKeysSql('api_keys'));
+      this.db.exec(`
+        INSERT INTO api_keys (key_id, key_hash, key_prefix, employee_id, caller, scope, created_at, revoked_at)
+        SELECT key_id, key_hash, key_prefix, employee_id, caller, scope, created_at, revoked_at
+        FROM api_keys_before_caller;
+        DROP TABLE api_keys_before_caller;
+      `);
+    })();
   }
 
   issue(input: IssueKeyInput): IssuedKey {
@@ -148,6 +179,20 @@ export class KeyStore {
       .prepare('UPDATE api_keys SET revoked_at = COALESCE(revoked_at, ?) WHERE key_id = ?')
       .run(this.now().toISOString(), keyId);
     return result.changes > 0;
+  }
+
+  /**
+   * Revoke every active key of one caller and return how many changed.
+   * The console runs this at startup so a run killed sideways leaves no key
+   * behind that still works (ADR-0006 section 3.3).
+   */
+  revokeActiveByCaller(caller: string): number {
+    if (!isCaller(caller)) {
+      throw new Error(`caller must be one of ${CALLERS.join(', ')}, got "${caller}"`);
+    }
+    return this.db
+      .prepare('UPDATE api_keys SET revoked_at = ? WHERE caller = ? AND revoked_at IS NULL')
+      .run(this.now().toISOString(), caller).changes;
   }
 
   list(): KeyRecord[] {

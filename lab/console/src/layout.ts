@@ -19,7 +19,7 @@ const NAV: readonly NavItem[] = [
   { key: 'overview', label: 'Tổng quan', href: '/' },
   { key: 'tools', label: 'Tool', href: '/tools' },
   { key: 'permissions', label: 'Quyền và trường', href: '/permissions' },
-  { key: 'playground', label: 'Sân chơi' },
+  { key: 'playground', label: 'Sân chơi', href: '/playground' },
   { key: 'data', label: 'Dữ liệu gốc', href: '/data' },
   { key: 'trace', label: 'Vết', href: '/trace' },
 ];
@@ -103,7 +103,7 @@ select,input[type=number]{font:inherit;padding:.42rem .55rem;border:1px solid va
 .check input{flex:none;margin:.2rem 0 0;accent-color:var(--accent);width:1rem;height:1rem}
 .check code{font-size:.82em}
 .chips{list-style:none;display:flex;flex-wrap:wrap;gap:.4rem;padding:0;margin:.2rem 0 .6rem}
-.chips li{border:1px solid var(--line);border-radius:999px;padding:.18rem .6rem;font-size:.86rem;background:var(--bg)}
+.chips li,.chips .chip{border:1px solid var(--line);border-radius:999px;padding:.18rem .6rem;font-size:.86rem;background:var(--bg)}
 .decide-grid{display:grid;grid-template-columns:1fr;gap:0 1rem}
 @media (min-width:52rem){.decide-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .decide label{display:block;font-weight:650;margin:.55rem 0 .25rem;font-size:.9rem}
@@ -114,10 +114,11 @@ select,input[type=number]{font:inherit;padding:.42rem .55rem;border:1px solid va
 .result dt{font-weight:700;color:var(--muted);font-size:.84rem}
 .result dd{margin:0;overflow-wrap:anywhere}
 .rule-actions{margin:.8rem 0 1rem}
-button{font:inherit;font-weight:650;padding:.5rem 1rem;border-radius:.45rem;border:1px solid var(--accent);background:var(--accent);color:var(--accent-text);cursor:pointer}
+button,.btn{display:inline-block;font:inherit;font-weight:650;line-height:1.2;padding:.5rem 1rem;border-radius:.45rem;border:1px solid var(--accent);background:var(--accent);color:var(--accent-text);cursor:pointer;text-decoration:none}
+button:hover,.btn:hover{filter:brightness(1.08)}
 button.secondary{background:transparent;color:var(--accent)}
 button:disabled{opacity:.55;cursor:not-allowed}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
 .actions form{margin:0}
 .pager{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;margin:.9rem 0 0;font-size:.9rem}
@@ -140,6 +141,35 @@ details summary{cursor:pointer;color:var(--accent);font-size:.9rem}
 details p{margin:.3rem 0 0;overflow-wrap:anywhere}
 footer{max-width:76rem;margin:0 auto;padding:0 1rem 2.5rem;color:var(--muted);font-size:.85rem}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em}
+.description{max-width:68rem;margin:.2rem 0 1rem}
+.form-grid{display:grid;grid-template-columns:1fr;gap:.85rem 1.1rem}
+@media (min-width:48rem){.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.form-grid .field{display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.form-grid .field label,.fieldset legend{font-weight:700;font-size:.92rem;color:var(--text)}
+.req{font-weight:600;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.03em}
+.hint{color:var(--muted);font-size:.8rem}
+.form-grid input,.form-grid select,.form-grid textarea{width:100%;font:inherit;padding:.5rem .55rem;border:1px solid var(--line);border-radius:.45rem;background:var(--bg);color:var(--text)}
+.form-actions{margin:1rem 0 0}
+textarea{min-height:4.5rem;resize:vertical}
+.fieldset{border:1px solid var(--line);border-radius:.55rem;padding:.55rem .8rem .85rem;margin:0;min-width:0}
+.fieldset legend{padding:0 .35rem}
+h3{font-size:.95rem;line-height:1.35;margin:1.2rem 0 .45rem}
+.verbatim{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg);border:1px solid var(--line);border-radius:.55rem;padding:.8rem .9rem;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9rem;margin:.2rem 0 1rem}
+.kv th{width:11rem;color:var(--muted);font-weight:600}
+.kv td{overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+h2.plain{display:block}
+.link{overflow-wrap:anywhere;margin:.5rem 0 0;font-size:.85rem}
+@media (max-width:46rem){
+.kv th{display:block;width:auto;border-bottom:0;padding-bottom:0;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+.kv td{display:block;padding-top:.1rem;padding-bottom:.5rem}
+.kv tr:last-child td{border-bottom:0}
+}
+.scenario-grid{display:grid;grid-template-columns:1fr;gap:.75rem;margin:.75rem 0 0}
+@media (min-width:62rem){.scenario-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.scenario{border:1px solid var(--line);border-radius:.55rem;padding:.75rem .85rem;margin:0;display:flex;flex-direction:column;align-items:flex-start;gap:.4rem}
+.scenario h3{margin:0;font-size:.98rem}
+.scenario p{margin:0;font-size:.88rem;color:var(--muted)}
+.scenario button{margin-top:.15rem}
 @media (max-width:46rem){
 .raw-table{min-width:0}
 .stack thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}

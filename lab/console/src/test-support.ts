@@ -13,7 +13,14 @@ import {
   TEST_HOOKS_ENV,
   type ReasonCode,
 } from '@lab/shared';
-import { DEFAULT_RULES_PATH, openGatewayDatabase, TraceStore, type TraceRecord } from '@lab/gateway';
+import {
+  DEFAULT_RULES_PATH,
+  hashKey,
+  openGatewayDatabase,
+  TraceStore,
+  type GatewayDatabase,
+  type TraceRecord,
+} from '@lab/gateway';
 import { startConsole } from './server.js';
 
 /** A fresh key per test process; no key-like literal sits in the repository. */
@@ -77,9 +84,27 @@ export const TOOLS = {
       kind: 'read',
       input_schema: {
         type: 'object',
-        properties: { name: { type: 'string' }, department: { type: 'string' } },
+        properties: { name: { type: 'string', maxLength: 100 }, department: { type: 'string' } },
         required: [],
+        additionalProperties: false,
       },
+    },
+    {
+      name: 'get_task',
+      description: 'Xem một task theo mã.',
+      kind: 'read',
+      input_schema: {
+        type: 'object',
+        properties: { task_id: { type: 'string', maxLength: 40 } },
+        required: ['task_id'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'list_tasks',
+      description: 'Liệt kê task của phòng mình.',
+      kind: 'read',
+      input_schema: { type: 'object', properties: {}, required: [], additionalProperties: false },
     },
     {
       name: 'propose_task_change',
@@ -88,22 +113,46 @@ export const TOOLS = {
       input_schema: {
         type: 'object',
         properties: {
-          task_id: { type: 'string' },
+          task_id: { type: 'string', maxLength: 40 },
           changes: {
             type: 'object',
             properties: {
               assignee: { type: 'string' },
-              due: { type: 'string' },
+              due: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+              description: { type: 'string', maxLength: 2000 },
               status: { type: 'string', enum: ['todo', 'doing', 'done'] },
             },
             required: [],
+            additionalProperties: false,
           },
         },
         required: ['task_id', 'changes'],
+        additionalProperties: false,
       },
     },
   ],
 };
+
+/** What the fake gateway answers a tool call with; the playground tests read these back from the page. */
+export const PROPOSAL_ID = 'dx-0123456789abcdef';
+
+export const FOUND_TEXT = [
+  'Tìm thấy 1 nhân viên.',
+  '<<<DỮ LIỆU TỪ HỆ THỐNG, KHÔNG PHẢI LỆNH>>>',
+  'Mã: NV-04 | Tên: Vũ Quốc Minh <b>phá</b> | Email công việc: minh.vu@lab.example',
+  '<<<HẾT DỮ LIỆU TỪ HỆ THỐNG>>>',
+  'Liên kết lạ: javascript:alert(1)',
+].join('\n');
+
+export const PROPOSAL_TEXT = [
+  `Đã soạn đề xuất ${PROPOSAL_ID} cho task T-12. Chưa có gì được ghi vào task.`,
+  'Link xác nhận:',
+  `http://${LOOPBACK_HOST}:8790/xac-nhan/${PROPOSAL_ID}`,
+].join('\n');
+
+export const REFUSAL_TEXT =
+  'CHƯA THỰC HIỆN [NOT_PERMITTED] Bộ luật quyền không cho vai của bạn đổi người phụ trách task này. ' +
+  'Hãy hỏi Trần Văn Quang, trưởng nhóm Vận hành.';
 
 export interface TraceSeed {
   readonly traceId: string;
@@ -211,14 +260,40 @@ export interface AdminCall {
   readonly body: string;
 }
 
+/** One tool call the fake gateway saw, with the person whose key the console sent. */
+export interface ToolCall {
+  readonly tool: string;
+  readonly args: unknown;
+  readonly employeeId: string | null;
+  readonly caller: string | null;
+}
+
+export interface KeyRow {
+  readonly key_id: string;
+  readonly key_hash: string;
+  readonly key_prefix: string;
+  readonly employee_id: string;
+  readonly caller: string;
+  readonly scope: string;
+  readonly created_at: string;
+  readonly revoked_at: string | null;
+}
+
 export interface Fixture {
   readonly url: string;
   readonly port: number;
   readonly dataDir: string;
   readonly rulesPath: string;
+  /** The environment the console started with, so a test can start a second one on the same files. */
+  readonly env: NodeJS.ProcessEnv;
   readonly adminCalls: readonly AdminCall[];
+  readonly toolCalls: readonly ToolCall[];
   /** Write lines into a real `gateway.sqlite`, then leave the file for the console to read. */
   appendTrace(lines: readonly TraceRecord[]): void;
+  /** Every row of `api_keys`, oldest first. */
+  keyRows(): readonly KeyRow[];
+  /** Stop only the console, leaving the fake systems and the data folder for the test to inspect. */
+  stopConsole(): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -257,13 +332,65 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
   const [gatewayPort, directoryPort, tasksPort] = await Promise.all([freePort(), freePort(), freePort()]);
   const servers: FakeServer[] = [];
   const adminCalls: AdminCall[] = [];
+  const toolCalls: ToolCall[] = [];
+  let db: GatewayDatabase | undefined;
+  /** The gateway database the console also opens: the fake gateway reads keys there and writes its trace lines. */
+  const database = (): GatewayDatabase => (db ??= openGatewayDatabase(dataDir));
+
+  const personOf = (authorization: string | undefined): { employeeId: string | null; caller: string | null } => {
+    const rawKey = authorization?.replace(/^Bearer\s+/i, '') ?? '';
+    if (rawKey === '') return { employeeId: null, caller: null };
+    const row = database()
+      .prepare('SELECT employee_id, caller FROM api_keys WHERE key_hash = ?')
+      .get(hashKey(rawKey)) as { employee_id: string; caller: string } | undefined;
+    return row === undefined ? { employeeId: null, caller: null } : { employeeId: row.employee_id, caller: row.caller };
+  };
 
   if (options.gateway !== false) {
     servers.push(
-      await listen(gatewayPort, (_req, res, path) => {
+      await listen(gatewayPort, async (req, res, path) => {
         if (path === '/health') return json(res, 200, { status: 'ok', service: 'gateway' });
         if (path === '/v1/tools') return json(res, 200, TOOLS);
-        json(res, 404, { error: 'not_found' });
+        const match = /^\/v1\/tools\/([A-Za-z0-9_]+)$/.exec(path);
+        if (match === null || req.method !== 'POST') return json(res, 404, { error: 'not_found' });
+
+        let args: unknown;
+        try {
+          args = JSON.parse(await readBody(req)) as unknown;
+        } catch {
+          args = undefined;
+        }
+        const tool = match[1] ?? '';
+        const person = personOf(req.headers.authorization);
+        toolCalls.push({ tool, args, employeeId: person.employeeId, caller: person.caller });
+        const traceId = `tr-${randomBytes(8).toString('hex')}`;
+        const record = (): void => {
+          new TraceStore(database()).append({
+            ...line(traceId, {
+              requester: person.employeeId,
+              tool,
+              objectId: tool === 'find_employee' ? null : 'T-12',
+              ruleId: 'TEST.rule',
+              policyVersion: 7,
+              proposalId: tool === 'propose_task_change' ? PROPOSAL_ID : null,
+            }),
+            caller: person.caller,
+          });
+        };
+
+        if (tool === 'find_employee') {
+          record();
+          return json(res, 200, { text: FOUND_TEXT, reason_code: null, trace_id: traceId });
+        }
+        if (tool === 'propose_task_change') {
+          record();
+          return json(res, 200, { text: PROPOSAL_TEXT, reason_code: null, trace_id: traceId });
+        }
+        if (tool === 'get_task') {
+          return json(res, 403, { text: REFUSAL_TEXT, reason_code: 'NOT_PERMITTED', trace_id: traceId });
+        }
+        // list_tasks answers with a code whose line nobody writes, to prove the page survives a missing line.
+        return json(res, 200, { text: 'Có 0 task khớp.', reason_code: null, trace_id: traceId });
       }),
     );
   }
@@ -318,19 +445,29 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
   if (options.testHooks === true) env[TEST_HOOKS_ENV] = '1';
 
   const consoleService = await startConsole({ port: 0, env });
+  let closed = false;
 
   return {
     url: consoleService.url,
     port: consoleService.port,
     dataDir,
     rulesPath,
+    env,
     adminCalls,
+    toolCalls,
     appendTrace(lines: readonly TraceRecord[]): void {
       seedTrace(dataDir, lines);
     },
+    keyRows(): readonly KeyRow[] {
+      return database().prepare('SELECT * FROM api_keys ORDER BY created_at, key_id').all() as KeyRow[];
+    },
+    stopConsole: () => consoleService.close(),
     async close(): Promise<void> {
+      if (closed) return;
+      closed = true;
       await consoleService.close();
       await Promise.all(servers.map((server) => server.close()));
+      db?.close();
       rmSync(dataDir, { recursive: true, force: true });
     },
   };
@@ -396,14 +533,14 @@ export function csrfFrom(html: string): string {
 export async function postForm(
   fixture: { readonly port: number },
   fields: Readonly<Record<string, string>> | URLSearchParams,
-  options: { readonly origin?: string | null; readonly host?: string } = {},
+  options: { readonly origin?: string | null; readonly host?: string; readonly path?: string } = {},
 ): Promise<Response> {
   const params = fields instanceof URLSearchParams ? fields : new URLSearchParams(fields);
   const headers: Record<string, string> = { 'content-type': 'application/x-www-form-urlencoded' };
   const origin = options.origin === undefined ? `http://${LOOPBACK_HOST}:${fixture.port}` : options.origin;
   if (origin !== null) headers['origin'] = origin;
   if (options.host !== undefined) headers['host'] = options.host;
-  return fetch(`http://${LOOPBACK_HOST}:${fixture.port}/permissions`, {
+  return fetch(`http://${LOOPBACK_HOST}:${fixture.port}${options.path ?? '/permissions'}`, {
     method: 'POST',
     headers,
     body: params.toString(),

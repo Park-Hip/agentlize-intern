@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { basename } from 'node:path';
-import { DEPARTMENTS, LOOPBACK_HOST, sendJson, type RequestHandler } from '@lab/shared';
+import { DEPARTMENTS, LOOPBACK_HOST, PERSONAS, sendJson, type RequestHandler } from '@lab/shared';
 import {
   createPolicyEngine,
   DEFAULT_RULES_PATH,
@@ -14,11 +14,18 @@ import {
   type TraceFilter,
   type TraceRow,
 } from '@lab/gateway';
-import { personaChoices, personaRows, serviceStatuses, toolRows } from './data.js';
+import {
+  personaChoices,
+  personaRows,
+  playgroundPersonas,
+  serviceStatuses,
+  toolRows,
+  type PersonaOption,
+} from './data.js';
 import { CsrfTokens, sameConsoleOrigin } from './csrf.js';
 import type { Notice } from './layout.js';
 import { dataPage } from './pages-data.js';
-import { errorPage, overviewPage, toolsPage } from './pages.js';
+import { errorPage, overviewPage, playgroundDownPage, playgroundPage, toolsPage } from './pages.js';
 import { traceGroups, tracePage } from './pages-trace.js';
 import { paginate, parsePage } from './source-data.js';
 import { parseTraceQuery, TRACE_LIMIT } from './trace-view.js';
@@ -34,8 +41,12 @@ import {
   type FieldChoice,
 } from './permissions.js';
 import { permissionsPage } from './permissions-page.js';
+import { argsToFormValues, formFields, formValues, readArgs } from './schema-form.js';
+import { scenarioByKey } from './scenarios.js';
 import { historyVersions, loadRules, writeRules } from './rules.js';
 import {
+  callTool,
+  confirmationLinkIn,
   fetchEmployees,
   fetchTasks,
   fetchTools,
@@ -46,6 +57,7 @@ import {
   resetTasks,
   type Employee,
   type ServiceEndpoints,
+  type ToolEntry,
 } from './upstream.js';
 
 export interface ConsoleDeps {
@@ -57,7 +69,15 @@ export interface ConsoleDeps {
   readonly dataDir: string;
   /** The same `LAB_TEST_HOOKS` value the fake systems got, so the buttons exist exactly when they work. */
   readonly testHooks: boolean;
+  /** Hands out the persona's key for one call. Raw keys never reach a page or a log. */
+  readonly rawKeyFor: (employeeId: string) => string | undefined;
+  /** The gateway's trace table. Only `list` is reachable from here: the console never appends a line. */
+  readonly trace: Pick<TraceReader, 'list'>;
 }
+
+/** The person the playground opens on: the main character of scenario A. */
+const DEFAULT_PERSONA = PERSONAS.hoa.employeeId;
+const DEFAULT_TOOL = 'find_employee';
 
 /** The console's own deps plus the gateway's decision function, bound to the same rule file. */
 interface ConsoleContext extends ConsoleDeps {
@@ -599,6 +619,196 @@ async function sendTraceRows(deps: ConsoleDeps, res: ServerResponse, url: URL): 
   );
 }
 
+interface CallDraft {
+  readonly persona: PersonaOption;
+  readonly tool: ToolEntry;
+  readonly rawKey: string;
+  readonly args: Record<string, unknown>;
+  readonly values: ReadonlyMap<string, string>;
+}
+
+type DraftResult =
+  | { readonly ok: true; readonly draft: CallDraft }
+  | { readonly ok: false; readonly status: number; readonly problem: string };
+
+/**
+ * What one press of "Gọi" asks for: either a fixed scenario or the fields of
+ * the form. Both end with the persona's own key and the exact JSON arguments.
+ */
+function draftOf(
+  scenarioKey: string | null,
+  form: URLSearchParams,
+  tools: readonly ToolEntry[],
+  deps: ConsoleDeps,
+): DraftResult {
+  const personas = playgroundPersonas();
+
+  if (scenarioKey !== null) {
+    const scenario = scenarioByKey(scenarioKey);
+    if (scenario === undefined) {
+      return { ok: false, status: 400, problem: `Không có kịch bản "${scenarioKey}".` };
+    }
+    const tool = tools.find((candidate) => candidate.name === scenario.tool);
+    if (tool === undefined) {
+      return { ok: false, status: 409, problem: `Kịch bản này cần tool ${scenario.tool}, mà cổng không công bố tool đó.` };
+    }
+    const persona = personas.find((candidate) => candidate.employeeId === scenario.employeeId);
+    const rawKey = deps.rawKeyFor(scenario.employeeId);
+    if (persona === undefined || rawKey === undefined) {
+      return { ok: false, status: 409, problem: `Console chưa có khoá cho ${scenario.employeeId}. Hãy khởi động lại console.` };
+    }
+    return {
+      ok: true,
+      draft: {
+        persona,
+        tool,
+        rawKey,
+        args: { ...scenario.args },
+        values: argsToFormValues(formFields(tool.inputSchema), scenario.args),
+      },
+    };
+  }
+
+  const personaId = form.get('persona') ?? '';
+  const toolName = form.get('tool') ?? '';
+  const tool = tools.find((candidate) => candidate.name === toolName);
+  if (tool === undefined) {
+    return { ok: false, status: 400, problem: `Tool "${toolName}" không có trong danh mục của cổng.` };
+  }
+  const persona = personas.find((candidate) => candidate.employeeId === personaId);
+  const rawKey = deps.rawKeyFor(personaId);
+  if (persona === undefined || rawKey === undefined) {
+    return { ok: false, status: 400, problem: `Nhân vật "${personaId}" không có trong danh sách nhận khoá.` };
+  }
+
+  const fields = formFields(tool.inputSchema);
+  const args = readArgs(fields, form);
+  if (!args.ok) return { ok: false, status: 400, problem: args.problem };
+  return { ok: true, draft: { persona, tool, rawKey, args: args.args, values: formValues(fields, form) } };
+}
+
+function lockedPage(problem: string, res: ServerResponse): void {
+  sendHtml(res, 200, playgroundDownPage(problem));
+}
+
+async function handlePlayground(
+  deps: ConsoleDeps,
+  csrf: CsrfTokens,
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const catalog = await fetchTools(deps.endpoints.gateway);
+  if (!catalog.ok) {
+    lockedPage(
+      `Cổng không đọc được danh mục tool (${catalog.detail}) nên sân chơi chưa mở được. Kiểm tra cổng rồi tải lại.`,
+      res,
+    );
+    return;
+  }
+  const tools = catalog.tools;
+  if (tools.length === 0) {
+    lockedPage('Cổng không công bố tool nào nên sân chơi chưa mở được.', res);
+    return;
+  }
+
+  if ((req.method ?? 'GET') === 'GET') {
+    const url = new URL(req.url ?? '/', `http://${LOOPBACK_HOST}`);
+    const personas = playgroundPersonas();
+    const wantedPersona = url.searchParams.get('persona');
+    const personaId = personas.some((persona) => persona.employeeId === wantedPersona)
+      ? (wantedPersona ?? DEFAULT_PERSONA)
+      : DEFAULT_PERSONA;
+    const wantedTool = url.searchParams.get('tool');
+    const tool =
+      tools.find((candidate) => candidate.name === wantedTool) ??
+      tools.find((candidate) => candidate.name === DEFAULT_TOOL) ??
+      tools[0];
+    if (tool === undefined) {
+      lockedPage('Cổng không công bố tool nào nên sân chơi chưa mở được.', res);
+      return;
+    }
+    sendHtml(
+      res,
+      200,
+      playgroundPage(
+        {
+          personas,
+          tools,
+          personaId,
+          tool,
+          fields: formFields(tool.inputSchema),
+          values: new Map<string, string>(),
+          csrfToken: csrf.issue(),
+          result: null,
+        },
+        'playground',
+      ),
+    );
+    return;
+  }
+
+  if (!sameConsoleOrigin(req.headers.origin, req.headers.host)) {
+    sendHtml(res, 403, errorPage({ text: 'Yêu cầu đến từ một trang khác nên bị từ chối.' }, 'playground'));
+    return;
+  }
+  const form = await readForm(req);
+  if (form === undefined) {
+    sendHtml(res, 400, errorPage({ text: 'Nội dung gửi lên không đọc được.' }, 'playground'));
+    return;
+  }
+  if (!csrf.check(form.get('csrf') ?? '')) {
+    sendHtml(
+      res,
+      403,
+      errorPage({ text: 'Thiếu hoặc sai mã chống giả mạo. Hãy tải lại sân chơi rồi bấm lại.' }, 'playground'),
+    );
+    return;
+  }
+
+  const drafted = draftOf(form.get('scenario'), form, tools, deps);
+  if (!drafted.ok) {
+    sendHtml(res, drafted.status, errorPage({ text: drafted.problem }, 'playground'));
+    return;
+  }
+
+  const { persona, tool, rawKey, args, values } = drafted.draft;
+  const call = await callTool(deps.endpoints.gateway, rawKey, tool.name, args);
+
+  let trace: TraceRow | null = null;
+  if (call.traceId !== null) {
+    try {
+      trace = deps.trace.list({ traceId: call.traceId, limit: 1 })[0] ?? null;
+    } catch (error) {
+      console.error(`[console] trace read failed: ${error instanceof Error ? error.message : String(error)}`);
+      trace = null;
+    }
+  }
+
+  sendHtml(
+    res,
+    200,
+    playgroundPage(
+      {
+        personas: playgroundPersonas(),
+        tools,
+        personaId: persona.employeeId,
+        tool,
+        fields: formFields(tool.inputSchema),
+        values,
+        csrfToken: csrf.issue(),
+        result: {
+          personaLabel: persona.label,
+          toolName: tool.name,
+          call,
+          trace,
+          link: confirmationLinkIn(call.text) ?? null,
+        },
+      },
+      'playground',
+    ),
+  );
+}
+
 /** The screens that answer GET and share the navigation. */
 const PAGES = new Set(['/', '/tools', '/data', '/trace']);
 
@@ -661,6 +871,26 @@ export function createConsoleHandler(deps: ConsoleDeps): RequestHandler {
         return;
       }
       sendHtml(res, 405, errorPage({ text: 'Màn hình này nhận GET và POST.' }, 'permissions'), { headers: { allow: 'GET, POST' } });
+      return;
+    }
+
+    if (path === '/playground') {
+      if (method !== 'GET' && method !== 'POST') {
+        sendHtml(res, 405, errorPage({ text: 'Màn hình này nhận GET và POST.' }, 'playground'), {
+          headers: { allow: 'GET, POST' },
+        });
+        return;
+      }
+      try {
+        await handlePlayground(deps, csrf, req, res);
+      } catch (error) {
+        console.error(`[console] playground failed: ${error instanceof Error ? error.message : String(error)}`);
+        if (!res.headersSent) {
+          sendHtml(res, 500, errorPage({ text: 'Sân chơi gặp lỗi. Hãy tải lại, hoặc báo người vận hành Lab.' }, 'playground'));
+        } else {
+          res.destroy();
+        }
+      }
       return;
     }
 

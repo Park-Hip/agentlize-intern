@@ -1,7 +1,7 @@
 # Lab - AI Operations Connector
 
 Khung mã của bản thử: bốn dịch vụ chạy trên máy, một lệnh khởi động và một lệnh chạy phép thử.
-Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/mcp`, đường soạn đề xuất, đường ghi sau khi bấm Gửi và bốn màn hình của trang điều khiển (tổng quan, tool, dữ liệu gốc, vết) đã có logic.
+Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/mcp`, đường soạn đề xuất, đường ghi sau khi bấm Gửi và sáu màn hình của trang điều khiển (tổng quan, tool, quyền và trường, sân chơi, dữ liệu gốc, vết) đã có logic.
 
 ## Gói
 
@@ -11,7 +11,7 @@ Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/m
 | `gateway` | Cổng kiểm soát: `GET /health`, cửa `/mcp` (`src/mcp.ts`), module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`), bộ luật quyền (`src/policy/`), ba tool đọc (`src/tools/`), đường soạn đề xuất và đường ghi (`src/proposals/`, `src/writes/`), bảng vết (`src/trace/`, lệnh `npm run trace`) |
 | `fake-directory` | Danh bạ giả 20 nhân viên, xem mục Danh bạ giả |
 | `fake-tasks` | Danh sách task giả: 100 task nạp cố định, đọc, ghi có mã chống ghi trùng và số phiên bản |
-| `console` | Trang điều khiển chỉ nghe `127.0.0.1`: tổng quan ba dịch vụ, luật đang áp, bảy danh tính, màn hình tool, màn hình quyền và trường (sửa luật, thử quyết định), dữ liệu gốc của hai hệ thống giả và bảng vết |
+| `console` | Trang điều khiển chỉ nghe `127.0.0.1`: tổng quan ba dịch vụ, luật đang áp, bảy danh tính, màn hình tool, màn hình quyền và trường (sửa luật, thử quyết định), sân chơi gọi thử qua cổng, dữ liệu gốc của hai hệ thống giả và bảng vết |
 | `tests` | Phép thử `node:test`, gồm phép thử khói bốn dịch vụ và client giả máy chủ Thổ Thần (`src/fake-host.ts`) |
 
 Thư viện dùng chung nằm ở `package.json` gốc của workspace, để cả bốn dịch vụ chạy trên một lần cài và một phiên bản.
@@ -61,11 +61,12 @@ Sau `npm start`, mở `http://127.0.0.1:8793`.
 Trang chỉ nghe loopback, và mọi request có `Host` khác `127.0.0.1:<cổng>` hay `localhost:<cổng>` nhận 403, nên một trang lạ đổi DNS về máy này cũng không gọi được.
 Console đọc danh bạ giả bằng khoá dịch vụ và đọc cùng file luật cổng đang áp.
 
-Năm màn hình:
+Sáu màn hình:
 
 - Tổng quan: `/health` của ba dịch vụ, `version` của file luật, bảng sáu nhân vật cộng khách đọc từ danh bạ.
 - Tool: danh mục từ `GET /v1/tools`, kèm mô tả, tham số (tên, kiểu, bắt buộc) và nhãn "Chỉ đọc" hay "Soạn đề xuất".
 - Quyền và trường: bảng bốn vai nhân với sáu hành động, mỗi ô chọn "Được", "Không được" hoặc "Cần duyệt"; ngưỡng hàng loạt; các trường nhân viên mỗi vai được xem; ô "thử quyết định".
+- Sân chơi: chọn nhân vật và tool, điền form rồi gọi qua cổng; xem nguyên văn câu trả lời, mã HTTP, mã lý do, thời gian, dòng vết và link xác nhận.
 - Dữ liệu gốc: bảng nhân viên và bảng task đúng như hai hệ thống giả đang lưu, đọc bằng khoá dịch vụ; lọc theo phòng, 20 task mỗi trang, và một dòng nhắc "Góc nhìn người vận hành, AI không thấy thế này".
   Không có nút sửa bản ghi, vì mọi thay đổi nghiệp vụ đi qua cổng.
   Khi `LAB_TEST_HOOKS=1` màn hình có thêm ba nút gọi đường `/admin/*` của hai hệ thống giả: đặt lại danh bạ, đặt lại task, và gây lỗi mất phản hồi sau khi ghi; khi biến tắt thì ba nút không hiện và ba đường `POST` trả 404.
@@ -90,10 +91,42 @@ Bảng lấy đúng file mà cổng đang đọc (`LAB_RULES_PATH`), nên lưu x
   Đây là truy vấn chỉ đọc nên dùng `GET`, để link kết quả chia sẻ được.
 - Mọi `POST` cần mã chống giả mạo do console cấp cho trang (dùng chung cơ chế với ba nút thử, hết hạn sau 30 phút) và header `Origin` đúng địa chỉ console; thiếu một trong hai thì trả 403 trước khi đọc file.
 
+### Sân chơi
+
+Form sinh từ `input_schema` của `GET /v1/tools`, nên tool mới hiện ra mà không phải sửa console.
+`POST` gửi tham số lên `/playground`; console dựng JSON rồi gọi `POST /v1/tools/<tên>` của cổng bằng khoá của nhân vật đang chọn.
+Kết quả hiện:
+
+- Nguyên văn chữ cổng trả về, trong một khối giữ đúng xuống dòng, đã thoát ký tự.
+- Mã HTTP, mã lý do, thời gian console đo (mili giây) và mã vết.
+- Dòng vết của lời gọi đó, đọc từ bảng `trace`: nơi gọi `lab-console`, người hỏi, mã luật, phiên bản luật, đề xuất.
+- Link xác nhận, nếu câu trả lời có, dưới dạng nút bấm được.
+
+Năm nút kịch bản mẫu:
+
+| Nút | Gọi gì | Kết quả mong đợi |
+| --- | --- | --- |
+| A. Chị Hoa chuyển T-12 | `propose_task_change` dưới tên chị Hoa | Đề xuất và link xác nhận |
+| B. Nam gõ đúng câu đó | cùng tool, dưới tên Nam | `NOT_PERMITTED`, nêu anh Quang |
+| D. Chị Hoa tra anh Minh | `find_employee` dưới tên chị Hoa | Email công việc, không có số điện thoại cá nhân |
+| Câu lệnh cài trong mô tả task T-13 | `get_task` T-13 | Dữ liệu nằm trong khối có nhãn |
+| Hỏi một task của phòng khác | `get_task` T-61 dưới tên chị Hoa | "Không tìm thấy", vết ghi ngoài phạm vi |
+
+Mỗi lần bấm dùng chung cơ chế chống giả mạo với màn hình quyền và ba nút thử: mã do console cấp cho trang và header `Origin` đúng địa chỉ console.
+Thiếu một trong hai thì trả 403 trước khi gọi cổng.
+Link xác nhận mở trang của cổng và hỏi khoá của nhân vật.
+Console không đưa khoá ra khỏi bộ nhớ, nên lúc bấm Gửi hãy dùng khoá mà `npm run seed-keys` đã in.
+Kịch bản A chỉ soạn đề xuất khi T-12 chưa ở đúng người và hạn đó; sau một lần ghi, xoá thư mục dữ liệu rồi chạy lại để thấy đề xuất mới.
+
+Khoá của sân chơi: lúc khởi động, console thu hồi mọi khoá còn hiệu lực của nơi gọi `lab-console`, rồi cấp một khoá cho mỗi nhân vật và khách, cũng nơi gọi `lab-console`.
+Khoá thô chỉ nằm trong bộ nhớ; trang và log không có khoá, đĩa chỉ có mã băm và sáu ký tự đầu.
+Khi console tắt, nó thu hồi các khoá đó; nếu bị giết ngang, lần khởi động sau thu hồi khoá cũ trước khi cấp khoá mới.
+Vì đây là khoá tạm thời, `npm run seed-keys` bỏ qua chúng khi kiểm khoá đang hiệu lực.
+`npm test` chạy sân chơi đầu cuối trên cổng thật trong `tests/src/console-playground-test.ts`.
+
 Một dịch vụ tắt thì trang vẫn mở: dòng của dịch vụ đó báo "Không chạy" kèm lý do, các phần khác vẫn đọc được.
 Danh bạ tắt thì bảng quyền vẫn sửa được với các trường đang có trong luật, nhưng danh sách trường mới và ô thử quyết định chưa dùng được.
-`npm test -w console` chạy phép thử của các trang này, gồm `Host` lạ trả 403, tắt danh bạ, tắt cổng, form hỏng, hai lần lưu từ một phiên bản, "về bản gốc", hai bảng dữ liệu gốc, ba nút thử, màn hình vết, và phép thử đầu cuối: bỏ `work_email` khỏi vai `staff` qua console rồi gọi `find_employee` bằng khoá của chị Hoa trên cổng thật.
-Màn hình còn lại (sân chơi) chưa có trong bản này; thanh điều hướng ghi "sắp có".
+`npm test -w console` chạy phép thử của các trang này, gồm `Host` lạ trả 403, tắt danh bạ, tắt cổng, form hỏng, hai lần lưu từ một phiên bản, "về bản gốc", hai bảng dữ liệu gốc, ba nút thử, màn hình vết, form và kịch bản của sân chơi, khoá bị thu hồi khi tắt, khởi động lại sau khi bị giết ngang, và phép thử đầu cuối: bỏ `work_email` khỏi vai `staff` qua console rồi gọi `find_employee` bằng khoá của chị Hoa trên cổng thật.
 
 ## Danh bạ giả
 
@@ -233,6 +266,7 @@ npm run seed-keys [-- --rotate]
 
 `issue` và `seed-keys` in mỗi khoá thô đúng một lần và không ghi nó ra đĩa; `list` chỉ hiện sáu ký tự đầu.
 `seed-keys` cấp một khoá cho mỗi nhân vật cộng khách, và từ chối chạy lại cho tới khi `--rotate` thu hồi các khoá cũ.
+Khoá của nơi gọi `lab-console` không tính: console cấp chúng lúc khởi động và thu hồi khi tắt, nên `npm run seed-keys` vẫn chạy được khi console đang mở.
 
 ## Trang xác nhận
 
@@ -295,6 +329,7 @@ Kịch bản từng bước và chỗ điền bằng chứng nằm ở [nghiệm
 Bảng `trace` nằm trong `LAB_DATA_DIR/gateway.sqlite` và chỉ ghi thêm: hai trigger của SQLite chặn mọi UPDATE và DELETE.
 Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi theo khoá, cửa vào (`http`, `mcp` hoặc `web`), tool, mã đối tượng, kết quả, mã lý do, mã luật, phiên bản luật, `x-user-id` đã che (nếu host gửi) và thời gian xử lý.
 Dòng của một lệnh ghi thêm mã chống ghi trùng và số lần gửi.
+Lời gọi thử từ sân chơi đi qua `POST /v1/tools/<tên>`, nên có cửa vào `http` và nơi gọi `lab-console`; lọc theo cột nơi gọi để tách chúng khỏi lời gọi của Thổ Thần.
 Bảng không có cột nào cho tên, email, số điện thoại, địa chỉ hay khoá, nên các giá trị đó không ghi vào được.
 Màn hình Vết của console đọc đúng bảng này, và lọc được theo cả bốn cột người, task, đề xuất và nơi gọi.
 

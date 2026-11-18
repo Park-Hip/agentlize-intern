@@ -1,10 +1,14 @@
 import { basename } from 'node:path';
-import { LOOPBACK_HOST, resolvePort } from '@lab/shared';
+import { performance } from 'node:perf_hooks';
+import { LOOPBACK_HOST, resolvePort, toolResponseSchema } from '@lab/shared';
 import { z } from 'zod';
 import { loadRules } from './rules.js';
 
 /** A call to another lab process stops here, so one slow service cannot hold a page open for long. */
 export const UPSTREAM_TIMEOUT_MS = 2_000;
+
+/** A tool call may read a proposal, a task and the directory, so it gets longer than a status read. */
+export const TOOL_CALL_TIMEOUT_MS = 15_000;
 
 /** The three services the overview reports on and the tool screen reads. */
 export type LabService = 'gateway' | 'directory' | 'tasks';
@@ -281,6 +285,114 @@ export async function fetchTools(endpoint: ServiceEndpoint): Promise<CatalogResu
       inputSchema: tool.input_schema,
     })),
   };
+}
+
+export interface ToolCallResult {
+  /** The HTTP status of the gateway, or null when the request never got an answer. */
+  readonly status: number | null;
+  /** Exactly the text the gateway returned: this is what the AI receives. */
+  readonly text: string;
+  readonly reasonCode: string | null;
+  readonly traceId: string | null;
+  readonly elapsedMs: number;
+  /** A transport or shape problem the console detected; null when the gateway answered in its own shape. */
+  readonly problem: string | null;
+}
+
+function callFailure(problem: string, started: number): ToolCallResult {
+  return {
+    status: null,
+    text: '',
+    reasonCode: null,
+    traceId: null,
+    elapsedMs: Math.round(performance.now() - started),
+    problem,
+  };
+}
+
+/**
+ * Call `POST /v1/tools/<name>` of the gateway with the persona's key, exactly as
+ * the function-calling assistant does (ADR-0006 section 3.3). The console never
+ * calls the rule engine or the fake systems for a playground call.
+ */
+export async function callTool(
+  endpoint: ServiceEndpoint,
+  rawKey: string,
+  tool: string,
+  args: Readonly<Record<string, unknown>>,
+): Promise<ToolCallResult> {
+  const started = performance.now();
+  let response: Response;
+  try {
+    response = await fetch(`${endpoint.url}/v1/tools/${encodeURIComponent(tool)}`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${rawKey}`, 'content-type': 'application/json' },
+      body: JSON.stringify(args),
+      signal: AbortSignal.timeout(TOOL_CALL_TIMEOUT_MS),
+    });
+  } catch (error) {
+    const timedOut = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError');
+    return callFailure(
+      timedOut
+        ? `Cổng không trả lời trong ${TOOL_CALL_TIMEOUT_MS / 1_000} giây.`
+        : 'Không nối được tới cổng. Hãy kiểm tra cổng có đang chạy.',
+      started,
+    );
+  }
+
+  let body: string;
+  try {
+    body = await response.text();
+  } catch {
+    return callFailure('Cổng đóng kết nối trước khi trả đủ nội dung.', started);
+  }
+  const elapsedMs = Math.round(performance.now() - started);
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body) as unknown;
+  } catch {
+    parsed = undefined;
+  }
+  const answer = toolResponseSchema.safeParse(parsed);
+  if (!answer.success) {
+    return {
+      status: response.status,
+      text: body,
+      reasonCode: null,
+      traceId: null,
+      elapsedMs,
+      problem: 'Cổng trả lời không đúng dạng { text, reason_code, trace_id }.',
+    };
+  }
+  return {
+    status: response.status,
+    text: answer.data.text,
+    reasonCode: answer.data.reason_code,
+    traceId: answer.data.trace_id,
+    elapsedMs,
+    problem: null,
+  };
+}
+
+const CONFIRMATION_LINK = /https?:\/\/[^\s<>"'()]+/gu;
+
+/**
+ * The confirmation link inside a tool answer, if there is one. Only an http or
+ * https address whose path is a confirmation page becomes clickable, so data in
+ * an answer can never turn into a `javascript:` link.
+ */
+export function confirmationLinkIn(text: string): string | undefined {
+  for (const match of text.matchAll(CONFIRMATION_LINK)) {
+    const candidate = match[0];
+    try {
+      const url = new URL(candidate);
+      if (url.pathname.startsWith('/xac-nhan/') && url.pathname.length > '/xac-nhan/'.length) return candidate;
+    } catch {
+      // Not a URL: keep looking.
+    }
+  }
+  return undefined;
 }
 
 export type RuleInfo =

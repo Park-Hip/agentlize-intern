@@ -1,5 +1,12 @@
+/**
+ * The operator console's caller name (ADR-0006 section 3.3). Its keys live only
+ * in the console's memory: issued at startup, revoked when it exits, and swept
+ * at the next start if a crash left some active.
+ */
+export const CONSOLE_CALLER = 'lab-console';
+
 /** Where a call comes from. The key is bound to one of these when issued. */
-export const CALLERS = ['tho-than-desktop', 'fc-assistant', 'test'] as const;
+export const CALLERS = ['tho-than-desktop', 'fc-assistant', CONSOLE_CALLER, 'test'] as const;
 export type Caller = (typeof CALLERS)[number];
 
 /** What the key owner declared up front. `read_only` keys never write. */
