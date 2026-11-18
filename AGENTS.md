@@ -19,8 +19,8 @@ Read the  TXT for the full acceptance criteria, the R&D framework and the week b
 ## 2. Current state
 
 The research phase is done and summarized in `rd/findings.md`: the five integration models, real systems and the 2026 market were surveyed, and no product covers the Lab's problem end to end.
-The `lab/` scaffold runs four local services with health checks; the fake task list (100 seeded tasks, idempotency keys, version checks), the fake directory, the gateway's read, draft and write paths, and the operator console's overview, tool, rule, source data and trace screens have business logic.
-`tools/mcp-probe` is a throwaway MCP server that recorded how Thổ Thần web and desktop behave as an MCP host; its results are in `rd/appota/tho-than-mcp-probe.md`, and it is not part of the lab.
+The `lab/` prototype runs a gateway, two fake systems and an operator console; `lab/README.md` lists what each one already does.
+`tools/mcp-probe` recorded how Thổ Thần behaves as an MCP host; its results are in `rd/appota/tho-than-mcp-probe.md`.
 The current goal is a first prototype that plugs into Thổ Thần AI as an MCP server: the intern has a Thổ Thần account, and both the web and desktop apps connect to MCP servers.
 Host facts that constrain the design are summarized in `rd/findings.md` section 4: chat can call tools over stdio or over Streamable HTTP when the server has a public HTTPS address, chat calls in both web and desktop go through the Thổ Thần server, the host attaches identity headers but the Bearer key is set by whoever adds the skill, there is no approval step, and calls are cut at 60 seconds.
 
@@ -80,6 +80,14 @@ Run it before every commit.
 python tools/check-docs.py
 ```
 
+Check that the branch still merges into `main`, and list the open pull requests that edit the same files.
+Run it before opening a PR and after every rebase.
+It exits 1 on a conflict with `main`, and prints a conflict with another open PR as a warning, because that one blocks whichever PR merges second.
+
+```
+python tools/check-merge.py
+```
+
 Re-run the source quote checks (they open the cited URLs, so they need network).
 
 ```
@@ -92,8 +100,8 @@ bash rd/checks/mausbot.sh
 
 ### Lab POC
 
-The lab is an npm workspace in `lab/`. It needs Node 22 or newer.
-It starts four local services; the fake task list, the fake employee directory and the gateway's read path (`find_employee`, `get_task`, `list_tasks`, `/v1/tools`, and the same tools at `/mcp`), its draft path (`propose_task_change`, `get_request_status`, the login and confirmation pages), its write path (the write command behind Gửi) and the console's overview, tool, rule, source data and trace screens have business logic.
+The lab is an npm workspace in `lab/` and needs Node 22 or newer.
+How each service behaves (ports, environment variables, the read and write paths, the console screens, the trace table) is in `lab/README.md`; read it before changing the lab.
 
 ```
 cd lab
@@ -103,105 +111,33 @@ npm test
 npm start
 ```
 
-`npm start` builds the workspace, generates a random service key when `LAB_SERVICE_KEY` is not set, starts the fake directory on 127.0.0.1:8791 and the fake task list on 127.0.0.1:8792, waits for both `/health` endpoints to return 200, then opens the gateway on 127.0.0.1:8790, and finally the console on 127.0.0.1:8793.
-The key is passed to the four processes through the environment and is never printed.
-Override the ports with `LAB_GATEWAY_PORT`, `LAB_DIRECTORY_PORT`, `LAB_TASKS_PORT` and `LAB_CONSOLE_PORT`, and the data folder with `LAB_DATA_DIR`.
-`LAB_RULES_PATH` points at the rule file the gateway reads; by default that is `rules.json` in the data folder.
-At startup the gateway copies `lab/gateway/policy/rules.json` there when the file is missing and never overwrites a file that already exists; the engine reads it on every decision, so an edit applies to the next call without a restart.
-The committed `lab/gateway/policy/rules.json` stays the base copy.
-The acceptance tests point `LAB_RULES_PATH` at a temporary copy, so a deliberately broken file never touches the repository.
-Set `LAB_PUBLIC_BASE_URL` (for example the HTTPS address of a tunnel) to change the address in the confirmation links that `propose_task_change` returns; without it the links use `http://127.0.0.1:<gateway port>`.
-`npm test` builds, then runs every `*-test.js` file in the workspace, including a smoke test that starts the four services on temporary ports and checks `/health`.
-`npm run lint` type-checks the whole workspace with `tsc --noEmit`.
-`npm test -w fake-directory` runs only the directory tests.
-`npm test -w console` builds the fake systems too and runs only the console tests, including the foreign `Host` refusal, a service turned off, the test buttons, the source data and trace screens, every rule save refusal, and the end-to-end experiment: remove `work_email` from `staff` in the console, then call `find_employee` with chị Hoa's key on the real gateway and see the field gone.
-The rule screen at `/permissions` edits the file at `LAB_RULES_PATH`: the role by action table, the bulk threshold, and the employee fields each role may see.
-Saving checks the form with the gateway's own schema, writes the next `version`, puts the file in place with a rename, and keeps `rules-history/v<n>.json` beside it; a form opened at another version is refused with a reload message, and "Về bản gốc" copies `lab/gateway/policy/rules.json` with a version above every one on disk.
-The decision box asks the gateway's own engine, reading the same file, and calls no tool; it is a GET because it changes nothing, while every save is a POST with a console CSRF token and its own `Origin`.
-The employee field list comes from the fake directory records (`employee_id` shown as `id`, `full_name` as `name`), so a field added through `/admin/add-field` appears marked "chưa khai"; task fields are fixed in code and only shown.
-`/data` shows the two fake systems raw with a department filter and 20 tasks a page, and no control edits a record.
-`/trace` opens `gateway.sqlite` read-only, filters by person, task, proposal or door, groups the lines of one proposal and refreshes the table every five seconds while the tab is visible; with JavaScript off the page still filters and reads.
-With `LAB_TEST_HOOKS=1` the data screen draws the reset buttons and the lost response button, which call the `/admin/*` routes; without it the buttons are absent and their `POST` paths answer 404.
-The fake directory answers every path, `/health` included, with 401 unless the request carries `Authorization: Bearer <LAB_SERVICE_KEY>`; `LAB_TEST_HOOKS=1` turns on its `/admin/*` test routes.
-
-Run only the gateway tests, for example the policy engine tests (the rule file is `lab/gateway/policy/rules.json`):
+`npm run lint` type-checks the workspace; `npm test` builds, then runs every `*-test.js` file, including a smoke test of the four services.
+`npm start` opens the gateway on 127.0.0.1:8790, the fake directory on 8791, the fake task list on 8792 and the console on 8793.
+Run one package's tests with `npm test -w <folder>` (for example `npm test -w console`), or a subset with `npm test -w gateway -- --test-name-pattern policy`.
+Runtime data lives in `lab/.data` (git-ignored); the gateway reads its live rules from `rules.json` there, so `lab/gateway/policy/rules.json` is only the base copy.
 
 ```
-cd lab
-npm test -w gateway -- --test-name-pattern policy
-```
-
-Per-person keys live in the `api_keys` table of `lab/.data/gateway.sqlite` (hash only).
-Run the identity tests alone with `npm test -w gateway -- --test-name-pattern identity`.
-
-```
-npm run keys -- issue --employee NV-07 --caller tho-than-desktop [--scope read_only]
-npm run keys -- revoke --key-id <key-id>
-npm run keys -- list
 npm run seed-keys [-- --rotate]
-```
-
-`issue` and `seed-keys` print each raw key once and never write it to disk; `list` shows only the first six characters.
-`seed-keys` issues one key per persona plus the guest, and refuses to run again until `--rotate` revokes the old ones.
-
-A person confirms a draft in a browser: open the link a draft returns (`<base>/xac-nhan/<proposal code>`), pick the character and paste that character's key on `/dang-nhap` (a simulated login, 15 minutes), then press Gửi or Sửa.
-Gửi checks the key, the person, the rule file, the deadline and the content again, then turns the proposal into one write command with the fixed key `<proposal code>:1` and the task version read at drafting.
-The gateway saves the command as `sent_unknown` before the PATCH; a 2xx makes it `done`, a 409 makes it `failed` with `TARGET_CHANGED`, and a lost answer is sent again up to three times with the same key.
-Every command left `not_sent` or `sent_unknown` is sent again, with its old key, when the gateway starts.
-
-Every gateway call, every press of Gửi or Sửa, and every write command a press sends leaves one line in the append-only `trace` table of the same database; print it as a table (the lines hold no personal data and no key).
-The line of a write command carries its idempotency key and how many times it was sent.
-The acceptance tests for reads and writes run the same cases through the three doors `http`, `mcp-http` and `tho-than-host` (`tests/src/gateway-read-test.ts`, `tests/src/gateway-write-test.ts`); the write test drops or holds the task list's answer and kills the gateway to prove one write per command.
-
-```
-npm run trace -- --employee <NV-xx>
-npm run trace -- --task <T-n>
+npm run keys -- issue --employee NV-07 --caller tho-than-desktop [--scope read_only]
+npm run keys -- list
+npm run trace -- --task T-12
 ```
 
 ### Tunnel for one acceptance session
 
-`npm run tunnel` builds the workspace, starts the three services, opens a Cloudflare quick tunnel to the gateway and prints the public `/mcp` address.
-It stops the tunnel and the three services after 45 minutes, and also when you press Ctrl+C.
-It takes no key and prints none; a key is pasted only into the skill form in Thổ Thần.
-
-```
-cd lab
-npm run tunnel
-```
-
-Only the gateway on 127.0.0.1:8790 goes through the tunnel.
-The fake systems on 8791 and 8792, and the operator console on 8793, are never exposed.
-The command refuses to run when `LAB_GATEWAY_PORT` equals `LAB_CONSOLE_PORT`.
-`cloudflared` is expected at `C:\Program Files (x86)\cloudflared\cloudflared.exe` on Windows; set `LAB_CLOUDFLARED_PATH` to use another binary.
-`LAB_TUNNEL_MINUTES` shortens the limit for a demo (1 to 45); a session cannot last longer than 45 minutes.
-`LAB_CONSOLE_PORT` moves the console port the command must avoid (default 8793).
+`npm run tunnel` (in `lab/`) exposes only the gateway's `/mcp` through a Cloudflare quick tunnel for at most 45 minutes.
 The step by step acceptance script is `rd/evaluation/milestone-1-tho-than.md`.
 
 ### MCP probe for Thổ Thần
 
-The probe in `tools/mcp-probe` records what Thổ Thần sends as an MCP host.
-It gathers evidence for P1-P5 in `rd/appota/tho-than-mcp-probe.md`; it is not a lab component and does not decide architecture.
-It uses local npm dependencies only and writes one JSON line per event to `scratch/mcp-probe/log-<timestamp>.jsonl` (git-ignored).
-Requires Node 20+.
+`tools/mcp-probe` is a throwaway MCP server that recorded what Thổ Thần sends as an MCP host; it is not a lab component.
+Its modes, options and log format are in `tools/mcp-probe/README.md`.
 
 ```
 cd tools/mcp-probe
 npm install
-npm run build
-node dist/index.js --stdio                     # stdio transport, the host spawns this
-node dist/index.js --http --port 8787          # Streamable HTTP at http://localhost:8787/mcp
-node dist/index.js --http --port 8787 --bearer <token>
-node dist/index.js --openai-provider --port 8787  # OpenAI-compatible model provider: GET /v1/models, POST /v1/chat/completions
-npm run selftest                               # build, run every mode, assert the log lines
-npm run summarize -- <log-file-or-directory>   # print the facts needed for the P1-P5 tables
+npm run selftest   # must print SELFTEST PASSED: <n> checks
 ```
-
-The provider mode returns one fixed answer and never calls a model.
-It logs the OpenAI `user` field and the identity headers (`x-user-id`, `x-user-email`, `x-agent-id`, `x-executor-id`) with keys redacted like the other modes.
-It measures the third architecture candidate in `rd/design/mvp-spec.md`, using the model-call identity finding in `rd/appota/tho-than-platform.md` section 6.3; it is not a Lab component.
-
-The self-test must print a `SELFTEST PASSED: <n> checks` line.
-Build, run and troubleshooting details are in `tools/mcp-probe/README.md`.
 
 ## 7. Writing conventions
 
@@ -254,7 +190,7 @@ lab/             prototype code, created after the first ADR
 submitted/       PDFs handed in to the program, never edited afterwards
   weekly-report/ weekly reports sent to Lark: Markdown source and its PDF
   weekly-plan/   weekly plans sent to the mentor, named like weekly reports
-tools/           render and doc-check scripts
+tools/           render, doc-check and merge-check scripts
 dist/            generated PDFs (git-ignored)
 scratch/         agent working files and raw captures (git-ignored)
 ```
@@ -287,13 +223,26 @@ Issues:
 - Each issue has one assignee and belongs to the milestone of its week (`Tuần 3`), so the weekly report can list closed issues and merged PRs as evidence.
 - An issue is also a prompt for a coding agent. Write it so a person or an agent can act on it without asking, and keep section 5 data out of it.
 
+Parallel work:
+
+- Two issues run at the same time only when their write scopes do not overlap: the files each one creates or edits, listed in the issue form.
+  When they overlap, run them one after the other, or stack the second branch on the first.
+- A shared piece that several issues need (the CSRF check of a form, an export of `@lab/gateway`, a page header) is its own issue and merges first.
+  A rule written under "Quy ước chung" does not deliver the code: when the code does not exist yet, the issues that need it depend on the issue that builds it.
+- Hot files are the files every feature of an area has to edit: a router, the navigation, a shared test file, an export list such as `lab/gateway/src/lib.ts`, and the status lines of `AGENTS.md` and `lab/README.md`.
+  At most one open PR edits a hot file at a time.
+  When every new feature must edit the same hot file, give the area an extension point in its own PR, so a feature arrives as new files.
+- Docs that describe the current state point to where features live instead of listing each feature, so two features never edit the same sentence.
+
 Branches and pull requests:
 
 - Do not push to `main`. Branch from it as `<issue>-<slug>` (for example `12-employee-lookup`, the name GitHub's "Create a branch" gives) and keep the branch short-lived.
 - One purpose per PR, small enough to review in one sitting. Use `.github/pull_request_template.md`.
 - PR titles follow the commit style: a short imperative English sentence.
 - The last PR of an issue says `Closes #<n>`; earlier ones say `Refs #<n>`. A dependent chain of PRs can use GitHub stacked PRs (`gh stack`).
-- Squash merge, after `python tools/check-docs.py` and the relevant tests pass.
+- After any PR merges, rebase every open branch on the new `main` and run `python tools/check-merge.py`.
+  Resolve a conflict in favour of what already merged, and never keep two implementations of the same thing.
+- Squash merge, after `python tools/check-docs.py`, `python tools/check-merge.py` and the relevant tests pass.
 - An agent working an issue opens the PR and keeps its description current. It never merges its own PR; the intern reviews and merges.
 
 One-time setup of the labels the forms use:

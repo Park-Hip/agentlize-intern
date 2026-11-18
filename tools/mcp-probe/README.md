@@ -136,6 +136,7 @@ Khi chạy sau tunnel, truyền `--public-url` để trang chủ và `/health` h
 
 Chế độ này giả làm một nhà cung cấp mô hình tương thích OpenAI để trả lời một câu hỏi hẹp: khi Thổ Thần gọi mô hình, lời gọi có mang danh tính người dùng không?
 Nó không gọi mô hình thật, không tính chi phí và luôn trả đúng một câu.
+Kết quả dùng để đo phương án kiến trúc thứ ba trong [đặc tả MVP](../../rd/design/mvp-spec.md), dựa trên phát hiện về danh tính trong lời gọi mô hình ở [mục 6.3 của tài liệu nền tảng Thổ Thần](../../rd/appota/tho-than-platform.md).
 
 ```bash
 node dist/index.js --openai-provider --port 8787 --bearer khoa-thu-nghiem

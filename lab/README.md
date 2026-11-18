@@ -18,6 +18,8 @@ Thư viện dùng chung nằm ở `package.json` gốc của workspace, để c�
 
 ## Lệnh
 
+Cần Node 22 trở lên.
+
 ```
 npm install
 npm run lint
@@ -43,6 +45,7 @@ Mọi dịch vụ chỉ nghe ở `127.0.0.1`.
 `LAB_SERVICE_KEY` là khoá cổng dùng khi gọi hai hệ thống giả; `npm start` sinh khoá mới nếu biến này chưa có.
 `LAB_TEST_HOOKS=1` mở các đường `/admin/*` của hai hệ thống giả cho phép thử; để trống thì các đường đó trả 404. `npm start` không bật biến này.
 `LAB_RULES_PATH` đổi đường dẫn file luật; mặc định là `<LAB_DATA_DIR>/rules.json`.
+`LAB_PUBLIC_BASE_URL` (ví dụ địa chỉ HTTPS của đường hầm) đổi địa chỉ trong link xác nhận mà `propose_task_change` trả về; để trống thì link dùng `http://127.0.0.1:<cổng của cổng>`.
 
 File luật gốc là `lab/gateway/policy/rules.json`, chỉ đổi qua PR.
 Lần khởi động đầu, cổng chép bản gốc sang đường dẫn ở trên khi file đó chưa có, và không đụng vào file đã có.
@@ -124,6 +127,7 @@ curl http://127.0.0.1:8790/health
 
 `npm test` dựng mã rồi chạy mọi tệp `*-test.js` trong `*/dist/`.
 `npm test -w fake-directory` chỉ chạy phép thử của danh bạ giả.
+`npm test -w gateway -- --test-name-pattern policy` chỉ chạy phép thử của bộ luật quyền; đổi `policy` thành `identity` để chạy phép thử danh tính.
 Phép thử khói mở bốn dịch vụ trên cổng tạm, gọi `/health` của từng dịch vụ và kiểm khoá dịch vụ không xuất hiện trong log.
 
 ## Danh sách task giả
@@ -215,6 +219,27 @@ Phép thử nghiệm thu (`tests/src/gateway-read-test.ts` và `tests/src/gatewa
 Cửa `tho-than-host` dùng client giả ở `tests/src/fake-host.ts`.
 Mỗi lời gọi mở một phiên Streamable HTTP mới (`initialize`, rồi `tools/list` hoặc `tools/call`, rồi đóng), gửi `Authorization: Bearer <khoá lab_>` cùng bốn header `x-user-id`, `x-user-email`, `x-agent-id`, `x-executor-id` giả, và cắt ở 60 giây.
 Con số 60 giây là giả định lấy từ phép đo qua stdio, chưa đo qua HTTPS; client ghi lại thời gian mở phiên và thời gian gọi để dùng cho M1.
+
+## Khoá theo người
+
+Khoá của từng người nằm ở bảng `api_keys` trong `LAB_DATA_DIR/gateway.sqlite`, chỉ lưu bản băm.
+
+```
+npm run keys -- issue --employee NV-07 --caller tho-than-desktop [--scope read_only]
+npm run keys -- revoke --key-id <mã khoá>
+npm run keys -- list
+npm run seed-keys [-- --rotate]
+```
+
+`issue` và `seed-keys` in mỗi khoá thô đúng một lần và không ghi nó ra đĩa; `list` chỉ hiện sáu ký tự đầu.
+`seed-keys` cấp một khoá cho mỗi nhân vật cộng khách, và từ chối chạy lại cho tới khi `--rotate` thu hồi các khoá cũ.
+
+## Trang xác nhận
+
+Một người xác nhận đề xuất trong trình duyệt.
+Mở link mà đề xuất trả về (`<địa chỉ gốc>/xac-nhan/<mã đề xuất>`), chọn nhân vật và dán khoá của nhân vật đó ở `/dang-nhap`.
+Đăng nhập này là giả lập và hết hạn sau 15 phút.
+Sau đó bấm Gửi để cổng nhận lệnh, hoặc bấm Sửa để huỷ đề xuất và nhờ AI soạn lại.
 
 ## Đường ghi
 
