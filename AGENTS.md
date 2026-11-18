@@ -80,6 +80,14 @@ Run it before every commit.
 python tools/check-docs.py
 ```
 
+Check that the branch still merges into `main`, and list the open pull requests that edit the same files.
+Run it before opening a PR and after every rebase.
+It exits 1 on a conflict with `main`, and prints a conflict with another open PR as a warning, because that one blocks whichever PR merges second.
+
+```
+python tools/check-merge.py
+```
+
 Re-run the source quote checks (they open the cited URLs, so they need network).
 
 ```
@@ -182,7 +190,7 @@ lab/             prototype code, created after the first ADR
 submitted/       PDFs handed in to the program, never edited afterwards
   weekly-report/ weekly reports sent to Lark: Markdown source and its PDF
   weekly-plan/   weekly plans sent to the mentor, named like weekly reports
-tools/           render and doc-check scripts
+tools/           render, doc-check and merge-check scripts
 dist/            generated PDFs (git-ignored)
 scratch/         agent working files and raw captures (git-ignored)
 ```
@@ -215,13 +223,26 @@ Issues:
 - Each issue has one assignee and belongs to the milestone of its week (`Tuần 3`), so the weekly report can list closed issues and merged PRs as evidence.
 - An issue is also a prompt for a coding agent. Write it so a person or an agent can act on it without asking, and keep section 5 data out of it.
 
+Parallel work:
+
+- Two issues run at the same time only when their write scopes do not overlap: the files each one creates or edits, listed in the issue form.
+  When they overlap, run them one after the other, or stack the second branch on the first.
+- A shared piece that several issues need (the CSRF check of a form, an export of `@lab/gateway`, a page header) is its own issue and merges first.
+  A rule written under "Quy ước chung" does not deliver the code: when the code does not exist yet, the issues that need it depend on the issue that builds it.
+- Hot files are the files every feature of an area has to edit: a router, the navigation, a shared test file, an export list such as `lab/gateway/src/lib.ts`, and the status lines of `AGENTS.md` and `lab/README.md`.
+  At most one open PR edits a hot file at a time.
+  When every new feature must edit the same hot file, give the area an extension point in its own PR, so a feature arrives as new files.
+- Docs that describe the current state point to where features live instead of listing each feature, so two features never edit the same sentence.
+
 Branches and pull requests:
 
 - Do not push to `main`. Branch from it as `<issue>-<slug>` (for example `12-employee-lookup`, the name GitHub's "Create a branch" gives) and keep the branch short-lived.
 - One purpose per PR, small enough to review in one sitting. Use `.github/pull_request_template.md`.
 - PR titles follow the commit style: a short imperative English sentence.
 - The last PR of an issue says `Closes #<n>`; earlier ones say `Refs #<n>`. A dependent chain of PRs can use GitHub stacked PRs (`gh stack`).
-- Squash merge, after `python tools/check-docs.py` and the relevant tests pass.
+- After any PR merges, rebase every open branch on the new `main` and run `python tools/check-merge.py`.
+  Resolve a conflict in favour of what already merged, and never keep two implementations of the same thing.
+- Squash merge, after `python tools/check-docs.py`, `python tools/check-merge.py` and the relevant tests pass.
 - An agent working an issue opens the PR and keeps its description current. It never merges its own PR; the intern reviews and merges.
 
 One-time setup of the labels the forms use:

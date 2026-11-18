@@ -24,6 +24,7 @@ Closes #
 ## Checklist
 
 - [ ] `python tools/check-docs.py` báo 0 problem(s).
+- [ ] `python tools/check-merge.py` không báo conflict với `main`; PR đang mở nào sửa cùng file thì đã ghi ở mục Rủi ro.
 - [ ] Test liên quan đã chạy và qua, lệnh ghi ở mục trên.
 - [ ] Không có dữ liệu thật, khóa, token hay dữ liệu khách hàng trong code, log, fixture hay commit.
 - [ ] Lệnh chạy thay đổi thì `AGENTS.md` mục 6 đã cập nhật.

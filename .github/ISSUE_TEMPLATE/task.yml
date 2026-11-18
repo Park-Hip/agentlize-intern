@@ -20,6 +20,11 @@ body:
       description: Điều kiện kiểm tra được, kèm lệnh hoặc bằng chứng.
     validations:
       required: true
+  - type: textarea
+    id: write-scope
+    attributes:
+      label: Phạm vi ghi
+      description: File tạo mới hoặc sửa, ghi riêng file nóng. Hai việc làm song song không được giao nhau (AGENTS.md mục 9).
   - type: checkboxes
     id: data
     attributes:
