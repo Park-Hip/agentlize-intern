@@ -7,11 +7,13 @@ import test, { after } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { DATA_DIR_ENV, KEY_PREFIX_LENGTH, maskKey } from '@lab/shared';
 import { runKeysCli, UsageError } from '../cli/keys.js';
-import { SEED_IDENTITIES, seedKeys } from '../cli/seed-keys.js';
+import { seedKeys } from '../cli/seed-keys.js';
 import { GATEWAY_DB_FILE, openGatewayDatabase, resolveDataDir } from '../database.js';
 import {
   ApiKeyIdentity,
+  CONSOLE_CALLER,
   KeyStore,
+  SEED_IDENTITIES,
   hashKey,
   hashesEqual,
   readBearerKey,
@@ -285,6 +287,67 @@ test('identity: seed-keys issues one key per persona plus the guest, once, and r
     reason: 'KEY_REVOKED',
   });
   assert.equal(f.store.list().length, 14);
+  f.close();
+});
+
+test('identity: a caller added later is accepted by an existing key table and keeps every old key', () => {
+  const dir = tempDir();
+  const db = openGatewayDatabase(dir);
+  try {
+    // The table as milestone 2 made it: the check knows three callers and no console.
+    db.exec(`
+      CREATE TABLE api_keys (
+        key_id      TEXT PRIMARY KEY,
+        key_hash    TEXT NOT NULL UNIQUE,
+        key_prefix  TEXT NOT NULL,
+        employee_id TEXT NOT NULL,
+        caller      TEXT NOT NULL CHECK (caller IN ('tho-than-desktop', 'fc-assistant', 'test')),
+        scope       TEXT NOT NULL CHECK (scope IN ('full', 'read_only')),
+        created_at  TEXT NOT NULL,
+        revoked_at  TEXT
+      );
+    `);
+    db.prepare(
+      `INSERT INTO api_keys (key_id, key_hash, key_prefix, employee_id, caller, scope, created_at, revoked_at)
+       VALUES ('key-before', ?, 'lab_ol', 'NV-07', 'tho-than-desktop', 'full', '2026-11-17T09:00:00.000Z', NULL)`,
+    ).run(hashKey('a-key-issued-before-the-console-existed'));
+
+    const store = new KeyStore(db);
+    new KeyStore(db); // opening it again must not rebuild it twice
+    const issued = store.issue({ employeeId: 'NV-02', caller: CONSOLE_CALLER });
+
+    assert.equal(store.list().length, 2);
+    assert.equal(store.findById('key-before')?.employeeId, 'NV-07');
+    assert.equal(store.findById(issued.record.keyId)?.caller, CONSOLE_CALLER);
+  } finally {
+    db.close();
+  }
+});
+
+test('identity: revoking by caller clears only that caller, is idempotent and rejects an unknown name', () => {
+  const f = fixture();
+  const first = f.store.issue({ employeeId: 'NV-02', caller: CONSOLE_CALLER });
+  const second = f.store.issue({ employeeId: 'NV-03', caller: CONSOLE_CALLER });
+  const other = f.store.issue({ employeeId: 'NV-02', caller: 'tho-than-desktop' });
+
+  assert.equal(f.store.revokeActiveByCaller(CONSOLE_CALLER), 2);
+  assert.equal(f.store.revokeActiveByCaller(CONSOLE_CALLER), 0);
+  assert.notEqual(f.store.findById(first.record.keyId)?.revokedAt, null);
+  assert.notEqual(f.store.findById(second.record.keyId)?.revokedAt, null);
+  assert.equal(f.store.findById(other.record.keyId)?.revokedAt, null);
+  assert.throws(() => f.store.revokeActiveByCaller('laptop'), /caller must be one of/);
+  f.close();
+});
+
+test('identity: the console keys do not block seed-keys while the console is open', () => {
+  const f = fixture();
+  const consoleKey = f.store.issue({ employeeId: 'NV-02', caller: CONSOLE_CALLER });
+
+  seedKeys(f.store, { out: () => undefined });
+
+  assert.equal(f.store.list().filter((record) => record.caller === CONSOLE_CALLER && record.revokedAt === null).length, 1);
+  assert.equal(f.store.findById(consoleKey.record.keyId)?.revokedAt, null);
+  assert.equal(f.store.list().length, 8);
   f.close();
 });
 

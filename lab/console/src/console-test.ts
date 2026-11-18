@@ -403,14 +403,16 @@ test('console: the trace filters by person, proposal and door, and an invalid va
   assert.match(invalid, /value="twelve"/);
 });
 
-test('console: the trace screen says the file or the table is not there yet instead of failing', async (t) => {
+test('console: the trace screen says the trace table is not there yet instead of failing', async (t) => {
+  // The console opens gateway.sqlite at startup to issue the playground keys, so the file
+  // exists; the trace table appears only once the gateway writes its first line.
   const fixture = await startFixture();
   t.after(() => fixture.close());
 
   const response = await fetch(`${fixture.url}/trace`);
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Chưa mở được gateway\.sqlite/);
+  assert.match(html, /gateway\.sqlite chưa có bảng trace/);
   assert.match(html, /<h1>Vết<\/h1>/);
   assert.equal(html.includes(SERVICE_KEY), false);
 });

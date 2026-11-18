@@ -84,6 +84,31 @@ export function personaChoices(employees: readonly Employee[]): readonly Persona
   return choices;
 }
 
+export interface PersonaOption {
+  readonly employeeId: string;
+  readonly label: string;
+  readonly guest: boolean;
+}
+
+/**
+ * The seven identities that receive a console key, with the names the seed
+ * gives them. The names come from the same `PERSONAS` the directory seed reads,
+ * so the playground lists everyone even when the directory is off.
+ */
+export function playgroundPersonas(): readonly PersonaOption[] {
+  const options: PersonaOption[] = ORDERED_PERSONAS.map((persona) => ({
+    employeeId: persona.employeeId,
+    label: `${persona.fullName} (${persona.employeeId})`,
+    guest: false,
+  }));
+  options.push({
+    employeeId: GUEST.employeeId,
+    label: `Khách (${GUEST.employeeId}, không có trong danh bạ)`,
+    guest: true,
+  });
+  return options;
+}
+
 export interface ServiceStatus {
   readonly label: string;
   readonly port: number;

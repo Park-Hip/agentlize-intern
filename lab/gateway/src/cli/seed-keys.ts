@@ -1,14 +1,10 @@
-import { GUEST, PERSONAS } from '@lab/shared';
+import { GUEST } from '@lab/shared';
 import { KeyStore } from '../identity/key-store.js';
+import { SEED_IDENTITIES } from '../identity/seed-identities.js';
+import { CONSOLE_CALLER } from '../identity/types.js';
 import type { CliIo } from './keys.js';
 
 export { GUEST };
-
-/** Every identity that gets a key: the six named characters, then the guest. */
-export const SEED_IDENTITIES: readonly { readonly name: string; readonly employeeId: string }[] = [
-  ...Object.entries(PERSONAS).map(([name, persona]) => ({ name, employeeId: persona.employeeId })),
-  GUEST,
-];
 
 export interface SeedOptions {
   /** Revoke the active keys of every persona first, then issue fresh ones. */
@@ -22,7 +18,14 @@ export interface SeedOptions {
  */
 export function seedKeys(store: KeyStore, io: CliIo, options: SeedOptions = {}): void {
   const personaIds = new Set(SEED_IDENTITIES.map((identity) => identity.employeeId));
-  const active = store.list().filter((record) => record.revokedAt === null && personaIds.has(record.employeeId));
+  // The console's keys are short-lived: it revokes them on exit or at the next
+  // start. They must not block seeding while `npm start` keeps the console open.
+  const active = store
+    .list()
+    .filter(
+      (record) =>
+        record.revokedAt === null && record.caller !== CONSOLE_CALLER && personaIds.has(record.employeeId),
+    );
 
   if (active.length > 0) {
     if (options.rotate !== true) {

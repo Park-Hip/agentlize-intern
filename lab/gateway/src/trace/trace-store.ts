@@ -55,6 +55,8 @@ export interface TraceRow extends TraceRecord {
 }
 
 export interface TraceFilter {
+  /** One line, by its code. The console asks for the line of the call it just made. */
+  readonly traceId?: string;
   readonly employee?: string;
   readonly task?: string;
   /** The proposal a line is a step of, such as `dx-0123456789abcdef`. */
@@ -177,6 +179,10 @@ export class TraceReader {
   private where(filter: TraceFilter): { where: string; params: Record<string, string | number> } {
     const clauses: string[] = [];
     const params: Record<string, string | number> = {};
+    if (filter.traceId !== undefined) {
+      clauses.push('trace_id = @traceId');
+      params['traceId'] = filter.traceId;
+    }
     if (filter.employee !== undefined) {
       clauses.push('requester = @employee');
       params['employee'] = filter.employee;

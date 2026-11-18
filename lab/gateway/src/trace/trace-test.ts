@@ -56,6 +56,21 @@ test('trace: a line is stored with every field and read back', () => {
   }
 });
 
+test('trace: one line is read back by its own code, and a missing code gives no line', () => {
+  const { store, close } = memoryStore();
+  try {
+    store.append(sample);
+    store.append({ ...sample, traceId: 'tr-0000000000000002', requester: 'NV-05' });
+
+    const found = store.list({ traceId: 'tr-0000000000000002' });
+    assert.equal(found.length, 1);
+    assert.equal(found[0]?.requester, 'NV-05');
+    assert.deepEqual(store.list({ traceId: 'tr-ffffffffffffffff' }), []);
+  } finally {
+    close();
+  }
+});
+
 test('trace: the table only grows, because the database refuses UPDATE and DELETE', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lab-trace-'));
   const db = openGatewayDatabase(dir);
