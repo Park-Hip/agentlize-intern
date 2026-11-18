@@ -71,8 +71,8 @@ Sáu màn hình:
   Không có nút sửa bản ghi, vì mọi thay đổi nghiệp vụ đi qua cổng.
   Khi `LAB_TEST_HOOKS=1` màn hình có thêm ba nút gọi đường `/admin/*` của hai hệ thống giả: đặt lại danh bạ, đặt lại task, và gây lỗi mất phản hồi sau khi ghi; khi biến tắt thì ba nút không hiện và ba đường `POST` trả 404.
   Mỗi lần bấm cần `Origin` của chính console và mã chống giả mạo in trong form.
-- Vết: đọc `gateway.sqlite` ở chế độ chỉ đọc, lọc theo người, task, đề xuất và nơi gọi, gom các dòng của một đề xuất thành một nhóm để đọc chuỗi soạn, xác nhận, ghi.
-  Mỗi dòng có mã vết, thời điểm, nơi gọi, tool, người gọi, đối tượng, kết quả, mã lý do, mã luật và phiên bản luật; dòng của lệnh ghi thêm mã chống ghi trùng và số lần gửi.
+- Vết: đọc `gateway.sqlite` ở chế độ chỉ đọc, lọc theo người, task, đề xuất và cửa vào, gom các dòng của một đề xuất thành một nhóm để đọc chuỗi soạn, xác nhận, ghi.
+  Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi, cửa vào, tool, đối tượng, kết quả, mã lý do, mã luật và phiên bản luật; dòng của lệnh ghi thêm mã chống ghi trùng và số lần gửi.
   Bảng tự làm mới mỗi 5 giây bằng một đoạn JavaScript nhỏ khi tab đang hiện; tắt JavaScript thì trang vẫn lọc và đọc đủ.
 
 ### Sửa luật trên màn hình Quyền và trường
@@ -329,9 +329,9 @@ Kịch bản từng bước và chỗ điền bằng chứng nằm ở [nghiệm
 Bảng `trace` nằm trong `LAB_DATA_DIR/gateway.sqlite` và chỉ ghi thêm: hai trigger của SQLite chặn mọi UPDATE và DELETE.
 Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi theo khoá, cửa vào (`http`, `mcp` hoặc `web`), tool, mã đối tượng, kết quả, mã lý do, mã luật, phiên bản luật, `x-user-id` đã che (nếu host gửi) và thời gian xử lý.
 Dòng của một lệnh ghi thêm mã chống ghi trùng và số lần gửi.
-Lời gọi thử từ sân chơi đi qua `POST /v1/tools/<tên>`, nên có cửa vào `http` và nơi gọi `lab-console`; lọc theo cột nơi gọi để tách chúng khỏi lời gọi của Thổ Thần.
+Lời gọi thử từ sân chơi đi qua `POST /v1/tools/<tên>`, nên có cửa vào `http` và nơi gọi `lab-console`; lọc theo cửa vào để tách chúng khỏi lời gọi của Thổ Thần.
 Bảng không có cột nào cho tên, email, số điện thoại, địa chỉ hay khoá, nên các giá trị đó không ghi vào được.
-Màn hình Vết của console đọc đúng bảng này, và lọc được theo cả bốn cột người, task, đề xuất và nơi gọi.
+Màn hình Vết của console đọc đúng bảng này, và lọc được theo cả bốn cột người, task, đề xuất và cửa vào.
 
 ```
 npm run trace -- --employee NV-05

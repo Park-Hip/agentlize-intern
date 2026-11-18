@@ -157,6 +157,7 @@ export const REFUSAL_TEXT =
 export interface TraceSeed {
   readonly traceId: string;
   readonly requester?: string | null;
+  readonly caller?: string | null;
   readonly entry?: 'http' | 'mcp' | 'web';
   readonly tool?: string;
   readonly objectId?: string | null;
@@ -174,7 +175,7 @@ export function line(traceId: string, seed: Omit<TraceSeed, 'traceId'> = {}): Tr
   return {
     traceId,
     requester: seed.requester === undefined ? 'NV-02' : seed.requester,
-    caller: 'lab-console',
+    caller: seed.caller === undefined ? 'lab-console' : seed.caller,
     entry: seed.entry ?? 'http',
     tool: seed.tool ?? 'get_task',
     objectId: seed.objectId === undefined ? 'T-12' : seed.objectId,

@@ -69,7 +69,7 @@ Phương án B giữ ranh giới đó bằng mạng, không bằng mã.
 | Quyền và trường | Bảng vai × hành động, mỗi ô chọn "được", "không được" hoặc "cần duyệt"; ngưỡng hàng loạt; các trường nhân viên mỗi vai được xem; ô "thử quyết định" cho một người, một hành động, một đối tượng, trả kết quả kèm mã luật | File luật, bộ luật quyền của cổng |
 | Sân chơi | Chọn nhân vật, chọn tool, điền tham số, gọi; thấy nguyên văn chữ AI nhận, mã lý do, dòng vết và link xác nhận; nút chạy sẵn các kịch bản mẫu | `POST /v1/tools/<tên>` của cổng |
 | Dữ liệu gốc | Bảng nhân viên và bảng task như hai hệ thống giả đang lưu, ghi rõ "góc nhìn người vận hành, AI không thấy thế này"; nút đặt lại dữ liệu và gây lỗi | API của hai hệ thống giả |
-| Vết | Lọc theo người, task, đề xuất, nơi gọi; gom theo đề xuất để thấy chuỗi soạn, xác nhận, ghi; tự làm mới | Bảng `trace` |
+| Vết | Lọc theo người, task, đề xuất, cửa vào; gom theo đề xuất để thấy chuỗi soạn, xác nhận, ghi; tự làm mới | Bảng `trace` |
 
 Các kịch bản mẫu của sân chơi là kịch bản A, B và D của [spec, mục 2.2](../../rd/design/mvp-spec.md#22-bốn-kịch-bản-phải-chạy-trong-thổ-thần), câu lệnh cài trong mô tả T-12, và một câu hỏi ngoài phạm vi.
 Kịch bản C (duyệt 30 task) vào sân chơi khi mốc 3 có phần duyệt.

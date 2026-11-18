@@ -326,6 +326,13 @@ test('console: trace groups one task chain by proposal, with every column, and n
       objectId: null,
       policyVersion: null,
     }),
+    // The same screen also has to tell a call from the host apart from one from the console.
+    line('tr-0000000000000006', {
+      caller: 'tho-than-desktop',
+      tool: 'get_task',
+      entry: 'mcp',
+      objectId: 'T-12',
+    }),
   ]);
 
   const response = await fetch(`${fixture.url}/trace?task=T-12`);
@@ -344,6 +351,9 @@ test('console: trace groups one task chain by proposal, with every column, and n
   assert.ok(draft < confirm && confirm < write, 'the chain reads soạn, xác nhận, ghi');
 
   // Every column the issue names is on the page.
+  assert.match(html, /<th scope="col">Nơi gọi<\/th><th scope="col">Cửa vào<\/th>/);
+  assert.match(html, /<td class="trace-caller" data-label="Nơi gọi"><code>lab-console<\/code><\/td>/);
+  assert.match(html, /<td class="trace-caller" data-label="Nơi gọi"><code>tho-than-desktop<\/code><\/td>/);
   assert.match(html, /2026-11-18 10:00:00Z/);
   assert.match(html, /Gọi HTTP <code>http<\/code>/);
   assert.match(html, /Trang cổng <code>web<\/code>/);
@@ -397,7 +407,7 @@ test('console: the trace filters by person, proposal and door, and an invalid va
 
   const invalid = await (await fetch(`${fixture.url}/trace?task=twelve&entry=ftp`)).text();
   assert.match(invalid, /Mã task phải có dạng T-12/);
-  assert.match(invalid, /Nơi gọi phải là http, mcp hoặc web/);
+  assert.match(invalid, /Cửa vào phải là http, mcp hoặc web/);
   assert.match(invalid, /3 dòng khớp bộ lọc\./);
   // The invalid text stays visible in the form, escaped.
   assert.match(invalid, /value="twelve"/);

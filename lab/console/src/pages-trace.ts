@@ -37,7 +37,7 @@ function personSelect(selected: string): string {
 }
 
 function entrySelect(selected: string): string {
-  const options = [`<option value="">Mọi nơi gọi</option>`];
+  const options = [`<option value="">Mọi cửa vào</option>`];
   for (const entry of ENTRIES) {
     options.push(`<option value="${entry}"${entry === selected ? ' selected' : ''}>${esc(entryLabel(entry))} (${entry})</option>`);
   }
@@ -61,7 +61,7 @@ ${personSelect(query.typed.employee)}
 <input id="proposal" name="proposal" value="${esc(query.typed.proposal)}" placeholder="dx-...">
 </div>
 <div class="field">
-<label for="entry">Nơi gọi</label>
+<label for="entry">Cửa vào</label>
 <select id="entry" name="entry">
 ${entrySelect(query.typed.entry)}
 </select>
@@ -96,7 +96,8 @@ function toolCell(row: TraceRow): string {
 function rowCells(row: TraceRow): string {
   return `<tr>
 <td class="trace-when" data-label="Thời điểm"><time datetime="${esc(row.at)}">${esc(clock(row.at))}</time><small><code>${esc(row.traceId)}</code></small></td>
-<td data-label="Nơi gọi">${esc(entryLabel(row.entry))} <code>${esc(row.entry)}</code></td>
+<td class="trace-caller" data-label="Nơi gọi">${row.caller === null ? '-' : `<code>${esc(row.caller)}</code>`}</td>
+<td class="trace-entry" data-label="Cửa vào">${esc(entryLabel(row.entry))} <code>${esc(row.entry)}</code></td>
 <td class="trace-tool" data-label="Tool">${toolCell(row)}</td>
 <td data-label="Kết quả">${outcomeBadge(row)}</td>
 <td data-label="Mã lý do">${row.reasonCode === null ? '-' : `<code>${esc(row.reasonCode)}</code>`}</td>
@@ -125,7 +126,7 @@ function groupPanel(group: TraceGroup): string {
 <h2>${title} <span class="badge">${group.rows.length} dòng</span> ${groupSummary(group)}</h2>
 <div class="table-wrap">
 <table class="stack">
-<thead><tr><th scope="col">Thời điểm</th><th scope="col">Nơi gọi</th><th scope="col">Tool</th><th scope="col">Kết quả</th><th scope="col">Mã lý do</th><th scope="col">Mã luật</th><th scope="col">Phiên bản luật</th></tr></thead>
+<thead><tr><th scope="col">Thời điểm</th><th scope="col">Nơi gọi</th><th scope="col">Cửa vào</th><th scope="col">Tool</th><th scope="col">Kết quả</th><th scope="col">Mã lý do</th><th scope="col">Mã luật</th><th scope="col">Phiên bản luật</th></tr></thead>
 <tbody>
 ${group.rows.map(rowCells).join('\n')}
 </tbody>
@@ -197,7 +198,7 @@ ${traceGroups(view.rows)}
         ? `<p class="meta">Đang hiện ${view.rows.length} dòng mới nhất trong ${view.total} dòng khớp bộ lọc. Lọc theo task hay đề xuất để thấy dòng cũ hơn.</p>`
         : `<p class="meta">${view.rows.length} dòng khớp bộ lọc.</p>`;
 
-  const body = `<p class="sub">Bảng vết của cổng, mở từ <code>gateway.sqlite</code> ở chế độ chỉ đọc. Lọc theo người, task, đề xuất và nơi gọi; các dòng của một đề xuất nằm chung một nhóm để đọc thành chuỗi soạn, xác nhận, ghi (SR7).</p>
+  const body = `<p class="sub">Bảng vết của cổng, mở từ <code>gateway.sqlite</code> ở chế độ chỉ đọc. Lọc theo người, task, đề xuất và cửa vào; các dòng của một đề xuất nằm chung một nhóm để đọc thành chuỗi soạn, xác nhận, ghi (SR7).</p>
 ${filterForm(view.query)}
 ${count}
 <p class="meta">Vết mới nhất trước. <span id="trace-updated"></span></p>

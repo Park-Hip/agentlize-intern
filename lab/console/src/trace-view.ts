@@ -50,7 +50,7 @@ export function parseTraceQuery(params: URLSearchParams): TraceQuery {
   }
   if (typed.entry !== '') {
     if ((ENTRIES as readonly string[]).includes(typed.entry)) filter.entry = typed.entry as TraceEntry;
-    else notices.push('Nơi gọi phải là http, mcp hoặc web, nên màn hình bỏ qua bộ lọc đó.');
+    else notices.push('Cửa vào phải là http, mcp hoặc web, nên màn hình bỏ qua bộ lọc đó.');
   }
   return { typed, filter, notices };
 }
