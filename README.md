@@ -8,17 +8,19 @@ Owner of every artifact in this repo: Phạm Bách Hiệp. Mentor: Kevin.
 ## Where things are
 
 Start with [findings](rd/findings.md): what the research found, the lessons, and what we build next.
+Decisions are in [docs/adr](docs/adr), and the prototype scope is in the [prototype spec](rd/design/mvp-spec.md).
 
-| Topic | Folder | Contents |
+| Topic | Folder | Entry point |
 | --- | --- | --- |
-| Problem | [rd/problem](rd/problem) | [PRD - AI Platform](rd/problem/prd-ai-platform.md): problem, users, requirements SR1-SR8; [bảng thuật ngữ](rd/problem/glossary.md); [mental model](rd/problem/track01-mental-model.html) |
-| Outside research | [rd/research](rd/research) | [Market lessons](rd/research/market-lessons.md), [market landscape](rd/research/market-landscape.md), [option comparison](rd/research/option-comparison.md), [comparison framework](rd/research/comparison-framework.md), [five methods](rd/research/five-methods), [real systems](rd/research/real-system-architectures.md), [MCP overview](rd/research/mcp-overview.md) |
-| Appota systems | [rd/appota](rd/appota) | [Thổ Thần platform](rd/appota/tho-than-platform.md), [MCP probe results in Thổ Thần](rd/appota/tho-than-mcp-probe.md), [Appota cases](rd/appota/appota-cases.md), [AppotaPay skills](rd/appota/appotapay-skills.md) |
-| Design | [rd/design](rd/design) | [Prototype spec](rd/design/mvp-spec.md), [system map](rd/design/system-map.md), [research questions and validation plan](rd/design/research-questions-and-validation-plan.md) |
+| Problem | [rd/problem](rd/problem) | [PRD - AI Platform](rd/problem/prd-ai-platform.md): problem, users, requirements SR1-SR8; [glossary](rd/problem/glossary.md) |
+| Outside research | [rd/research](rd/research) | [Five integration methods](rd/research/methods/option-comparison.md), [market lessons](rd/research/market/market-lessons.md), [real systems](rd/research/real-system-architectures.md), [MCP overview](rd/research/mcp-overview.md) |
+| Appota systems | [rd/appota](rd/appota) | [Thổ Thần platform](rd/appota/tho-than-platform.md) and the [MCP probe results](rd/appota/tho-than-mcp-probe.md) |
+| Design | [rd/design](rd/design) | [Prototype spec](rd/design/mvp-spec.md) and [system map](rd/design/system-map.md) |
+| Decisions | [docs/adr](docs/adr) | One file per decision, starting at [ADR-0001](docs/adr/adr-0001-self-built-thin-gateway.md) |
+| Prototype | [lab](lab) | Gateway, fake systems, `/mcp`, operator console, tests ([README](lab/README.md)) |
+| Acceptance | [rd/evaluation](rd/evaluation) | Runs in Thổ Thần, one file per milestone, and the validation plan for Q1 and Q2 |
 | Source checks | [rd/checks](rd/checks) | One script per document that re-opens the cited URLs |
 | Host probe | [tools/mcp-probe](tools/mcp-probe) | Throwaway MCP server that recorded how Thổ Thần behaves as an MCP host ([README](tools/mcp-probe/README.md)) |
-| Prototype | [lab](lab) | AI Operations Connector Lab: gateway, fake systems, `/mcp`, tests ([README](lab/README.md)) |
-| Acceptance | [rd/evaluation](rd/evaluation) | [Milestone 1 runbook](rd/evaluation/milestone-1-tho-than.md) for the manual run in Thổ Thần |
 
 Other places:
 

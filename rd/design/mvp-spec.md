@@ -71,7 +71,7 @@ Kịch bản D thay cho kịch bản "mạng đứt" của PRD ở phần chạy
 
 - Đăng nhập thật (SSO, OAuth), thông báo cho người nhận việc.
 - Hệ thống thật và dữ liệu thật.
-- Công cụ chạy quy trình (workflow engine), trừ khi Q1 (sập giữa chừng) cho thấy phần chạy tiếp tự viết quá rối ([câu hỏi kiểm chứng, A.1](research-questions-and-validation-plan.md#a1-q1-sập-giữa-chừng)).
+- Công cụ chạy quy trình (workflow engine), trừ khi Q1 (sập giữa chừng) cho thấy phần chạy tiếp tự viết quá rối ([câu hỏi kiểm chứng, A.1](../evaluation/research-questions-and-validation-plan.md#a1-q1-sập-giữa-chừng)).
 - Nhiều agent chia việc, và mọi mục khác trong [PRD, mục 8.2](../problem/prd-ai-platform.md#82-ngoài-phạm-vi).
 
 **Kết luận:** bốn kịch bản là phần người xem thấy được; phần còn lại của tám yêu cầu nằm ở phép thử tự động.
