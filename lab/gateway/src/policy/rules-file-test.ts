@@ -93,7 +93,8 @@ test('rules path: an edited rule file applies to the next call, and a broken one
     const after = await f.call('find_employee', { name: 'Minh' }, key);
     assert.equal(after.status, 200);
     assert.match(after.body.text, /NV-04/, 'the right person is still found');
-    assert.doesNotMatch(after.body.text, /Email công việc/, 'the new rule applies without a restart');
+    assert.doesNotMatch(after.body.text, /Email công việc: /, 'the value of the hidden field is gone');
+    assert.match(after.body.text, /Không hiện theo quyền của bạn: Email công việc, Số điện thoại cá nhân, Địa chỉ nhà\./);
     assert.equal(f.gateway.trace.list({ employee: HOA })[0]?.policyVersion, 2);
 
     // A file that cannot be read stops the write path with the code SR5 asks for.
@@ -130,7 +131,8 @@ test('rules path: a rule file already in the data folder is used and never overw
   try {
     assert.equal(readFileSync(path, 'utf8'), saved, 'the operator copy is not touched');
     const answer = await f.call('find_employee', { name: 'Minh' }, f.keyFor(HOA));
-    assert.doesNotMatch(answer.body.text, /Email công việc/);
+    assert.doesNotMatch(answer.body.text, /Email công việc: /);
+    assert.match(answer.body.text, /Không hiện theo quyền của bạn: Email công việc, Số điện thoại cá nhân, Địa chỉ nhà\./);
     assert.equal(f.gateway.trace.list()[0]?.policyVersion, 7, 'the gateway read the copy that was already there');
   } finally {
     await f.close();
@@ -154,7 +156,7 @@ test('rules path: LAB_RULES_PATH moves the rule file out of the data folder', as
     assert.equal(readFileSync(path, 'utf8'), saved, 'the configured file is the one the gateway reads, untouched');
     assert.equal(readdirSync(dataDir).includes(RULES_FILE), false, 'no copy is made in the data folder');
     const answer = await f.call('find_employee', { name: 'Minh' }, f.keyFor(HOA));
-    assert.match(answer.body.text, /Email công việc/);
+    assert.match(answer.body.text, /Email công việc: nv-04@lab\.example/);
     assert.equal(f.gateway.trace.list()[0]?.policyVersion, 3);
   } finally {
     await f.close();
