@@ -1,8 +1,7 @@
-import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { LOOPBACK_HOST, resolvePort } from '@lab/shared';
-import { rulesSchema } from '@lab/gateway';
 import { z } from 'zod';
+import { loadRules } from './rules.js';
 
 /** A call to another lab process stops here, so one slow service cannot hold a page open for long. */
 export const UPSTREAM_TIMEOUT_MS = 2_000;
@@ -96,6 +95,8 @@ export interface Employee {
   readonly fullName: string | undefined;
   readonly role: string | undefined;
   readonly department: string | undefined;
+  /** The whole record, so the permission screen can list a field the directory gained later. */
+  readonly fields: Readonly<Record<string, unknown>>;
 }
 
 export type EmployeeResult =
@@ -116,6 +117,7 @@ export async function fetchEmployees(endpoint: ServiceEndpoint, serviceKey: stri
       fullName: employee.full_name,
       role: employee.role,
       department: employee.department,
+      fields: employee,
     })),
   };
 }
@@ -170,16 +172,6 @@ export type RuleInfo =
  */
 export function readRuleInfo(rulesPath: string): RuleInfo {
   const file = basename(rulesPath);
-  try {
-    const text = readFileSync(rulesPath, 'utf8').replace(/^\uFEFF/, '');
-    const rules = rulesSchema.parse(JSON.parse(text) as unknown);
-    return { ok: true, version: rules.version, file };
-  } catch (error) {
-    const missing = (error as NodeJS.ErrnoException).code === 'ENOENT';
-    return {
-      ok: false,
-      file,
-      detail: missing ? 'Chưa có file luật' : 'File luật không đọc được hoặc không đúng schema',
-    };
-  }
+  const loaded = loadRules(rulesPath);
+  return loaded.ok ? { ok: true, version: loaded.rules.version, file } : { ok: false, file, detail: loaded.detail };
 }

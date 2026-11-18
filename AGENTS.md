@@ -19,7 +19,7 @@ Read the  TXT for the full acceptance criteria, the R&D framework and the week b
 ## 2. Current state
 
 The research phase is done and summarized in `rd/findings.md`: the five integration models, real systems and the 2026 market were surveyed, and no product covers the Lab's problem end to end.
-The `lab/` scaffold runs four local services with health checks; the fake task list (100 seeded tasks, idempotency keys, version checks), the fake directory, the gateway's read, draft and write paths, and the first two screens of the operator console have business logic.
+The `lab/` scaffold runs four local services with health checks; the fake task list (100 seeded tasks, idempotency keys, version checks), the fake directory, the gateway's read, draft and write paths, and the operator console's overview, tool and rule screens have business logic.
 `tools/mcp-probe` is a throwaway MCP server that recorded how Thổ Thần web and desktop behave as an MCP host; its results are in `rd/appota/tho-than-mcp-probe.md`, and it is not part of the lab.
 The current goal is a first prototype that plugs into Thổ Thần AI as an MCP server: the intern has a Thổ Thần account, and both the web and desktop apps connect to MCP servers.
 Host facts that constrain the design are summarized in `rd/findings.md` section 4: chat can call tools over stdio or over Streamable HTTP when the server has a public HTTPS address, chat calls in both web and desktop go through the Thổ Thần server, the host attaches identity headers but the Bearer key is set by whoever adds the skill, there is no approval step, and calls are cut at 60 seconds.
@@ -93,7 +93,7 @@ bash rd/checks/mausbot.sh
 ### Lab POC
 
 The lab is an npm workspace in `lab/`. It needs Node 22 or newer.
-It starts four local services; the fake task list, the fake employee directory and the gateway's read path (`find_employee`, `get_task`, `list_tasks`, `/v1/tools`, and the same tools at `/mcp`), its draft path (`propose_task_change`, `get_request_status`, the login and confirmation pages), its write path (the write command behind Gửi) and the console's overview and tool screens have business logic.
+It starts four local services; the fake task list, the fake employee directory and the gateway's read path (`find_employee`, `get_task`, `list_tasks`, `/v1/tools`, and the same tools at `/mcp`), its draft path (`propose_task_change`, `get_request_status`, the login and confirmation pages), its write path (the write command behind Gửi) and the console's overview, tool and rule screens have business logic.
 
 ```
 cd lab
@@ -114,7 +114,11 @@ Set `LAB_PUBLIC_BASE_URL` (for example the HTTPS address of a tunnel) to change 
 `npm test` builds, then runs every `*-test.js` file in the workspace, including a smoke test that starts the four services on temporary ports and checks `/health`.
 `npm run lint` type-checks the whole workspace with `tsc --noEmit`.
 `npm test -w fake-directory` runs only the directory tests.
-`npm test -w console` runs only the console tests, including the foreign `Host` refusal and a service turned off.
+`npm test -w console` builds the fake systems too and runs only the console tests, including the foreign `Host` refusal, a service turned off, every save refusal, and the end-to-end experiment: remove `work_email` from `staff` in the console, then call `find_employee` with chị Hoa's key on the real gateway and see the field gone.
+The rule screen at `/permissions` edits the file at `LAB_RULES_PATH`: the role by action table, the bulk threshold, and the employee fields each role may see.
+Saving checks the form with the gateway's own schema, writes the next `version`, puts the file in place with a rename, and keeps `rules-history/v<n>.json` beside it; a form opened at another version is refused with a reload message, and "Về bản gốc" copies `lab/gateway/policy/rules.json` with a version above every one on disk.
+The decision box asks the gateway's own engine, reading the same file, and calls no tool; it is a GET because it changes nothing, while every save is a POST with the console's CSRF token and its own `Origin`.
+The employee field list comes from the fake directory records (`employee_id` shown as `id`, `full_name` as `name`), so a field added through `/admin/add-field` appears marked "chưa khai"; task fields are fixed in code and only shown.
 The fake directory answers every path, `/health` included, with 401 unless the request carries `Authorization: Bearer <LAB_SERVICE_KEY>`; `LAB_TEST_HOOKS=1` turns on its `/admin/*` test routes.
 
 Run only the gateway tests, for example the policy engine tests (the rule file is `lab/gateway/policy/rules.json`):

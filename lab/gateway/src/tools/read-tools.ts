@@ -17,9 +17,10 @@ export const TASK_ID_PATTERN = /^T-[1-9][0-9]*$/;
 export const TASK_STATUSES = ['todo', 'doing', 'done'] as const;
 
 /** Rule files name employee fields `id` and `name`; the directory stores `employee_id` and `full_name`. */
-const DIRECTORY_KEY: Readonly<Record<string, string>> = { id: 'employee_id', name: 'full_name' };
+export const DIRECTORY_KEY: Readonly<Record<string, string>> = { id: 'employee_id', name: 'full_name' };
 
-const FIELD_LABEL: Readonly<Record<string, string>> = {
+/** What each rule field is called on a page. A field new to the directory has no label and keeps its code. */
+export const EMPLOYEE_FIELD_LABELS: Readonly<Record<string, string>> = {
   id: 'Mã',
   name: 'Tên',
   department: 'Phòng',
@@ -28,6 +29,24 @@ const FIELD_LABEL: Readonly<Record<string, string>> = {
   personal_phone: 'Số điện thoại cá nhân',
   home_address: 'Địa chỉ nhà',
 };
+
+/**
+ * The task fields a read tool can show. Fixed in code: the rule file has no
+ * cell for task fields (ADR-0006 section 3.4), so the console may only display
+ * this list. Change it in the same commit that changes `taskLine` or `taskDetail`.
+ */
+export const TASK_FIELDS = [
+  { name: 'id', label: 'Mã' },
+  { name: 'title', label: 'Tiêu đề' },
+  { name: 'description', label: 'Mô tả' },
+  { name: 'department', label: 'Phòng' },
+  { name: 'assignee', label: 'Người phụ trách' },
+  { name: 'status', label: 'Trạng thái' },
+  { name: 'due', label: 'Hạn' },
+  { name: 'version', label: 'Phiên bản' },
+] as const;
+
+export type TaskField = (typeof TASK_FIELDS)[number];
 
 const findEmployeeInput = z
   .strictObject({
@@ -63,7 +82,7 @@ function employeeLine(employee: EmployeeRecord, fields: readonly string[]): stri
   const parts: string[] = [];
   for (const field of fields) {
     const value = employee[DIRECTORY_KEY[field] ?? field];
-    if (value !== undefined) parts.push(`${FIELD_LABEL[field] ?? field}: ${String(value)}`);
+    if (value !== undefined) parts.push(`${EMPLOYEE_FIELD_LABELS[field] ?? field}: ${String(value)}`);
   }
   return parts.join(' | ');
 }

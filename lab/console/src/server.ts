@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { readServiceKey, startService, type RunningService } from '@lab/shared';
 import { resolveDataDir, resolveRulesPath } from '@lab/gateway';
 import { createConsoleHandler } from './handler.js';
@@ -23,6 +24,11 @@ export async function startConsole(options: ConsoleOptions = {}): Promise<Runnin
     service: 'console',
     env,
     ...(options.port === undefined ? {} : { port: options.port }),
-    handler: createConsoleHandler({ endpoints: serviceEndpoints(env), serviceKey, rulesPath }),
+    handler: createConsoleHandler({
+      endpoints: serviceEndpoints(env),
+      serviceKey,
+      rulesPath,
+      csrfToken: randomBytes(32).toString('base64url'),
+    }),
   });
 }

@@ -16,12 +16,18 @@ export function esc(value: string): string {
  * The headers every page of the lab sends: nothing loads from outside, nothing
  * can be framed, and the browser does not guess a content type. The console
  * sends the same set (ADR-0006 section 3.1).
+ *
+ * `same-origin` rather than `no-referrer` is deliberate: Chrome sends
+ * `Origin: null` on a form POST when the page suppresses the referrer, and the
+ * console's and the gateway's same-origin checks need the real Origin. A
+ * cross-origin request still carries no referrer, and no page loads anything
+ * from another site.
  */
 export const PAGE_SECURITY_HEADERS = {
   'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
   'x-content-type-options': 'nosniff',
   'x-frame-options': 'DENY',
-  'referrer-policy': 'no-referrer',
+  'referrer-policy': 'same-origin',
 } as const;
 
 const STYLE = `

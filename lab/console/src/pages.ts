@@ -136,8 +136,11 @@ ${view.tools.map(toolCard).join('\n')}`
 
 export interface ErrorView {
   readonly text: string;
+  readonly link?: { readonly href: string; readonly label: string };
 }
 
 export function errorPage(view: ErrorView, active: NavKey | null): string {
-  return layout({ title: 'Lỗi', active, notices: [], body: banner(view.text, 'bad') });
+  const link =
+    view.link === undefined ? '' : `<p><a href="${esc(view.link.href)}">${esc(view.link.label)}</a></p>`;
+  return layout({ title: 'Lỗi', active, notices: [], body: `${banner(view.text, 'bad')}\n${link}` });
 }

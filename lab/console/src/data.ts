@@ -55,6 +55,35 @@ export function personaRows(employees: readonly Employee[] | undefined): readonl
   return rows;
 }
 
+export interface PersonaChoice {
+  readonly employeeId: string;
+  readonly name: string;
+  readonly role: string;
+  readonly department: string;
+}
+
+/**
+ * The six characters with the role and department the directory reports now.
+ * The permission question must use the directory, not a copy of the persona
+ * list, because a test can change a role there. A character missing from the
+ * directory cannot be asked about: its role would be a guess.
+ */
+export function personaChoices(employees: readonly Employee[]): readonly PersonaChoice[] {
+  const byId = new Map(employees.map((employee) => [employee.employeeId, employee]));
+  const choices: PersonaChoice[] = [];
+  for (const persona of ORDERED_PERSONAS) {
+    const employee = byId.get(persona.employeeId);
+    if (employee?.role === undefined || employee.department === undefined) continue;
+    choices.push({
+      employeeId: persona.employeeId,
+      name: employee.fullName ?? persona.fullName,
+      role: employee.role,
+      department: employee.department,
+    });
+  }
+  return choices;
+}
+
 export interface ServiceStatus {
   readonly label: string;
   readonly port: number;
