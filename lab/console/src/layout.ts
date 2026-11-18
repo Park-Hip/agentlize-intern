@@ -18,7 +18,7 @@ interface NavItem {
 const NAV: readonly NavItem[] = [
   { key: 'overview', label: 'Tổng quan', href: '/' },
   { key: 'tools', label: 'Tool', href: '/tools' },
-  { key: 'permissions', label: 'Quyền và trường' },
+  { key: 'permissions', label: 'Quyền và trường', href: '/permissions' },
   { key: 'playground', label: 'Sân chơi' },
   { key: 'data', label: 'Dữ liệu gốc', href: '/data' },
   { key: 'trace', label: 'Vết', href: '/trace' },
@@ -88,8 +88,35 @@ td.num,th.num{font-variant-numeric:tabular-nums;white-space:nowrap}
 .filters label{font-size:.72rem;font-weight:750;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .filters input,.filters select{font:inherit;padding:.45rem .55rem;border:1px solid var(--line);border-radius:.45rem;background:var(--bg);color:var(--text);min-width:9rem}
 .filters .actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+select,input[type=number]{font:inherit;padding:.42rem .55rem;border:1px solid var(--line);border-radius:.42rem;background:var(--panel);color:var(--text);width:100%}
+.matrix{min-width:46rem}
+.matrix td{padding:.4rem .45rem}
+.matrix select{min-width:8.5rem}
+.matrix th[scope=row]{white-space:nowrap}
+.code{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem;font-weight:500;color:var(--muted);letter-spacing:0}
+.role-grid{display:grid;grid-template-columns:1fr;gap:.8rem}
+@media (min-width:46rem){.role-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:70rem){.role-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.role-card{border:1px solid var(--line);border-radius:.55rem;padding:.6rem .75rem .7rem;margin:0;min-width:0}
+.role-card legend{padding:0 .35rem;font-weight:750;font-size:.88rem}
+.check{display:flex;gap:.5rem;align-items:flex-start;font-weight:400;margin:.35rem 0;font-size:.9rem;line-height:1.35}
+.check input{flex:none;margin:.2rem 0 0;accent-color:var(--accent);width:1rem;height:1rem}
+.check code{font-size:.82em}
+.chips{list-style:none;display:flex;flex-wrap:wrap;gap:.4rem;padding:0;margin:.2rem 0 .6rem}
+.chips li{border:1px solid var(--line);border-radius:999px;padding:.18rem .6rem;font-size:.86rem;background:var(--bg)}
+.decide-grid{display:grid;grid-template-columns:1fr;gap:0 1rem}
+@media (min-width:52rem){.decide-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.decide label{display:block;font-weight:650;margin:.55rem 0 .25rem;font-size:.9rem}
+.decide select,.decide input{margin:0}
+.result{margin-top:1rem;border:1px solid var(--line);border-radius:.55rem;padding:.8rem 1rem;background:var(--bg)}
+.result-effect{margin:0}
+.result dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.3rem .9rem;margin:.6rem 0 0;font-size:.92rem}
+.result dt{font-weight:700;color:var(--muted);font-size:.84rem}
+.result dd{margin:0;overflow-wrap:anywhere}
+.rule-actions{margin:.8rem 0 1rem}
 button{font:inherit;font-weight:650;padding:.5rem 1rem;border-radius:.45rem;border:1px solid var(--accent);background:var(--accent);color:var(--accent-text);cursor:pointer}
 button.secondary{background:transparent;color:var(--accent)}
+button:disabled{opacity:.55;cursor:not-allowed}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
 .actions form{margin:0}
@@ -122,6 +149,8 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .stack th,.stack td{border-bottom:0;padding:.14rem 0}
 .stack th[scope=row]{padding-top:.25rem;font-size:1.02rem}
 .stack td::before{content:attr(data-label);display:block;font-size:.7rem;font-weight:750;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.result dl{grid-template-columns:1fr;gap:.1rem}
+.result dt{margin-top:.5rem}
 }
 `;
 

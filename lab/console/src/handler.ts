@@ -1,16 +1,20 @@
 import { randomBytes } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { basename } from 'node:path';
 import { DEPARTMENTS, LOOPBACK_HOST, sendJson, type RequestHandler } from '@lab/shared';
 import {
+  createPolicyEngine,
+  DEFAULT_RULES_PATH,
   esc,
   openGatewayDatabaseReadOnly,
   PAGE_SECURITY_HEADERS,
   readForm,
   TraceReader,
+  type PolicyDecision,
   type TraceFilter,
   type TraceRow,
 } from '@lab/gateway';
-import { personaRows, serviceStatuses, toolRows } from './data.js';
+import { personaChoices, personaRows, serviceStatuses, toolRows } from './data.js';
 import { CsrfTokens, sameConsoleOrigin } from './csrf.js';
 import type { Notice } from './layout.js';
 import { dataPage } from './pages-data.js';
@@ -18,6 +22,19 @@ import { errorPage, overviewPage, toolsPage } from './pages.js';
 import { traceGroups, tracePage } from './pages-trace.js';
 import { paginate, parsePage } from './source-data.js';
 import { parseTraceQuery, TRACE_LIMIT } from './trace-view.js';
+import {
+  decisionForm,
+  fieldChoices,
+  knownRuleFields,
+  parseDecision,
+  permissionsView,
+  runDecision,
+  rulesFromForm,
+  type DecisionOutcome,
+  type FieldChoice,
+} from './permissions.js';
+import { permissionsPage } from './permissions-page.js';
+import { historyVersions, loadRules, writeRules } from './rules.js';
 import {
   fetchEmployees,
   fetchTasks,
@@ -40,6 +57,11 @@ export interface ConsoleDeps {
   readonly dataDir: string;
   /** The same `LAB_TEST_HOOKS` value the fake systems got, so the buttons exist exactly when they work. */
   readonly testHooks: boolean;
+}
+
+/** The console's own deps plus the gateway's decision function, bound to the same rule file. */
+interface ConsoleContext extends ConsoleDeps {
+  readonly decide: (input: unknown) => PolicyDecision;
 }
 
 /** Everything except the script source, which is added only on the page that has one. */
@@ -262,6 +284,203 @@ async function sendData(deps: ConsoleDeps, res: ServerResponse, url: URL, csrf: 
   );
 }
 
+function submittedVersion(form: URLSearchParams): number | undefined {
+  const raw = form.get('version') ?? '';
+  return /^[1-9][0-9]*$/.test(raw) ? Number(raw) : undefined;
+}
+
+async function sendPermissions(deps: ConsoleContext, csrf: CsrfTokens, url: URL, res: ServerResponse): Promise<void> {
+  const loaded = loadRules(deps.rulesPath);
+  if (!loaded.ok) {
+    sendHtml(
+      res,
+      200,
+      errorPage(
+        {
+          text: `${loaded.detail}. Chưa sửa được từ trang này. Sửa file bằng tay, hoặc chuyển nó đi rồi khởi động lại cổng để cổng chép bản gốc.`,
+          link: { href: '/', label: 'Về tổng quan' },
+        },
+        'permissions',
+      ),
+    );
+    return;
+  }
+
+  const notices: Notice[] = [];
+  const fetched = await fetchEmployees(deps.endpoints.directory, deps.serviceKey);
+  let employees: readonly Employee[] | undefined;
+  if (fetched.ok) {
+    employees = fetched.employees;
+  } else {
+    notices.push({
+      text: `Không đọc được danh bạ (${fetched.detail}) nên danh sách trường có thể thiếu trường mới, và ô thử quyết định chưa dùng được. Bảng quyền vẫn sửa được với các trường đang có trong luật.`,
+      tone: 'bad',
+    });
+  }
+
+  const personas = personaChoices(employees ?? []);
+  if (fetched.ok && personas.length === 0) {
+    notices.push({
+      text: 'Danh bạ không có nhân vật nào trong sáu nhân vật của kịch bản, nên chưa hỏi được bộ luật.',
+      tone: 'bad',
+    });
+  }
+
+  const fields = knownRuleFields(loaded.rules, employees);
+  const choices: readonly FieldChoice[] = fieldChoices(loaded.rules, fields);
+
+  const form = decisionForm(url.searchParams, personas, fields);
+  let outcome: DecisionOutcome | undefined;
+  const ran = url.searchParams.has('persona');
+  if (ran) {
+    const parsed = parseDecision(url.searchParams, personas, fields);
+    outcome = parsed.ok ? runDecision(parsed.request, personas, deps.decide) : { ok: false, detail: parsed.detail };
+  }
+
+  const savedRaw = url.searchParams.get('saved');
+  const restoredRaw = url.searchParams.get('restored');
+  const savedVersion = savedRaw !== null && /^[1-9][0-9]*$/.test(savedRaw) ? Number(savedRaw) : undefined;
+  const restoredVersion = restoredRaw !== null && /^[1-9][0-9]*$/.test(restoredRaw) ? Number(restoredRaw) : undefined;
+
+  sendHtml(
+    res,
+    200,
+    permissionsPage(
+      {
+        ...permissionsView(loaded.rules, choices, basename(deps.rulesPath)),
+        csrfToken: csrf.issue(),
+        personas,
+        decision: { form, ran, outcome },
+        notices,
+        savedVersion,
+        restoredVersion,
+      },
+      'permissions',
+    ),
+  );
+}
+
+async function handlePermissionsPost(
+  deps: ConsoleDeps,
+  csrf: CsrfTokens,
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  if (!sameConsoleOrigin(req.headers.origin, req.headers.host)) {
+    sendHtml(
+      res,
+      403,
+      errorPage({ text: 'Yêu cầu đến từ một trang khác nên bị từ chối. Mở lại trang Quyền và trường rồi gửi lại.' }, 'permissions'),
+    );
+    return;
+  }
+
+  const form = await readForm(req);
+  if (form === undefined) {
+    sendHtml(res, 400, errorPage({ text: 'Nội dung gửi lên không đọc được. Tải lại trang rồi thử lại.' }, 'permissions'));
+    return;
+  }
+  if (!csrf.check(form.get('csrf') ?? '')) {
+    sendHtml(
+      res,
+      403,
+      errorPage({ text: 'Thiếu hoặc sai mã chống giả mạo. Tải lại trang Quyền và trường rồi gửi lại.' }, 'permissions'),
+    );
+    return;
+  }
+
+  const action = form.get('action');
+  if (action !== 'save' && action !== 'restore') {
+    sendHtml(res, 400, errorPage({ text: 'Thao tác không có trong trang này.' }, 'permissions'));
+    return;
+  }
+
+  const version = submittedVersion(form);
+  if (version === undefined) {
+    sendHtml(res, 400, errorPage({ text: 'Thiếu số phiên bản của form. Tải lại trang rồi thử lại.' }, 'permissions'));
+    return;
+  }
+
+  const current = loadRules(deps.rulesPath);
+  if (!current.ok) {
+    sendHtml(
+      res,
+      409,
+      errorPage(
+        {
+          text: `${current.detail} nên chưa lưu. Không ghi đè một file không đọc được.`,
+          link: { href: '/permissions', label: 'Tải lại trang' },
+        },
+        'permissions',
+      ),
+    );
+    return;
+  }
+  if (current.rules.version !== version) {
+    sendHtml(
+      res,
+      409,
+      errorPage(
+        {
+          text: `Luật trên đĩa đã đổi: form mở ở phiên bản ${version}, trên đĩa là ${current.rules.version}. Chưa lưu gì. Tải lại trang rồi sửa lại.`,
+          link: { href: '/permissions', label: 'Tải lại trang' },
+        },
+        'permissions',
+      ),
+    );
+    return;
+  }
+
+  try {
+    if (action === 'save') {
+      const catalog = form.getAll('catalog');
+      if (catalog.length === 0) {
+        sendHtml(
+          res,
+          400,
+          errorPage({ text: 'Form thiếu danh sách trường. Tải lại trang rồi thử lại.' }, 'permissions'),
+        );
+        return;
+      }
+      const built = rulesFromForm(current.rules, form, catalog);
+      if (!built.ok) {
+        // A broken form never reaches the file: the message names the field, the file keeps its bytes.
+        sendHtml(
+          res,
+          400,
+          errorPage(
+            { text: `Chưa lưu: ${built.detail}`, link: { href: '/permissions', label: 'Tải lại trang' } },
+            'permissions',
+          ),
+        );
+        return;
+      }
+      writeRules(deps.rulesPath, built.rules);
+      res.writeHead(303, { location: `/permissions?saved=${built.rules.version}`, 'cache-control': 'no-store' });
+      res.end();
+      return;
+    }
+
+    const base = loadRules(DEFAULT_RULES_PATH);
+    if (!base.ok) {
+      sendHtml(res, 500, errorPage({ text: 'Bản gốc trong mã không đọc được. Hãy báo người vận hành Lab.' }, 'permissions'));
+      return;
+    }
+    const highest = Math.max(current.rules.version, ...historyVersions(deps.rulesPath));
+    const restored = { ...base.rules, version: highest + 1 };
+    writeRules(deps.rulesPath, restored);
+    res.writeHead(303, { location: `/permissions?restored=${restored.version}`, 'cache-control': 'no-store' });
+    res.end();
+  } catch (error) {
+    console.error(`[console] rule save failed: ${error instanceof Error ? error.message : String(error)}`);
+    sendHtml(
+      res,
+      500,
+      errorPage({ text: 'Không ghi được file luật. Chưa đổi gì. Hãy báo người vận hành Lab.' }, 'permissions'),
+    );
+  }
+}
+
 /**
  * One press of a test button: the only `POST` of the console (ADR-0006 section
  * 3.1). It needs the feature flag, our own `Origin`, the token the page drew
@@ -389,6 +608,8 @@ const PAGES = new Set(['/', '/tools', '/data', '/trace']);
  * broken service never hides the other data.
  */
 export function createConsoleHandler(deps: ConsoleDeps): RequestHandler {
+  const policy = createPolicyEngine({ rulesPath: deps.rulesPath });
+  const context: ConsoleContext = { ...deps, decide: (input: unknown): PolicyDecision => policy.decide(input) };
   const csrf = new CsrfTokens();
 
   return async (req, res) => {
@@ -409,6 +630,37 @@ export function createConsoleHandler(deps: ConsoleDeps): RequestHandler {
         return;
       }
       sendJson(res, 200, { status: 'ok', service: 'console' });
+      return;
+    }
+
+    if (path === '/permissions') {
+      if (method === 'GET') {
+        try {
+          await sendPermissions(context, csrf, url, res);
+        } catch (error) {
+          console.error(`[console] permission page failed: ${error instanceof Error ? error.message : String(error)}`);
+          if (!res.headersSent) {
+            sendHtml(res, 500, errorPage({ text: 'Trang gặp lỗi khi đọc luật hoặc danh bạ. Hãy tải lại.' }, 'permissions'));
+          } else {
+            res.destroy();
+          }
+        }
+        return;
+      }
+      if (method === 'POST') {
+        try {
+          await handlePermissionsPost(deps, csrf, req, res);
+        } catch (error) {
+          console.error(`[console] permission save failed: ${error instanceof Error ? error.message : String(error)}`);
+          if (!res.headersSent) {
+            sendHtml(res, 500, errorPage({ text: 'Trang gặp lỗi khi lưu luật. Chưa đổi gì.' }, 'permissions'));
+          } else {
+            res.destroy();
+          }
+        }
+        return;
+      }
+      sendHtml(res, 405, errorPage({ text: 'Màn hình này nhận GET và POST.' }, 'permissions'), { headers: { allow: 'GET, POST' } });
       return;
     }
 
