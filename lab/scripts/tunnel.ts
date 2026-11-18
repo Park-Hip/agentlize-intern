@@ -3,15 +3,19 @@ import { constants } from 'node:fs';
 import { access } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PUBLIC_BASE_URL_ENV, type ServiceName } from '@lab/shared';
 import { startStack, stopChild, type LabStack } from './stack.js';
 import {
   CLOUDFLARED_PATH_ENV,
   armCloseAt,
+  choosePublicBaseUrl,
   closeAt,
   cloudflaredEnv,
+  describePublicBaseUrl,
   formatClock,
   parseTunnelUrl,
   planTunnel,
+  type PublicBaseUrlSource,
 } from './tunnel-plan.js';
 
 const CLOUDFLARED_START_TIMEOUT_MS = 60_000;
@@ -37,7 +41,7 @@ async function requireCloudflared(path: string): Promise<void> {
  * Forward cloudflared output and resolve with the first quick tunnel address.
  * The listeners stay attached after that, so later messages still show up.
  */
-function waitForPublicUrl(child: ChildProcess): Promise<string> {
+export function waitForPublicUrl(child: ChildProcess): Promise<string> {
   return new Promise<string>((resolveUrl, rejectUrl) => {
     let buffer = '';
     let found: string | null = null;
@@ -85,7 +89,7 @@ function waitForPublicUrl(child: ChildProcess): Promise<string> {
  * answers 401. A successful 200 here would mean the gateway let an anonymous
  * call through, and the session must stop.
  */
-async function waitForPublicDoor(mcpUrl: string): Promise<void> {
+export async function waitForPublicDoor(mcpUrl: string): Promise<void> {
   const deadline = Date.now() + PUBLIC_DOOR_TIMEOUT_MS;
   let last = 'no response yet';
 
@@ -123,6 +127,62 @@ async function waitForPublicDoor(mcpUrl: string): Promise<void> {
   );
 }
 
+export interface TunneledStackOptions {
+  readonly env?: NodeJS.ProcessEnv;
+  /** Adds the `[tunnel]` prefix in production; tests collect the bare lines. */
+  readonly log?: (line: string) => void;
+  readonly startLog?: (line: string) => void;
+  readonly startError?: (line: string) => void;
+  /** Called when a local service dies after the stack is ready. */
+  readonly onUnexpectedExit?: (name: ServiceName, code: number | null, signal: NodeJS.Signals | null) => void;
+}
+
+export interface TunneledStack {
+  readonly publicUrl: string;
+  readonly mcpUrl: string;
+  readonly publicBaseUrl: string;
+  readonly publicBaseUrlSource: PublicBaseUrlSource;
+  readonly stack: LabStack;
+}
+
+/**
+ * Take the address cloudflared printed, then start the local services with it.
+ * The gateway reads `LAB_PUBLIC_BASE_URL` once at startup, so the public
+ * address has to exist first: a quick tunnel prints its address before the
+ * local origin answers, so cloudflared goes first and the gateway second.
+ * That keeps one source of truth and avoids restarting the gateway.
+ * The caller owns `cloudflared` and stops it when this rejects.
+ */
+export async function startTunneledStack(
+  cloudflared: ChildProcess,
+  options: TunneledStackOptions = {},
+): Promise<TunneledStack> {
+  const env = options.env ?? process.env;
+  const logLine = options.log ?? log;
+
+  const publicUrl = await waitForPublicUrl(cloudflared);
+  const mcpUrl = `${publicUrl}/mcp`;
+  const choice = choosePublicBaseUrl(env[PUBLIC_BASE_URL_ENV], publicUrl);
+  logLine(`public MCP address: ${mcpUrl}`);
+  logLine(describePublicBaseUrl(choice));
+
+  const stack = await startStack({
+    env: { ...env, [PUBLIC_BASE_URL_ENV]: choice.baseUrl },
+    includeConsole: false,
+    ...(options.startLog === undefined ? {} : { log: options.startLog }),
+    ...(options.startError === undefined ? {} : { error: options.startError }),
+    ...(options.onUnexpectedExit === undefined ? {} : { onUnexpectedExit: options.onUnexpectedExit }),
+  });
+
+  return {
+    publicUrl,
+    mcpUrl,
+    publicBaseUrl: choice.baseUrl,
+    publicBaseUrlSource: choice.source,
+    stack,
+  };
+}
+
 async function main(): Promise<void> {
   const plan = planTunnel();
   await requireCloudflared(plan.cloudflaredPath);
@@ -154,12 +214,6 @@ async function main(): Promise<void> {
     log(`cloudflared: ${plan.cloudflaredPath}`);
     log(`local gateway: ${plan.target}`);
     log(`operator console 127.0.0.1:${plan.consolePort} is not part of the tunnel`);
-
-    stack = await startStack({
-      includeConsole: false,
-      onUnexpectedExit: (name) => void stop(1, `${name} stopped unexpectedly`),
-    });
-    log(`local stack ready at ${stack.gatewayUrl}`);
     log(`this session stops at ${formatClock(deadline)} (${plan.minutes} minutes)`);
     timer = armCloseAt(deadline, () => void stop(0, `${plan.minutes} minutes are up`));
 
@@ -177,13 +231,16 @@ async function main(): Promise<void> {
       if (!stopping) void stop(1, `cloudflared failed: ${cause.message}`);
     });
 
-    const publicUrl = await waitForPublicUrl(child);
-    const mcpUrl = `${publicUrl}/mcp`;
-    log(`public MCP address: ${mcpUrl}`);
-    log('add it as a Streamable HTTP skill; paste one person\'s key into the skill form, never into this terminal');
+    const session = await startTunneledStack(child, {
+      env: process.env,
+      onUnexpectedExit: (name) => void stop(1, `${name} stopped unexpectedly`),
+    });
+    stack = session.stack;
+    log(`local stack ready at ${stack.gatewayUrl}`);
+    log('add the MCP address as a Streamable HTTP skill; paste one person\'s key into the skill form, never into this terminal');
     log('this command never reads or prints a key');
 
-    await waitForPublicDoor(mcpUrl);
+    await waitForPublicDoor(session.mcpUrl);
     log('the public door answers 401 without a key, so the tunnel reaches the gateway');
     log(`press Ctrl+C to stop now; otherwise both stop at ${formatClock(deadline)}`);
   } catch (cause) {
@@ -192,4 +249,7 @@ async function main(): Promise<void> {
   }
 }
 
-await main();
+const isMainModule =
+  process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isMainModule) await main();
