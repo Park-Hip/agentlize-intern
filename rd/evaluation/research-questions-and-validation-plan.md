@@ -36,7 +36,7 @@ Ba tình huống lặp lại trong bài:
 
 # 1. Hai câu hỏi
 
-[So sánh phương án, mục 4](../research/option-comparison.md#4-ghép-thế-nào-để-tự-dựng-ít-nhất) chọn tạm một tổ hợp cho bản thử đầu, và còn nhiều điều chưa chắc.
+[So sánh phương án, mục 4](../research/methods/option-comparison.md#4-ghép-thế-nào-để-tự-dựng-ít-nhất) chọn tạm một tổ hợp cho bản thử đầu, và còn nhiều điều chưa chắc.
 Một điều chỉ thành câu hỏi khi qua đủ hai điều kiện:
 
 1. **Chưa biết đáp án trước khi thử.**
@@ -134,7 +134,7 @@ Chạy mỗi cách 100 lần, đo thời gian và chi phí.
 | Hai cách ngang nhau, hoặc MCP chậm hơn, đắt hơn | Không nên dùng MCP khi mọi nơi gọi do cùng một nhóm viết; MCP chỉ đáng dùng khi phải cắm vào phần mềm của bên khác. |
 
 Dù số đo ra sao, kết luận cũng ghi thêm một phát hiện từ đọc tài liệu.
-Cắm MCP vào phần mềm có sẵn mà chỉ dùng một khóa cho cả bản cài thì ai dùng phần mềm đó cũng mượn được quyền của người đã cài ([phụ lục bằng chứng, mục 3.2](../research/comparison-framework.md#32-mcp)).
+Cắm MCP vào phần mềm có sẵn mà chỉ dùng một khóa cho cả bản cài thì ai dùng phần mềm đó cũng mượn được quyền của người đã cài ([phụ lục bằng chứng, mục 3.2](../research/methods/comparison-framework.md#32-mcp)).
 
 # Phụ lục A - Chi tiết kỹ thuật từng câu hỏi
 
@@ -186,8 +186,8 @@ Mức chênh thế nào là "rõ" được chốt sau lần đo đầu tiên (ba
 
 # Phụ lục B - Nguồn
 
-- [So sánh phương án](../research/option-comparison.md): tổ hợp chọn tạm và điều kiện xem lại.
-- [Phụ lục bằng chứng của bước so sánh](../research/comparison-framework.md): nguồn gốc từng nhận định; xác thực tùy chọn của MCP ở [mục 3.2](../research/comparison-framework.md#32-mcp); danh sách giả thuyết ban đầu ở [mục 7.3](../research/comparison-framework.md#73-câu-hỏi-chuyển-sang-kiểm-chứng).
+- [So sánh phương án](../research/methods/option-comparison.md): tổ hợp chọn tạm và điều kiện xem lại.
+- [Phụ lục bằng chứng của bước so sánh](../research/methods/comparison-framework.md): nguồn gốc từng nhận định; xác thực tùy chọn của MCP ở [mục 3.2](../research/methods/comparison-framework.md#32-mcp); danh sách giả thuyết ban đầu ở [mục 7.3](../research/methods/comparison-framework.md#73-câu-hỏi-chuyển-sang-kiểm-chứng).
 - [Khảo sát Thổ Thần, mục 5](../appota/tho-than-platform.md#52-lobehub-là-mcp-host-nên-thực-thể-1-có-thể-cắm-được-mcp-server): Thổ Thần web cắm được máy chủ công cụ, dùng cho việc để sau.
 - [PRD, mục 6](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc) và [mục 7.3](../problem/prd-ai-platform.md#73-sáu-chỉ-số-đo): tám yêu cầu SR1-SR8, sáu chỉ số M1-M6 và các ca thử gốc.
 - [Chương trình R&D, trang 5-6](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt): yêu cầu của bước Question và tiêu chí nghiệm thu của Track 01.

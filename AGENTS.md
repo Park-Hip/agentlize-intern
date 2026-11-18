@@ -177,14 +177,17 @@ README.md        map of the repo
 AGENTS.md        this file
 docs/
   program/       the official program document, read only
-  context/       company context (ecosystem, track comparison)
+  context/       company context (Appota AI ecosystem)
   adr/           one file per decision: adr-0001-<slug>.md
 rd/              the R&D work, grouped by topic
   findings.md    what the research found and what we do next; start here
   problem/       problem, users, requirements SR1-SR8 (PRD), glossary
-  research/      outside solutions: MCP, five integration models, real systems, market, comparison
+  research/      outside solutions: MCP overview, real systems, MausBot
+    methods/     the five integration methods: option comparison, its evidence appendix, source notes
+    market/      the 2026 market survey and its lessons
   appota/        Appota's own systems: member company cases, AppotaPay skills, Thổ Thần
-  design/        solution candidates, open questions and how to test them
+  design/        prototype spec and system map
+  evaluation/    acceptance runs in Thổ Thần, validation plan (Q1, Q2); screenshots in images/
   checks/        scripts that re-verify quoted claims, one per document: <doc-slug>.sh
 lab/             prototype code, created after the first ADR
 submitted/       PDFs handed in to the program, never edited afterwards
@@ -198,7 +201,7 @@ scratch/         agent working files and raw captures (git-ignored)
 Rules:
 
 - Put a document in the folder of its topic. File names carry no number or step.
-  Add a new topic folder only when it will hold at least two documents; evaluation reports go in `rd/evaluation/` when that work starts.
+  Add a new topic folder only when it will hold at least two documents; evaluation reports go in `rd/evaluation/`.
 - New findings that change the direction go into `rd/findings.md`, and the detailed document links back to it.
 - File names are lowercase ASCII kebab-case with a short English slug, for example `option-comparison.md`. Content stays Vietnamese.
 - Files whose name GitHub fixes (`.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/`) keep that name.

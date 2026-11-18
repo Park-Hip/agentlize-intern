@@ -24,7 +24,7 @@ Skill (mục nối) là một mục trong phần cài đặt của Thổ Thần,
 | Bản mã mới | `cd lab`, `npm install`, `npm run lint`, `npm test` | Lint không lỗi, test in `fail 0` |
 | Hạn mức còn đủ | Mở trang tài khoản Thổ Thần, ghi số credit | Còn ít nhất 100 credit trước khi bắt đầu |
 | Dọn hai skill của lần đo trước | Trong cài đặt skill: xoá biến `LAB_USER_KEY` khỏi `mcp-probe-stdio`; đặt `mcp-probe` về `http://localhost:8787/mcp`, No auth | Không ô nào còn chuỗi `lab_` hay `hoa-thu-nghiem` |
-| Chỗ lưu bằng chứng | Tạo `scratch/milestone-1/` cho log thô; ảnh đã che sẽ để cạnh tài liệu này | Log thô nằm ngoài git; tên ảnh theo mẫu `milestone-1-*.png` |
+| Chỗ lưu bằng chứng | Tạo `scratch/milestone-1/` cho log thô; ảnh đã che để ở `rd/evaluation/images/` | Log thô nằm ngoài git; tên ảnh theo mẫu `milestone-1-*.png` |
 | Hai cửa sổ lệnh | Một cửa sổ chạy đường hầm, một cửa sổ chạy lệnh lấy khoá và đọc vết | Cả hai đang ở thư mục `lab/` |
 
 Log thô, ảnh chưa che và mọi thứ có khoá chỉ nằm trong `scratch/`.
@@ -205,25 +205,25 @@ Skill vừa nhắc ở mục 1 cần một địa chỉ và một khoá ([spec, 
 | Credit sau câu hỏi trên web | Không có câu hỏi trên web | - |
 | Bảng vết của chị Hoa (`NV-02`), số dòng | 1 dòng cho câu hỏi này: 11:04:56Z, `find_employee`, `ok`, luật `employee_fields.staff`, 35 ms | `milestone-1-trace.png` |
 | Bảng vết của Nam (`NV-05`), số dòng | 1 dòng: 11:07:52Z, `find_employee`, `ok`, luật `employee_fields.intern`, 6 ms | `milestone-1-trace.png` |
-| Ảnh câu trả lời sau khi đổi sang khoá Nam (không có màn hình cài đặt) | Đạt về dữ liệu: chỉ có email công việc; câu chữ chưa rõ (mục 12) | `milestone-1-sau-khi-doi-khoa.png` |
+| Ảnh câu trả lời sau khi đổi sang khoá Nam (không có màn hình cài đặt) | Đạt về dữ liệu: chỉ có email công việc; câu chữ chưa rõ (mục 12) | `milestone-1-after-key-rotation.png` |
 | Giờ tắt phiên và số phút đã chạy | 18:16, phiên chạy 18 phút | - |
 | Credit sau phiên và số credit đã dùng | 345/500 credit gói tháng và 155 credit nạp thêm; số đã dùng không tính được vì thiếu số trước phiên | - |
 | Kiểm tra sau khi tắt: `curl.exe` hỏng, không còn `cloudflared` | Đạt: cổng 8790 không trả lời, không còn tiến trình `cloudflared` | - |
 | Số lần trợ lý trả lời sai, không gọi tool hoặc báo "đã xong" khi tool từ chối | 0 trong hai câu trả lời có ảnh; cả hai đều gọi `find_employee` | - |
 
-Sau khi chạy, dán bốn ảnh đã che vào cuối mục này bằng `![Mô tả](tên-ảnh.png)`.
+Sau khi chạy, dán bốn ảnh đã che vào cuối mục này bằng `![Mô tả](images/tên-ảnh.png)`.
 Ảnh nằm cạnh tài liệu và đi cùng commit; log thô ở `scratch/milestone-1/` thì không.
 Kiểm tra lại từng ảnh trước khi `git add`: không có khoá, không có email thật, không có địa chỉ đường hầm còn sống.
 
 Ảnh của phiên 2026-11-18:
 
-![Chị Hoa hỏi số điện thoại anh Minh trên bản desktop](milestone-1-desktop-hoa.png)
+![Chị Hoa hỏi số điện thoại anh Minh trên bản desktop](images/milestone-1-desktop-hoa.png)
 
-![Nam hỏi cùng câu sau khi đổi khoá](milestone-1-sau-khi-doi-khoa.png)
+![Nam hỏi cùng câu sau khi đổi khoá](images/milestone-1-after-key-rotation.png)
 
-![Vết của Nam và chị Hoa](milestone-1-trace.png)
+![Vết của Nam và chị Hoa](images/milestone-1-trace.png)
 
-![Bản web: skill lab-gateway xoay mãi, không bật được](milestone-1-web-skill-spinner.png)
+![Bản web: skill lab-gateway xoay mãi, không bật được](images/milestone-1-web-skill-spinner.png)
 
 **Kết luận:** bảng này là nơi duy nhất giữ bằng chứng của phiên; tài liệu chỉ giữ số, ảnh đã che và đường dẫn, không giữ khoá, email thật hay địa chỉ đường hầm.
 

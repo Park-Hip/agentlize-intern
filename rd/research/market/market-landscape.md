@@ -3,7 +3,7 @@
 Ngày: 2026-11-17. Trạng thái: khảo sát qua tài liệu công bố, chưa chạy thử sản phẩm nào; giá là giá niêm yết.
 
 Đây là hồ sơ bằng chứng: bảng chấm, trích dẫn và nguồn.
-Bài học và kết luận rút gọn nằm ở [bài học từ thị trường](market-lessons.md); hướng đi chung nằm ở [tổng hợp phát hiện](../findings.md).
+Bài học và kết luận rút gọn nằm ở [bài học từ thị trường](market-lessons.md); hướng đi chung nằm ở [tổng hợp phát hiện](../../findings.md).
 
 ## Đọc nhanh
 
@@ -17,7 +17,7 @@ Bài học và kết luận rút gọn nằm ở [bài học từ thị trườn
 
 Câu hỏi hẹp: sản phẩm nào đang bán trên thị trường giải bài toán của Lab, giải đến đâu, và có thay được bản dựng của Lab không.
 
-Bài toán của Lab lấy từ [PRD, mục 6](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc): một agent đọc dữ liệu, kiểm quyền, đề xuất thay đổi, chỉ ghi sau khi người có quyền xác nhận, không ghi trùng khi gửi lại, và để lại một vết xuyên suốt.
+Bài toán của Lab lấy từ [PRD, mục 6](../../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc): một agent đọc dữ liệu, kiểm quyền, đề xuất thay đổi, chỉ ghi sau khi người có quyền xác nhận, không ghi trùng khi gửi lại, và để lại một vết xuyên suốt.
 Tám yêu cầu SR1-SR8 là thước đo, không phải danh sách tính năng.
 
 Phạm vi: chín nhóm sản phẩm; mười một sản phẩm hoặc tổ hợp được chấm trong ma trận.
@@ -64,7 +64,7 @@ Nó chia bài toán thành chín nhóm, mỗi nhóm làm tốt một tầng.
 | Agent trong phần mềm nghiệp vụ | Salesforce Agentforce, Microsoft Copilot Studio | Agent chạy cạnh dữ liệu và bảng quyền sẵn có của chính phần mềm đó | Chỉ quản dữ liệu trong hệ của mình; danh bạ và danh sách task của Lab nằm ngoài |
 | Cổng model và quan sát | Portkey, LiteLLM, Helicone, LangSmith | Định tuyến model, đếm token, trace | Không phải cửa ghi vào hệ thống nghiệp vụ |
 
-Các SDK agent như OpenAI Agents SDK, Claude Agent SDK, Google ADK và Microsoft Agent Framework nằm ở tầng runtime, đã khảo sát ở [kiến trúc hệ thống thật](real-system-architectures.md) [N27]; bài này không chấm lại.
+Các SDK agent như OpenAI Agents SDK, Claude Agent SDK, Google ADK và Microsoft Agent Framework nằm ở tầng runtime, đã khảo sát ở [kiến trúc hệ thống thật](../real-system-architectures.md) [N27]; bài này không chấm lại.
 
 Ba quan sát dẫn tới phần còn lại của bài:
 
@@ -76,7 +76,7 @@ Ba quan sát dẫn tới phần còn lại của bài:
 
 ## 3. Chấm theo tám yêu cầu
 
-Tám yêu cầu lấy nguyên văn từ [PRD, mục 6](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc).
+Tám yêu cầu lấy nguyên văn từ [PRD, mục 6](../../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc).
 Mỗi ô trả lời một câu: nếu chỉ dùng sản phẩm này, phép thử của yêu cầu có tự đạt không.
 
 ### 3.1. Nhóm gần đủ
@@ -470,7 +470,7 @@ Cột "tự kiểm" là `có` khi script `rd/checks/market-landscape.sh` mở l�
 | N24 | Kong, AI MCP Proxy | Tài liệu | https://developer.konghq.com/plugins/ai-mcp-proxy/ | có |
 | N25 | Temporal, human-in-the-loop cookbook | Tài liệu | https://docs.temporal.io/ai-cookbook/human-in-the-loop-python | có |
 | N26 | AWS Step Functions, task token | Tài liệu | https://docs.aws.amazon.com/step-functions/latest/dg/connect-to-resource.html | có |
-| N27 | [Kiến trúc hệ thống thật](real-system-architectures.md) | Nội bộ | - | - |
+| N27 | [Kiến trúc hệ thống thật](../real-system-architectures.md) | Nội bộ | - | - |
 | N28 | Liyagent, llms.txt | Tài liệu | https://liyagent.com/llms.txt | có |
 | N29 | Auth0 for AI Agents, asynchronous authorization | Tài liệu | https://auth0.com/ai/docs/intro/asynchronous-authorization | có |
 | N30 | Auth0, user authorization with CIBA | Tài liệu | https://auth0.com/docs/get-started/authentication-and-authorization-flow/client-initiated-backchannel-authentication-flow/user-authorization-with-ciba.md | có |
@@ -538,5 +538,5 @@ Một số sản phẩm đổi tên hoặc đổi gói rất nhanh; tên trong b
 | 1 | Thêm mục "mua hay dựng" vào ADR-0001, so ba đường: mua, dựng trên nền mã nguồn mở, tự dựng | ADR nêu tiêu chí và lý do đường được chọn thắng |
 | 2 | Dùng biên lai của Liyagent làm danh sách trường cho vết của Lab | Vết của Lab có đủ người yêu cầu, người duyệt, dấu vân tay nội dung, mã chống ghi trùng, chi phí |
 | 3 | Dùng mô hình "Read a field" và "Write a field" của StackOne làm khung cho luật che trường của Lab, nhưng mặc định từ chối | Luật của Lab che số điện thoại cá nhân với chị Hoa và từ chối Nam đổi người phụ trách, có phép thử tự động |
-| 4 | Đọc luồng duyệt và cách từ chối khi lỗi trong mã Preloop, tối đa nửa ngày, khi dựng phần duyệt | Điểm mượn được ghi vào [tổng hợp phát hiện](../findings.md) |
+| 4 | Đọc luồng duyệt và cách từ chối khi lỗi trong mã Preloop, tối đa nửa ngày, khi dựng phần duyệt | Điểm mượn được ghi vào [tổng hợp phát hiện](../../findings.md) |
 | 5 | Chạy HM1, HM3, HM4, HM6 với dữ liệu giả ở bước đánh giá | Mỗi giả thuyết có một kết quả và một lệnh chạy lại |

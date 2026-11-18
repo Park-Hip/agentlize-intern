@@ -35,7 +35,7 @@ Phần chưa ai đóng gói là ý nghĩa của một lần ghi.
 
 ## 2. Bảng chấm rút gọn
 
-Mỗi sản phẩm được chấm theo tám yêu cầu của Lab ([PRD, mục 6](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc)):
+Mỗi sản phẩm được chấm theo tám yêu cầu của Lab ([PRD, mục 6](../../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc)):
 SR1 (danh tính và một cửa ghi), SR2 (luật chạy được), SR3 (phạm vi quyền), SR4 (điểm dừng rủi ro), SR5 (không chắc thì chặn), SR6 (không ghi trùng), SR7 (vết xuyên suốt), SR8 (dùng lại, quyền theo người).
 
 Đ là tài liệu nêu đủ cơ chế, P là có một phần, K là không có hoặc làm ngược, ? là chưa thấy trong tài liệu.
@@ -81,7 +81,7 @@ Liyagent ghi `on_behalf_of` và `run_as`; StackOne áp luật theo "thành viên
 Nếu cổng chỉ biết agent, Nam (thực tập sinh) nhờ agent chuyển task T-12 vẫn thành công, và lịch sử chỉ ghi tên tài khoản của agent.
 
 **Hệ quả cho cổng:** mỗi lệnh mang hai tên, người yêu cầu và agent thực hiện.
-Trong Thổ Thần, cổng nhận ra người hỏi qua khóa riêng của từng người, vì Thổ Thần không tự gửi danh tính ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)).
+Trong Thổ Thần, cổng nhận ra người hỏi qua khóa riêng của từng người, vì Thổ Thần không tự gửi danh tính ([tổng hợp phát hiện, mục 4](../../findings.md#4-thổ-thần)).
 
 ### 3.3. Che dữ liệu theo người hỏi đã là tính năng bán được
 

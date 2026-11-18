@@ -1,6 +1,6 @@
 # Agent Orchestration - ghi chú nguồn cho so sánh phương án
 
-Ngày: 2026-11-13. Trạng thái: ghi chú nghiên cứu chưa duyệt, phục vụ [so sánh phương án](../option-comparison.md), không phải ADR hay đề xuất chọn stack.
+Ngày: 2026-11-13. Trạng thái: ghi chú nghiên cứu chưa duyệt, phục vụ [so sánh phương án](option-comparison.md), không phải ADR hay đề xuất chọn stack.
 
 ## 1. Cơ chế là gì và bằng chứng nào thực sự thuộc SDK?
 

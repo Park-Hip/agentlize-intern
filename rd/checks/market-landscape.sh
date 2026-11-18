@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Kiểm chéo nguồn cho rd/research/market-landscape.md
+# Kiểm chéo nguồn cho rd/research/market/market-landscape.md
 # Mỗi dòng kiểm một câu trích: mở URL, bỏ thẻ HTML, gộp khoảng trắng, so khớp nguyên văn.
 # Cách chạy: bash rd/checks/market-landscape.sh
 # Kỳ vọng: toàn bộ PASS. Trang sản phẩm Microsoft Agent 365 (N22) trả lỗi với curl nên không có dòng kiểm.

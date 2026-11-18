@@ -32,7 +32,7 @@ PRD biến điều này thành tám yêu cầu SR1-SR8, mỗi yêu cầu có m�
 ## 2. Năm cách nối AI với hệ thống
 
 Lab đã khảo sát năm cách: gọi hàm (function calling), MCP (chuẩn chung để nhiều phần mềm gọi cùng bộ công cụ), công cụ chạy quy trình (workflow engine), điều phối agent (agent orchestration) và tích hợp theo sự kiện (event-driven).
-Chi tiết ở [so sánh phương án](research/option-comparison.md) và [ba ghi chú nguồn cho năm cách](research/five-methods).
+Chi tiết ở [so sánh phương án](research/methods/option-comparison.md) và [ba ghi chú nguồn cho năm cách](research/methods).
 
 Ba phát hiện:
 
@@ -45,8 +45,8 @@ Ba phát hiện:
 ## 3. Thị trường 2026
 
 Lab đã chấm mười một sản phẩm theo tám yêu cầu, chỉ qua tài liệu công bố, chưa chạy thử sản phẩm nào.
-Bảng chấm và 93 câu trích kiểm lại được ở [khảo sát thị trường](research/market-landscape.md).
-Bảy bài học, bảng việc của cổng và điều kiện xem lại quyết định ở [bài học từ thị trường](research/market-lessons.md).
+Bảng chấm và 93 câu trích kiểm lại được ở [khảo sát thị trường](research/market/market-landscape.md).
+Bảy bài học, bảng việc của cổng và điều kiện xem lại quyết định ở [bài học từ thị trường](research/market/market-lessons.md).
 
 Không sản phẩm nào đạt đủ tám yêu cầu; Liyagent gần nhất với 5 đạt.
 Mỗi mảnh khó chỉ có một sản phẩm làm: StackOne che trường theo người hỏi, Liyagent khóa lời duyệt vào đúng nội dung, và không ai chống ghi trùng ở hệ đích.
@@ -59,7 +59,7 @@ Ba điều mang sang thiết kế:
 
 **Kết luận:** mua sản phẩm nào thì Lab vẫn phải tự viết phần gộp SR3, SR4 và SR6, nên tự dựng một cổng mỏng là đúng.
 Sản phẩm dùng làm mốc "mua" ở bước đánh giá, không làm nền cho bản thử.
-Preloop là mã nguồn mở nên đọc được, nhưng thiếu đúng SR1 (người yêu cầu) và SR6, nên dựng trên nó vẫn phải viết lại phần lõi ([khảo sát thị trường, mục 6.2](research/market-landscape.md#62-sản-phẩm-có-giải-bài-toán-của-lab-không)).
+Preloop là mã nguồn mở nên đọc được, nhưng thiếu đúng SR1 (người yêu cầu) và SR6, nên dựng trên nó vẫn phải viết lại phần lõi ([khảo sát thị trường, mục 6.2](research/market/market-landscape.md#62-sản-phẩm-có-giải-bài-toán-của-lab-không)).
 
 ## 4. Thổ Thần
 
@@ -78,7 +78,7 @@ Hai là đọc mã nguồn LobeHub 2.1.56 phần gọi MCP, gọi mô hình và 
 | Nối bằng cách nào | Chat gọi được tool qua cả stdio và Streamable HTTP. HTTP chỉ chạy khi server có địa chỉ HTTPS công khai: nối tới `localhost` báo lỗi `fetch failed`, vì lời gọi đi qua máy chủ Thổ Thần ([kịch bản đo, mục 4.8](appota/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6)). | Cổng chạy ở một máy chủ chung và Thổ Thần web lẫn desktop gọi `/mcp` qua HTTPS; không có chương trình nối stdio ([ADR-0004](../docs/adr/adr-0004-shared-gateway-over-https.md)). Cần một địa chỉ công khai: đường hầm tạm cho tới khi Kevin cho máy chủ thật. |
 | Danh tính | Qua stdio, server chỉ thấy tên ứng dụng, không thấy tài khoản. Qua HTTPS công khai, máy chủ Thổ Thần gắn thêm bốn header mang mã và email người dùng (đo 2026-11-17, một tài khoản). Mã LobeHub 2.1.56 không gắn các header này, nên đó là phần Appota thêm; chưa biết Thổ Thần ghi đè hay nối thêm header người dùng tự đặt ([mục 3.6](appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17), [mục 6.2](appota/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt)). Màn hình cấu hình chỉ có "không xác thực" và "khoá API", không có đăng nhập ủy quyền (OAuth2). Khoá Bearer do người thêm skill đặt và tới được server; phép đo chỉ dùng một tài khoản và một skill nên chưa biết khoá riêng từng người hay dùng chung. Ai có token gọi thẳng endpoint cũng tự đặt được `x-user-id`. | Cổng cấp và tự kiểm khoá riêng cho từng người, nhận ra người hỏi qua khoá đó. Đổi khoá có hiệu lực ở lần gọi sau, không cần mở lại ứng dụng. Header của Thổ Thần chỉ làm lớp kiểm thứ hai, và chỉ khi H9 (ghi đè `x-user-id`) và H10 (phiên tách theo người dùng) đúng ([mục 6.5](appota/tho-than-platform.md#65-hệ-quả-cho-adr-0005)). |
 | Danh tính trong lời gọi tới mô hình | Mã LobeHub gửi mã người dùng thô trong nội dung lời gọi: `user`, `safety_identifier` hoặc `metadata.user_id`, tuỳ nhà cung cấp. Chỉ đọc mã, chưa đo ([mục 6.3](appota/tho-than-platform.md#63-lời-gọi-model-có-danh-tính-nhưng-trong-body)). | Không coi lời gọi tới mô hình là ẩn danh khi đưa dữ liệu vào chat. |
-| Duyệt | Không hỏi trước khi gọi công cụ ghi, kể cả ở chế độ duyệt tay. Mã giải thích vì sao: công cụ MCP không khai báo chính sách duyệt (`humanIntervention`), nên chế độ tay vẫn cho chạy. Ngoài ba chế độ hiện trên giao diện còn một chế độ ẩn `headless`, API nhận và là mặc định khi lời gọi không gửi cấu hình ([mục 6.4](appota/tho-than-platform.md#64-bốn-chế-độ-duyệt-ba-chế-độ-hiện-trên-giao-diện)). Không có biểu mẫu hỏi người dùng (elicitation). Link trong kết quả bấm được và mở trình duyệt. | Cổng không được dựa vào hộp duyệt của Thổ Thần: tự kiểm quyền và tự chặn ghi. Duyệt nằm ở trang riêng của cổng, mở bằng link; khớp [bài học về kênh duyệt](research/market-lessons.md#34-lời-duyệt-phải-khóa-vào-đúng-nội-dung-và-đi-qua-kênh-agent-không-giả-được). |
+| Duyệt | Không hỏi trước khi gọi công cụ ghi, kể cả ở chế độ duyệt tay. Mã giải thích vì sao: công cụ MCP không khai báo chính sách duyệt (`humanIntervention`), nên chế độ tay vẫn cho chạy. Ngoài ba chế độ hiện trên giao diện còn một chế độ ẩn `headless`, API nhận và là mặc định khi lời gọi không gửi cấu hình ([mục 6.4](appota/tho-than-platform.md#64-bốn-chế-độ-duyệt-ba-chế-độ-hiện-trên-giao-diện)). Không có biểu mẫu hỏi người dùng (elicitation). Link trong kết quả bấm được và mở trình duyệt. | Cổng không được dựa vào hộp duyệt của Thổ Thần: tự kiểm quyền và tự chặn ghi. Duyệt nằm ở trang riêng của cổng, mở bằng link; khớp [bài học về kênh duyệt](research/market/market-lessons.md#34-lời-duyệt-phải-khóa-vào-đúng-nội-dung-và-đi-qua-kênh-agent-không-giả-được). |
 | Gọi lại và thời gian chờ | Không tự gọi lại khi công cụ báo lỗi. Cắt mọi lệnh sau 60 giây, và nút dừng không hủy ngay. Mỗi lần gọi là một tiến trình mới. | Công cụ phải trả lời dưới 60 giây; việc dài như chuyển 30 task chạy nền và trả mã theo dõi. Mọi trạng thái lưu ở cổng, không giữ trong bộ nhớ. |
 | Hiển thị và vết | Không hiện dữ liệu có cấu trúc. Kết quả lỗi của probe vẫn có dấu tích xanh; lời từ chối của cổng Lab, có đánh dấu lỗi (`isError`), hiện dấu cảnh báo "1 failed" trên desktop ([nghiệm thu mốc 2, mục 2](evaluation/milestone-2-tho-than.md#2-kịch-bản-b-nam-bị-từ-chối)). Không có mã vết, không có số token. | Kết quả viết bằng chữ dễ đọc, lỗi ghi rõ trong chữ. Cổng tự sinh mã vết cho SR7 (vết xuyên suốt). |
 
@@ -144,7 +144,7 @@ Chuyển 30 task cần anh Quang duyệt là kịch bản thứ tư, làm khi ba
 | H10 (phiên tách theo người dùng): hai người cùng cấu hình có chung phiên MCP không? | Không chung; chưa chứng minh | Hai tài khoản cùng skill, so `mcp-session-id` và `x-user-id` | Trước khi bật lớp thứ hai của ADR-0005; cần tài khoản thứ hai |
 | H11 (`execAgent` mặc định không hỏi duyệt): gọi `execAgent` không kèm cấu hình duyệt có chạy công cụ ghi mà không hỏi không? | Có, vì mã mặc định `headless`; mới đọc mã, chưa đo | Gọi API với công cụ ghi giả lập, xem có bản ghi chờ duyệt không | Khi đo kênh duyệt của Thổ Thần, cần Kevin |
 
-Q1 và Q2 chi tiết ở [câu hỏi kiểm chứng](design/research-questions-and-validation-plan.md).
+Q1 và Q2 chi tiết ở [câu hỏi kiểm chứng](evaluation/research-questions-and-validation-plan.md).
 Ba câu H9 tới H11 chi tiết ở [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được).
 Hai câu về thiết bị và Hook, cùng mọi mối nối giữa Appota, AgentLize, Thổ Thần, MausBot và Lab ở [bản đồ hệ thống](design/system-map.md).
 
@@ -179,12 +179,12 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 ## 9. Tài liệu chi tiết
 
 - [PRD](problem/prd-ai-platform.md) và [bảng thuật ngữ](problem/glossary.md): bài toán, người dùng, tám yêu cầu, sáu chỉ số.
-- [Khảo sát thị trường](research/market-landscape.md): mười một sản phẩm chấm theo tám yêu cầu, kèm nguồn.
-- [Bài học từ thị trường](research/market-lessons.md): bảy bài học, việc của cổng, và khi nào xem lại quyết định tự dựng.
-- [So sánh phương án](research/option-comparison.md) và [khung so sánh chi tiết](research/comparison-framework.md): năm cách nối.
+- [Khảo sát thị trường](research/market/market-landscape.md): mười một sản phẩm chấm theo tám yêu cầu, kèm nguồn.
+- [Bài học từ thị trường](research/market/market-lessons.md): bảy bài học, việc của cổng, và khi nào xem lại quyết định tự dựng.
+- [So sánh phương án](research/methods/option-comparison.md) và [khung so sánh chi tiết](research/methods/comparison-framework.md): năm cách nối.
 - [Kiến trúc hệ thống thật](research/real-system-architectures.md) và [tổng quan MCP](research/mcp-overview.md).
 - [MausBot](research/mausbot.md): ứng dụng agent mã nguồn mở, ứng viên nơi chạy thứ hai cho bộ công cụ của Lab; đứng ở lớp thực thi cạnh Thổ Thần desktop và trùng vai một phần với AgentLize.
 - [Khảo sát Thổ Thần](appota/tho-than-platform.md), [kịch bản đo MCP trong Thổ Thần](appota/tho-than-mcp-probe.md), [tình huống Appota](appota/appota-cases.md), [skill của AppotaPay](appota/appotapay-skills.md).
 - [Spec bản thử đầu](design/mvp-spec.md): bản thử chứng minh gì, kiến trúc, phép thử và bốn mốc.
 - [Bản đồ hệ thống](design/system-map.md) và [bản vẽ](design/system-map.html): năm mảnh ghép nối với nhau thế nào, mối nối nào đã đo, điều gì chưa biết và cách kiểm.
-- [Câu hỏi kiểm chứng](design/research-questions-and-validation-plan.md): Q1 (sập giữa chừng) và Q2 (MCP tiết kiệm bao nhiêu công), cách thử và đối chứng.
+- [Câu hỏi kiểm chứng](evaluation/research-questions-and-validation-plan.md): Q1 (sập giữa chừng) và Q2 (MCP tiết kiệm bao nhiêu công), cách thử và đối chứng.

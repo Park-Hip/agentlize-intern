@@ -223,7 +223,7 @@ Nhóm D gồm một phép chạy cần gói nhóm trả phí và hai câu hỏi 
 ## 7. Mẫu thiết kế đáng chép
 
 MausBot là mã nguồn mở và đã gặp đúng các vấn đề của Lab.
-Bốn mẫu khớp với [bài học từ thị trường](market-lessons.md):
+Bốn mẫu khớp với [bài học từ thị trường](market/market-lessons.md):
 
 1. **Chữ không phải là lời duyệt.** Mọi dòng bot đọc được gắn nhãn nguồn; dòng từ bot khác, webhook hay ứng dụng ngoài chỉ là thông tin, kể cả khi ghi "đã duyệt".
 2. **"Luôn cho phép" chỉ cho lệnh đọc.** Quyền nhớ sẵn gắn đúng bot, đúng server, đúng công cụ, và mất khi cấu hình server đổi; lệnh tạo, sửa, xoá luôn hỏi lại.
