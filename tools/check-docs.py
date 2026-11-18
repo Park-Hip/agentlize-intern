@@ -5,6 +5,7 @@ Run from anywhere: python tools/check-docs.py
 Exit code 1 when any problem is found.
 """
 import re
+import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import unquote
@@ -25,8 +26,20 @@ META_FORBIDDEN = re.compile(
 META_WINDOW = 20  # the metadata line lives in this many first lines, under the title
 
 
+def candidates():
+    """Tracked files plus new files git would add; git-ignored runtime files (lab/.data) never count."""
+    try:
+        out = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+            cwd=ROOT, capture_output=True, check=True,
+        ).stdout.decode("utf-8")
+        return [ROOT / name for name in out.split("\0") if name]
+    except (OSError, subprocess.CalledProcessError):
+        return list(ROOT.rglob("*"))
+
+
 def files():
-    for p in sorted(ROOT.rglob("*")):
+    for p in sorted(set(candidates())):
         if p.is_file() and not (set(p.relative_to(ROOT).parts) & SKIP_DIRS):
             yield p
 

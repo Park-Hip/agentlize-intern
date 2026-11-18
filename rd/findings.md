@@ -1,6 +1,6 @@
 # Tổng hợp phát hiện - AI Operations Connector Lab
 
-Ngày: 2026-11-17. Trạng thái: đã cắm thử MCP vào Thổ Thần (desktop và web), đo HTTPS công khai, kiểm khoá riêng và đọc mã LobeHub 2.1.56; chưa có bản thử của Lab.
+Ngày: 2026-11-18. Trạng thái: bản thử của Lab đã chạy trong Thổ Thần desktop cho tra cứu có lọc và ghi một task; bản web chưa bật được skill.
 
 Đây là điểm vào của phần nghiên cứu.
 Mỗi mục tóm tắt một nhóm tài liệu và trỏ về bản chi tiết.
@@ -80,7 +80,7 @@ Hai là đọc mã nguồn LobeHub 2.1.56 phần gọi MCP, gọi mô hình và 
 | Danh tính trong lời gọi tới mô hình | Mã LobeHub gửi mã người dùng thô trong nội dung lời gọi: `user`, `safety_identifier` hoặc `metadata.user_id`, tuỳ nhà cung cấp. Chỉ đọc mã, chưa đo ([mục 6.3](appota/tho-than-platform.md#63-lời-gọi-model-có-danh-tính-nhưng-trong-body)). | Không coi lời gọi tới mô hình là ẩn danh khi đưa dữ liệu vào chat. |
 | Duyệt | Không hỏi trước khi gọi công cụ ghi, kể cả ở chế độ duyệt tay. Mã giải thích vì sao: công cụ MCP không khai báo chính sách duyệt (`humanIntervention`), nên chế độ tay vẫn cho chạy. Ngoài ba chế độ hiện trên giao diện còn một chế độ ẩn `headless`, API nhận và là mặc định khi lời gọi không gửi cấu hình ([mục 6.4](appota/tho-than-platform.md#64-bốn-chế-độ-duyệt-ba-chế-độ-hiện-trên-giao-diện)). Không có biểu mẫu hỏi người dùng (elicitation). Link trong kết quả bấm được và mở trình duyệt. | Cổng không được dựa vào hộp duyệt của Thổ Thần: tự kiểm quyền và tự chặn ghi. Duyệt nằm ở trang riêng của cổng, mở bằng link; khớp [bài học về kênh duyệt](research/market-lessons.md#34-lời-duyệt-phải-khóa-vào-đúng-nội-dung-và-đi-qua-kênh-agent-không-giả-được). |
 | Gọi lại và thời gian chờ | Không tự gọi lại khi công cụ báo lỗi. Cắt mọi lệnh sau 60 giây, và nút dừng không hủy ngay. Mỗi lần gọi là một tiến trình mới. | Công cụ phải trả lời dưới 60 giây; việc dài như chuyển 30 task chạy nền và trả mã theo dõi. Mọi trạng thái lưu ở cổng, không giữ trong bộ nhớ. |
-| Hiển thị và vết | Không hiện dữ liệu có cấu trúc. Kết quả lỗi vẫn có dấu tích xanh. Không có mã vết, không có số token. | Kết quả viết bằng chữ dễ đọc, lỗi ghi rõ trong chữ. Cổng tự sinh mã vết cho SR7 (vết xuyên suốt). |
+| Hiển thị và vết | Không hiện dữ liệu có cấu trúc. Kết quả lỗi của probe vẫn có dấu tích xanh; lời từ chối của cổng Lab, có đánh dấu lỗi (`isError`), hiện dấu cảnh báo "1 failed" trên desktop ([nghiệm thu mốc 2, mục 2](evaluation/milestone-2-tho-than.md#2-kịch-bản-b-nam-bị-từ-chối)). Không có mã vết, không có số token. | Kết quả viết bằng chữ dễ đọc, lỗi ghi rõ trong chữ. Cổng tự sinh mã vết cho SR7 (vết xuyên suốt). |
 
 Độ tin cậy: cao với duyệt, thời gian chờ, đường đi của khoá và việc lời gọi đi qua máy chủ Thổ Thần (có log, ảnh, lặp lại, thêm đọc mã); trung bình với nguồn gốc header danh tính và việc chia sẻ khoá, vì mới có một tài khoản, một skill và log gốc của phép đo HTTPS không còn trên máy đo, chỉ còn bản tóm tắt ([khảo sát Thổ Thần, mục 3.6](appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
 Lỗi `fetch failed` ở `localhost` đã có lời giải thích khớp phép đo: lời gọi trong chat đi qua máy chủ Thổ Thần nên không tới được máy người dùng, còn địa chỉ công khai thì tới được.
@@ -170,6 +170,8 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 | Tuần 2, trước khi bật lớp thứ hai của ADR-0005 | Chạy H9 và H10; H11 phục vụ kênh duyệt (mục 6) | Kết quả ghi vào cột cuối của bảng H trong [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được) |
 | Tuần 2 | Viết các ADR đầu: dựng cổng mỏng cắm vào Thổ Thần, nơi chạy và cách nối, danh tính người hỏi, kênh duyệt và chống ghi trùng, công nghệ; rồi viết spec bản thử | `docs/adr/adr-0001-<slug>.md` trở đi, `rd/design/mvp-spec.md` |
 | Tuần 2 | Dựng hai hệ thống giả lập, cổng kiểm soát, MCP server và tám phép thử | `lab/` chạy được bằng một lệnh; ba kịch bản ở 5.2 chạy trong Thổ Thần |
+| Xong 2026-11-18, bản desktop | Mốc 1 (tra cứu có lọc, đổi khoá đổi người trong vết) và mốc 2 (chị Hoa ghi T-12 sau khi bấm Gửi, Nam bị từ chối, câu lừa trong T-13 không được làm theo) | [Nghiệm thu mốc 1, mục 12](evaluation/milestone-1-tho-than.md#12-phiên-2026-11-18-việc-còn-mở), [nghiệm thu mốc 2](evaluation/milestone-2-tho-than.md) |
+| Tuần 3, trước mốc 3 | Chạy lại mốc 1 và 2 trên bản web (ô bật skill xoay mãi ngày 2026-11-18); cho link xác nhận dùng địa chỉ đường hầm; cổng nói rõ trường bị ẩn theo quyền | [Nghiệm thu mốc 2, mục 6](evaluation/milestone-2-tho-than.md#6-việc-tiếp-theo) |
 | Tuần 3-4 | Thêm cửa gọi hàm, kịch bản 30 task, trả lời Q1, đo lần đầu | Số đo baseline |
 | Tuần 5-6 | Đánh giá, trả lời Q2, chạy thử sản phẩm làm cột "mua" | Báo cáo có mục "khi nào không nên dùng MCP" |
 
