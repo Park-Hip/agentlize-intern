@@ -73,6 +73,15 @@ ${entrySelect(query.typed.entry)}
 </form>`;
 }
 
+/**
+ * A rule or tool code with a break chance after each dot and underscore, so a
+ * long code such as intern.change_task_assignee_or_due wraps inside its cell
+ * instead of pushing the table wider than a laptop screen.
+ */
+function breakable(code: string): string {
+  return esc(code).replace(/([._])/g, '$1<wbr>');
+}
+
 function outcomeBadge(row: TraceRow): string {
   const tone = row.outcome === 'ok' ? ' ok' : row.outcome === 'error' ? ' bad' : ' warn';
   const scope = row.outOfScope ? '<span class="detail">ngoài phạm vi</span>' : '';
@@ -88,9 +97,9 @@ function whoLine(row: TraceRow): string {
 
 function toolCell(row: TraceRow): string {
   const key = row.idempotencyKey ?? null;
-  if (key === null) return `<code>${esc(row.tool)}</code>${whoLine(row)}`;
+  if (key === null) return `<code>${breakable(row.tool)}</code>${whoLine(row)}`;
   const attempts = row.attempts === null || row.attempts === undefined ? '-' : String(row.attempts);
-  return `<code>${esc(row.tool)}</code><small>khoá ghi <code>${esc(key)}</code>, lần gửi ${attempts}</small>${whoLine(row)}`;
+  return `<code>${breakable(row.tool)}</code><small>khoá ghi <code>${esc(key)}</code>, lần gửi ${attempts}</small>${whoLine(row)}`;
 }
 
 function rowCells(row: TraceRow): string {
@@ -100,15 +109,24 @@ function rowCells(row: TraceRow): string {
 <td class="trace-entry" data-label="Cửa vào">${esc(entryLabel(row.entry))} <code>${esc(row.entry)}</code></td>
 <td class="trace-tool" data-label="Tool">${toolCell(row)}</td>
 <td data-label="Kết quả">${outcomeBadge(row)}</td>
-<td data-label="Mã lý do">${row.reasonCode === null ? '-' : `<code>${esc(row.reasonCode)}</code>`}</td>
-<td data-label="Mã luật">${row.ruleId === null ? '-' : `<code>${esc(row.ruleId)}</code>`}</td>
+<td data-label="Mã lý do">${row.reasonCode === null ? '-' : `<code>${breakable(row.reasonCode)}</code>`}</td>
+<td data-label="Mã luật">${row.ruleId === null ? '-' : `<code>${breakable(row.ruleId)}</code>`}</td>
 <td class="num" data-label="Phiên bản luật">${row.policyVersion === null ? '-' : `v${row.policyVersion}`}</td>
 </tr>`;
 }
 
+/**
+ * The person and task a group is about, named only when every line shares it:
+ * the "outside a proposal" group mixes people and tasks, and naming the first
+ * one there would mislabel the rest.
+ */
 function groupSummary(group: TraceGroup): string {
-  const requester = group.rows.find((row) => row.requester !== null)?.requester;
-  const objectId = group.rows.find((row) => row.objectId !== null)?.objectId;
+  const only = (values: readonly (string | null)[]): string | undefined => {
+    const distinct = new Set(values.filter((value): value is string => value !== null));
+    return distinct.size === 1 ? [...distinct][0] : undefined;
+  };
+  const requester = only(group.rows.map((row) => row.requester));
+  const objectId = only(group.rows.map((row) => row.objectId));
   const parts = [requester, objectId === undefined ? undefined : `task ${objectId}`].filter(
     (part): part is string => part !== undefined,
   );
