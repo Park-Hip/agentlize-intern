@@ -178,8 +178,9 @@ test('acceptance: removing work_email from staff in the console changes the next
 
   const asHoa = await call('hoa');
   assert.match(asHoa, /Vũ Quốc Minh/);
-  assert.equal(asHoa.includes('Email công việc'), false);
+  assert.equal(asHoa.includes('Email công việc: '), false);
   assert.equal(asHoa.includes('@lab.example'), false);
+  assert.match(asHoa, /Không hiện theo quyền của bạn: Email công việc, Số điện thoại cá nhân, Địa chỉ nhà\./);
 
   // The hr role was not touched: the same person still carries the email for hr.
   const asNhung = await call('nhung');

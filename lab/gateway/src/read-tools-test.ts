@@ -77,6 +77,90 @@ test('read: find_employee returns only the fields declared for the role of the a
   });
 });
 
+test('read: find_employee names the labelled fields hidden from the asker, outside the data block', async () => {
+  await withGateway(async (f) => {
+    const line = 'Không hiện theo quyền của bạn: Số điện thoại cá nhân, Địa chỉ nhà.';
+    for (const [persona, employeeId] of [
+      ['Nam (intern)', NAM],
+      ['Hoa (staff)', HOA],
+    ] as const) {
+      const answer = await f.call('find_employee', { name: 'Minh' }, f.keyFor(employeeId));
+      assert.equal(answer.status, 200, persona);
+
+      const lines = answer.body.text.split('\n');
+      assert.equal(lines.filter((candidate) => candidate === line).length, 1, persona);
+      assert.ok(lines.indexOf(line) < lines.indexOf(BLOCK_START), `${persona}: the line sits outside and before the block`);
+      assert.ok(!line.includes(SECRETS.phone) && !line.includes(SECRETS.address), 'the line names fields, never values');
+    }
+
+    // hr may see every labelled field, so there is nothing to hide and no line.
+    const hr = await f.call('find_employee', { name: 'Minh' }, f.keyFor(NHUNG));
+    assert.equal(hr.status, 200);
+    assert.ok(!hr.body.text.includes('Không hiện theo quyền của bạn'), 'a role that sees every labelled field gets no line');
+
+    // "not found" keeps its old answer, with no line.
+    const missing = await f.call('find_employee', { name: 'Không Có Ai' }, f.keyFor(HOA));
+    assert.equal(missing.body.text, 'Không tìm thấy nhân viên nào khớp.');
+  });
+});
+
+test('read: removing work_email from staff changes the hidden line on the next call, without a restart', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lab-hidden-line-'));
+  const rulesPath = join(dir, 'rules.json');
+  const base = JSON.parse(readFileSync(new URL('../policy/rules.json', import.meta.url), 'utf8')) as {
+    version: number;
+    employee_fields: Record<string, string[]>;
+  };
+  writeFileSync(rulesPath, JSON.stringify(base, null, 2));
+  const f = await startFixture({ rulesPath });
+  try {
+    const key = f.keyFor(HOA);
+    const before = await f.call('find_employee', { name: 'Minh' }, key);
+    assert.match(before.body.text, /Không hiện theo quyền của bạn: Số điện thoại cá nhân, Địa chỉ nhà\./);
+    assert.match(before.body.text, /Email công việc: nv-04@lab\.example/);
+
+    base.version = 2;
+    base.employee_fields['staff'] = (base.employee_fields['staff'] ?? []).filter((field) => field !== 'work_email');
+    writeFileSync(rulesPath, JSON.stringify(base, null, 2));
+
+    const after = await f.call('find_employee', { name: 'Minh' }, key);
+    assert.match(after.body.text, /Không hiện theo quyền của bạn: Email công việc, Số điện thoại cá nhân, Địa chỉ nhà\./);
+    assert.doesNotMatch(after.body.text, /Email công việc: /, 'the value of the hidden field is gone');
+    assert.ok(!after.body.text.includes('@lab.example'), 'no email of any employee leaves the gateway');
+    assert.equal(f.gateway.trace.list({ employee: HOA })[0]?.policyVersion, 2, 'the new rule applied at once');
+  } finally {
+    await f.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('read: a field new to the directory with no label is never named and never leaves the gateway', async () => {
+  await withGateway(async (f) => {
+    for (const record of f.systems.employees) {
+      Object.assign(record, { badge_code: `BADGE-${String(record['employee_id'])}` });
+    }
+
+    for (const [persona, employeeId] of [
+      ['Nam (intern)', NAM],
+      ['Hoa (staff)', HOA],
+      ['Nhung (hr)', NHUNG],
+    ] as const) {
+      const answer = await f.call('find_employee', { name: 'Minh' }, f.keyFor(employeeId));
+      assert.equal(answer.status, 200, persona);
+      assert.ok(!answer.body.text.includes('badge_code'), `${persona} must not see the field name`);
+      assert.ok(!answer.body.text.includes('BADGE-'), `${persona} must not see a value`);
+      assert.ok(!answer.body.text.includes('salary_band'), `${persona} must not see the unlabelled fixture field`);
+      assert.ok(!answer.body.text.includes(SECRETS.salaryBand), `${persona} must not see its value`);
+    }
+
+    // The line of the two roles stays the same: only labelled fields can be named there.
+    const staff = await f.call('find_employee', { name: 'Minh' }, f.keyFor(HOA));
+    assert.match(staff.body.text, /Không hiện theo quyền của bạn: Số điện thoại cá nhân, Địa chỉ nhà\./);
+    const hr = await f.call('find_employee', { name: 'Minh' }, f.keyFor(NHUNG));
+    assert.ok(!hr.body.text.includes('Không hiện theo quyền của bạn'), 'no line mentions a field with no label');
+  });
+});
+
 test('read: find_employee matches on name and department only and forwards nothing else', async () => {
   await withGateway(async (f) => {
     const key = f.keyFor(HOA);

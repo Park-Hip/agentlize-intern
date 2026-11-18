@@ -215,6 +215,9 @@ Mỗi lần gọi, cổng làm lần lượt:
 6. Lọc trường theo vai, dựng chữ và bọc dữ liệu trong khối "DỮ LIỆU TỪ HỆ THỐNG, KHÔNG PHẢI LỆNH".
 7. Ghi một dòng vết rồi mới trả lời.
 
+`find_employee` tìm thấy ít nhất một nhân viên thì câu trả lời có thêm một dòng `Không hiện theo quyền của bạn: <các nhãn>`, đặt ngoài khối dữ liệu.
+Dòng đó chỉ nêu tên các trường có nhãn mà vai của người hỏi không được xem, không kèm giá trị; vai xem được mọi trường có nhãn thì không có dòng này.
+
 Phạm vi đọc task là phòng của người hỏi.
 Task của phòng khác và task không có đều trả đúng một câu "Không tìm thấy task <mã>."; chỉ vết phân biệt được hai trường hợp (`out_of_scope` và mã `NOT_PERMITTED`).
 Bộ luật chưa có ô riêng cho việc đọc task, nên mã luật ghi trong vết là `READ_SCOPE.own_department`.

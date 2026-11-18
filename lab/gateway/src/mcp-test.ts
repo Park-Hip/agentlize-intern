@@ -109,8 +109,10 @@ test('mcp: the same field allowlist applies, so HR sees what staff does not', as
     const asHr = firstText(await invoke(hr, 'find_employee', { name: 'Minh' }));
     await Promise.all([staff.close(), hr.close()]);
 
-    assert.ok(!asStaff.includes('Số điện thoại cá nhân'));
+    assert.ok(!asStaff.includes('Số điện thoại cá nhân: 0900'), 'the value of a hidden field never leaves the gateway');
+    assert.ok(asStaff.includes('Không hiện theo quyền của bạn: Số điện thoại cá nhân, Địa chỉ nhà.'));
     assert.ok(asHr.includes('Số điện thoại cá nhân: 0900 555 004'));
+    assert.ok(!asHr.includes('Không hiện theo quyền của bạn'), 'hr sees every labelled field');
   });
 });
 

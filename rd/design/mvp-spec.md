@@ -153,7 +153,7 @@ Phép thử tự động kiểm điều này bằng cách đọc danh sách tool
 
 ### 4.4. Cổng trả lời thế nào
 
-Bốn quy ước dưới đây áp cho mọi tool, ở cả hai cửa.
+Năm quy ước dưới đây áp cho mọi tool, ở cả hai cửa.
 Lý do của từng quy ước nằm ở [ADR-0002, mục 2](../../docs/adr/adr-0002-safe-read-and-write.md#2-quyết-định-về-đọc).
 
 1. **Chỉ trả trường đã khai.**
@@ -168,6 +168,9 @@ Lý do của từng quy ước nằm ở [ADR-0002, mục 2](../../docs/adr/adr-
 4. **Ngoài phạm vi đọc thì "không tìm thấy".**
    Hỏi về một task của phòng khác thì cổng trả "không tìm thấy", không nói task đó có tồn tại.
    Lệnh trên thứ người hỏi đã thấy, như Nam với T-12, thì cổng nêu lý do và người cần hỏi.
+5. **Nói rõ trường bị ẩn theo quyền.**
+   Khi `find_employee` tìm thấy ít nhất một nhân viên, câu trả lời thêm một dòng ngoài khối dữ liệu, ví dụ "Không hiện theo quyền của bạn: Số điện thoại cá nhân, Địa chỉ nhà."
+   Dòng đó chỉ nêu tên các trường có nhãn trong bảng nhãn trường (`EMPLOYEE_FIELD_LABELS`) mà vai của người hỏi không được xem, không kèm giá trị; trường mới chưa có nhãn thì không được nêu tên.
 
 Mã lý do ban đầu:
 

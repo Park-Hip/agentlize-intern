@@ -72,9 +72,10 @@ for (const door of DOORS) {
       assert.ok(answer.text.includes('NV-04'));
       assert.ok(answer.text.includes('Vũ Quốc Minh'));
       assert.match(answer.text, /Email công việc: \S+@lab\.example/);
-      assert.ok(!answer.text.includes('Số điện thoại cá nhân'));
+      assert.match(answer.text, /Không hiện theo quyền của bạn: Số điện thoại cá nhân, Địa chỉ nhà\./);
+      assert.ok(!answer.text.includes('Số điện thoại cá nhân: '), 'the label of a hidden field comes with no value');
       assert.ok(!answer.text.includes('0900 555'));
-      assert.ok(!answer.text.includes('Địa chỉ nhà'));
+      assert.ok(!answer.text.includes('Địa chỉ nhà: '));
     });
 
     await t.test('chị Nhung in HR sees the two personal fields of the same person', async () => {
@@ -82,7 +83,8 @@ for (const door of DOORS) {
       assert.equal(answer.status, 200);
       assert.equal(answer.reasonCode, null);
       assert.ok(answer.text.includes('Số điện thoại cá nhân: 0900 555 004'));
-      assert.ok(answer.text.includes('Địa chỉ nhà'));
+      assert.ok(answer.text.includes('Địa chỉ nhà: Số 04 Đường Giả Định'));
+      assert.ok(!answer.text.includes('Không hiện theo quyền của bạn'), 'hr sees every labelled field');
     });
 
     await t.test('a field added to the directory after the rule file never leaves the gateway', async () => {
@@ -233,7 +235,8 @@ for (const door of DOORS) {
       assert.equal(answer.status, 200);
       assert.equal(answer.reasonCode, null);
       assert.ok(answer.text.includes('hoa.changed@lab.example'), 'the new email is in the directory and reaches the answer');
-      assert.ok(!answer.text.includes('Số điện thoại cá nhân'), 'staff still cannot see a personal field');
+      assert.ok(!answer.text.includes('Số điện thoại cá nhân: '), 'staff still cannot see the value of a personal field');
+      assert.match(answer.text, /Không hiện theo quyền của bạn: Số điện thoại cá nhân, Địa chỉ nhà\./);
 
       // The person is still staff in Vận hành: the read that only her role allows still works.
       const task = await call('get_task', { task_id: 'T-12' }, hoa.key);
