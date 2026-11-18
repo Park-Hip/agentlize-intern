@@ -32,7 +32,7 @@ PRD biến điều này thành tám yêu cầu SR1-SR8, mỗi yêu cầu có m�
 ## 2. Năm cách nối AI với hệ thống
 
 Lab đã khảo sát năm cách: gọi hàm (function calling), MCP (chuẩn chung để nhiều phần mềm gọi cùng bộ công cụ), công cụ chạy quy trình (workflow engine), điều phối agent (agent orchestration) và tích hợp theo sự kiện (event-driven).
-Chi tiết ở [so sánh phương án](research/option-comparison.md) và [năm ghi chú nguồn](research/five-methods).
+Chi tiết ở [so sánh phương án](research/option-comparison.md) và [ba ghi chú nguồn cho năm cách](research/five-methods).
 
 Ba phát hiện:
 
@@ -86,6 +86,7 @@ Hai là đọc mã nguồn LobeHub 2.1.56 phần gọi MCP, gọi mô hình và 
 Lỗi `fetch failed` ở `localhost` đã có lời giải thích khớp phép đo: lời gọi trong chat đi qua máy chủ Thổ Thần nên không tới được máy người dùng, còn địa chỉ công khai thì tới được.
 
 **Kết luận:** Thổ Thần là nơi chạy bản thử, và đã chạy được qua cả stdio lẫn Streamable HTTP có địa chỉ công khai.
+MCP chỉ mang lời gọi, không mang an toàn: trong Thổ Thần, chuẩn này không cho biết ai đang hỏi và không có bước duyệt; đây là bằng chứng đầu tiên trên host thật cho câu "khi nào MCP là lựa chọn sai".
 Hai câu chặn thiết kế đã có lời đáp: Thổ Thần không có bước duyệt đáng tin, và không có danh tính người dùng mà Lab kiểm chứng được, nên cổng của Lab làm cả hai.
 Việc duyệt không thể giao cho Thổ Thần: công cụ MCP không khai báo chính sách duyệt, và còn một chế độ ẩn cho chạy không hỏi; H11 kiểm xem API có chạy được công cụ ghi mà không hỏi không.
 Việc danh tính cũng vậy: header `x-user-id` do Thổ Thần gắn chỉ là lớp kiểm thứ hai, và chỉ dùng được sau khi H9 (ghi đè `x-user-id`) và H10 (phiên tách theo người dùng) có kết quả ([khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được)).
@@ -186,4 +187,4 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 - [Khảo sát Thổ Thần](appota/tho-than-platform.md), [kịch bản đo MCP trong Thổ Thần](appota/tho-than-mcp-probe.md), [tình huống Appota](appota/appota-cases.md), [skill của AppotaPay](appota/appotapay-skills.md).
 - [Spec bản thử đầu](design/mvp-spec.md): bản thử chứng minh gì, kiến trúc, phép thử và bốn mốc.
 - [Bản đồ hệ thống](design/system-map.md) và [bản vẽ](design/system-map.html): năm mảnh ghép nối với nhau thế nào, mối nối nào đã đo, điều gì chưa biết và cách kiểm.
-- [Giải pháp ứng viên](design/solution-candidates.md) và [câu hỏi kiểm chứng](design/research-questions-and-validation-plan.md).
+- [Câu hỏi kiểm chứng](design/research-questions-and-validation-plan.md): Q1 (sập giữa chừng) và Q2 (MCP tiết kiệm bao nhiêu công), cách thử và đối chứng.

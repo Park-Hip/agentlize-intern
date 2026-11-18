@@ -1,6 +1,6 @@
 # So sánh phương án
 
-Ngày: 2026-11-15. Trạng thái: bản nháp, chưa chọn kiến trúc, chưa có số đo của Lab.
+Ngày: 2026-11-18. Trạng thái: tổ hợp ở mục 4 đã được chốt trong ADR-0001 tới ADR-0003; chưa có số đo của Lab.
 
 Mọi đánh giá dưới đây là kết quả đọc tài liệu nguồn, chưa thử trên Lab.
 Tám yêu cầu dùng để đối chiếu lấy từ [PRD](../problem/prd-ai-platform.md).
@@ -146,7 +146,7 @@ Quyết định cuối nằm trong bản ghi quyết định kiến trúc (ADR).
 
 Tổ hợp này khớp phạm vi thử ở [PRD, mục 3.3](../problem/prd-ai-platform.md#33-phạm-vi-thử).
 Nếu bản ghi quyết định chọn khác, PRD mục 3.3 phải sửa theo.
-Bước sau biến những điều còn chưa biết thành câu hỏi và phép thử ([câu hỏi kiểm chứng](../design/research-questions-and-validation-plan.md)), rồi bước đề xuất mới chọn.
+Những điều còn chưa biết thành câu hỏi và phép thử ở [câu hỏi kiểm chứng](../design/research-questions-and-validation-plan.md); quyết định nằm ở [ADR-0001](../../docs/adr/adr-0001-self-built-thin-gateway.md).
 
 # Phụ lục A - Căn cứ từng ô của mục 3
 

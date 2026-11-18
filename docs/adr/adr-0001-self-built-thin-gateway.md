@@ -1,6 +1,6 @@
 # ADR-0001: Lab tự dựng một cổng kiểm soát mỏng
 
-Ngày: 2026-11-17. Trạng thái: đề xuất, chấp nhận khi được merge.
+Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
 Quyết định 1 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md#11-cần-chốt-trước-khi-dựng).
 

@@ -1,6 +1,6 @@
 # ADR-0004: Cổng chạy ở máy chủ chung, Thổ Thần nối qua HTTPS
 
-Ngày: 2026-11-17. Trạng thái: đề xuất, chấp nhận khi được merge.
+Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
 Quyết định 2 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md#11-cần-chốt-trước-khi-dựng).
 

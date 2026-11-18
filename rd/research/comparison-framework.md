@@ -1,6 +1,6 @@
-# Bước 02 - Bảng so sánh và tiêu chí lựa chọn
+# Khung so sánh năm cách nối: phụ lục bằng chứng
 
-Ngày: 2026-11-13. Trạng thái: bản nháp, không phải ADR, chưa chọn stack hoặc kiến trúc, chưa có số đo lab.
+Ngày: 2026-11-18. Trạng thái: phụ lục bằng chứng của [so sánh phương án](option-comparison.md); cách làm đã chốt ở ADR-0001 tới ADR-0003, chưa có số đo của Lab.
 
 **Nhận định tổng hợp: năm phương pháp giải quyết những vai trò khác nhau, không phải năm kiến trúc hoàn chỉnh thay thế ngang hàng.**
 API/Function Calling kết nối quyết định gọi tool của model với code ứng dụng; MCP chuẩn hóa giao tiếp công cụ; workflow giữ tiến độ; orchestration phân vai và điều khiển; event-driven phân phối sự kiện.
@@ -14,7 +14,7 @@ Báo cáo xác định điều kiện lựa chọn và câu hỏi kiểm chứng
 | --- | --- |
 | Phân tích đủ năm phương pháp, cơ chế và bảy trục | Đã điền mục 3. |
 | Hai bảng tổng hợp truy về phân tích | Đã điền mục 4; không phải benchmark. |
-| Đối chiếu nhu cầu đã xác nhận | Dùng SR1-SR8 và M1-M6 thuộc Phần 3 bước 0. |
+| Đối chiếu nhu cầu đã xác nhận | Dùng SR1-SR8 và M1-M6 của [PRD](../problem/prd-ai-platform.md). |
 | Có nguồn gốc và trích ngắn | Có danh mục S01-S26, bảng 16 trích ngắn; chưa chạy kiểm nguồn tự động. |
 | Có tiêu chí và câu hỏi mở | Đã điền mục 6-7; không đặt trọng số hoặc ngưỡng mới. |
 | Thử nghiệm và nghiệm thu | Chưa có; cần lab. |
@@ -24,7 +24,7 @@ Báo cáo xác định điều kiện lựa chọn và câu hỏi kiểm chứng
 ### 1.1. Mục đích
 
 Báo cáo giúp Hiệp và Kevin trả lời mỗi phương pháp cung cấp gì, phải bổ sung gì và trong điều kiện nào đáng khảo sát.
-Đây là đầu ra bước 02 Compare, không thay bước Question hoặc quyết định Propose/ADR.
+Báo cáo chỉ so sánh; câu hỏi kiểm chứng và quyết định nằm ở bản kế hoạch kiểm chứng và các ADR.
 Chương trình yêu cầu so sánh ưu/nhược, mở rộng, chi phí, bảo mật, bảo trì và độ phù hợp trước khi chọn phương án ([S01](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt), trang 5, dòng 151-197).
 
 ### 1.2. Đơn vị so sánh
@@ -69,7 +69,7 @@ Không đưa giá tiền ví dụ vì chưa chốt cấu hình Lab và chưa c�
 
 ### 2.3. Đại lượng cần đo
 
-| Mã ở Phần 3 bước 0 | Cách đo nguồn yêu cầu | Trạng thái |
+| Mã trong PRD | Cách đo nguồn yêu cầu | Trạng thái |
 | --- | --- | --- |
 | M1 - latency | p50/p95 qua 100 lần; tách model, policy, gateway thực có | Chưa đo; báo riêng chờ người duyệt. |
 | M2 - ổn định | 100 lần gồm lỗi mạng/timeout; success/error/retry/duplicate | Chưa đo; gate nguồn: 0 duplicate, 0 lost. |
@@ -381,7 +381,7 @@ Host/SDK chưa tương thích 2026-07-28 thì chưa đủ cơ sở chọn theo �
 Không thêm workflow chỉ để dispatch đơn giản, multi-agent khi chưa cần phân vai, hoặc event bus thay approval/commit receipt.
 Đây là loại cách sử dụng sai vai trò, không loại phương pháp khỏi mọi tổ hợp.
 
-### 7.3. Câu hỏi chuyển bước 03
+### 7.3. Câu hỏi chuyển sang kiểm chứng
 
 | Câu hỏi/giả thuyết | Thiếu bằng chứng | Ảnh hưởng | Kiểm dự kiến, chưa chạy |
 | --- | --- | --- | --- |
@@ -408,7 +408,7 @@ Nguồn live chưa có snapshot/commit; MCP ghim 2026-07-28.
 | Mã | Nguồn gốc | Phiên bản/phạm vi và vị trí |
 | --- | --- | --- |
 | S01 | [Chương trình TXT](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt) | Trang 5-6, dòng 151-240; Compare/Track 01/Lab/nghiệm thu. |
-| S02 | [Bước 0, mục 6 và 7.3](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc) | Chỉ dùng phần yêu cầu SR1-SR8 và chỉ số M1-M6; không dùng phụ lục thiết kế. |
+| S02 | [PRD, mục 6 và 7.3](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc) | Chỉ dùng phần yêu cầu SR1-SR8 và chỉ số M1-M6; không dùng phụ lục thiết kế. |
 | S03 | [OpenAI Function Calling](https://platform.openai.com/docs/guides/function-calling) | Live; tool flow, strict, formatting, token usage. |
 | S04 | [MCP Architecture](https://modelcontextprotocol.io/specification/2026-07-28/architecture) | 2026-07-28; components/stateless/capabilities/design. |
 | S05 | [MCP Tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) | 2026-07-28; list/call/schema/state/errors/security. |

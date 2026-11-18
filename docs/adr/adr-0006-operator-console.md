@@ -1,6 +1,6 @@
 # ADR-0006: Trang điều khiển của Lab
 
-Ngày: 2026-11-17. Trạng thái: đề xuất, chấp nhận khi được merge.
+Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
 ## Đọc nhanh
 
