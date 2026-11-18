@@ -93,18 +93,35 @@ const employeesSchema = z.object({ employees: z.array(employeeSchema) }).catchal
 
 export interface Employee {
   readonly employeeId: string;
+  readonly version: number | undefined;
   readonly fullName: string | undefined;
   readonly role: string | undefined;
   readonly department: string | undefined;
+  /** Every field the directory stores, keyed as the system sends it, for the raw data screen. */
+  readonly fields: Readonly<Record<string, unknown>>;
 }
 
 export type EmployeeResult =
   | { readonly ok: true; readonly employees: readonly Employee[] }
   | { readonly ok: false; readonly detail: string };
 
-/** The whole directory in one call: the console then keeps the six characters and the guest. */
-export async function fetchEmployees(endpoint: ServiceEndpoint, serviceKey: string): Promise<EmployeeResult> {
-  const result = await get(`${endpoint.url}/employees`, { authorization: `Bearer ${serviceKey}` });
+/** Every field of one employee except the code and the version, which get their own columns. */
+function fieldsOf(employee: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+  const fields: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(employee)) {
+    if (key !== 'employee_id' && key !== 'version') fields[key] = value;
+  }
+  return fields;
+}
+
+/** The whole directory in one call, optionally narrowed to one department by the service. */
+export async function fetchEmployees(
+  endpoint: ServiceEndpoint,
+  serviceKey: string,
+  department?: string,
+): Promise<EmployeeResult> {
+  const query = department === undefined ? '' : `?department=${encodeURIComponent(department)}`;
+  const result = await get(`${endpoint.url}/employees${query}`, { authorization: `Bearer ${serviceKey}` });
   if (!result.ok) return result;
 
   const parsed = employeesSchema.safeParse(result.body);
@@ -113,11 +130,118 @@ export async function fetchEmployees(endpoint: ServiceEndpoint, serviceKey: stri
     ok: true,
     employees: parsed.data.employees.map((employee) => ({
       employeeId: employee.employee_id,
+      version: typeof employee['version'] === 'number' ? employee['version'] : undefined,
       fullName: employee.full_name,
       role: employee.role,
       department: employee.department,
+      fields: fieldsOf(employee),
     })),
   };
+}
+
+const taskSchema = z
+  .object({
+    id: z.string(),
+    title: z.string(),
+    description: z.string(),
+    assignee: z.string(),
+    department: z.string(),
+    status: z.string(),
+    due: z.string(),
+    version: z.number(),
+  })
+  .catchall(z.unknown());
+
+const tasksSchema = z.object({ tasks: z.array(taskSchema) }).catchall(z.unknown());
+
+export interface TaskRecord {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string;
+  readonly assignee: string;
+  readonly department: string;
+  readonly status: string;
+  readonly due: string;
+  readonly version: number;
+}
+
+export type TasksResult =
+  | { readonly ok: true; readonly tasks: readonly TaskRecord[] }
+  | { readonly ok: false; readonly detail: string };
+
+/** The task list in one call; the page does the paging over the 100 seeded tasks. */
+export async function fetchTasks(
+  endpoint: ServiceEndpoint,
+  serviceKey: string,
+  department?: string,
+): Promise<TasksResult> {
+  const query = department === undefined ? '' : `?department=${encodeURIComponent(department)}`;
+  const result = await get(`${endpoint.url}/tasks${query}`, { authorization: `Bearer ${serviceKey}` });
+  if (!result.ok) return result;
+
+  const parsed = tasksSchema.safeParse(result.body);
+  if (!parsed.success) return { ok: false, detail: 'Danh sách task không đúng định dạng' };
+  return {
+    ok: true,
+    tasks: parsed.data.tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      assignee: task.assignee,
+      department: task.department,
+      status: task.status,
+      due: task.due,
+      version: task.version,
+    })),
+  };
+}
+
+export type ActionOutcome = { readonly ok: true } | { readonly ok: false; readonly detail: string };
+
+/** A `POST` to a fake system's `/admin/*` route; the response body says nothing the page needs. */
+async function post(
+  endpoint: ServiceEndpoint,
+  serviceKey: string,
+  path: string,
+  body?: unknown,
+): Promise<ActionOutcome> {
+  const headers: Record<string, string> = { authorization: `Bearer ${serviceKey}` };
+  const init: RequestInit = {
+    method: 'POST',
+    headers,
+    signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+  };
+  if (body !== undefined) {
+    headers['content-type'] = 'application/json';
+    init.body = JSON.stringify(body);
+  }
+  try {
+    const response = await fetch(`${endpoint.url}${path}`, init);
+    await response.text();
+    if (!response.ok) return { ok: false, detail: `HTTP ${response.status}` };
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, detail: describe(error) };
+  }
+}
+
+/** `POST /admin/reset` of the directory: every person back to the seed and version 1. */
+export function resetDirectory(endpoint: ServiceEndpoint, serviceKey: string): Promise<ActionOutcome> {
+  return post(endpoint, serviceKey, '/admin/reset');
+}
+
+/** `POST /admin/reset` of the task list: the 100 seeded tasks, saved keys and write counts cleared. */
+export function resetTasks(endpoint: ServiceEndpoint, serviceKey: string): Promise<ActionOutcome> {
+  return post(endpoint, serviceKey, '/admin/reset');
+}
+
+/**
+ * `POST /admin/faults` of the task list: the next committed write closes the
+ * connection instead of answering, so the gateway has to send it again with the
+ * same idempotency key (the lost answer case of SR6).
+ */
+export function injectLostResponseFault(endpoint: ServiceEndpoint, serviceKey: string): Promise<ActionOutcome> {
+  return post(endpoint, serviceKey, '/admin/faults', { mode: 'drop_response_after_commit', count: 1 });
 }
 
 const toolSchema = z

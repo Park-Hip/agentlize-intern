@@ -57,6 +57,10 @@ export interface TraceRow extends TraceRecord {
 export interface TraceFilter {
   readonly employee?: string;
   readonly task?: string;
+  /** The proposal a line is a step of, such as `dx-0123456789abcdef`. */
+  readonly proposal?: string;
+  /** The door the call came through: `http`, `mcp` or `web`. */
+  readonly entry?: TraceEntry;
   readonly limit?: number;
 }
 
@@ -148,14 +152,61 @@ function toRow(row: Row): TraceRow {
 }
 
 /**
+ * Reads the trace without ever writing it. The console opens the gateway
+ * database read-only and reads through this class (ADR-0006 section 3.6), so
+ * the query and the row shape exist once for the gateway, the CLI and the page.
+ */
+export class TraceReader {
+  constructor(protected readonly db: GatewayDatabase) {}
+
+  /** Newest lines first, at most `limit`. Every filter narrows the same list. */
+  list(filter: TraceFilter = {}): TraceRow[] {
+    const { where, params } = this.where(filter);
+    params['limit'] = filter.limit ?? DEFAULT_TRACE_LIMIT;
+    const sql = `SELECT * FROM trace ${where} ORDER BY seq DESC LIMIT @limit`;
+    return (this.db.prepare(sql).all(params) as Row[]).map(toRow);
+  }
+
+  /** How many lines match a filter, without reading them. */
+  count(filter: TraceFilter = {}): number {
+    const { where, params } = this.where(filter);
+    const row = this.db.prepare(`SELECT COUNT(*) AS total FROM trace ${where}`).get(params) as { total: number };
+    return row.total;
+  }
+
+  private where(filter: TraceFilter): { where: string; params: Record<string, string | number> } {
+    const clauses: string[] = [];
+    const params: Record<string, string | number> = {};
+    if (filter.employee !== undefined) {
+      clauses.push('requester = @employee');
+      params['employee'] = filter.employee;
+    }
+    if (filter.task !== undefined) {
+      clauses.push('object_id = @task');
+      params['task'] = filter.task;
+    }
+    if (filter.proposal !== undefined) {
+      clauses.push('proposal_id = @proposal');
+      params['proposal'] = filter.proposal;
+    }
+    if (filter.entry !== undefined) {
+      clauses.push('entry = @entry');
+      params['entry'] = filter.entry;
+    }
+    return { where: clauses.length === 0 ? '' : `WHERE ${clauses.join(' AND ')}`, params };
+  }
+}
+
+/**
  * Owns the `trace` table (SR7). The table only grows: two triggers abort every
  * UPDATE and DELETE, so even code with database access cannot rewrite history.
  */
-export class TraceStore {
+export class TraceStore extends TraceReader {
   constructor(
-    private readonly db: GatewayDatabase,
+    db: GatewayDatabase,
     private readonly now: () => Date = () => new Date(),
   ) {
+    super(db);
     const existing = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'trace'").get() as
       | { sql: string }
       | undefined;
@@ -230,29 +281,5 @@ export class TraceStore {
                  @attempts, @duration_ms)`,
       )
       .run(row);
-  }
-
-  /** Newest lines first, at most `limit`. `employee` matches the asker, `task` the thing asked about. */
-  list(filter: TraceFilter = {}): TraceRow[] {
-    const where: string[] = [];
-    const params: Record<string, string | number> = {};
-    if (filter.employee !== undefined) {
-      where.push('requester = @employee');
-      params['employee'] = filter.employee;
-    }
-    if (filter.task !== undefined) {
-      where.push('object_id = @task');
-      params['task'] = filter.task;
-    }
-    params['limit'] = filter.limit ?? DEFAULT_TRACE_LIMIT;
-
-    const sql = `SELECT * FROM trace ${where.length === 0 ? '' : `WHERE ${where.join(' AND ')}`}
-                 ORDER BY seq DESC LIMIT @limit`;
-    return (this.db.prepare(sql).all(params) as Row[]).map(toRow);
-  }
-
-  count(): number {
-    const row = this.db.prepare('SELECT COUNT(*) AS total FROM trace').get() as { total: number };
-    return row.total;
   }
 }
