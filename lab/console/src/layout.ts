@@ -86,7 +86,7 @@ td.num,th.num{font-variant-numeric:tabular-nums;white-space:nowrap}
 .filters{display:flex;flex-wrap:wrap;gap:.75rem 1rem;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:.7rem;padding:.85rem 1rem;margin:0 0 1rem}
 .filters .field{display:flex;flex-direction:column;gap:.2rem;min-width:9rem}
 .filters label{font-size:.72rem;font-weight:750;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.filters input,.filters select{font:inherit;padding:.45rem .55rem;border:1px solid var(--line);border-radius:.45rem;background:var(--bg);color:var(--text);min-width:9rem}
+.filters input,.filters select{font:inherit;padding:.45rem .55rem;border:1px solid var(--line);border-radius:.45rem;background:var(--panel);color:var(--text);min-width:9rem}
 .filters .actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
 select,input[type=number]{font:inherit;padding:.42rem .55rem;border:1px solid var(--line);border-radius:.42rem;background:var(--panel);color:var(--text);width:100%}
 .matrix{min-width:46rem}
@@ -130,7 +130,6 @@ button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible
 .raw-table{min-width:64rem}
 .raw-table tbody th{white-space:nowrap}
 .raw-table td.nowrap{white-space:nowrap}
-.trace-group thead th{white-space:nowrap}
 .trace-group small{display:block;color:var(--muted);font-size:.8rem;margin:.15rem 0 0}
 .trace-group small code{font-size:.95em}
 .trace-when time{white-space:nowrap}
@@ -149,7 +148,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .form-grid .field label,.fieldset legend{font-weight:700;font-size:.92rem;color:var(--text)}
 .req{font-weight:600;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.03em}
 .hint{color:var(--muted);font-size:.8rem}
-.form-grid input,.form-grid select,.form-grid textarea{width:100%;font:inherit;padding:.5rem .55rem;border:1px solid var(--line);border-radius:.45rem;background:var(--bg);color:var(--text)}
+.form-grid input,.form-grid select,.form-grid textarea{width:100%;font:inherit;padding:.5rem .55rem;border:1px solid var(--line);border-radius:.45rem;background:var(--panel);color:var(--text)}
 .form-actions{margin:1rem 0 0}
 textarea{min-height:4.5rem;resize:vertical}
 .fieldset{border:1px solid var(--line);border-radius:.55rem;padding:.55rem .8rem .85rem;margin:0;min-width:0}

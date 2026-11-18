@@ -343,10 +343,11 @@ test('console: trace groups one task chain by proposal, with every column, and n
   assert.match(html, new RegExp(`Đề xuất <code>${proposal}</code>`));
   assert.match(html, /3 dòng/);
   assert.match(html, /NV-02, task T-12/);
-  // The chain reads oldest first inside its proposal.
-  const draft = html.indexOf('propose_task_change');
-  const confirm = html.indexOf('proposal_send');
-  const write = html.indexOf('write_command');
+  // The chain reads oldest first inside its proposal; tool names carry break chances, so drop them to search.
+  const text = html.replaceAll('<wbr>', '');
+  const draft = text.indexOf('propose_task_change');
+  const confirm = text.indexOf('proposal_send');
+  const write = text.indexOf('write_command');
   assert.ok(draft !== -1 && confirm !== -1 && write !== -1);
   assert.ok(draft < confirm && confirm < write, 'the chain reads soạn, xác nhận, ghi');
 
@@ -378,6 +379,15 @@ test('console: trace groups one task chain by proposal, with every column, and n
   assert.ok(html.includes("fetch(location.pathname.replace(/\\/$/, '') + '/rows' + location.search)"));
   assert.match(html, /<noscript>/);
   assert.match(html, /Trang vẫn lọc và xem đầy đủ khi JavaScript tắt/);
+
+  // Unfiltered, the group outside any proposal mixes NV-05, NV-99 and NV-02, so its title names nobody.
+  const all = await (await fetch(`${fixture.url}/trace`)).text();
+  const outside = /<h2>Ngoài đề xuất <span class="badge">3 dòng<\/span> ([^<]*)<\/h2>/.exec(all);
+  assert.ok(outside !== null, 'the page has a group outside any proposal');
+  assert.equal(outside[1], '');
+  // A long rule code breaks after each dot and underscore, so the table fits a laptop screen.
+  assert.match(all, /<code>IDENTITY\.<wbr>KEY_<wbr>INVALID<\/code>/);
+  assert.match(all, /<code>KEY_<wbr>INVALID<\/code>/);
 });
 
 test('console: the trace filters by person, proposal and door, and an invalid value is explained', async (t) => {
