@@ -33,6 +33,19 @@ def conflicts(ours: str, theirs: str) -> list[str]:
     return sorted(set(line for line in result.stdout.splitlines()[1:] if line))
 
 
+def onto(base: str, tip: str) -> str | None:
+    """A throwaway commit holding `tip` merged into `base`, or None when that merge conflicts.
+
+    Another pull request may still sit on an older main, so its own conflicts with main
+    must not be blamed on the current branch.
+    """
+    result = git("merge-tree", "--write-tree", "--no-messages", base, tip, check=False)
+    if result.returncode != 0:
+        return None
+    tree = result.stdout.splitlines()[0]
+    return git("commit-tree", tree, "-p", base, "-p", tip, "-m", "check-merge").stdout.strip()
+
+
 def changed(base: str, tip: str) -> set[str]:
     """Files a branch changed since it left the base."""
     return set(git("diff", "--name-only", f"{base}...{tip}").stdout.split())
@@ -88,8 +101,12 @@ def main() -> int:
         shared = mine & changed(args.base, ref)
         if not shared:
             continue
-        clash = [name for name in conflicts("HEAD", ref) if name in shared]
         label = f"#{pr['number']} {pr['title']}"
+        landed = onto(args.base, ref)
+        if landed is None:
+            print(f"Note: {label} does not merge into {args.base} yet; recheck after it rebases. Shared files: {', '.join(sorted(shared))}")
+            continue
+        clash = [name for name in conflicts("HEAD", landed) if name in shared]
         if clash:
             print(f"WARNING: conflicts with {label}; agree which merges first, or stack the branches")
             for name in clash:
