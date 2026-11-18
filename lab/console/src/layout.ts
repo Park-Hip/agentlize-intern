@@ -134,6 +134,7 @@ button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible
 .trace-group small{display:block;color:var(--muted);font-size:.8rem;margin:.15rem 0 0}
 .trace-group small code{font-size:.95em}
 .trace-when time{white-space:nowrap}
+.trace-caller,.trace-entry{white-space:nowrap}
 .trace-group h2{justify-content:flex-start}
 .trace-group .badge{font-weight:650}
 .group-meta{color:var(--muted);font-size:.85rem;font-weight:500}
