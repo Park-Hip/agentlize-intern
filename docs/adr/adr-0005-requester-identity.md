@@ -1,6 +1,6 @@
 # ADR-0005: Danh tính người yêu cầu
 
-Ngày: 2026-11-17. Trạng thái: đề xuất, chấp nhận khi được merge.
+Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
 Quyết định 3 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md#11-cần-chốt-trước-khi-dựng).
 

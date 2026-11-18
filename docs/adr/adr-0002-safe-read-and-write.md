@@ -1,6 +1,6 @@
 # ADR-0002: Cổng đọc và ghi an toàn thế nào
 
-Ngày: 2026-11-17. Trạng thái: đề xuất, chấp nhận khi được merge.
+Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
 Quyết định 4 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md#11-cần-chốt-trước-khi-dựng).
 

@@ -61,8 +61,8 @@ Các bản nháp chỉ được dùng để xác định câu hỏi, cấu trúc
 
 | Nguồn nội bộ | Nội dung chính | Cách dùng trong báo cáo |
 | --- | --- | --- |
-| `rd/research/mcp-technical-guide.html` | Sổ tay MCP 13 mục: kiến trúc, wire, transport, tool contract, MRTR, auth, bảo mật, test. | Dùng làm khung; các claim về giao thức đã đối chiếu lại với đặc tả, phần thiết kế lab giữ nhãn `[Nội bộ]` hoặc `[Khuyến nghị]`. |
-| `rd/research/mcp-request-flow.html` | Sequence diagram cho một yêu cầu ghi có phê duyệt và vị trí control plane. | Dùng cho mục 2 và mục 6. |
+| `rd/research/mcp-technical-guide.html` (đã xóa, nội dung gộp vào báo cáo này) | Sổ tay MCP 13 mục: kiến trúc, wire, transport, tool contract, MRTR, auth, bảo mật, test. | Dùng làm khung; các claim về giao thức đã đối chiếu lại với đặc tả, phần thiết kế lab giữ nhãn `[Nội bộ]` hoặc `[Khuyến nghị]`. |
+| `rd/research/mcp-request-flow.html` (đã xóa, nội dung gộp vào mục 2 và 6) | Sequence diagram cho một yêu cầu ghi có phê duyệt và vị trí control plane. | Dùng cho mục 2 và mục 6. |
 | `docs/research/04-khao-sat-5-mo-hinh.md` (đã xóa) | Định vị năm mô hình theo tầng và tiêu chí riêng từng tầng. | Dùng cho mục 1.3; bản nháp đã bị xóa khỏi worktree. |
 | `rd/problem/prd-ai-platform.md` | Vấn đề trung tâm, SR1-SR8, M1-M6. | Dùng cho mục 11. |
 | `.lavish/research/fc-lane-1-spec.md`, `fc-lane-2-practice.md`, `fc-lane-3-risk.md` | Ghi chú research về function calling, tool design và rủi ro. | Đối chiếu chéo mục 1.5 và mục 8; không phải tài liệu của repo. |
@@ -899,8 +899,8 @@ Chúng được dùng để xác định câu hỏi, cấu trúc và những gì
 | Tài liệu | Trạng thái | Dùng cho |
 | --- | --- | --- |
 | [`../problem/prd-ai-platform.md`](../problem/prd-ai-platform.md) | Nguồn yêu cầu | SR1-SR8, vấn đề trung tâm, định nghĩa M1-M6. |
-| [`mcp-technical-guide.html`](mcp-technical-guide.html) | Sổ tay | Cấu trúc sổ tay MCP, checklist, gợi ý thiết kế lab. |
-| [`mcp-request-flow.html`](mcp-request-flow.html) | Sơ đồ | Luồng request và vị trí control plane. |
+| `mcp-technical-guide.html` (đã xóa) | Đã gộp vào báo cáo này | Cấu trúc sổ tay MCP, checklist, gợi ý thiết kế lab. |
+| `mcp-request-flow.html` (đã xóa) | Đã gộp vào mục 2 và 6 | Luồng request và vị trí control plane. |
 | `../research/04-khao-sat-5-mo-hinh.md` (đã xóa) | Đã xóa | Cách định vị năm mô hình theo tầng. |
 | [`../../docs/context/appota-ai-ecosystem.md`](../../docs/context/appota-ai-ecosystem.md) | Ngữ cảnh | Câu hỏi mở về Tool/MCP Runtime và AgentLize. |
 | `.lavish/research/fc-lane-1-spec.md`, `fc-lane-2-practice.md`, `fc-lane-3-risk.md` | File tạm, không tính vào repo | Ghi chú research về function calling, dùng để đối chiếu chéo. |
