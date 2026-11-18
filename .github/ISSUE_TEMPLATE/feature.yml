@@ -46,10 +46,31 @@ body:
       label: Ngoài phạm vi
       description: Những gì issue này cố ý không làm.
   - type: textarea
+    id: write-scope
+    attributes:
+      label: Phạm vi ghi
+      description: |
+        File hoặc thư mục issue này tạo mới hoặc sửa. Ưu tiên file mới.
+        Ghi riêng từng file nóng phải sửa (router, menu, file test chung, danh sách export, câu hiện trạng trong AGENTS.md hay README).
+        Hai issue làm song song không được có phạm vi ghi giao nhau (AGENTS.md mục 9).
+      placeholder: |
+        Tạo mới: lab/console/src/pages/permissions.ts, lab/console/src/permissions-test.ts
+        File nóng: lab/console/src/handler.ts (thêm một route)
+    validations:
+      required: true
+  - type: textarea
+    id: prerequisites
+    attributes:
+      label: Cần có trước
+      description: |
+        Issue hoặc phần dùng chung phải merge trước khi bắt đầu, ví dụ kiểm CSRF cho form, một export của cổng.
+        Phần dùng chung chưa có thì tách thành issue riêng và ghi số issue ở đây, đừng để mỗi issue tự làm một bản.
+      placeholder: "#45 (khung console có form và CSRF)"
+  - type: textarea
     id: files
     attributes:
-      label: File hoặc thư mục liên quan
-      description: Chỗ nên bắt đầu đọc hoặc sửa. Giúp agent đỡ phải dò.
+      label: File cần đọc
+      description: Chỗ nên bắt đầu đọc. Giúp agent đỡ phải dò.
   - type: textarea
     id: breakdown
     attributes:
