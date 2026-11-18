@@ -1,6 +1,6 @@
 # Nghiệm thu mốc 1 trong Thổ Thần
 
-Ngày: 2026-11-17. Trạng thái: kịch bản sẵn sàng, chờ intern chạy tay và điền bằng chứng.
+Ngày: 2026-11-18. Trạng thái: đã chạy trên bản desktop ngày 2026-11-18 và đạt; bản web chưa chạy được vì không bật được skill.
 
 ## Đọc nhanh
 
@@ -8,7 +8,8 @@ Ngày: 2026-11-17. Trạng thái: kịch bản sẵn sàng, chờ intern chạy 
 - Cách kiểm: mở hệ thống giả của Lab ở máy, mở một đường dẫn tạm ra Internet, rồi hỏi trên cả bản web lẫn bản cài trên máy.
 - Người chạy: người thực tập, trong một phiên không quá 45 phút.
 - Bước cuối: đổi sang người khác để xem sổ ghi đúng người, rồi đóng đường dẫn và thu hồi khoá.
-- Kết quả: điền ảnh, số hạn mức và giờ vào các ô trống; ảnh phải che khoá và email thật.
+- Kết quả ngày 2026-11-18: trên bản cài trên máy, chị Hoa và Nam đều chỉ nhận email công việc, và sổ ghi đúng từng người.
+- Còn thiếu: bản web không bật được mục nối, nên câu hỏi trên web chưa chạy; xem mục 12.
 
 ## 1. Trước khi mở phiên
 
@@ -195,24 +196,34 @@ Skill vừa nhắc ở mục 1 cần một địa chỉ và một khoá ([spec, 
 
 | Bằng chứng | Giá trị | Nơi lưu |
 | --- | --- | --- |
-| Ảnh danh sách skill trước phiên, không thấy khoá |  | `milestone-1-skill-truoc.png` |
-| Giờ mở phiên |  |  |
-| Credit trước phiên |  |  |
-| Tên skill đã thêm (không chép địa chỉ đường hầm) |  |  |
-| Ảnh câu trả lời trên web, đã che email thật |  | `milestone-1-web-hoa.png` |
-| Ảnh câu trả lời trên desktop, đã che email thật |  | `milestone-1-desktop-hoa.png` |
-| Credit sau câu hỏi trên web |  |  |
-| Bảng vết của chị Hoa (`NV-02`), số dòng |  | `scratch/milestone-1/trace.txt` |
-| Bảng vết của Nam (`NV-05`), số dòng |  | `scratch/milestone-1/trace.txt` |
-| Ảnh câu trả lời sau khi đổi sang khoá Nam (không có màn hình cài đặt) |  | `milestone-1-sau-khi-doi-khoa.png` |
-| Giờ tắt phiên và số phút đã chạy |  |  |
-| Credit sau phiên và số credit đã dùng |  |  |
-| Kiểm tra sau khi tắt: `curl.exe` hỏng, không còn `cloudflared` |  |  |
-| Số lần trợ lý trả lời sai, không gọi tool hoặc báo "đã xong" khi tool từ chối |  |  |
+| Ảnh danh sách skill trước phiên, không thấy khoá | Không chụp | - |
+| Giờ mở phiên | 17:58 ngày 2026-11-18, lấy từ lời gọi kiểm đường hầm lúc 10:58:12Z trong vết | `gateway.sqlite`, bảng `trace` |
+| Credit trước phiên | Không ghi lại | - |
+| Tên skill đã thêm (không chép địa chỉ đường hầm) | `lab-gateway` | - |
+| Ảnh câu trả lời trên web, đã che email thật | Chưa có: bản web không bật được skill (mục 12) | `milestone-1-web-skill-spinner.png` |
+| Ảnh câu trả lời trên desktop, đã che email thật | Đạt: chỉ có `minh.vu@lab.example`, nói số điện thoại không nằm trong các trường được xem | `milestone-1-desktop-hoa.png` |
+| Credit sau câu hỏi trên web | Không có câu hỏi trên web | - |
+| Bảng vết của chị Hoa (`NV-02`), số dòng | 1 dòng cho câu hỏi này: 11:04:56Z, `find_employee`, `ok`, luật `employee_fields.staff`, 35 ms | `milestone-1-trace.png` |
+| Bảng vết của Nam (`NV-05`), số dòng | 1 dòng: 11:07:52Z, `find_employee`, `ok`, luật `employee_fields.intern`, 6 ms | `milestone-1-trace.png` |
+| Ảnh câu trả lời sau khi đổi sang khoá Nam (không có màn hình cài đặt) | Đạt về dữ liệu: chỉ có email công việc; câu chữ chưa rõ (mục 12) | `milestone-1-sau-khi-doi-khoa.png` |
+| Giờ tắt phiên và số phút đã chạy | 18:16, phiên chạy 18 phút | - |
+| Credit sau phiên và số credit đã dùng | 345/500 credit gói tháng và 155 credit nạp thêm; số đã dùng không tính được vì thiếu số trước phiên | - |
+| Kiểm tra sau khi tắt: `curl.exe` hỏng, không còn `cloudflared` | Đạt: cổng 8790 không trả lời, không còn tiến trình `cloudflared` | - |
+| Số lần trợ lý trả lời sai, không gọi tool hoặc báo "đã xong" khi tool từ chối | 0 trong hai câu trả lời có ảnh; cả hai đều gọi `find_employee` | - |
 
 Sau khi chạy, dán bốn ảnh đã che vào cuối mục này bằng `![Mô tả](tên-ảnh.png)`.
 Ảnh nằm cạnh tài liệu và đi cùng commit; log thô ở `scratch/milestone-1/` thì không.
 Kiểm tra lại từng ảnh trước khi `git add`: không có khoá, không có email thật, không có địa chỉ đường hầm còn sống.
+
+Ảnh của phiên 2026-11-18:
+
+![Chị Hoa hỏi số điện thoại anh Minh trên bản desktop](milestone-1-desktop-hoa.png)
+
+![Nam hỏi cùng câu sau khi đổi khoá](milestone-1-sau-khi-doi-khoa.png)
+
+![Vết của Nam và chị Hoa](milestone-1-trace.png)
+
+![Bản web: skill lab-gateway xoay mãi, không bật được](milestone-1-web-skill-spinner.png)
 
 **Kết luận:** bảng này là nơi duy nhất giữ bằng chứng của phiên; tài liệu chỉ giữ số, ảnh đã che và đường dẫn, không giữ khoá, email thật hay địa chỉ đường hầm.
 
@@ -221,14 +232,14 @@ Kiểm tra lại từng ảnh trước khi `git add`: không có khoá, không c
 Đánh dấu từng dòng sau khi đã có bằng chứng tương ứng.
 
 - [ ] Hai skill của lần đo trước đã sạch khoá trước khi mở phiên.
-- [ ] Skill mới trỏ đúng `<địa chỉ>/mcp`, kiểu Streamable HTTP, khoá của chị Hoa.
+- [x] Skill mới trỏ đúng `<địa chỉ>/mcp`, kiểu Streamable HTTP, khoá của chị Hoa.
 - [ ] Bản web trả lời chỉ có email công việc và câu nói không được xem số cá nhân.
 - [ ] Bản desktop trả lời giống bản web.
-- [ ] Đổi sang khoá Nam thì `npm run trace -- --employee NV-05` có dòng `find_employee`, object `NV-04`.
+- [x] Đổi sang khoá Nam thì `npm run trace -- --employee NV-05` có dòng `find_employee`, object `-` (xem mục 7, bước 3).
 - [ ] Có giờ mở, giờ tắt, credit trước và credit sau; số credit đã dùng không quá 60.
-- [ ] Sau khi tắt, cổng 8790 không trả lời và không còn tiến trình `cloudflared`.
+- [x] Sau khi tắt, cổng 8790 không trả lời và không còn tiến trình `cloudflared`.
 - [ ] Skill đã trả về trạng thái trước, và `npm run seed-keys -- --rotate` đã chạy.
-- [ ] Mọi ảnh đã che khoá và email thật, nằm cạnh tài liệu; log thô không vào git.
+- [x] Mọi ảnh đã che khoá và email thật, nằm cạnh tài liệu; log thô không vào git.
 
 Nếu một dòng không đánh dấu được, issue #10 vẫn mở và ghi lý do vào phần cuối tài liệu này.
 Sau khi đủ, cập nhật dòng mốc 1 ở [tổng hợp, mục 8](../findings.md#8-bước-tiếp-theo) và tick các ô trong issue #10.
@@ -248,3 +259,24 @@ Sau khi đủ, cập nhật dòng mốc 1 ở [tổng hợp, mục 8](../finding
 | Credit tụt nhanh hoặc còn dưới 100 | Trợ lý gọi tool nhiều lần | Dừng, ghi số credit, báo lại trước khi chạy tiếp |
 
 **Kết luận:** mọi lỗi đều dừng ở một trong ba chỗ: khoá, địa chỉ, hoặc đường hầm đã tắt; không sửa mã Lab trong lúc chạy nghiệm thu.
+
+## 12. Phiên 2026-11-18: việc còn mở
+
+Phiên chạy trên bản desktop từ 17:58 đến 18:16, cùng phiên với [nghiệm thu mốc 2](milestone-2-tho-than.md).
+Bốn dòng ở mục 10 chưa đánh dấu được, nên issue #10 vẫn mở.
+
+| Dòng chưa đạt | Vì sao | Việc tiếp |
+| --- | --- | --- |
+| Hai skill cũ sạch khoá trước phiên | Không kiểm và không chụp trước khi mở đường hầm | Kiểm và chụp ở đầu phiên web |
+| Bản web, và so bản desktop với bản web | Trên Thổ Thần web, ô bật skill `lab-gateway` xoay mãi; skill `mcp-probe-stdio` cũng xoay như vậy | Một phiên web ngắn, mở DevTools tab Network để bắt request bị treo; lần đo HTTPS ngày 2026-11-17 bản web đã gọi được tool |
+| Credit trước phiên | Không ghi lại | Ghi ở đầu phiên web; cũng thử trang View Usage của Thổ Thần |
+| Trả skill về như cũ và xoay khoá | Skill `lab-gateway` chưa xoá. Khoá thì agent đã thu hồi cả bảy khoá của phiên bằng `npm run keys -- revoke`, sau khi đường hầm tắt; `npm run keys -- list` không còn khoá nào hiệu lực | Xoá skill `lab-gateway` trong Thổ Thần; phiên sau chạy `npm run seed-keys` để cấp khoá mới |
+
+Câu trả lời của Nam lọc đúng dữ liệu nhưng nói "có thể số điện thoại nằm ngoài phạm vi..., hoặc hệ thống chưa lưu trường này".
+Cổng bỏ trường không được xem mà không nói gì, theo [spec, mục 4.4](../design/mvp-spec.md#44-cổng-trả-lời-thế-nào), nên trợ lý phải tự đoán vì sao thiếu số.
+Câu của chị Hoa rõ hơn, nhưng cũng là trợ lý tự suy ra.
+Kịch bản D đòi câu trả lời "nói rõ không được xem số cá nhân", nên cổng cần thêm một câu cố định nêu các trường bị ẩn theo quyền, không kèm giá trị.
+
+Cột `object` của dòng `find_employee` là `-`, đúng như mục 7; bản cũ của mục 10 ghi `NV-04` là sai và đã sửa.
+
+**Kết luận:** chuỗi Thổ Thần desktop, cửa `/mcp`, cổng, bộ luật quyền và danh bạ giả đã chạy thông, và đổi khoá là đổi người trong vết; mốc 1 chỉ còn thiếu bản web và một câu nói rõ trường bị ẩn.
