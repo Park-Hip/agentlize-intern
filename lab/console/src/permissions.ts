@@ -41,9 +41,6 @@ const RULE_FIELD: Readonly<Record<string, string>> = Object.fromEntries(
   Object.entries(DIRECTORY_KEY).map(([ruleName, directoryKey]) => [directoryKey, ruleName]),
 );
 
-/** A record's revision counter is not an employee field, so it never appears in the permission table. */
-const NOT_A_FIELD = new Set(['version']);
-
 function orderFields(fields: Iterable<string>): readonly string[] {
   const known = Object.keys(EMPLOYEE_FIELD_LABELS);
   const all = new Set(fields);
@@ -63,9 +60,9 @@ export function knownRuleFields(rules: Rules, employees: readonly Employee[] | u
     for (const field of rules.employee_fields[role] ?? []) fields.add(field);
   }
   for (const employee of employees ?? []) {
-    for (const key of Object.keys(employee.fields)) {
-      if (!NOT_A_FIELD.has(key)) fields.add(RULE_FIELD[key] ?? key);
-    }
+    // `Employee.fields` leaves out the code, which has its own column on the data screen, so it is added here.
+    fields.add(RULE_FIELD['employee_id'] ?? 'employee_id');
+    for (const key of Object.keys(employee.fields)) fields.add(RULE_FIELD[key] ?? key);
   }
   return orderFields(fields);
 }

@@ -3,7 +3,24 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { DEFAULT_RULES_PATH } from '@lab/gateway';
-import { SERVICE_KEY, catalogOf, hiddenFields, postForm, readRules, rulesWithVersion, saveFields, startFixture } from './test-support.js';
+import {
+  EMPLOYEES_WITH_NEW_FIELD,
+  SERVICE_KEY,
+  catalogOf,
+  hiddenFields,
+  postForm,
+  readRules,
+  rulesWithVersion,
+  saveFields,
+  startFixture as startBaseFixture,
+  type Fixture,
+  type FixtureOptions,
+} from './test-support.js';
+
+/** Every case here starts from a directory that already has a field the rule file does not know. */
+function startFixture(options: FixtureOptions = {}): Promise<Fixture> {
+  return startBaseFixture({ employees: EMPLOYEES_WITH_NEW_FIELD, ...options });
+}
 
 function checkbox(html: string, role: string, field: string): RegExpMatchArray | null {
   return new RegExp(`<input type="checkbox" name="fields\\.${role}" value="${field}"( checked)?>`).exec(html);

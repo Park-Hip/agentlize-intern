@@ -162,7 +162,7 @@ function decisionBox(view: PermissionsPageView): string {
 <select id="field" name="field">${fields}</select>
 </div>
 </div>
-<div class="actions">
+<div class="actions rule-actions">
 <button type="submit"${view.personas.length === 0 ? ' disabled' : ''}>Thử quyết định</button>
 </div>
 </form>`;
@@ -237,7 +237,7 @@ ${fieldGrid(view)}
 <h2>Trường của task</h2>
 ${taskFields(view)}
 </section>
-<div class="actions">
+<div class="actions rule-actions">
 <button type="submit" name="action" value="save">Lưu phiên bản ${view.version + 1}</button>
 <button type="submit" name="action" value="restore" class="secondary" formnovalidate>Về bản gốc</button>
 </div>

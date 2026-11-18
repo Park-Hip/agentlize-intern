@@ -1,5 +1,4 @@
-import { randomBytes } from 'node:crypto';
-import { readServiceKey, startService, type RunningService } from '@lab/shared';
+import { readServiceKey, startService, testHooksEnabled, type RunningService } from '@lab/shared';
 import { resolveDataDir, resolveRulesPath } from '@lab/gateway';
 import { createConsoleHandler } from './handler.js';
 import { serviceEndpoints } from './upstream.js';
@@ -13,12 +12,15 @@ export interface ConsoleOptions {
 /**
  * Start the operator console on loopback. It needs the same service key as the
  * other processes because it reads the fake systems directly, and it reads the
- * same rule file as the gateway (ADR-0006 section 3.1, 3.4).
+ * same rule file and data folder as the gateway (ADR-0006 section 3.1, 3.6).
+ * `LAB_TEST_HOOKS` reaches it through the same environment the fake systems got,
+ * so the reset and fault buttons exist exactly when those routes exist.
  */
 export async function startConsole(options: ConsoleOptions = {}): Promise<RunningService> {
   const env = options.env ?? process.env;
   const serviceKey = readServiceKey(env);
-  const rulesPath = resolveRulesPath(resolveDataDir(env), env);
+  const dataDir = resolveDataDir(env);
+  const rulesPath = resolveRulesPath(dataDir, env);
 
   return startService({
     service: 'console',
@@ -28,7 +30,8 @@ export async function startConsole(options: ConsoleOptions = {}): Promise<Runnin
       endpoints: serviceEndpoints(env),
       serviceKey,
       rulesPath,
-      csrfToken: randomBytes(32).toString('base64url'),
+      dataDir,
+      testHooks: testHooksEnabled(env),
     }),
   });
 }

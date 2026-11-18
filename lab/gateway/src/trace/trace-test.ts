@@ -5,9 +5,9 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { runTraceCli, formatTraceTable } from '../cli/trace.js';
 import { UsageError } from '../cli/keys.js';
-import { GATEWAY_DB_FILE, openGatewayDatabase } from '../database.js';
+import { GATEWAY_DB_FILE, openGatewayDatabase, openGatewayDatabaseReadOnly } from '../database.js';
 import { SECRETS, startFixture } from '../fixture.js';
-import { TraceStore, newTraceId, type TraceRecord } from './trace-store.js';
+import { TraceReader, TraceStore, newTraceId, type TraceRecord } from './trace-store.js';
 
 const sample: TraceRecord = {
   traceId: 'tr-0000000000000001',
@@ -223,6 +223,74 @@ test('trace: a table made before the web entry is copied, keeps every line and i
     assert.throws(() => db.prepare('DELETE FROM trace').run(), /append-only/);
   } finally {
     db.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('trace: the reader filters by proposal and door, and counts what it would show', () => {
+  const { store, close } = memoryStore();
+  try {
+    const proposal = 'dx-0123456789abcdef';
+    store.append({ ...sample, traceId: 'tr-0000000000000001', entry: 'http', proposalId: proposal });
+    store.append({ ...sample, traceId: 'tr-0000000000000002', entry: 'web', tool: 'proposal_send', proposalId: proposal });
+    store.append({ ...sample, traceId: 'tr-0000000000000003', entry: 'mcp', objectId: 'T-70' });
+
+    assert.deepEqual(
+      store.list({ proposal }).map((row) => row.traceId),
+      ['tr-0000000000000002', 'tr-0000000000000001'],
+    );
+    assert.equal(store.list({ entry: 'mcp' }).length, 1);
+    assert.equal(store.list({ entry: 'mcp' })[0]?.objectId, 'T-70');
+    assert.equal(store.count({ proposal }), 2);
+    assert.equal(store.count({ entry: 'http' }), 1);
+    assert.equal(store.count(), 3);
+    // The same filters reach the CLI, so a person can follow a chain without the console.
+    const lines: string[] = [];
+    runTraceCli(['--proposal', proposal, '--entry', 'web'], store, { out: (line) => lines.push(line) });
+    assert.equal(lines.length, 2, 'header and one line');
+    assert.match(lines[1] ?? '', /tr-0000000000000002/);
+    assert.throws(() => runTraceCli(['--proposal', 'dx-nope'], store, { out: () => {} }), UsageError);
+    assert.throws(() => runTraceCli(['--entry', 'ftp'], store, { out: () => {} }), UsageError);
+  } finally {
+    close();
+  }
+});
+
+test('trace: the console opens the file read-only, and a missing file is an error, not an empty table', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lab-trace-readonly-'));
+  try {
+    const writer = openGatewayDatabase(dir);
+    try {
+      new TraceStore(writer, () => new Date('2026-11-18T10:00:00.000Z')).append(sample);
+    } finally {
+      writer.close();
+    }
+
+    const reader = openGatewayDatabaseReadOnly(dir);
+    try {
+      assert.equal(new TraceReader(reader).count(), 1);
+      assert.throws(() => reader.exec('DROP TABLE trace'), /readonly/i);
+      assert.throws(
+        () =>
+          reader
+            .prepare(
+              `INSERT INTO trace (trace_id, at, entry, tool, outcome, out_of_scope, duration_ms)
+               VALUES ('tr-00000000000000ff', '2026-11-18T10:00:00.000Z', 'http', 'get_task', 'ok', 0, 1)`,
+            )
+            .run(),
+        /readonly/i,
+      );
+    } finally {
+      reader.close();
+    }
+
+    const missing = mkdtempSync(join(tmpdir(), 'lab-trace-missing-'));
+    try {
+      assert.throws(() => openGatewayDatabaseReadOnly(missing), /unable to open|CANTOPEN/i);
+    } finally {
+      rmSync(missing, { recursive: true, force: true });
+    }
+  } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });

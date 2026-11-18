@@ -1,34 +1,72 @@
+import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer, request, type IncomingHttpHeaders, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DATA_DIR_ENV, LOOPBACK_HOST, PORT_ENV, RULES_PATH_ENV, SERVICE_KEY_ENV } from '@lab/shared';
-import { DEFAULT_RULES_PATH } from '@lab/gateway';
+import {
+  DATA_DIR_ENV,
+  LOOPBACK_HOST,
+  PORT_ENV,
+  RULES_PATH_ENV,
+  SERVICE_KEY_ENV,
+  TEST_HOOKS_ENV,
+  type ReasonCode,
+} from '@lab/shared';
+import { DEFAULT_RULES_PATH, openGatewayDatabase, TraceStore, type TraceRecord } from '@lab/gateway';
 import { startConsole } from './server.js';
 
 /** A fresh key per test process; no key-like literal sits in the repository. */
 export const SERVICE_KEY = randomBytes(32).toString('base64url');
 
-/** The directory fixture. `badge_code` stands in for a field added after the rule file was written. */
-export const EMPLOYEES = {
-  employees: [
-    { employee_id: 'NV-01', full_name: 'Trần Văn Quang', role: 'lead', department: 'Vận hành', version: 1 },
-    { employee_id: 'NV-02', full_name: 'Nguyễn Thị Hoa', role: 'staff', department: 'Vận hành', version: 1 },
-    { employee_id: 'NV-03', full_name: 'Đỗ <script>alert(1)</script> Lan', role: 'staff', department: 'Vận hành', version: 1 },
-    {
-      employee_id: 'NV-04',
-      full_name: 'Vũ Quốc Minh',
-      role: 'staff',
-      department: 'Vận hành',
-      work_email: 'minh@lab.example',
-      badge_code: 'BADGE-NV-04',
+export const TRACE_TIME = '2026-11-18T10:00:00.000Z';
+
+/** The same 20 people the directory seeds, so a page test can name exact rows. */
+export function employee(n: number): Record<string, unknown> {
+  const code = String(n).padStart(2, '0');
+  const operations = n <= 10;
+  const fullName = n === 3 ? 'Đỗ <script>alert(1)</script> Lan' : `Nhân viên ${code}`;
+  return {
+    employee_id: `NV-${code}`,
+    version: 1,
+    full_name: fullName,
+    department: operations ? 'Vận hành' : 'Kinh doanh',
+    role: n === 1 || n === 11 ? 'lead' : n === 6 ? 'hr' : n === 5 || n === 9 || n === 18 || n === 20 ? 'intern' : 'staff',
+    work_email: `nv${code}@lab.example`,
+    personal_phone: `0900 555 ${code}`,
+    home_address: `Số ${code} Đường Giả Định, Thành phố Thử Nghiệm`,
+  };
+}
+
+export const EMPLOYEES = { employees: Array.from({ length: 20 }, (_, index) => employee(index + 1)) };
+
+/**
+ * The same directory after a field was added that the rule file does not know yet.
+ * `badge_code` stands in for it, so the permission screen has a new field to list.
+ */
+export const EMPLOYEES_WITH_NEW_FIELD = {
+  employees: EMPLOYEES.employees.map((person) =>
+    person['employee_id'] === 'NV-04' ? { ...person, badge_code: 'BADGE-NV-04' } : person,
+  ),
+};
+
+/** 60 tasks in Vận hành then 40 in Kinh doanh; the numbers never appear inside another task text. */
+export const TASKS = {
+  tasks: Array.from({ length: 100 }, (_, index) => {
+    const n = index + 1;
+    const operations = n <= 60;
+    const code = String(((n + 9) % 10) + 1).padStart(2, '0');
+    return {
+      id: `T-${n}`,
+      title: `Việc số ${n}`,
+      description: `Mô tả của task ${n}.`,
+      assignee: operations ? `NV-${code}` : `NV-${String(((n + 30) % 10) + 11).padStart(2, '0')}`,
+      department: operations ? 'Vận hành' : 'Kinh doanh',
+      status: n % 3 === 0 ? 'done' : n % 3 === 1 ? 'todo' : 'doing',
+      due: '2026-11-20',
       version: 1,
-    },
-    { employee_id: 'NV-05', full_name: 'Lê Hoàng Nam', role: 'intern', department: 'Vận hành', version: 1 },
-    { employee_id: 'NV-06', full_name: 'Phạm Thị Nhung', role: 'hr', department: 'Vận hành', version: 1 },
-    { employee_id: 'NV-07', full_name: 'Bùi Thanh Tâm', role: 'staff', department: 'Vận hành', version: 1 },
-  ],
+    };
+  }),
 };
 
 export const TOOLS = {
@@ -67,14 +105,62 @@ export const TOOLS = {
   ],
 };
 
+export interface TraceSeed {
+  readonly traceId: string;
+  readonly requester?: string | null;
+  readonly entry?: 'http' | 'mcp' | 'web';
+  readonly tool?: string;
+  readonly objectId?: string | null;
+  readonly outcome?: 'ok' | 'refused' | 'not_found' | 'error';
+  readonly reasonCode?: ReasonCode | null;
+  readonly ruleId?: string | null;
+  readonly policyVersion?: number | null;
+  readonly proposalId?: string | null;
+  readonly idempotencyKey?: string | null;
+  readonly attempts?: number | null;
+}
+
+/** A full trace line with the fields a page shows; only what a test cares about is passed in. */
+export function line(traceId: string, seed: Omit<TraceSeed, 'traceId'> = {}): TraceRecord {
+  return {
+    traceId,
+    requester: seed.requester === undefined ? 'NV-02' : seed.requester,
+    caller: 'lab-console',
+    entry: seed.entry ?? 'http',
+    tool: seed.tool ?? 'get_task',
+    objectId: seed.objectId === undefined ? 'T-12' : seed.objectId,
+    outcome: seed.outcome ?? 'ok',
+    reasonCode: seed.reasonCode ?? null,
+    outOfScope: false,
+    ruleId: seed.ruleId === undefined ? 'READ_SCOPE.own_department' : seed.ruleId,
+    policyVersion: seed.policyVersion === undefined ? 7 : seed.policyVersion,
+    hostUser: null,
+    proposalId: seed.proposalId ?? null,
+    idempotencyKey: seed.idempotencyKey ?? null,
+    attempts: seed.attempts ?? null,
+    durationMs: 4,
+  };
+}
+
 export function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(body));
 }
 
+export function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', (chunk: string) => {
+      body += chunk;
+    });
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
+}
+
 export interface FakeServer {
   readonly port: number;
-  readonly paths: readonly string[];
   close(): Promise<void>;
 }
 
@@ -95,20 +181,19 @@ export async function freePort(): Promise<number> {
 
 export function listen(
   port: number,
-  handler: (req: IncomingMessage, res: ServerResponse, path: string) => void,
+  handler: (req: IncomingMessage, res: ServerResponse, path: string, url: URL) => void | Promise<void>,
 ): Promise<FakeServer> {
-  const seen: string[] = [];
   const server: Server = createServer((req, res) => {
-    const path = new URL(req.url ?? '/', `http://${LOOPBACK_HOST}`).pathname;
-    seen.push(`${req.method ?? 'GET'} ${path}`);
-    handler(req, res, path);
+    const url = new URL(req.url ?? '/', `http://${LOOPBACK_HOST}`);
+    Promise.resolve(handler(req, res, url.pathname, url)).catch((error: unknown) => {
+      json(res, 500, { error: error instanceof Error ? error.message : String(error) });
+    });
   });
   return new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(port, LOOPBACK_HOST, () => {
       resolve({
         port,
-        paths: seen,
         async close(): Promise<void> {
           server.closeAllConnections();
           await new Promise<void>((done, fail) => {
@@ -120,12 +205,20 @@ export function listen(
   });
 }
 
+export interface AdminCall {
+  readonly system: 'directory' | 'tasks';
+  readonly path: string;
+  readonly body: string;
+}
+
 export interface Fixture {
   readonly url: string;
   readonly port: number;
   readonly dataDir: string;
   readonly rulesPath: string;
-  readonly fakeServers: readonly FakeServer[];
+  readonly adminCalls: readonly AdminCall[];
+  /** Write lines into a real `gateway.sqlite`, then leave the file for the console to read. */
+  appendTrace(lines: readonly TraceRecord[]): void;
   close(): Promise<void>;
 }
 
@@ -134,13 +227,26 @@ export interface FixtureOptions {
   readonly directory?: boolean;
   readonly tasks?: boolean;
   readonly rulesText?: string;
+  /** The body the fake directory answers `/employees` with, instead of the default 20 people. */
   readonly employees?: unknown;
+  /** Pass the flag the fake systems get, so the console draws the test buttons. */
+  readonly testHooks?: boolean;
 }
 
 export function rulesWithVersion(version: number): string {
   const rules = JSON.parse(readFileSync(DEFAULT_RULES_PATH, 'utf8')) as Record<string, unknown>;
   rules['version'] = version;
   return JSON.stringify(rules);
+}
+
+export function seedTrace(dataDir: string, lines: readonly TraceRecord[]): void {
+  const db = openGatewayDatabase(dataDir);
+  try {
+    const store = new TraceStore(db, () => new Date(TRACE_TIME));
+    for (const trace of lines) store.append(trace);
+  } finally {
+    db.close();
+  }
 }
 
 export async function startFixture(options: FixtureOptions = {}): Promise<Fixture> {
@@ -150,6 +256,7 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
 
   const [gatewayPort, directoryPort, tasksPort] = await Promise.all([freePort(), freePort(), freePort()]);
   const servers: FakeServer[] = [];
+  const adminCalls: AdminCall[] = [];
 
   if (options.gateway !== false) {
     servers.push(
@@ -163,9 +270,18 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
 
   if (options.directory !== false) {
     servers.push(
-      await listen(directoryPort, (req, res, path) => {
+      await listen(directoryPort, async (req, res, path, url) => {
         if (req.headers.authorization !== `Bearer ${SERVICE_KEY}`) return json(res, 401, { error: 'unauthorized' });
-        if (path === '/employees') return json(res, 200, options.employees ?? EMPLOYEES);
+        if (path === '/admin/reset' && req.method === 'POST') {
+          adminCalls.push({ system: 'directory', path, body: await readBody(req) });
+          return json(res, 200, { status: 'reset' });
+        }
+        if (path === '/employees' && options.employees !== undefined) return json(res, 200, options.employees);
+        if (path === '/employees') {
+          const department = url.searchParams.get('department');
+          const employees = EMPLOYEES.employees.filter((person) => department === null || person['department'] === department);
+          return json(res, 200, { employees });
+        }
         json(res, 200, { status: 'ok', service: 'directory' });
       }),
     );
@@ -173,8 +289,17 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
 
   if (options.tasks !== false) {
     servers.push(
-      await listen(tasksPort, (req, res, path) => {
+      await listen(tasksPort, async (req, res, path, url) => {
         if (req.headers.authorization !== `Bearer ${SERVICE_KEY}`) return json(res, 401, { error: 'unauthorized' });
+        if ((path === '/admin/reset' || path === '/admin/faults') && req.method === 'POST') {
+          adminCalls.push({ system: 'tasks', path, body: await readBody(req) });
+          return json(res, 200, { status: path === '/admin/reset' ? 'reset' : 'set' });
+        }
+        if (path === '/tasks') {
+          const department = url.searchParams.get('department');
+          const tasks = TASKS.tasks.filter((task) => department === null || task['department'] === department);
+          return json(res, 200, { tasks });
+        }
         if (path === '/health') return json(res, 200, { status: 'ok', service: 'tasks' });
         json(res, 404, { error: 'not_found' });
       }),
@@ -190,6 +315,7 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
     [PORT_ENV.directory]: String(directoryPort),
     [PORT_ENV.tasks]: String(tasksPort),
   };
+  if (options.testHooks === true) env[TEST_HOOKS_ENV] = '1';
 
   const consoleService = await startConsole({ port: 0, env });
 
@@ -198,7 +324,10 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
     port: consoleService.port,
     dataDir,
     rulesPath,
-    fakeServers: servers,
+    adminCalls,
+    appendTrace(lines: readonly TraceRecord[]): void {
+      seedTrace(dataDir, lines);
+    },
     async close(): Promise<void> {
       await consoleService.close();
       await Promise.all(servers.map((server) => server.close()));
@@ -226,6 +355,41 @@ export function rawGet(port: number, path: string, host: string): Promise<RawRes
     req.on('error', reject);
     req.end();
   });
+}
+
+/** A browser form press: url-encoded body, plus whatever headers the case is about. */
+export function rawPost(port: number, path: string, body: string, headers: Readonly<Record<string, string>>): Promise<RawResponse> {
+  return new Promise((resolve, reject) => {
+    const req = request(
+      {
+        host: LOOPBACK_HOST,
+        port,
+        path,
+        method: 'POST',
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+          'content-length': String(Buffer.byteLength(body)),
+          ...headers,
+        },
+      },
+      (res) => {
+        let text = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk: string) => {
+          text += chunk;
+        });
+        res.on('end', () => resolve({ status: res.statusCode ?? 0, headers: res.headers, body: text }));
+      },
+    );
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+
+export function csrfFrom(html: string): string {
+  const match = /name="csrf" value="([^"]+)"/.exec(html);
+  assert.ok(match?.[1] !== undefined, 'the page drew a csrf token');
+  return match[1];
 }
 
 /** Post one form the way the browser does: own Origin, own Host, CSRF token in the body. */

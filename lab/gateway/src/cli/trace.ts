@@ -1,13 +1,16 @@
 import { parseArgs } from 'node:util';
 import { EMPLOYEE_ID_PATTERN } from '@lab/shared';
 import { openGatewayDatabase } from '../database.js';
-import { TraceStore, type TraceRow } from '../trace/trace-store.js';
+import { PROPOSAL_ID_PATTERN } from '../proposals/proposal-store.js';
+import { ENTRIES, TraceStore, type TraceEntry, type TraceRow } from '../trace/trace-store.js';
 import { UsageError, type CliIo } from './keys.js';
 
 const USAGE = [
   'Usage:',
   '  npm run trace -- --employee <NV-xx>   calls made by one employee',
   '  npm run trace -- --task <T-n>         calls that named one task',
+  '  npm run trace -- --proposal <dx-...>  steps of one proposal',
+  '  npm run trace -- --entry <http|mcp|web>  calls from one door',
   '  npm run trace -- --limit <n>          show at most n lines (default 200)',
 ].join('\n');
 
@@ -45,7 +48,13 @@ export function formatTraceTable(rows: readonly TraceRow[]): string[] {
 export function runTraceCli(argv: readonly string[], store: TraceStore, io: CliIo): void {
   const { values } = parseArgs({
     args: [...argv],
-    options: { employee: { type: 'string' }, task: { type: 'string' }, limit: { type: 'string' } },
+    options: {
+      employee: { type: 'string' },
+      task: { type: 'string' },
+      proposal: { type: 'string' },
+      entry: { type: 'string' },
+      limit: { type: 'string' },
+    },
     strict: true,
   });
 
@@ -55,6 +64,12 @@ export function runTraceCli(argv: readonly string[], store: TraceStore, io: CliI
   if (values.task !== undefined && !/^T-[1-9][0-9]*$/.test(values.task)) {
     throw new UsageError(`task code must look like T-12, got "${values.task}"`);
   }
+  if (values.proposal !== undefined && !PROPOSAL_ID_PATTERN.test(values.proposal)) {
+    throw new UsageError(`proposal code must look like dx-0123456789abcdef, got "${values.proposal}"`);
+  }
+  if (values.entry !== undefined && !(ENTRIES as readonly string[]).includes(values.entry)) {
+    throw new UsageError(`entry must be one of ${ENTRIES.join(', ')}, got "${values.entry}"`);
+  }
   const limit = values.limit === undefined ? undefined : Number(values.limit);
   if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
     throw new UsageError(`limit must be a positive whole number, got "${values.limit}"`);
@@ -63,6 +78,8 @@ export function runTraceCli(argv: readonly string[], store: TraceStore, io: CliI
   const rows = store.list({
     ...(values.employee === undefined ? {} : { employee: values.employee }),
     ...(values.task === undefined ? {} : { task: values.task }),
+    ...(values.proposal === undefined ? {} : { proposal: values.proposal }),
+    ...(values.entry === undefined ? {} : { entry: values.entry as TraceEntry }),
     ...(limit === undefined ? {} : { limit }),
   });
   if (rows.length === 0) {

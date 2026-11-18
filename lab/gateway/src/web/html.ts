@@ -17,11 +17,11 @@ export function esc(value: string): string {
  * can be framed, and the browser does not guess a content type. The console
  * sends the same set (ADR-0006 section 3.1).
  *
- * `same-origin` rather than `no-referrer` is deliberate: Chrome sends
- * `Origin: null` on a form POST when the page suppresses the referrer, and the
- * console's and the gateway's same-origin checks need the real Origin. A
- * cross-origin request still carries no referrer, and no page loads anything
- * from another site.
+ * `same-origin` rather than `no-referrer`: Chrome sends `Origin: null` on a form
+ * POST when the page says `no-referrer`, and the Origin check of the buttons and
+ * the confirmation pages would then refuse every real browser. `same-origin`
+ * still sends no referrer to another site, and the CSP already forbids loading
+ * anything from one.
  */
 export const PAGE_SECURITY_HEADERS = {
   'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",

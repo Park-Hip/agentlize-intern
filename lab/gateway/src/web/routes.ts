@@ -1,4 +1,5 @@
 import { performance } from 'node:perf_hooks';
+import { timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { EMPLOYEE_ID_PATTERN, type ReasonCode } from '@lab/shared';
 import { newTrail, TraceUnavailableError, writeTrace, type GatewayDeps } from '../call.js';
@@ -10,7 +11,6 @@ import type { ToolResult } from '../tools/types.js';
 import { checkWrite, type WriteRefusal } from '../writes/index.js';
 import { cardPage, loginPage, messagePage, PAGE_SECURITY_HEADERS } from './html.js';
 import { readForm } from './form.js';
-import { tokensEqual } from './token.js';
 import { SESSION_TTL_MS, type Session } from './session-store.js';
 
 const LOGIN_PATH = '/dang-nhap';
@@ -70,6 +70,12 @@ function sameOrigin(deps: GatewayDeps, req: IncomingMessage): boolean {
     return false;
   }
   return host === req.headers.host || host === new URL(deps.publicBaseUrl()).host;
+}
+
+function tokensEqual(left: string, right: string): boolean {
+  const a = Buffer.from(left);
+  const b = Buffer.from(right);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 function currentSession(deps: GatewayDeps, req: IncomingMessage): { token: string; session: Session } | undefined {

@@ -1,7 +1,7 @@
 # Lab - AI Operations Connector
 
 Khung mã của bản thử: bốn dịch vụ chạy trên máy, một lệnh khởi động và một lệnh chạy phép thử.
-Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/mcp`, đường soạn đề xuất, đường ghi sau khi bấm Gửi và hai màn hình đầu của trang điều khiển đã có logic.
+Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/mcp`, đường soạn đề xuất, đường ghi sau khi bấm Gửi và bốn màn hình của trang điều khiển (tổng quan, tool, dữ liệu gốc, vết) đã có logic.
 
 ## Gói
 
@@ -11,7 +11,7 @@ Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/m
 | `gateway` | Cổng kiểm soát: `GET /health`, cửa `/mcp` (`src/mcp.ts`), module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`), bộ luật quyền (`src/policy/`), ba tool đọc (`src/tools/`), đường soạn đề xuất và đường ghi (`src/proposals/`, `src/writes/`), bảng vết (`src/trace/`, lệnh `npm run trace`) |
 | `fake-directory` | Danh bạ giả 20 nhân viên, xem mục Danh bạ giả |
 | `fake-tasks` | Danh sách task giả: 100 task nạp cố định, đọc, ghi có mã chống ghi trùng và số phiên bản |
-| `console` | Trang điều khiển chỉ nghe `127.0.0.1`: tổng quan ba dịch vụ, luật đang áp, bảy danh tính, màn hình tool và màn hình quyền và trường (sửa luật, thử quyết định) |
+| `console` | Trang điều khiển chỉ nghe `127.0.0.1`: tổng quan ba dịch vụ, luật đang áp, bảy danh tính, màn hình tool, màn hình quyền và trường (sửa luật, thử quyết định), dữ liệu gốc của hai hệ thống giả và bảng vết |
 | `tests` | Phép thử `node:test`, gồm phép thử khói bốn dịch vụ và client giả máy chủ Thổ Thần (`src/fake-host.ts`) |
 
 Thư viện dùng chung nằm ở `package.json` gốc của workspace, để cả bốn dịch vụ chạy trên một lần cài và một phiên bản.
@@ -50,6 +50,7 @@ Bộ luật đọc lại file ở mỗi lần quyết định, nên sửa file �
 Trang điều khiển sửa chính file đó; mỗi lần lưu tăng `version` thêm 1, ghi ra file tạm rồi đổi tên, và giữ bản cũ ở `rules-history/v<n>.json` cạnh file luật.
 Phép thử nghiệm thu trỏ `LAB_RULES_PATH` vào bản sao trong thư mục tạm, nên file luật hỏng không chạm vào repo.
 Cơ sở dữ liệu `gateway.sqlite` bật chế độ ghi nhật ký trước (WAL) và chờ khoá 5 giây, để tiến trình khác đọc được trong lúc cổng đang ghi.
+Console mở cùng file đó ở chế độ chỉ đọc, và mỗi request đóng file ngay sau khi đọc xong.
 
 ## Trang điều khiển
 
@@ -57,27 +58,39 @@ Sau `npm start`, mở `http://127.0.0.1:8793`.
 Trang chỉ nghe loopback, và mọi request có `Host` khác `127.0.0.1:<cổng>` hay `localhost:<cổng>` nhận 403, nên một trang lạ đổi DNS về máy này cũng không gọi được.
 Console đọc danh bạ giả bằng khoá dịch vụ và đọc cùng file luật cổng đang áp.
 
-Ba màn hình đầu:
+Năm màn hình:
 
 - Tổng quan: `/health` của ba dịch vụ, `version` của file luật, bảng sáu nhân vật cộng khách đọc từ danh bạ.
 - Tool: danh mục từ `GET /v1/tools`, kèm mô tả, tham số (tên, kiểu, bắt buộc) và nhãn "Chỉ đọc" hay "Soạn đề xuất".
 - Quyền và trường: bảng bốn vai nhân với sáu hành động, mỗi ô chọn "Được", "Không được" hoặc "Cần duyệt"; ngưỡng hàng loạt; các trường nhân viên mỗi vai được xem; ô "thử quyết định".
+- Dữ liệu gốc: bảng nhân viên và bảng task đúng như hai hệ thống giả đang lưu, đọc bằng khoá dịch vụ; lọc theo phòng, 20 task mỗi trang, và một dòng nhắc "Góc nhìn người vận hành, AI không thấy thế này".
+  Không có nút sửa bản ghi, vì mọi thay đổi nghiệp vụ đi qua cổng.
+  Khi `LAB_TEST_HOOKS=1` màn hình có thêm ba nút gọi đường `/admin/*` của hai hệ thống giả: đặt lại danh bạ, đặt lại task, và gây lỗi mất phản hồi sau khi ghi; khi biến tắt thì ba nút không hiện và ba đường `POST` trả 404.
+  Mỗi lần bấm cần `Origin` của chính console và mã chống giả mạo in trong form.
+- Vết: đọc `gateway.sqlite` ở chế độ chỉ đọc, lọc theo người, task, đề xuất và nơi gọi, gom các dòng của một đề xuất thành một nhóm để đọc chuỗi soạn, xác nhận, ghi.
+  Mỗi dòng có mã vết, thời điểm, nơi gọi, tool, người gọi, đối tượng, kết quả, mã lý do, mã luật và phiên bản luật; dòng của lệnh ghi thêm mã chống ghi trùng và số lần gửi.
+  Bảng tự làm mới mỗi 5 giây bằng một đoạn JavaScript nhỏ khi tab đang hiện; tắt JavaScript thì trang vẫn lọc và đọc đủ.
 
 ### Sửa luật trên màn hình Quyền và trường
 
 Bảng lấy đúng file mà cổng đang đọc (`LAB_RULES_PATH`), nên lưu xong thì lời gọi tiếp theo dùng luật mới.
 
-- Lưu kiểm toàn bộ form bằng `rulesSchema` của gói `@lab/gateway`, tăng `version` thêm 1, ghi file tạm rồi đổi tên, và giữ bản mới ở `rules-history/v<n>.json` cạnh file luật. Form hỏng bị từ chối trước khi chạm vào file.
-- Form mang số phiên bản lúc mở. Nếu file trên đĩa đã đổi, lần lưu bị từ chối và trang yêu cầu tải lại, nên hai lần lưu từ cùng một trang chỉ lần đầu thắng.
+- Lưu kiểm toàn bộ form bằng `rulesSchema` của gói `@lab/gateway`, tăng `version` thêm 1, ghi file tạm rồi đổi tên, và giữ bản mới ở `rules-history/v<n>.json` cạnh file luật.
+  Form hỏng bị từ chối trước khi chạm vào file.
+- Form mang số phiên bản lúc mở.
+  Nếu file trên đĩa đã đổi, lần lưu bị từ chối và trang yêu cầu tải lại, nên hai lần lưu từ cùng một trang chỉ lần đầu thắng.
 - "Về bản gốc" chép nội dung `lab/gateway/policy/rules.json` và đặt phiên bản lớn hơn mọi bản đã có, kể cả các bản trong `rules-history/`.
-- Danh sách trường lấy từ bản ghi danh bạ giả, đổi tên theo cách cổng đặt: `employee_id` thành `id`, `full_name` thành `name`. Trường mới thêm qua `/admin/add-field` tự hiện với nhãn "chưa khai"; `version` không hiện vì là số phiên bản của bản ghi.
+- Danh sách trường lấy từ bản ghi danh bạ giả, đổi tên theo cách cổng đặt: `employee_id` thành `id`, `full_name` thành `name`.
+  Trường mới thêm qua `/admin/add-field` tự hiện với nhãn "chưa khai"; `version` không hiện vì là số phiên bản của bản ghi.
 - Trường của task chỉ để xem, ghi rõ "cố định trong mã": `taskLine` và `taskDetail` quyết định trường nào AI thấy, đưa chúng vào file luật là một thay đổi schema riêng.
-- Ô "thử quyết định" hỏi chính bộ luật của cổng bằng mã dùng chung, đọc đúng file luật đó; nó không gọi tool và không đọc dữ liệu. Đây là truy vấn chỉ đọc nên dùng `GET`, để link kết quả chia sẻ được.
-- Mọi `POST` cần mã chống giả mạo của tiến trình console và header `Origin` đúng địa chỉ console; thiếu một trong hai thì trả 403 trước khi đọc file.
+- Ô "thử quyết định" hỏi chính bộ luật của cổng bằng mã dùng chung, đọc đúng file luật đó; nó không gọi tool và không đọc dữ liệu.
+  Đây là truy vấn chỉ đọc nên dùng `GET`, để link kết quả chia sẻ được.
+- Mọi `POST` cần mã chống giả mạo do console cấp cho trang (dùng chung cơ chế với ba nút thử, hết hạn sau 30 phút) và header `Origin` đúng địa chỉ console; thiếu một trong hai thì trả 403 trước khi đọc file.
 
-Một dịch vụ tắt thì trang vẫn mở: dòng của dịch vụ đó báo "Không chạy" kèm lý do, các phần khác vẫn đọc được. Danh bạ tắt thì bảng quyền vẫn sửa được với các trường đang có trong luật, nhưng danh sách trường mới và ô thử quyết định chưa dùng được.
-`npm test -w console` chạy phép thử của trang này, gồm `Host` lạ trả 403, tắt danh bạ, tắt cổng, form hỏng, hai lần lưu từ một phiên bản, "về bản gốc", và phép thử đầu cuối: bỏ `work_email` khỏi vai `staff` qua console rồi gọi `find_employee` bằng khoá của chị Hoa trên cổng thật.
-Ba màn hình còn lại (sân chơi, dữ liệu gốc, vết) chưa có trong bản này; thanh điều hướng ghi "sắp có".
+Một dịch vụ tắt thì trang vẫn mở: dòng của dịch vụ đó báo "Không chạy" kèm lý do, các phần khác vẫn đọc được.
+Danh bạ tắt thì bảng quyền vẫn sửa được với các trường đang có trong luật, nhưng danh sách trường mới và ô thử quyết định chưa dùng được.
+`npm test -w console` chạy phép thử của các trang này, gồm `Host` lạ trả 403, tắt danh bạ, tắt cổng, form hỏng, hai lần lưu từ một phiên bản, "về bản gốc", hai bảng dữ liệu gốc, ba nút thử, màn hình vết, và phép thử đầu cuối: bỏ `work_email` khỏi vai `staff` qua console rồi gọi `find_employee` bằng khoá của chị Hoa trên cổng thật.
+Màn hình còn lại (sân chơi) chưa có trong bản này; thanh điều hướng ghi "sắp có".
 
 ## Danh bạ giả
 
@@ -258,9 +271,11 @@ Bảng `trace` nằm trong `LAB_DATA_DIR/gateway.sqlite` và chỉ ghi thêm: ha
 Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi theo khoá, cửa vào (`http`, `mcp` hoặc `web`), tool, mã đối tượng, kết quả, mã lý do, mã luật, phiên bản luật, `x-user-id` đã che (nếu host gửi) và thời gian xử lý.
 Dòng của một lệnh ghi thêm mã chống ghi trùng và số lần gửi.
 Bảng không có cột nào cho tên, email, số điện thoại, địa chỉ hay khoá, nên các giá trị đó không ghi vào được.
+Màn hình Vết của console đọc đúng bảng này, và lọc được theo cả bốn cột người, task, đề xuất và nơi gọi.
 
 ```
 npm run trace -- --employee NV-05
 npm run trace -- --task T-12
+npm run trace -- --proposal dx-0123456789abcdef --entry web
 npm run trace -- --limit 20
 ```

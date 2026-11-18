@@ -20,8 +20,8 @@ const NAV: readonly NavItem[] = [
   { key: 'tools', label: 'Tool', href: '/tools' },
   { key: 'permissions', label: 'Quyền và trường', href: '/permissions' },
   { key: 'playground', label: 'Sân chơi' },
-  { key: 'data', label: 'Dữ liệu gốc' },
-  { key: 'trace', label: 'Vết' },
+  { key: 'data', label: 'Dữ liệu gốc', href: '/data' },
+  { key: 'trace', label: 'Vết', href: '/trace' },
 ];
 
 const STYLE = `
@@ -81,8 +81,14 @@ td.num,th.num{font-variant-numeric:tabular-nums;white-space:nowrap}
 .params th.nested code{color:var(--text)}
 .required{font-weight:650}
 .guest{color:var(--muted);font-size:.82rem;display:block;margin:.15rem 0 0}
+.operator-view{border-left:3px solid var(--accent);padding:.15rem 0 .15rem .7rem;margin:0 0 1rem;color:var(--muted);max-width:62rem}
+.operator-view strong{color:var(--text)}
+.filters{display:flex;flex-wrap:wrap;gap:.75rem 1rem;align-items:flex-end;background:var(--panel);border:1px solid var(--line);border-radius:.7rem;padding:.85rem 1rem;margin:0 0 1rem}
+.filters .field{display:flex;flex-direction:column;gap:.2rem;min-width:9rem}
+.filters label{font-size:.72rem;font-weight:750;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.filters input,.filters select{font:inherit;padding:.45rem .55rem;border:1px solid var(--line);border-radius:.45rem;background:var(--bg);color:var(--text);min-width:9rem}
+.filters .actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
 select,input[type=number]{font:inherit;padding:.42rem .55rem;border:1px solid var(--line);border-radius:.42rem;background:var(--panel);color:var(--text);width:100%}
-select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .matrix{min-width:46rem}
 .matrix td{padding:.4rem .45rem}
 .matrix select{min-width:8.5rem}
@@ -107,14 +113,35 @@ select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid 
 .result dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.3rem .9rem;margin:.6rem 0 0;font-size:.92rem}
 .result dt{font-weight:700;color:var(--muted);font-size:.84rem}
 .result dd{margin:0;overflow-wrap:anywhere}
-.actions{display:flex;flex-wrap:wrap;gap:.6rem;margin:.8rem 0 1rem}
-.actions form{margin:0}
-button{font:inherit;font-weight:650;padding:.55rem 1.1rem;border-radius:.45rem;border:1px solid var(--accent);background:var(--accent);color:var(--accent-text);cursor:pointer}
+.rule-actions{margin:.8rem 0 1rem}
+button{font:inherit;font-weight:650;padding:.5rem 1rem;border-radius:.45rem;border:1px solid var(--accent);background:var(--accent);color:var(--accent-text);cursor:pointer}
 button.secondary{background:transparent;color:var(--accent)}
 button:disabled{opacity:.55;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.actions form{margin:0}
+.pager{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;margin:.9rem 0 0;font-size:.9rem}
+.pager a,.pager span{padding:.2rem .6rem;border:1px solid var(--line);border-radius:.4rem;color:var(--accent);text-decoration:none}
+.pager span[aria-current=page]{background:var(--accent);border-color:var(--accent);color:var(--accent-text);font-weight:750}
+.pager .count{color:var(--muted);border:0;padding-left:0}
+.raw-cell{overflow-wrap:anywhere;max-width:26rem}
+.raw-cell code{font-size:.85em}
+.raw-table{min-width:64rem}
+.raw-table tbody th{white-space:nowrap}
+.raw-table td.nowrap{white-space:nowrap}
+.trace-group thead th{white-space:nowrap}
+.trace-group small{display:block;color:var(--muted);font-size:.8rem;margin:.15rem 0 0}
+.trace-group small code{font-size:.95em}
+.trace-when time{white-space:nowrap}
+.trace-group h2{justify-content:flex-start}
+.trace-group .badge{font-weight:650}
+.group-meta{color:var(--muted);font-size:.85rem;font-weight:500}
+details summary{cursor:pointer;color:var(--accent);font-size:.9rem}
+details p{margin:.3rem 0 0;overflow-wrap:anywhere}
 footer{max-width:76rem;margin:0 auto;padding:0 1rem 2.5rem;color:var(--muted);font-size:.85rem}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em}
 @media (max-width:46rem){
+.raw-table{min-width:0}
 .stack thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .stack,.stack tbody,.stack tr,.stack th,.stack td{display:block;width:auto}
 .stack tr{border-bottom:1px solid var(--line);padding:.45rem 0}
@@ -137,6 +164,8 @@ export function layout(options: {
   readonly active: NavKey | null;
   readonly notices: readonly Notice[];
   readonly body: string;
+  /** A page's own plain JavaScript, with the nonce the response allows in its content security policy. */
+  readonly script?: { readonly code: string; readonly nonce: string };
 }): string {
   const items = NAV.map((item) => {
     if (item.href === undefined) {
@@ -172,6 +201,7 @@ ${notices}
 ${options.body}
 </main>
 <footer>Dữ liệu giả, chỉ chạy trên máy này. Không mở trang điều khiển qua đường hầm hay địa chỉ công khai.</footer>
+${options.script === undefined ? '' : `<script nonce="${esc(options.script.nonce)}">${options.script.code}</script>`}
 </body>
 </html>
 `;
