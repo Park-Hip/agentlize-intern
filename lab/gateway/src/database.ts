@@ -40,3 +40,22 @@ export function openGatewayDatabase(dataDir: string = resolveDataDir()): Gateway
   }
   return db;
 }
+
+/**
+ * Open the file the gateway writes, for reading only (ADR-0006 section 3.6).
+ * The console never creates the database: when the file is missing this throws,
+ * and the trace screen says so instead of showing an empty table. `query_only`
+ * is a second guard on top of the read-only handle, so a query that would write
+ * fails instead of changing the history.
+ */
+export function openGatewayDatabaseReadOnly(dataDir: string = resolveDataDir()): GatewayDatabase {
+  const db = new Database(join(dataDir, GATEWAY_DB_FILE), { readonly: true, fileMustExist: true });
+  try {
+    db.pragma(`busy_timeout = ${BUSY_TIMEOUT_MS}`);
+    db.pragma('query_only = true');
+  } catch (error) {
+    db.close();
+    throw error;
+  }
+  return db;
+}

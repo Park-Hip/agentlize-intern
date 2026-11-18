@@ -1,7 +1,7 @@
 # Lab - AI Operations Connector
 
 Khung mã của bản thử: bốn dịch vụ chạy trên máy, một lệnh khởi động và một lệnh chạy phép thử.
-Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/mcp`, đường soạn đề xuất, đường ghi sau khi bấm Gửi và hai màn hình đầu của trang điều khiển đã có logic.
+Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/mcp`, đường soạn đề xuất, đường ghi sau khi bấm Gửi và bốn màn hình của trang điều khiển (tổng quan, tool, dữ liệu gốc, vết) đã có logic.
 
 ## Gói
 
@@ -11,7 +11,7 @@ Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/m
 | `gateway` | Cổng kiểm soát: `GET /health`, cửa `/mcp` (`src/mcp.ts`), module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`), bộ luật quyền (`src/policy/`), ba tool đọc (`src/tools/`), đường soạn đề xuất và đường ghi (`src/proposals/`, `src/writes/`), bảng vết (`src/trace/`, lệnh `npm run trace`) |
 | `fake-directory` | Danh bạ giả 20 nhân viên, xem mục Danh bạ giả |
 | `fake-tasks` | Danh sách task giả: 100 task nạp cố định, đọc, ghi có mã chống ghi trùng và số phiên bản |
-| `console` | Trang điều khiển chỉ nghe `127.0.0.1`: tổng quan ba dịch vụ, luật đang áp, bảy danh tính và màn hình tool |
+| `console` | Trang điều khiển chỉ nghe `127.0.0.1`: tổng quan ba dịch vụ, luật đang áp, bảy danh tính, màn hình tool, dữ liệu gốc của hai hệ thống giả và bảng vết |
 | `tests` | Phép thử `node:test`, gồm phép thử khói bốn dịch vụ và client giả máy chủ Thổ Thần (`src/fake-host.ts`) |
 
 Thư viện dùng chung nằm ở `package.json` gốc của workspace, để cả bốn dịch vụ chạy trên một lần cài và một phiên bản.
@@ -49,6 +49,7 @@ Lần khởi động đầu, cổng chép bản gốc sang đường dẫn ở t
 Bộ luật đọc lại file ở mỗi lần quyết định, nên sửa file đó áp dụng ngay ở lời gọi sau mà không cần khởi động lại; file hỏng thì mọi lời gọi bị từ chối với `POLICY_UNAVAILABLE`.
 Phép thử nghiệm thu trỏ `LAB_RULES_PATH` vào bản sao trong thư mục tạm, nên file luật hỏng không chạm vào repo.
 Cơ sở dữ liệu `gateway.sqlite` bật chế độ ghi nhật ký trước (WAL) và chờ khoá 5 giây, để tiến trình khác đọc được trong lúc cổng đang ghi.
+Console mở cùng file đó ở chế độ chỉ đọc, và mỗi request đóng file ngay sau khi đọc xong.
 
 ## Trang điều khiển
 
@@ -56,14 +57,21 @@ Sau `npm start`, mở `http://127.0.0.1:8793`.
 Trang chỉ nghe loopback, và mọi request có `Host` khác `127.0.0.1:<cổng>` hay `localhost:<cổng>` nhận 403, nên một trang lạ đổi DNS về máy này cũng không gọi được.
 Console đọc danh bạ giả bằng khoá dịch vụ và đọc cùng file luật cổng đang áp.
 
-Hai màn hình đầu:
+Bốn màn hình:
 
 - Tổng quan: `/health` của ba dịch vụ, `version` của file luật, bảng sáu nhân vật cộng khách đọc từ danh bạ.
 - Tool: danh mục từ `GET /v1/tools`, kèm mô tả, tham số (tên, kiểu, bắt buộc) và nhãn "Chỉ đọc" hay "Soạn đề xuất".
+- Dữ liệu gốc: bảng nhân viên và bảng task đúng như hai hệ thống giả đang lưu, đọc bằng khoá dịch vụ; lọc theo phòng, 20 task mỗi trang, và một dòng nhắc "Góc nhìn người vận hành, AI không thấy thế này".
+  Không có nút sửa bản ghi, vì mọi thay đổi nghiệp vụ đi qua cổng.
+  Khi `LAB_TEST_HOOKS=1` màn hình có thêm ba nút gọi đường `/admin/*` của hai hệ thống giả: đặt lại danh bạ, đặt lại task, và gây lỗi mất phản hồi sau khi ghi; khi biến tắt thì ba nút không hiện và ba đường `POST` trả 404.
+  Mỗi lần bấm cần `Origin` của chính console và mã chống giả mạo in trong form.
+- Vết: đọc `gateway.sqlite` ở chế độ chỉ đọc, lọc theo người, task, đề xuất và nơi gọi, gom các dòng của một đề xuất thành một nhóm để đọc chuỗi soạn, xác nhận, ghi.
+  Mỗi dòng có mã vết, thời điểm, nơi gọi, tool, người gọi, đối tượng, kết quả, mã lý do, mã luật và phiên bản luật; dòng của lệnh ghi thêm mã chống ghi trùng và số lần gửi.
+  Bảng tự làm mới mỗi 5 giây bằng một đoạn JavaScript nhỏ khi tab đang hiện; tắt JavaScript thì trang vẫn lọc và đọc đủ.
 
 Một dịch vụ tắt thì trang vẫn mở: dòng của dịch vụ đó báo "Không chạy" kèm lý do, các phần khác vẫn đọc được.
-`npm test -w console` chạy phép thử của trang này, gồm `Host` lạ trả 403, tắt danh bạ và tắt cổng.
-Bốn màn hình còn lại (quyền và trường, sân chơi, dữ liệu gốc, vết) chưa có trong bản này; thanh điều hướng ghi "sắp có".
+`npm test -w console` chạy phép thử của trang này, gồm `Host` lạ trả 403, tắt danh bạ, tắt cổng, hai bảng dữ liệu gốc, ba nút thử và màn hình vết.
+Hai màn hình còn lại (quyền và trường, sân chơi) chưa có trong bản này; thanh điều hướng ghi "sắp có".
 
 ## Danh bạ giả
 
@@ -244,9 +252,11 @@ Bảng `trace` nằm trong `LAB_DATA_DIR/gateway.sqlite` và chỉ ghi thêm: ha
 Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi theo khoá, cửa vào (`http`, `mcp` hoặc `web`), tool, mã đối tượng, kết quả, mã lý do, mã luật, phiên bản luật, `x-user-id` đã che (nếu host gửi) và thời gian xử lý.
 Dòng của một lệnh ghi thêm mã chống ghi trùng và số lần gửi.
 Bảng không có cột nào cho tên, email, số điện thoại, địa chỉ hay khoá, nên các giá trị đó không ghi vào được.
+Màn hình Vết của console đọc đúng bảng này, và lọc được theo cả bốn cột người, task, đề xuất và nơi gọi.
 
 ```
 npm run trace -- --employee NV-05
 npm run trace -- --task T-12
+npm run trace -- --proposal dx-0123456789abcdef --entry web
 npm run trace -- --limit 20
 ```
