@@ -5,8 +5,10 @@ import {
   MAX_TUNNEL_MINUTES,
   armCloseAt,
   buildCloudflaredArgs,
+  choosePublicBaseUrl,
   closeAt,
   cloudflaredEnv,
+  describePublicBaseUrl,
   formatClock,
   parseTunnelUrl,
   planTunnel,
@@ -84,6 +86,30 @@ test('tunnel-plan: cloudflared never inherits a lab key', () => {
   });
 
   assert.deepEqual(env, { PATH: 'C:\\Windows', HOME: 'C:\\Users\\lab' });
+});
+
+test('tunnel-plan: confirmation links use the tunnel address unless the runner set one', () => {
+  const fromTunnel = choosePublicBaseUrl(undefined, 'https://brave-cat-123.trycloudflare.com');
+  assert.deepEqual(fromTunnel, { baseUrl: 'https://brave-cat-123.trycloudflare.com', source: 'tunnel' });
+  assert.equal(
+    describePublicBaseUrl(fromTunnel),
+    'confirmation links use https://brave-cat-123.trycloudflare.com (the tunnel address; LAB_PUBLIC_BASE_URL is not set)',
+  );
+
+  const configured = choosePublicBaseUrl(' https://ops.example.com/ ', 'https://brave-cat-123.trycloudflare.com');
+  assert.deepEqual(configured, { baseUrl: 'https://ops.example.com', source: 'configured' });
+  assert.equal(
+    describePublicBaseUrl(configured),
+    'confirmation links use https://ops.example.com (from LAB_PUBLIC_BASE_URL, not the tunnel address)',
+  );
+
+  assert.equal(choosePublicBaseUrl('', 'https://quiet-lab.trycloudflare.com').source, 'tunnel');
+  assert.throws(
+    () => choosePublicBaseUrl('not-an-address', 'https://quiet-lab.trycloudflare.com'),
+    /LAB_PUBLIC_BASE_URL/,
+  );
+  assert.throws(() => choosePublicBaseUrl(undefined, 'http://127.0.0.1:8790'), /quick tunnel/);
+  assert.throws(() => choosePublicBaseUrl(undefined, 'https://brave-cat-123.example.com'), /quick tunnel/);
 });
 
 test('tunnel-plan: a quick tunnel address is read from cloudflared output', () => {

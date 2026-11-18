@@ -300,11 +300,19 @@ File luật của phép thử là bản sao trong thư mục tạm, nên lúc l�
 ## Đường hầm cho một phiên nghiệm thu
 
 Mốc 1 cần một địa chỉ HTTPS công khai để Thổ Thần web và desktop gọi vào ([ADR-0004](../docs/adr/adr-0004-shared-gateway-over-https.md#3-quyết-định)).
-Lệnh `npm run tunnel` dựng mã, mở ba dịch vụ, rồi mở một đường hầm Cloudflare tới cổng và in địa chỉ công khai của `/mcp`.
+Lệnh `npm run tunnel` dựng mã, mở đường hầm Cloudflare tới cổng trước, đợi `cloudflared` in địa chỉ `https://<tên>.trycloudflare.com`, rồi mới mở ba dịch vụ với địa chỉ đó.
+Nhờ vậy link xác nhận mà `propose_task_change` trả trong phiên đường hầm dùng địa chỉ công khai, và người bấm Gửi ở máy khác vẫn mở được.
 
 ```
 npm run tunnel
 ```
+
+`cloudflared` in địa chỉ trước khi cổng mở, vì cổng chỉ đọc `LAB_PUBLIC_BASE_URL` một lần lúc khởi động.
+Đường hầm nhanh vẫn in địa chỉ khi chưa có dịch vụ nào ở đầu bên kia.
+Lệnh chỉ báo sẵn sàng sau khi gọi thử `/mcp` qua địa chỉ công khai mà không gửi khoá và nhận 401.
+
+Nếu người chạy đã đặt `LAB_PUBLIC_BASE_URL`, lệnh giữ nguyên giá trị đó thay vì địa chỉ đường hầm, và in rõ đang dùng giá trị nào.
+Cách này hợp với một đường hầm có tên riêng hoặc một địa chỉ cố định.
 
 Đường hầm và ba dịch vụ tự tắt sau 45 phút, hoặc sớm hơn khi bấm Ctrl+C.
 Lệnh không nhận khoá và không in khoá; lấy khoá bằng `npm run seed-keys` ở cửa sổ thứ hai rồi dán thẳng vào ô API Key của skill.
@@ -322,7 +330,10 @@ Lệnh từ chối chạy khi `LAB_GATEWAY_PORT` trùng `LAB_CONSOLE_PORT`.
 Sau phiên, tắt đường hầm, trả skill về trạng thái trước và chạy `npm run seed-keys -- --rotate` để thu hồi khoá đã đi qua Internet.
 Kịch bản từng bước và chỗ điền bằng chứng nằm ở [nghiệm thu mốc 1](../rd/evaluation/milestone-1-tho-than.md).
 
-**Kết luận:** một lệnh mở đường hầm tới cổng, và trang điều khiển ở 8793 không bao giờ đi qua đó.
+`npm test` chạy `lab/scripts/tunnel-test.ts`: một tiến trình giả `cloudflared` in một địa chỉ mẫu, rồi phép thử kiểm link của `propose_task_change` bắt đầu bằng địa chỉ đó và câu trả lời không chứa `127.0.0.1`.
+Phép thử cũng chạy trường hợp người chạy đặt sẵn `LAB_PUBLIC_BASE_URL`.
+
+**Kết luận:** một lệnh mở đường hầm tới cổng, link xác nhận dùng địa chỉ công khai trừ khi người chạy đặt sẵn, và trang điều khiển ở 8793 không bao giờ đi qua đó.
 
 ## Bảng vết
 

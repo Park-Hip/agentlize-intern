@@ -1,4 +1,11 @@
-import { LOOPBACK_HOST, PORT_ENV, SERVICE_KEY_ENV, resolvePort } from '@lab/shared';
+import {
+  LOOPBACK_HOST,
+  PORT_ENV,
+  PUBLIC_BASE_URL_ENV,
+  SERVICE_KEY_ENV,
+  readPublicBaseUrl,
+  resolvePort,
+} from '@lab/shared';
 
 /** The public session never lasts longer than this, per ADR-0004. */
 export const DEFAULT_TUNNEL_MINUTES = 45;
@@ -104,6 +111,45 @@ export function cloudflaredEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.Pro
 /** The first quick tunnel address in one line of cloudflared output, or null. */
 export function parseTunnelUrl(line: string): string | null {
   return QUICK_TUNNEL_URL.exec(line)?.[0] ?? null;
+}
+
+/** Where the address in the confirmation links comes from. */
+export type PublicBaseUrlSource = 'configured' | 'tunnel';
+
+export interface PublicBaseUrlChoice {
+  /** The address without a trailing slash, as the gateway wants it. */
+  readonly baseUrl: string;
+  readonly source: PublicBaseUrlSource;
+}
+
+/**
+ * The address confirmation links carry during a tunnel session.
+ * A value the runner set wins, so a named tunnel or a fixed address is not
+ * replaced by a random quick tunnel address; otherwise the tunnel address is
+ * the only one a person on another machine can open. A link to 127.0.0.1
+ * only works on the machine that runs the gateway.
+ */
+export function choosePublicBaseUrl(configured: string | undefined, tunnelUrl: string): PublicBaseUrlChoice {
+  const fromEnv = readPublicBaseUrl(configured === undefined ? {} : { [PUBLIC_BASE_URL_ENV]: configured });
+  if (fromEnv !== undefined) return { baseUrl: fromEnv, source: 'configured' };
+
+  let url: URL;
+  try {
+    url = new URL(tunnelUrl);
+  } catch {
+    throw new Error(`not a Cloudflare quick tunnel address: "${tunnelUrl}"`);
+  }
+  if (url.protocol !== 'https:' || !url.hostname.endsWith('.trycloudflare.com')) {
+    throw new Error(`not a Cloudflare quick tunnel address: "${tunnelUrl}"`);
+  }
+  return { baseUrl: tunnelUrl.replace(/\/+$/, ''), source: 'tunnel' };
+}
+
+/** One line that says which address the confirmation links use, and why. Never a key. */
+export function describePublicBaseUrl(choice: PublicBaseUrlChoice): string {
+  return choice.source === 'configured'
+    ? `confirmation links use ${choice.baseUrl} (from ${PUBLIC_BASE_URL_ENV}, not the tunnel address)`
+    : `confirmation links use ${choice.baseUrl} (the tunnel address; ${PUBLIC_BASE_URL_ENV} is not set)`;
 }
 
 export interface TimerApi {
