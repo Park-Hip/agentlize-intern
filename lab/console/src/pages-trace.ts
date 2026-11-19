@@ -139,9 +139,11 @@ function groupPanel(group: TraceGroup): string {
   const note =
     group.proposalId === null
       ? '<p class="meta">Lời gọi đọc và lời gọi bị từ chối trước khi có đề xuất: không thuộc đề xuất nào.</p>'
-      : '<p class="meta">Trong một đề xuất, dòng cũ nhất đứng trước, nên chuỗi đọc từ soạn sang xác nhận rồi ghi.</p>';
+      : '<p class="meta">Trong một đề xuất, dòng cũ nhất đứng trước, nên chuỗi đọc từ soạn sang xác nhận, duyệt rồi ghi. Mọi lệnh ghi của đề xuất nằm chung nhóm này.</p>';
+  const writes =
+    group.writeCommands > 0 ? ` <span class="badge">${group.writeCommands} lệnh ghi</span>` : '';
   return `<section class="panel trace-group">
-<h2>${title} <span class="badge">${group.rows.length} dòng</span> ${groupSummary(group)}</h2>
+<h2>${title} <span class="badge">${group.rows.length} dòng</span>${writes} ${groupSummary(group)}</h2>
 <div class="table-wrap">
 <table class="stack">
 <thead><tr><th scope="col">Thời điểm</th><th scope="col">Nơi gọi</th><th scope="col">Cửa vào</th><th scope="col">Tool</th><th scope="col">Kết quả</th><th scope="col">Mã lý do</th><th scope="col">Mã luật</th><th scope="col">Phiên bản luật</th></tr></thead>

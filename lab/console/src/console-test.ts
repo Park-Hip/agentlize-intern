@@ -342,6 +342,7 @@ test('console: trace groups one task chain by proposal, with every column, and n
   assert.match(html, /<h1>Vết<\/h1>/);
   assert.match(html, new RegExp(`Đề xuất <code>${proposal}</code>`));
   assert.match(html, /3 dòng/);
+  assert.match(html, /1 lệnh ghi/, 'the group says how many write commands it holds');
   assert.match(html, /NV-02, task T-12/);
   // The chain reads oldest first inside its proposal; tool names carry break chances, so drop them to search.
   const text = html.replaceAll('<wbr>', '');

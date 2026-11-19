@@ -59,6 +59,8 @@ export interface TraceGroup {
   /** `null` for the lines that belong to no proposal. */
   readonly proposalId: string | null;
   readonly rows: readonly TraceRow[];
+  /** How many of the lines are sends of a write command, so a group shows the writes of one proposal. */
+  readonly writeCommands: number;
 }
 
 /**
@@ -82,9 +84,15 @@ export function groupByProposal(rows: readonly TraceRow[]): readonly TraceGroup[
 
   const groups: TraceGroup[] = [];
   for (const [proposalId, proposalRows] of byProposal) {
-    groups.push({ proposalId, rows: [...proposalRows].reverse() });
+    groups.push({
+      proposalId,
+      rows: [...proposalRows].reverse(),
+      writeCommands: proposalRows.filter((row) => row.tool === 'write_command').length,
+    });
   }
-  if (loose.length > 0) groups.push({ proposalId: null, rows: loose });
+  if (loose.length > 0) {
+    groups.push({ proposalId: null, rows: loose, writeCommands: loose.filter((row) => row.tool === 'write_command').length });
+  }
   return groups;
 }
 

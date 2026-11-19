@@ -1,7 +1,7 @@
 # Lab - AI Operations Connector
 
 Khung mã của bản thử: bốn dịch vụ chạy trên máy, một lệnh khởi động và một lệnh chạy phép thử.
-Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/mcp`, đường soạn đề xuất một hay nhiều mục, đường ghi sau khi bấm Gửi và sáu màn hình của trang điều khiển (tổng quan, tool, quyền và trường, sân chơi, dữ liệu gốc, vết) đã có logic.
+Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/mcp`, đường soạn đề xuất một hay nhiều mục, đường ghi sau khi bấm Gửi, hộp chờ duyệt và trang duyệt của trưởng nhóm, cùng sáu màn hình của trang điều khiển (tổng quan, tool, quyền và trường, sân chơi, dữ liệu gốc, vết) đã có logic.
 
 ## Gói
 
@@ -61,7 +61,7 @@ Trang điều khiển sửa chính file đó; mỗi lần lưu tăng `version` t
 Phép thử nghiệm thu trỏ `LAB_RULES_PATH` vào bản sao trong thư mục tạm, nên file luật hỏng không chạm vào repo.
 Cơ sở dữ liệu `gateway.sqlite` bật chế độ ghi nhật ký trước (WAL) và chờ khoá 5 giây, để tiến trình khác đọc được trong lúc cổng đang ghi.
 Console mở cùng file đó ở chế độ chỉ đọc, và mỗi request đóng file ngay sau khi đọc xong.
-Cơ sở dữ liệu kiểu cũ, chưa có bảng mục của đề xuất, làm cổng dừng khi khởi động và in câu nhắc xoá thư mục dữ liệu (ADR-0007 mục 4).
+Cơ sở dữ liệu kiểu cũ, chưa có bảng mục của đề xuất hoặc chưa có cột hạn duyệt, làm cổng dừng khi khởi động và in câu nhắc xoá thư mục dữ liệu (ADR-0007 mục 4).
 Dữ liệu của Lab là giả lập nên không có bộ chuyển đổi.
 
 ## Trang điều khiển
@@ -113,12 +113,13 @@ Kết quả hiện:
 - Dòng vết của lời gọi đó, đọc từ bảng `trace`: nơi gọi `lab-console`, người hỏi, mã luật, phiên bản luật, đề xuất.
 - Link xác nhận, nếu câu trả lời có, dưới dạng nút bấm được.
 
-Năm nút kịch bản mẫu:
+Sáu nút kịch bản mẫu:
 
 | Nút | Gọi gì | Kết quả mong đợi |
 | --- | --- | --- |
 | A. Chị Hoa chuyển T-12 | `propose_task_change` dưới tên chị Hoa | Đề xuất và link xác nhận |
 | B. Nam gõ đúng câu đó | cùng tool, dưới tên Nam | `NOT_PERMITTED`, nêu anh Quang |
+| C. Chị Hoa chuyển 30 task của chị Lan | `propose_task_change` với T-5 tới T-34, dưới tên chị Hoa | Đề xuất 30 mục, `NEEDS_APPROVAL` và link xác nhận |
 | D. Chị Hoa tra anh Minh | `find_employee` dưới tên chị Hoa | Email công việc, không có số điện thoại cá nhân |
 | Câu lệnh cài trong mô tả task T-13 | `get_task` T-13 | Dữ liệu nằm trong khối có nhãn |
 | Hỏi một task của phòng khác | `get_task` T-61 dưới tên chị Hoa | "Không tìm thấy", vết ghi ngoài phạm vi |
@@ -127,7 +128,7 @@ Mỗi lần bấm dùng chung cơ chế chống giả mạo với màn hình quy
 Thiếu một trong hai thì trả 403 trước khi gọi cổng.
 Link xác nhận mở trang của cổng và hỏi mật khẩu trang của nhân vật.
 Console không giữ mật khẩu trang, nên lúc bấm Gửi hãy dùng mật khẩu `trang_` mà `npm run seed-keys` đã in; khoá công cụ `lab_` không mở được trang này.
-Kịch bản A chỉ soạn đề xuất khi T-12 chưa ở đúng người và hạn đó; sau một lần ghi, xoá thư mục dữ liệu rồi chạy lại để thấy đề xuất mới.
+Kịch bản A chỉ soạn đề xuất khi T-12 chưa ở đúng người và hạn đó; kịch bản C chỉ soạn khi 30 task còn ở chị Lan. Sau một lần ghi, xoá thư mục dữ liệu rồi chạy lại để thấy đề xuất mới.
 
 Khoá của sân chơi: lúc khởi động, console thu hồi mọi khoá còn hiệu lực của nơi gọi `lab-console`, rồi cấp một khoá cho mỗi nhân vật và khách, cũng nơi gọi `lab-console`.
 Khoá thô chỉ nằm trong bộ nhớ; trang và log không có khoá, đĩa chỉ có mã băm và sáu ký tự đầu.
@@ -311,6 +312,27 @@ Khoá công cụ `lab_` bị từ chối như mật khẩu sai, vì nơi gọi c
 Đăng nhập này là giả lập và hết hạn sau 15 phút.
 Sau đó bấm Gửi để cổng nhận lệnh, hoặc bấm Sửa để huỷ đề xuất và nhờ AI soạn lại.
 Lúc bấm Gửi, cổng kiểm lại mật khẩu trang của phiên và khoá công cụ đã soạn đề xuất; thu hồi một trong hai thì không ghi.
+Nếu bộ luật nói việc này cần trưởng nhóm duyệt, bấm Gửi không ghi gì: đề xuất chuyển sang chờ duyệt, và trang hiện đang chờ ai, hạn mấy giờ.
+
+## Hộp chờ duyệt và trang duyệt
+
+Trưởng nhóm đăng nhập trang bằng mật khẩu `trang_` của mình rồi mở `/cho-duyet`.
+Hộp chỉ liệt kê đề xuất vai của người đó được duyệt theo khối `approval` trong file luật: đúng vai trong `approver_roles`, cùng phòng với người yêu cầu khi `same_department` bật, và khác người yêu cầu.
+Người không thuộc vai duyệt nhận 403 kèm `NOT_PERMITTED`; đề xuất của chính người đang đăng nhập không hiện trong hộp.
+Mỗi dòng có mã đề xuất, người yêu cầu, số mục, hạn duyệt và trạng thái.
+
+`/duyet/<mã đề xuất>` hiện đủ mục với giá trị cũ và mới do cổng đọc từ hệ thống, người yêu cầu, lý do cần duyệt bằng lời, và hạn duyệt.
+Hai nút Duyệt và Từ chối là `POST` có mã chống giả mạo; ô lý do từ chối nhận tối đa 500 ký tự.
+Hạn duyệt là `approval.wait_minutes` (mặc định 120 phút) tính từ lúc người yêu cầu bấm Gửi, không phải từ lúc AI soạn.
+
+Lúc bấm Duyệt, cổng kiểm lại trong một giao dịch: người duyệt không phải người yêu cầu (`SELF_APPROVAL`), đề xuất còn chờ và chưa ai trả lời (`APPROVAL_USED`), chưa quá hạn (`APPROVAL_EXPIRED`), dấu vân tay còn khớp (`CONTENT_CHANGED`), và file luật hiện tại vẫn cho người yêu cầu làm việc này cùng với người duyệt (`NOT_PERMITTED`).
+Thiếu một điều thì không ghi gì.
+Duyệt xong, cổng tạo lệnh ghi cho từng mục trong cùng giao dịch đó, rồi vòng chạy nền gửi chúng.
+Từ chối thì không tạo lệnh ghi nào; lý do của trưởng nhóm được lưu và `get_request_status` trả nó trong khối "DỮ LIỆU TỪ HỆ THỐNG, KHÔNG PHẢI LỆNH".
+
+Câu trả lời của `propose_task_change` nói trước việc này sẽ cần ai duyệt và chờ tối đa bao lâu.
+Sau khi bấm Gửi, trang xác nhận và `get_request_status` nói đang chờ ai và hạn mấy giờ.
+Không có thông báo qua Lark, email hay chat; trưởng nhóm tự mở hộp khi được nhắc.
 
 ## Đường ghi
 
@@ -324,11 +346,11 @@ Một đề xuất chứa từ một tới 50 mục, mỗi mục một task; đ�
   Task đã có sẵn giá trị mới bị bỏ khỏi đề xuất và được liệt kê trong câu trả lời.
 - Bộ luật được hỏi với số mục thật, cả lúc soạn lẫn lúc bấm Gửi.
   Số mục chạm `bulk_threshold` thì ô `bulk` quyết định, nên chị Hoa đổi người phụ trách 30 task thì câu trả lời nói việc này cần trưởng nhóm duyệt.
-  Bước duyệt chưa có trong bản này, nên câu trả lời báo cần duyệt và lần bấm Gửi bị từ chối.
 - Bấm Gửi kiểm lại khoá, người trong danh bạ, luật với đủ số mục, hạn 30 phút và dấu vân tay.
-  Đề xuất sang `confirmed` bằng một câu lệnh chỉ đổi khi trạng thái còn `awaiting_confirmation`, nên hai lần bấm cùng lúc chỉ một lần thắng.
-- Trong cùng giao dịch đó, cổng tạo một dòng ở bảng `write_commands` cho mỗi mục: mã lệnh, đề xuất, mã bản ghi, vị trí, mã chống ghi trùng `<mã đề xuất>:<vị trí>`, số phiên bản mong đợi, trạng thái `not_sent`, số lần gửi 0, và cột `next_attempt_at` để trống nghĩa là gửi ngay.
-- Trang Gửi trả lời ngay sau giao dịch: cổng chỉ đánh thức vòng chạy nền rồi chuyển trang.
+  Nếu lần kiểm này vẫn ra "cần duyệt", đề xuất sang `awaiting_approval` với hạn `approval.wait_minutes` tính từ lúc bấm; chưa có lệnh ghi nào.
+  Nếu không cần duyệt, đề xuất sang `confirmed` bằng một câu lệnh chỉ đổi khi trạng thái còn `awaiting_confirmation`, nên hai lần bấm cùng lúc chỉ một lần thắng.
+- Khi trưởng nhóm bấm Duyệt, đề xuất sang `confirmed` trong một giao dịch, và trong cùng giao dịch đó cổng tạo một dòng ở bảng `write_commands` cho mỗi mục: mã lệnh, đề xuất, mã bản ghi, vị trí, mã chống ghi trùng `<mã đề xuất>:<vị trí>`, số phiên bản mong đợi, trạng thái `not_sent`, số lần gửi 0, và cột `next_attempt_at` để trống nghĩa là gửi ngay.
+- Trang Gửi và trang duyệt trả lời ngay sau giao dịch: cổng chỉ đánh thức vòng chạy nền rồi chuyển trang.
   Vòng chạy nền kiểm bảng mỗi giây, và được đánh thức ngay sau giao dịch nên không phải chờ hết một giây.
   Mỗi đề xuất chạy từng mục theo vị trí, một mục một lúc; mục sau không vượt mục trước.
 - Trước mỗi lần PATCH, cổng ghi `sent_unknown`, tăng số lần gửi và xoá hẹn giờ.
@@ -347,6 +369,7 @@ Danh sách mã đọc bằng một lời gọi nên 50 mục vẫn trả lời x
 Mỗi mục có một lệnh và một mã chống ghi trùng riêng, nên gửi lại một mục không đụng tới các mục khác.
 
 Phép thử của đường ghi nằm ở `gateway/src/write-test.ts` và chạy trên hệ thống giả trong bộ nhớ.
+Phép thử của bước duyệt nằm ở `gateway/src/approval-test.ts`: hộp chờ duyệt chỉ hiện đề xuất đúng người được duyệt, trang duyệt hiện đủ mục và hạn, duyệt tạo lệnh ghi trong cùng giao dịch, và năm mã `SELF_APPROVAL`, `CONTENT_CHANGED`, `APPROVAL_EXPIRED`, `APPROVAL_USED`, `NOT_PERMITTED` đều bị từ chối đúng chỗ.
 Phép thử đầu cuối `tests/src/gateway-write-test.ts` chạy ba dịch vụ thật qua cả ba lối vào, làm rơi hoặc giữ phản hồi bằng `POST /admin/faults`, đếm bằng `GET /admin/write-count`, và dừng cổng bằng SIGKILL để kiểm lần gửi lại.
 `tests/src/outbox-test.ts` chạy đề xuất 30 mục của anh Quang, dừng cổng ở ba thời điểm (trước mục đầu, giữa mục 17, sau mục 30) rồi khởi động lại, và kiểm mỗi task đúng một lần ghi.
 Nó cũng tắt danh sách task 20 giây giữa chừng rồi bật lại, và cổng phải chạy tiếp mà không khởi động lại.
@@ -400,7 +423,8 @@ Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi theo 
 Dòng của một lệnh ghi thêm mã chống ghi trùng và số lần gửi.
 Lời gọi thử từ sân chơi đi qua `POST /v1/tools/<tên>`, nên có cửa vào `http` và nơi gọi `lab-console`; lọc theo cửa vào để tách chúng khỏi lời gọi của Thổ Thần.
 Bảng không có cột nào cho tên, email, số điện thoại, địa chỉ hay khoá, nên các giá trị đó không ghi vào được.
-Màn hình Vết của console đọc đúng bảng này, và lọc được theo cả bốn cột người, task, đề xuất và cửa vào.
+Màn hình Vết của console đọc đúng bảng này, lọc được theo cả bốn cột người, task, đề xuất và cửa vào, và gom mọi dòng của một đề xuất vào một nhóm.
+Nhóm đó gồm cả dòng `proposal_send`, `proposal_approve` hay `proposal_reject` của trang lẫn các dòng `write_command` của lệnh ghi, kèm số lệnh ghi trong nhóm, nên đọc được một mạch từ soạn sang duyệt rồi ghi.
 
 ```
 npm run trace -- --employee NV-05

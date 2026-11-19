@@ -9,17 +9,27 @@ import {
   type Changes,
 } from './fingerprint.js';
 
-/** A proposal lives this long. After it the page and the status tool say it has expired. */
+/** A proposal lives this long before its requester has pressed Gửi. After it the page and the status tool say it has expired. */
 export const PROPOSAL_TTL_MS = 30 * 60 * 1000;
 
-export const PROPOSAL_STATUSES = ['awaiting_confirmation', 'confirmed', 'cancelled', 'expired'] as const;
+/** A rejected proposal keeps at most this much of the lead's sentence (ADR-0008 section 3.2). */
+export const MAX_APPROVAL_REASON = 500;
+
+export const PROPOSAL_STATUSES = [
+  'awaiting_confirmation',
+  'awaiting_approval',
+  'confirmed',
+  'cancelled',
+  'rejected',
+  'expired',
+] as const;
 export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number];
 
 export const PROPOSAL_ID_PATTERN = /^dx-[0-9a-f]{16}$/;
 
-/** The gateway refuses to start on a database from before change sets (ADR-0007 section 4). */
+/** The gateway refuses to start on a database from before change sets or before the approval step (ADR-0007 section 4). */
 export const OLD_DATABASE_MESSAGE =
-  'gateway.sqlite được tạo bởi một bản cũ, chưa có bảng mục của đề xuất. ' +
+  'gateway.sqlite được tạo bởi một bản cũ, chưa có bảng mục của đề xuất hoặc chưa có bước duyệt. ' +
   'Hãy xoá thư mục dữ liệu (lab/.data, hoặc thư mục trong LAB_DATA_DIR) rồi khởi động lại; dữ liệu của Lab là giả lập.';
 
 /** One record a proposal would change, with the values read when the proposal was drafted. */
@@ -36,11 +46,22 @@ export interface ProposalItem {
   readonly changes: Changes;
 }
 
+/** One person's answer on the approval step: approve or reject, with the print it was given for. */
+export interface Approval {
+  readonly proposalId: string;
+  readonly actor: string;
+  readonly decision: 'approve' | 'reject';
+  readonly fingerprint: string;
+  /** The lead's sentence, kept for a rejection; null when there was none. */
+  readonly reason: string | null;
+  readonly at: string;
+}
+
 export interface Proposal {
   readonly proposalId: string;
   readonly requester: string;
   readonly caller: Caller;
-  /** The tool key that drafted this proposal. Checked again at Gửi, so revoking it blocks the write. */
+  /** The tool key that drafted this proposal. Checked again at Gửi and at approval, so revoking it blocks the write. */
   readonly draftedByKeyId: string | null;
   readonly tool: string;
   /** Every item of a proposal is of this one record type (ADR-0007 section 3.3). */
@@ -49,6 +70,12 @@ export interface Proposal {
   readonly changes: Changes;
   /** True when the rule file says the item count needs a lead's approval before the write. */
   readonly requiresApproval: boolean;
+  /** Why the rule file requires approval, in words a person reads. Null when no approval is needed. */
+  readonly approvalReason: string | null;
+  /** When the lead's approval window ends. Null until the requester presses Gửi. */
+  readonly approvalExpiresAt: string | null;
+  /** The approval or rejection that settled this proposal, at most one. */
+  readonly approval: Approval | null;
   readonly items: readonly ProposalItem[];
   readonly fingerprint: string;
   readonly risk: 'normal';
@@ -75,13 +102,22 @@ export interface NewProposal {
   readonly recordType: string;
   readonly changes: Changes;
   readonly requiresApproval: boolean;
+  /** The sentence the approval page shows when it explains why this needs a lead. */
+  readonly approvalReason?: string | null;
   readonly policyVersion: number;
   readonly items: readonly NewProposalItem[];
 }
 
 export type Decision = 'confirm' | 'cancel';
 
-export type DecideFailure = 'NOT_FOUND' | 'NOT_REQUESTER' | 'APPROVAL_EXPIRED' | 'APPROVAL_USED' | 'CONTENT_CHANGED';
+export type DecideFailure =
+  | 'NOT_FOUND'
+  | 'NOT_REQUESTER'
+  | 'NOT_PERMITTED'
+  | 'SELF_APPROVAL'
+  | 'APPROVAL_EXPIRED'
+  | 'APPROVAL_USED'
+  | 'CONTENT_CHANGED';
 
 export type DecideResult =
   | { readonly ok: true; readonly proposal: Proposal }
@@ -96,6 +132,8 @@ interface Row {
   record_type: string;
   changes: string;
   requires_approval: number;
+  approval_reason: string | null;
+  approval_expires_at: string | null;
   fingerprint: string;
   risk: 'normal';
   policy_version: number;
@@ -113,6 +151,15 @@ interface ItemRow {
   base_version: number;
   previous: string;
   changes: string;
+}
+
+interface ApprovalRow {
+  proposal_id: string;
+  actor: string;
+  decision: 'approve' | 'reject';
+  fingerprint: string;
+  reason: string | null;
+  at: string;
 }
 
 const quoted = (values: readonly string[]): string => values.map((value) => `'${value}'`).join(', ');
@@ -140,7 +187,19 @@ function toItem(row: ItemRow): ProposalItem {
   };
 }
 
-function toProposal(row: Row, items: readonly ProposalItem[]): Proposal {
+function toApproval(row: ApprovalRow | undefined): Approval | null {
+  if (row === undefined) return null;
+  return {
+    proposalId: row.proposal_id,
+    actor: row.actor,
+    decision: row.decision,
+    fingerprint: row.fingerprint,
+    reason: row.reason,
+    at: row.at,
+  };
+}
+
+function toProposal(row: Row, items: readonly ProposalItem[], approval: Approval | null = null): Proposal {
   return {
     proposalId: row.proposal_id,
     requester: row.requester,
@@ -150,6 +209,9 @@ function toProposal(row: Row, items: readonly ProposalItem[]): Proposal {
     recordType: row.record_type,
     changes: parseChanges(row.changes),
     requiresApproval: row.requires_approval === 1,
+    approvalReason: row.approval_reason,
+    approvalExpiresAt: row.approval_expires_at,
+    approval,
     items,
     fingerprint: row.fingerprint,
     risk: row.risk,
@@ -160,52 +222,66 @@ function toProposal(row: Row, items: readonly ProposalItem[]): Proposal {
   };
 }
 
-/** What a person should be told right now: an unconfirmed proposal past its time is expired even if no one has looked since. */
+/** What a person should be told right now: a waiting proposal past its time is expired even if no one has looked since. */
 export function effectiveStatus(proposal: Proposal, now: Date): ProposalStatus {
   if (proposal.status === 'awaiting_confirmation' && now.getTime() >= Date.parse(proposal.expiresAt)) return 'expired';
+  if (
+    proposal.status === 'awaiting_approval' &&
+    proposal.approvalExpiresAt !== null &&
+    now.getTime() >= Date.parse(proposal.approvalExpiresAt)
+  ) {
+    return 'expired';
+  }
   return proposal.status;
 }
 
 /**
- * Owns the `proposals` and `proposal_items` tables (spec section 6, ADR-0007
- * section 3.3). A proposal is never edited: it is confirmed, cancelled or left
- * to expire, and each of those happens at most once.
+ * Owns the `proposals`, `proposal_items`, `confirmations` and `approvals`
+ * tables (spec section 6, ADR-0007 section 3.3, ADR-0008 section 3.2). A
+ * proposal is never edited: it is confirmed, sent for approval, approved,
+ * rejected, cancelled or left to expire, and each of those happens at most
+ * once.
  */
 export class ProposalStore {
   constructor(
     private readonly db: GatewayDatabase,
     private readonly now: () => Date = () => new Date(),
   ) {
-    // A table from before change sets cannot be migrated in place. The lab data
-    // is simulated, so the operator deletes the folder and starts again.
+    // A table from before change sets or before the approval step cannot be
+    // migrated in place. The lab data is simulated, so the operator deletes the
+    // folder and starts again.
     const existing = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'proposals'")
       .get() as { name: string } | undefined;
     if (existing !== undefined) {
       const columns = db.prepare("PRAGMA table_info('proposals')").all() as { name: string }[];
-      if (!columns.some((column) => column.name === 'record_type')) {
+      const names = new Set(columns.map((column) => column.name));
+      if (!names.has('record_type') || !names.has('approval_expires_at')) {
         throw new Error(OLD_DATABASE_MESSAGE);
       }
     }
 
     db.exec(`
       CREATE TABLE IF NOT EXISTS proposals (
-        proposal_id       TEXT PRIMARY KEY,
-        requester         TEXT NOT NULL,
-        caller            TEXT NOT NULL,
-        drafted_by_key_id TEXT,
-        tool              TEXT NOT NULL,
-        record_type       TEXT NOT NULL,
-        changes           TEXT NOT NULL,
-        requires_approval INTEGER NOT NULL CHECK (requires_approval IN (0, 1)),
-        fingerprint       TEXT NOT NULL,
-        risk              TEXT NOT NULL CHECK (risk IN ('normal')),
-        policy_version    INTEGER NOT NULL,
-        status            TEXT NOT NULL CHECK (status IN (${quoted(PROPOSAL_STATUSES)})),
-        created_at        TEXT NOT NULL,
-        expires_at        TEXT NOT NULL
+        proposal_id        TEXT PRIMARY KEY,
+        requester          TEXT NOT NULL,
+        caller             TEXT NOT NULL,
+        drafted_by_key_id  TEXT,
+        tool               TEXT NOT NULL,
+        record_type        TEXT NOT NULL,
+        changes            TEXT NOT NULL,
+        requires_approval  INTEGER NOT NULL CHECK (requires_approval IN (0, 1)),
+        approval_reason    TEXT,
+        approval_expires_at TEXT,
+        fingerprint        TEXT NOT NULL,
+        risk               TEXT NOT NULL CHECK (risk IN ('normal')),
+        policy_version     INTEGER NOT NULL,
+        status             TEXT NOT NULL CHECK (status IN (${quoted(PROPOSAL_STATUSES)})),
+        created_at         TEXT NOT NULL,
+        expires_at         TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS proposals_requester ON proposals (requester);
+      CREATE INDEX IF NOT EXISTS proposals_status ON proposals (status);
       CREATE TABLE IF NOT EXISTS proposal_items (
         proposal_id TEXT NOT NULL REFERENCES proposals (proposal_id),
         position    INTEGER NOT NULL,
@@ -222,10 +298,12 @@ export class ProposalStore {
         seq         INTEGER PRIMARY KEY AUTOINCREMENT,
         proposal_id TEXT NOT NULL REFERENCES proposals (proposal_id),
         actor       TEXT NOT NULL,
-        decision    TEXT NOT NULL CHECK (decision IN ('confirm', 'cancel')),
+        decision    TEXT NOT NULL CHECK (decision IN ('confirm', 'cancel', 'approve', 'reject')),
         fingerprint TEXT NOT NULL,
+        reason      TEXT,
         at          TEXT NOT NULL
       );
+      CREATE INDEX IF NOT EXISTS confirmations_proposal ON confirmations (proposal_id);
     `);
   }
 
@@ -256,6 +334,8 @@ export class ProposalStore {
       record_type: input.recordType,
       changes: JSON.stringify(input.changes),
       requires_approval: input.requiresApproval ? 1 : 0,
+      approval_reason: input.approvalReason ?? null,
+      approval_expires_at: null,
       fingerprint: fingerprintOf(items),
       risk: 'normal',
       policy_version: input.policyVersion,
@@ -269,9 +349,11 @@ export class ProposalStore {
         this.db
           .prepare(
             `INSERT INTO proposals (proposal_id, requester, caller, drafted_by_key_id, tool, record_type, changes,
-                                    requires_approval, fingerprint, risk, policy_version, status, created_at, expires_at)
+                                    requires_approval, approval_reason, approval_expires_at, fingerprint, risk,
+                                    policy_version, status, created_at, expires_at)
              VALUES (@proposal_id, @requester, @caller, @drafted_by_key_id, @tool, @record_type, @changes,
-                     @requires_approval, @fingerprint, @risk, @policy_version, @status, @created_at, @expires_at)`,
+                     @requires_approval, @approval_reason, @approval_expires_at, @fingerprint, @risk,
+                     @policy_version, @status, @created_at, @expires_at)`,
           )
           .run(row);
         const insertItem = this.db.prepare(
@@ -302,7 +384,154 @@ export class ProposalStore {
     const items = this.db
       .prepare('SELECT * FROM proposal_items WHERE proposal_id = ? ORDER BY position')
       .all(proposalId) as ItemRow[];
-    return toProposal(row, items.map(toItem));
+    const approval = this.db
+      .prepare(
+        "SELECT * FROM confirmations WHERE proposal_id = ? AND decision IN ('approve', 'reject') ORDER BY seq DESC LIMIT 1",
+      )
+      .get(proposalId) as ApprovalRow | undefined;
+    return toProposal(row, items.map(toItem), toApproval(approval));
+  }
+
+  /** Proposals a lead still has to answer, oldest deadline first; the pages filter by who may approve them. */
+  listAwaitingApproval(): Proposal[] {
+    const rows = this.db
+      .prepare("SELECT proposal_id FROM proposals WHERE status = 'awaiting_approval' ORDER BY approval_expires_at, created_at")
+      .all() as { proposal_id: string }[];
+    return rows.flatMap((row) => {
+      const proposal = this.get(row.proposal_id);
+      return proposal === undefined ? [] : [proposal];
+    });
+  }
+
+  /**
+   * The requester presses Gửi on a proposal the rule file says needs a lead.
+   * It either moves whole or not at all, and only from `awaiting_confirmation`
+   * inside the 30-minute draft window. The approval window starts now, and its
+   * deadline is passed in from `approval.wait_minutes`.
+   * `record` runs inside the same transaction once the change is made.
+   */
+  sendForApproval(
+    proposalId: string,
+    actor: string,
+    approvalExpiresAt: Date,
+    record: (proposal: Proposal) => void,
+  ): DecideResult {
+    return this.db
+      .transaction((): DecideResult => {
+        const row = this.db.prepare('SELECT * FROM proposals WHERE proposal_id = ?').get(proposalId) as Row | undefined;
+        if (row === undefined) return { ok: false, reason: 'NOT_FOUND' };
+        const proposal = toProposal(row, this.itemsOf(proposalId));
+        if (proposal.requester !== actor) return { ok: false, reason: 'NOT_REQUESTER' };
+
+        const now = this.now();
+        if (proposal.status !== 'awaiting_confirmation') {
+          return {
+            ok: false,
+            reason: proposal.status === 'expired' ? 'APPROVAL_EXPIRED' : 'APPROVAL_USED',
+            proposal,
+          };
+        }
+        if (now.getTime() >= Date.parse(proposal.expiresAt)) {
+          this.db.prepare("UPDATE proposals SET status = 'expired' WHERE proposal_id = ?").run(proposalId);
+          return { ok: false, reason: 'APPROVAL_EXPIRED', proposal: { ...proposal, status: 'expired' } };
+        }
+
+        const print = fingerprintOf(proposal.items);
+        if (print !== proposal.fingerprint) return { ok: false, reason: 'CONTENT_CHANGED', proposal };
+
+        const changed = this.db
+          .prepare(
+            "UPDATE proposals SET status = 'awaiting_approval', approval_expires_at = ? WHERE proposal_id = ? AND status = 'awaiting_confirmation'",
+          )
+          .run(approvalExpiresAt.toISOString(), proposalId);
+        if (changed.changes !== 1) return { ok: false, reason: 'APPROVAL_USED', proposal };
+        this.recordConfirmation(proposalId, actor, 'confirm', print, now);
+        const sent = { ...proposal, status: 'awaiting_approval' as const, approvalExpiresAt: approvalExpiresAt.toISOString() };
+        record(sent);
+        return { ok: true, proposal: sent };
+      })
+      .immediate();
+  }
+
+  /**
+   * A lead approves a proposal that waits for approval. The checks the approval
+   * decided on are done again here, in one transaction: the person may not be
+   * the requester, the proposal still waits, its deadline has not passed, its
+   * print still matches, and `allowed` says the rule file and directory still
+   * permit this lead and this request. On success the proposal becomes
+   * `confirmed`; the caller creates the write commands in `record`, inside the
+   * same transaction.
+   */
+  approve(proposalId: string, actor: string, allowed: () => boolean, record: (proposal: Proposal) => void): DecideResult {
+    return this.db
+      .transaction((): DecideResult => {
+        const row = this.db.prepare('SELECT * FROM proposals WHERE proposal_id = ?').get(proposalId) as Row | undefined;
+        if (row === undefined) return { ok: false, reason: 'NOT_FOUND' };
+        const proposal = toProposal(row, this.itemsOf(proposalId));
+        if (proposal.requester === actor) return { ok: false, reason: 'SELF_APPROVAL', proposal };
+
+        const waiting = this.usableApproval(proposal);
+        if (!waiting.ok) return waiting;
+        if (!allowed()) return { ok: false, reason: 'NOT_PERMITTED', proposal };
+
+        const changed = this.db
+          .prepare("UPDATE proposals SET status = 'confirmed' WHERE proposal_id = ? AND status = 'awaiting_approval'")
+          .run(proposalId);
+        if (changed.changes !== 1) return { ok: false, reason: 'APPROVAL_USED', proposal };
+        this.recordApproval(proposalId, actor, 'approve', proposal.fingerprint, null, this.now());
+        const decided = { ...proposal, status: 'confirmed' as const };
+        record(decided);
+        return { ok: true, proposal: decided };
+      })
+      .immediate();
+  }
+
+  /**
+   * A lead rejects a proposal that waits for approval, with an optional
+   * sentence of at most 500 characters. The same checks as `approve` apply,
+   * but no write command is made.
+   */
+  reject(
+    proposalId: string,
+    actor: string,
+    reason: string | null,
+    allowed: () => boolean,
+    record: (proposal: Proposal) => void,
+  ): DecideResult {
+    const text = reason === null ? null : reason.trim().slice(0, MAX_APPROVAL_REASON);
+    return this.db
+      .transaction((): DecideResult => {
+        const row = this.db.prepare('SELECT * FROM proposals WHERE proposal_id = ?').get(proposalId) as Row | undefined;
+        if (row === undefined) return { ok: false, reason: 'NOT_FOUND' };
+        const proposal = toProposal(row, this.itemsOf(proposalId));
+        if (proposal.requester === actor) return { ok: false, reason: 'SELF_APPROVAL', proposal };
+
+        const waiting = this.usableApproval(proposal);
+        if (!waiting.ok) return waiting;
+        if (!allowed()) return { ok: false, reason: 'NOT_PERMITTED', proposal };
+
+        const changed = this.db
+          .prepare("UPDATE proposals SET status = 'rejected' WHERE proposal_id = ? AND status = 'awaiting_approval'")
+          .run(proposalId);
+        if (changed.changes !== 1) return { ok: false, reason: 'APPROVAL_USED', proposal };
+        const now = this.now();
+        this.recordApproval(proposalId, actor, 'reject', proposal.fingerprint, text, now);
+        const decided = {
+          ...proposal,
+          status: 'rejected' as const,
+          approval: {
+            proposalId,
+            actor,
+            decision: 'reject' as const,
+            fingerprint: proposal.fingerprint,
+            reason: text,
+            at: now.toISOString(),
+          },
+        };
+        record(decided);
+        return { ok: true, proposal: decided };
+      })
+      .immediate();
   }
 
   /**
@@ -319,20 +548,16 @@ export class ProposalStore {
       .transaction((): DecideResult => {
         const row = this.db.prepare('SELECT * FROM proposals WHERE proposal_id = ?').get(proposalId) as Row | undefined;
         if (row === undefined) return { ok: false, reason: 'NOT_FOUND' };
-        const itemRows = this.db
-          .prepare('SELECT * FROM proposal_items WHERE proposal_id = ? ORDER BY position')
-          .all(proposalId) as ItemRow[];
-        const proposal = toProposal(row, itemRows.map(toItem));
+        const proposal = toProposal(row, this.itemsOf(proposalId));
         if (proposal.requester !== actor) return { ok: false, reason: 'NOT_REQUESTER' };
 
         const now = this.now();
-        if (proposal.status === 'confirmed' || proposal.status === 'cancelled') {
+        if (proposal.status !== 'awaiting_confirmation') {
+          if (proposal.status === 'expired') return { ok: false, reason: 'APPROVAL_EXPIRED', proposal };
           return { ok: false, reason: 'APPROVAL_USED', proposal };
         }
-        if (proposal.status === 'expired' || now.getTime() >= Date.parse(proposal.expiresAt)) {
-          if (proposal.status !== 'expired') {
-            this.db.prepare("UPDATE proposals SET status = 'expired' WHERE proposal_id = ?").run(proposalId);
-          }
+        if (now.getTime() >= Date.parse(proposal.expiresAt)) {
+          this.db.prepare("UPDATE proposals SET status = 'expired' WHERE proposal_id = ?").run(proposalId);
           return { ok: false, reason: 'APPROVAL_EXPIRED', proposal: { ...proposal, status: 'expired' } };
         }
 
@@ -345,13 +570,63 @@ export class ProposalStore {
           .prepare("UPDATE proposals SET status = ? WHERE proposal_id = ? AND status = 'awaiting_confirmation'")
           .run(status, proposalId);
         if (changed.changes !== 1) return { ok: false, reason: 'APPROVAL_USED', proposal };
-        this.db
-          .prepare('INSERT INTO confirmations (proposal_id, actor, decision, fingerprint, at) VALUES (?, ?, ?, ?, ?)')
-          .run(proposalId, actor, decision, print, now.toISOString());
+        this.recordConfirmation(proposalId, actor, decision, print, now);
         const decided = { ...proposal, status };
         record(decided);
         return { ok: true, proposal: decided };
       })
       .immediate();
+  }
+
+  /** The lines of one proposal, read inside a transaction or on their own. */
+  private itemsOf(proposalId: string): ProposalItem[] {
+    const rows = this.db
+      .prepare('SELECT * FROM proposal_items WHERE proposal_id = ? ORDER BY position')
+      .all(proposalId) as ItemRow[];
+    return rows.map(toItem);
+  }
+
+  /**
+   * The two conditions an approval can no longer meet: the proposal is past
+   * its approval window or it has already been answered. Reading the status
+   * here keeps `approve` and `reject` on the same rule.
+   */
+  private usableApproval(proposal: Proposal): DecideResult {
+    const now = this.now();
+    if (proposal.status !== 'awaiting_approval') {
+      return { ok: false, reason: proposal.status === 'expired' ? 'APPROVAL_EXPIRED' : 'APPROVAL_USED', proposal };
+    }
+    if (proposal.approvalExpiresAt === null || now.getTime() >= Date.parse(proposal.approvalExpiresAt)) {
+      this.db.prepare("UPDATE proposals SET status = 'expired' WHERE proposal_id = ?").run(proposal.proposalId);
+      return { ok: false, reason: 'APPROVAL_EXPIRED', proposal: { ...proposal, status: 'expired' } };
+    }
+    const print = fingerprintOf(proposal.items);
+    if (print !== proposal.fingerprint) return { ok: false, reason: 'CONTENT_CHANGED', proposal };
+    return { ok: true, proposal };
+  }
+
+  private recordConfirmation(
+    proposalId: string,
+    actor: string,
+    decision: Decision,
+    print: string,
+    at: Date,
+  ): void {
+    this.db
+      .prepare('INSERT INTO confirmations (proposal_id, actor, decision, fingerprint, reason, at) VALUES (?, ?, ?, ?, NULL, ?)')
+      .run(proposalId, actor, decision, print, at.toISOString());
+  }
+
+  private recordApproval(
+    proposalId: string,
+    actor: string,
+    decision: 'approve' | 'reject',
+    print: string,
+    reason: string | null,
+    at: Date,
+  ): void {
+    this.db
+      .prepare('INSERT INTO confirmations (proposal_id, actor, decision, fingerprint, reason, at) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(proposalId, actor, decision, print, reason, at.toISOString());
   }
 }

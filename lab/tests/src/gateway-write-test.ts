@@ -43,20 +43,40 @@ function proposalOf(text: string): ProposalAnswer {
   return { id: link.slice(link.lastIndexOf('/') + 1), text };
 }
 
-async function signIn(base: string, password: string, proposalId: string): Promise<Browser> {
+async function signInAs(base: string, employeeId: string, password: string, next: string): Promise<Browser> {
   const login = await fetch(`${base}/dang-nhap`, {
     method: 'POST',
     redirect: 'manual',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ employee: HOA, password, next: `/xac-nhan/${proposalId}` }).toString(),
+    body: new URLSearchParams({ employee: employeeId, password, next }).toString(),
   });
   assert.equal(login.status, 303);
-  const cookie = (login.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
-  const card = await fetch(`${base}/xac-nhan/${proposalId}`, { headers: { cookie } });
+  return { cookie: (login.headers.get('set-cookie') ?? '').split(';')[0] ?? '', csrf: '' };
+}
+
+async function signIn(base: string, password: string, proposalId: string): Promise<Browser> {
+  const browser = await signInAs(base, HOA, password, `/xac-nhan/${proposalId}`);
+  const card = await fetch(`${base}/xac-nhan/${proposalId}`, { headers: { cookie: browser.cookie } });
   assert.equal(card.status, 200);
   const csrf = /name="csrf" value="([^"]+)"/.exec(await card.text())?.[1];
   assert.ok(csrf !== undefined, 'the card carries a CSRF token');
-  return { cookie, csrf };
+  return { cookie: browser.cookie, csrf };
+}
+
+/** Log in as a lead and read the token from the approval page. */
+async function signInForApproval(
+  base: string,
+  employeeId: string,
+  password: string,
+  proposalId: string,
+): Promise<Browser> {
+  const browser = await signInAs(base, employeeId, password, `/duyet/${proposalId}`);
+  const page = await fetch(`${base}/duyet/${proposalId}`, { headers: { cookie: browser.cookie } });
+  const html = await page.text();
+  assert.equal(page.status, 200, html);
+  const csrf = /name="csrf" value="([^"]+)"/.exec(html)?.[1];
+  assert.ok(csrf !== undefined, 'the approval page carries a CSRF token');
+  return { cookie: browser.cookie, csrf };
 }
 
 function press(base: string, proposalId: string, browser: Browser): Promise<Response> {
@@ -65,6 +85,21 @@ function press(base: string, proposalId: string, browser: Browser): Promise<Resp
     redirect: 'manual',
     headers: { cookie: browser.cookie, 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ csrf: browser.csrf }).toString(),
+  });
+}
+
+function pressApproval(
+  base: string,
+  proposalId: string,
+  button: 'duyet' | 'tu-choi',
+  browser: Browser,
+  form: Record<string, string> = {},
+): Promise<Response> {
+  return fetch(`${base}/duyet/${proposalId}/${button}`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: { cookie: browser.cookie, 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: browser.csrf, ...form }).toString(),
   });
 }
 
@@ -137,6 +172,7 @@ for (const door of DOORS) {
     const keys = runCli('seed-keys-main.js', [], env);
     const hoa = keyOf(keys, 'hoa').key;
     const hoaPagePassword = pagePasswordOf(keys, 'hoa').password;
+    const quangPagePassword = pagePasswordOf(keys, 'quang').password;
     const nam = keyOf(keys, 'nam').key;
     const nhung = keyOf(keys, 'nhung').key;
 
@@ -312,7 +348,7 @@ for (const door of DOORS) {
       );
     });
 
-    await t.test('bulk: thirty codes of chị Lan by chị Hoa make one proposal with thirty items and ask for approval', async () => {
+    await t.test('bulk: thirty codes stop at the lead, and the approval writes each of them once', async () => {
       // T-5 to T-34 are the thirty open tasks of chị Lan (NV-03) in the fake task list.
       const lanTasks = Array.from({ length: 30 }, (_, index) => `T-${index + 5}`);
       const answer = await call('propose_task_change', { task_ids: lanTasks, changes: { assignee: 'NV-04' } }, hoa);
@@ -335,14 +371,50 @@ for (const door of DOORS) {
 
       const browser = await signIn(base, hoaPagePassword, proposal.id);
       const pressed = await press(base, proposal.id, browser);
-      assert.equal(pressed.status, 403);
-      assert.match(await pressed.text(), /\[NEEDS_APPROVAL\]/);
-      assert.equal(await writeCount('T-5'), 0, 'a batch that needs approval writes nothing');
+      assert.equal(pressed.status, 303, 'Gửi moves the proposal to the lead');
+      assert.equal(await writeCount('T-5'), 0, 'a batch that waits for approval writes nothing');
       assert.match(
         traceTable(env, ['--task', 'T-5']),
-        /proposal_send\s+T-5\s+refused\s+NEEDS_APPROVAL\s+-\s+task\.change_task_assignee_or_due\.staff\.bulk/,
+        /proposal_send\s+T-5\s+ok\s+-\s+-\s+task\.change_task_assignee_or_due\.staff\.bulk/,
         'Gửi asked the rule with the same thirty items',
       );
+
+      const waiting = await call('get_request_status', { request_id: proposal.id }, hoa);
+      assert.match(waiting.text, /đang chờ Trần Văn Quang duyệt/, 'chat says who is deciding');
+      assert.match(waiting.text, /2 giờ/, 'and for how long');
+
+      // The requester is not an approver, so her inbox refuses her.
+      const hoaInbox = await fetch(`${base}/cho-duyet`, { headers: { cookie: browser.cookie } });
+      assert.equal(hoaInbox.status, 403);
+
+      // Quang's inbox lists exactly the proposal his department and role may decide.
+      const quang = await signInAs(base, 'NV-01', quangPagePassword, '/cho-duyet');
+      const inbox = await fetch(`${base}/cho-duyet`, { headers: { cookie: quang.cookie } });
+      assert.equal(inbox.status, 200);
+      assert.ok((await inbox.text()).includes(proposal.id), 'the lead sees the waiting proposal');
+
+      const lead = await signInForApproval(base, 'NV-01', quangPagePassword, proposal.id);
+      const page = await fetch(`${base}/duyet/${proposal.id}`, { headers: { cookie: lead.cookie } });
+      const pageHtml = await page.text();
+      assert.equal(page.status, 200);
+      assert.match(pageHtml, /30 mục/);
+      assert.match(pageHtml, /Lý do cần duyệt/);
+
+      const approved = await pressApproval(base, proposal.id, 'duyet', lead);
+      assert.equal(approved.status, 303);
+      for (const task of lanTasks) {
+        await waitWritten(task);
+        assert.equal(await writeCount(task), 1, `${task} was written exactly once after approval`);
+      }
+      assert.match(traceTable(env, ['--proposal', proposal.id]), /proposal_approve\s+T-5\s+ok/, 'the approval is in the chain');
+
+      const again = await pressApproval(base, proposal.id, 'duyet', lead);
+      assert.equal(again.status, 409);
+      assert.match(await again.text(), /\[APPROVAL_USED\]/);
+
+      // Later subtests start from the seeded task list again; this run changed thirty of its tasks.
+      const reset = await fetch(`${tasksUrl}/admin/reset`, { method: 'POST', headers: serviceHeaders });
+      assert.equal(reset.status, 200, await reset.text());
     });
 
     await t.test('bulk: one sales code refuses the whole proposal and names exactly that code', async () => {

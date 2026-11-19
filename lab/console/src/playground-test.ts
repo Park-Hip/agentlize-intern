@@ -75,7 +75,7 @@ test('playground: startup revokes stale console keys, then issues one per person
   assert.equal(/lab_[A-Za-z0-9_-]{10,}/.test(html), false, 'no raw key on the page');
 });
 
-test('playground: the form is built from the tool schema and lists the five scenarios', async (t) => {
+test('playground: the form is built from the tool schema and lists the six scenarios', async (t) => {
   const fixture = await startFixture();
   t.after(() => fixture.close());
 
@@ -102,13 +102,14 @@ test('playground: the form is built from the tool schema and lists the five scen
   for (const title of [
     'A. Chị Hoa chuyển T-12 cho anh Minh, hạn thứ Sáu',
     'B. Nam gõ đúng câu đó',
+    'C. Chị Hoa chuyển 30 task của chị Lan cho anh Minh',
     'D. Chị Hoa tra email công việc của anh Minh',
     'Câu lệnh cài trong mô tả task T-13',
     'Hỏi một task của phòng khác',
   ]) {
     assert.ok(html.includes(title), `scenario "${title}" has a button`);
   }
-  assert.equal((html.match(/name="scenario"/g) ?? []).length, 5);
+  assert.equal((html.match(/name="scenario"/g) ?? []).length, 6);
 });
 
 test('playground: a form POST calls the gateway with the chosen persona key and the JSON arguments', async (t) => {
