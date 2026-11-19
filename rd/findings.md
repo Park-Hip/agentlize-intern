@@ -1,6 +1,6 @@
 # Tổng hợp phát hiện - AI Operations Connector Lab
 
-Ngày: 2026-11-19. Trạng thái: bản thử của Lab đã chạy trong Thổ Thần desktop cho tra cứu có lọc và ghi một task; bản web tạm hoãn vì không bật được skill; ADR-0007 và ADR-0008 đổi phần lõi trước mốc 3.
+Ngày: 2026-11-19. Trạng thái: bản thử của Lab đã chạy trong Thổ Thần desktop cho tra cứu có lọc và ghi một task; hàng đợi ghi chạy nền đã đạt phép thử sập và ngắt 20 giây, phiên kịch bản C trong Thổ Thần desktop còn chờ; bản web tạm hoãn vì không bật được skill.
 
 Đây là điểm vào của phần nghiên cứu.
 Mỗi mục tóm tắt một nhóm tài liệu và trỏ về bản chi tiết.
@@ -17,7 +17,8 @@ Mọi người và dữ liệu trong ví dụ đều là giả lập.
   Lời gọi trong chat đi qua máy chủ Thổ Thần, cả trên web lẫn desktop; máy chủ gắn thêm mã người dùng, nhưng khoá do người thêm skill đặt nên chưa biết có riêng từng người không.
 - Bản thử đã chạy trong Thổ Thần bản cài trên máy: chị Hoa tra cứu chỉ thấy đúng phần được xem, và chuyển được một việc sau khi bấm duyệt; Nam bị từ chối.
 - Đọc lại mã cho thấy cổng mới chỉ biết sửa từng việc một; Lab dựng lại phần lõi để nối thêm hệ thống không phải sửa lõi, và để chuyển nhiều việc dùng chung một công cụ.
-- Tiếp theo: kiểm lại trên bản Thổ Thần mới ra ngày 18/11, dựng lại phần lõi, rồi thử chuyển 30 việc cần sếp duyệt và chạy lại khi bị ngắt giữa chừng.
+- Phần lõi đã dựng lại; hàng đợi ghi tự chạy tiếp đã đạt phép thử tắt cổng ba lần và ngắt 20 giây, nên Q1 giữ phương án 1A.
+- Tiếp theo: chạy kịch bản C trong Thổ Thần desktop để xác nhận trên host thật, rồi mới đóng mốc 3.
 
 ## 1. Vấn đề
 
@@ -153,7 +154,7 @@ Chuyển 30 task cần anh Quang duyệt là kịch bản thứ tư, làm khi ba
 | Khoá là riêng từng người hay cả tổ chức dùng chung? | Chưa biết, vì phép đo chỉ dùng một tài khoản và một skill | Hỏi Kevin; thử hai tài khoản cùng một skill | Tuần 2, không chặn mốc 1 |
 | Máy chủ Thổ Thần có ký header danh tính và gọi ra từ dải IP cố định không? | Chưa biết; header `x-user-id` hiện có thể do người gọi tự đặt | Hỏi Kevin; thử gửi header giả và so IP gọi ra | Tuần 2, quyết định cách dùng `x-user-id` |
 | Hai tài khoản có trông giống nhau ở phía server không? | Giống nhau | Chạy lại `whoami` bằng tài khoản thứ hai | Khi có tài khoản thứ hai |
-| Q1. Sập giữa lúc chuyển 30 task: chạy lại có đủ, không trùng? | Cổng tự viết làm được, nếu mỗi task có mã riêng và tiến độ lưu sau mỗi task | Tắt ứng dụng ở ba thời điểm, chạy lại, đếm task | Khi dựng kịch bản thứ tư |
+| Q1. Sập giữa lúc chuyển 30 task: chạy lại có đủ, không trùng? | Cổng tự viết làm được, nếu mỗi task có mã riêng và tiến độ lưu sau mỗi task | Đã đạt trên phép thử tự động: tắt cổng ba lần và ngắt danh sách task 20 giây; xem [kết quả](evaluation/milestone-3-tho-than.md#2-phần-đã-chạy-bằng-máy) | Phiên kịch bản C trong Thổ Thần desktop còn chờ |
 | Q2. MCP tiết kiệm bao nhiêu công so với gọi hàm? | Gần bằng nhau khi Lab viết cả hai nơi gọi | Thêm trợ lý AI thứ hai cho từng cách, đếm giờ công | Bước đánh giá |
 | Nhân viên thật dùng Thổ Thần trên điện thoại, web hay desktop? | Điện thoại hoặc web, vì PRD Skill Studio thiết kế cho điện thoại trước; khi đó stdio không tới được người dùng thật | Hỏi Kevin; mở thử app điện thoại | Tuần 2, quyết định cách nối từ mốc 2 |
 | Hook của AgentLize chạy ở đâu, và danh tính người dùng đi tiếp tới cổng thế nào? | Chưa ai dựng; nếu có, Hook chạy trong Thổ Thần vì chỉ ở đó có phiên đăng nhập. Mã LobeHub 2.1.56 không gắn danh tính vào lời gọi MCP, nhưng Thổ Thần có gắn header ở đường HTTPS | Hỏi Kevin; mã LobeHub đã đọc ([mục 6.2](appota/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt)), phần còn lại là H9 | Tuần 2, không chặn mốc 1 |
@@ -162,13 +163,17 @@ Chuyển 30 task cần anh Quang duyệt là kịch bản thứ tư, làm khi ba
 | H11 (`execAgent` mặc định không hỏi duyệt): gọi `execAgent` không kèm cấu hình duyệt có chạy công cụ ghi mà không hỏi không? | Có, vì mã mặc định `headless`; mới đọc mã, chưa đo | Gọi API với công cụ ghi giả lập, xem có bản ghi chờ duyệt không | Khi đo kênh duyệt của Thổ Thần, cần Kevin |
 | H12 (bản dựng mới giữ hành vi MCP): bản Thổ Thần ra ngày 2026-11-18 có còn gắn header danh tính, còn chạy không hỏi và còn cắt ở 60 giây không? | Còn, vì nền vẫn là LobeHub 2.1.56; chỗ chọn chế độ duyệt đã không còn hiện trên bản web | Cắm probe qua đường hầm vào Thổ Thần desktop, gọi `whoami` và `fake_write` | Phiên đường hầm tiếp theo, trước mọi lần nghiệm thu mới |
 
+Q1 đã có bằng chứng tự động trong [nghiệm thu mốc 3, mục 2](evaluation/milestone-3-tho-than.md#2-phần-đã-chạy-bằng-máy).
+Ba lần tắt cổng ở ba thời điểm và một lần ngắt danh sách task 20 giây đều cho đủ 30 task, mỗi task đúng một lần ghi, nên giữ 1A (cổng tự lưu tiến độ và chạy tiếp).
+Kết luận này chỉ nói về hàng đợi lệnh ghi của cổng trên hệ thống giả; phiên kịch bản C trong Thổ Thần desktop chưa chạy, nên chưa nói gì về host thật.
+
 Q1 và Q2 chi tiết ở [câu hỏi kiểm chứng](design/research-questions-and-validation-plan.md).
 Bốn câu H9 tới H12 chi tiết ở [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được).
 Hai câu về thiết bị và Hook, cùng mọi mối nối giữa Appota, AgentLize, Thổ Thần, MausBot và Lab ở [bản đồ hệ thống](design/system-map.md).
 
 Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã có lời đáp ở mục 4; câu khoá riêng hay dùng chung vẫn mở.
 
-**Kết luận:** không câu nào còn chặn việc viết ADR; câu chia sẻ khoá quyết định mô hình khoá có dùng được trong thực tế không, còn câu nguồn header quyết định có bật lớp kiểm thứ hai không.
+**Kết luận:** Q1 đã có câu trả lời tạm thời là 1A từ phép thử tự động, còn phiên host thật để xác nhận; không câu nào còn chặn việc viết ADR; câu chia sẻ khoá quyết định mô hình khoá có dùng được trong thực tế không, còn câu nguồn header quyết định có bật lớp kiểm thứ hai không.
 
 ## 7. Đo thế nào là thành công
 
@@ -190,9 +195,10 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 | Xong 2026-11-18, bản desktop | Dựng hai hệ thống giả lập, cổng kiểm soát và MCP server; mốc 1 (tra cứu có lọc, đổi khoá đổi người trong vết) và mốc 2 (chị Hoa ghi T-12 sau khi bấm Gửi, Nam bị từ chối, câu lừa trong T-13 không được làm theo) | [Nghiệm thu mốc 1, mục 12](evaluation/milestone-1-tho-than.md#12-phiên-2026-11-18-việc-còn-mở), [nghiệm thu mốc 2](evaluation/milestone-2-tho-than.md), [báo cáo cổng kiểm quyền](evaluation/permission-gateway-tho-than.md) |
 | Xong 2026-11-18 | Link xác nhận dùng địa chỉ đường hầm (#63); cổng nói rõ trường bị ẩn theo quyền (#64) | Phép thử máy đạt; chưa chạy lại trong Thổ Thần |
 | Hoãn | Tìm vì sao Thổ Thần web không bật được skill (#65) | Làm lại khi Thổ Thần web bật được skill tùy chỉnh; tới lúc đó nghiệm thu chỉ dùng bản desktop |
-| Tuần 2-3, phiên đường hầm tiếp theo | H12 (bản dựng 2026-11-18 giữ hành vi MCP) trên desktop, chạy lại #63 và #64 trong Thổ Thần; rồi H9 và H10 trước khi bật lớp thứ hai của ADR-0005; H11 phục vụ kênh duyệt (mục 6) | Kết quả ghi vào cột cuối của bảng H trong [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được) |
+| Hoãn H12 theo #73; phiên đường hầm sau | Chạy lại #63 và #64 trong Thổ Thần; rồi H9 và H10 trước khi bật lớp kiểm thứ hai của ADR-0005; H11 phục vụ kênh duyệt (mục 6) | Kết quả ghi vào cột cuối của bảng H trong [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được) |
 | Tuần 3 | Dựng lại lõi theo [ADR-0007](../docs/adr/adr-0007-system-adapters-and-change-sets.md) (bộ tiếp hợp theo hệ thống, luật dạng dữ liệu, đề xuất nhiều mục, hàng đợi lệnh ghi, chặn tách nhỏ) và [ADR-0008](../docs/adr/adr-0008-approval-page-login.md) (mật khẩu trang riêng, hộp chờ duyệt, hạn duyệt 2 giờ) | Phép thử ở ADR-0007 mục 5 đạt; sửa danh bạ đi qua đường ghi chung |
-| Đầu tuần 4 | Kịch bản 30 task trong Thổ Thần, trả lời Q1 | Nghiệm thu mốc 3 |
+| Xong phần máy 2026-11-19 | Phép thử sập và ngắt 20 giây cho hàng đợi lệnh ghi; Q1 giữ 1A | [Nghiệm thu mốc 3, mục 2](evaluation/milestone-3-tho-than.md#2-phần-đã-chạy-bằng-máy) |
+| Đầu tuần 4, còn phiên host | Kịch bản 30 task trong Thổ Thần desktop, điền bằng chứng và đóng #84 | [Nghiệm thu mốc 3, mục 13](evaluation/milestone-3-tho-than.md#13-chỗ-điền-bằng-chứng) |
 | Cuối tuần 3 | Hỏi Kevin ba câu về eve: trợ lý trong Lark, ứng dụng Lark thử và khoá mô hình, eve làm nơi gọi thứ hai (#92) | Câu trả lời ghi vào [eve, mục 9](research/eve.md#9-thứ-tự-làm) |
 | Tuần 4 | Thêm cửa gọi hàm, đo lần đầu; nếu Kevin đồng ý thì chạy phép kiểm eve KE1-KE5 và viết ADR chọn nơi gọi thứ hai | Số đo baseline |
 | Tuần 5-6 | Đánh giá, trả lời Q2, chạy thử sản phẩm làm cột "mua" | Báo cáo có mục "khi nào không nên dùng MCP" |
@@ -210,4 +216,4 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 - [Spec bản thử đầu](design/mvp-spec.md): bản thử chứng minh gì, kiến trúc, phép thử và bốn mốc.
 - [Bản đồ hệ thống](design/system-map.md) và [bản vẽ](design/system-map.html): năm mảnh ghép nối với nhau thế nào, mối nối nào đã đo, điều gì chưa biết và cách kiểm.
 - [Câu hỏi kiểm chứng](design/research-questions-and-validation-plan.md): Q1 (sập giữa chừng) và Q2 (MCP tiết kiệm bao nhiêu công), cách thử và đối chứng.
-- [Báo cáo cổng kiểm quyền trong Thổ Thần](evaluation/permission-gateway-tho-than.md), [nghiệm thu mốc 1](evaluation/milestone-1-tho-than.md) và [nghiệm thu mốc 2](evaluation/milestone-2-tho-than.md): bản thử chạy trong Thổ Thần desktop, bằng chứng và số đo đầu tiên.
+- [Báo cáo cổng kiểm quyền trong Thổ Thần](evaluation/permission-gateway-tho-than.md), [nghiệm thu mốc 1](evaluation/milestone-1-tho-than.md), [nghiệm thu mốc 2](evaluation/milestone-2-tho-than.md) và [nghiệm thu mốc 3](evaluation/milestone-3-tho-than.md): bản thử chạy trong Thổ Thần desktop, bằng chứng và số đo đầu tiên.
