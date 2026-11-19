@@ -154,11 +154,22 @@ Dữ liệu lưu ở `LAB_DATA_DIR/directory.sqlite`, mỗi nhân viên là mộ
 | --- | --- |
 | `GET /employees?name=&department=` | Lọc theo đúng hai trường này; tham số khác trả 400. Tên khớp theo từ nguyên vẹn, không phân biệt hoa thường và dấu; phòng phải khớp cả cụm |
 | `GET /employees/<mã>` | Một nhân viên, 404 nếu không có mã |
-| `PATCH /employees/<mã>` | Thân `{"expected_version": 1, "changes": {"work_email": "..."}}`; trả 409 `version_conflict` khi số phiên bản đã đổi |
-| `POST /admin/reset` | Nạp lại dữ liệu gốc, mọi phiên bản về 1 |
+| `PATCH /employees/<mã>` | Ghi; cần header `Idempotency-Key` và thân `{"expected_version": 1, "changes": {"work_email": "..."}}` |
+| `POST /admin/reset` | Nạp lại dữ liệu gốc, mọi phiên bản về 1, xoá mã đã lưu và số đếm ghi |
 | `POST /admin/add-field` | Thân `{"field": "badge", "value": "x"}`; thêm một trường cho mọi nhân viên và tăng số phiên bản |
+| `GET /admin/write-count?employee=<mã>` | `{"employee", "count"}`: số lần ghi thật của nhân viên, không tính lần gửi lại |
 
-Hai đường `/admin/*` chỉ chạy khi `LAB_TEST_HOOKS=1`; khi biến tắt chúng trả 404.
+Thứ tự kiểm khi ghi, trong một giao dịch SQLite:
+
+1. Mã chống ghi trùng đã thấy với cùng nội dung: trả lại đúng phản hồi cũ, kèm header `Idempotent-Replayed: true`.
+   Đã thấy với nội dung khác (khác nhân viên, khác `changes` hoặc khác `expected_version`): 422 `idempotency_key_reused`.
+2. `expected_version` khác số hiện tại: 409 `version_conflict` kèm `current_version`.
+3. Ghi, tăng số phiên bản, lưu phản hồi theo mã.
+
+Lệnh gửi lại sau khi lần ghi đầu đã thành công nhận phản hồi cũ chứ không nhận 409, vì mã được kiểm trước phiên bản.
+Chỉ lần ghi thành công được lưu theo mã; 409 và 400 không lưu.
+
+Ba đường `/admin/*` chỉ chạy khi `LAB_TEST_HOOKS=1`; khi biến tắt chúng trả 404.
 Đổi email và hạ vai trong phép thử đi qua `PATCH` bình thường.
 
 ## Kiểm chứng

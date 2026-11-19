@@ -189,7 +189,7 @@ for (const door of DOORS) {
       };
       const response = await fetch(`${directoryUrl}/employees/${employeeId}`, {
         method: 'PATCH',
-        headers: serviceHeaders,
+        headers: { ...serviceHeaders, 'idempotency-key': `test-role-${employeeId}-${current.version}` },
         body: JSON.stringify({ expected_version: current.version, changes: { role } }),
       });
       assert.equal(response.status, 200, await response.text());
@@ -459,7 +459,7 @@ for (const door of DOORS) {
       assert.equal(status.reasonCode, null);
 
       const card = await cardOf(proposal.id, browser);
-      assert.match(card, /Đã ghi thay đổi vào task T-19 ở lần gửi thứ 2/);
+      assert.match(card, /Đã ghi thay đổi vào T-19 ở lần gửi thứ 2/);
 
       const trace = traceTable(env, ['--task', 'T-19']);
       assert.match(

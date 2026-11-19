@@ -161,7 +161,7 @@ test('write: Gửi writes once, and the command keeps its key, version, count an
     assert.equal(task?.version, 2);
 
     const { html } = await openCard(f, id, await loginFor(f, HOA, id));
-    assert.match(html, /Đã ghi thay đổi vào task T-12 ở lần gửi thứ 1/);
+    assert.match(html, /Đã ghi thay đổi vào T-12 ở lần gửi thứ 1/);
     assert.doesNotMatch(html, /<button/);
 
     const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));

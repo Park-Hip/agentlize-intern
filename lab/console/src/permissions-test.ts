@@ -71,7 +71,7 @@ test('permissions: the screen shows one table per record type, every cell in thr
   // Three task actions and one employee action, four roles, three selects per cell.
   assert.equal(html.match(/name="cell\./g)?.length, 48);
   assert.equal(html.match(/name="cell\.task\.change_task_status\.staff\.effect"/g)?.length, 1);
-  assert.equal(html.match(/name="cell\.employee\.edit_directory\.hr\.effect"/g)?.length, 1);
+  assert.equal(html.match(/name="cell\.employee\.edit_work_email\.hr\.effect"/g)?.length, 1);
   assert.equal(html.match(/name="read\./g)?.length, 8, 'one read select per role and record type');
 
   const staffStatus = new RegExp(

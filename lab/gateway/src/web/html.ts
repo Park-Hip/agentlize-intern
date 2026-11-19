@@ -149,7 +149,7 @@ const STATUS_BANNER: Readonly<Record<'cancelled' | 'expired', { text: string; to
 /** What the page says about the write command: written, still unknown, or not carried out with the reason. */
 const COMMAND_BANNER: Readonly<Record<string, { text: string; tone: Tone }>> = {
   TARGET_CHANGED: {
-    text: 'CHƯA THỰC HIỆN [TARGET_CHANGED] Task đã bị người khác sửa sau khi đề xuất được soạn nên cổng không ghi. Hãy nhờ AI soạn lại với dữ liệu mới.',
+    text: 'CHƯA THỰC HIỆN [TARGET_CHANGED] Bản ghi đã bị người khác sửa sau khi đề xuất được soạn nên cổng không ghi. Hãy nhờ AI soạn lại với dữ liệu mới.',
     tone: 'bad',
   },
   CONTENT_CHANGED: {
@@ -157,7 +157,7 @@ const COMMAND_BANNER: Readonly<Record<string, { text: string; tone: Tone }>> = {
     tone: 'bad',
   },
   GATEWAY_UNAVAILABLE: {
-    text: 'CHƯA THỰC HIỆN [GATEWAY_UNAVAILABLE] Danh sách task từ chối lệnh hoặc trả lời không đọc được nên cổng không ghi. Hãy báo người vận hành Lab.',
+    text: 'CHƯA THỰC HIỆN [GATEWAY_UNAVAILABLE] Hệ thống đích từ chối lệnh hoặc trả lời không đọc được nên cổng không ghi. Hãy báo người vận hành Lab.',
     tone: 'bad',
   },
 };
@@ -184,12 +184,12 @@ function confirmedBanner(view: CardView): { text: string; tone: Tone } {
     }
     if (command.status === 'sent_unknown') {
       return {
-        text: 'Cổng đã gửi lệnh nhưng chưa nhận được kết quả. Cổng giữ lệnh và gửi lại với đúng mã cũ, nên task không bị ghi hai lần. Hãy mở lại trang sau ít phút.',
+        text: 'Cổng đã gửi lệnh nhưng chưa nhận được kết quả. Cổng giữ lệnh và gửi lại với đúng mã cũ, nên bản ghi không bị ghi hai lần. Hãy mở lại trang sau ít phút.',
         tone: 'info',
       };
     }
     if (command.status === 'done') {
-      return { text: `Đã ghi thay đổi vào task ${item.recordId} ở lần gửi thứ ${command.attempts}.`, tone: 'ok' };
+      return { text: `Đã ghi thay đổi vào ${item.recordId} ở lần gửi thứ ${command.attempts}.`, tone: 'ok' };
     }
     const known = command.reasonCode === null ? undefined : COMMAND_BANNER[command.reasonCode];
     return known ?? { text: 'CHƯA THỰC HIỆN Lệnh ghi không thành công. Hãy báo người vận hành Lab.', tone: 'bad' };
@@ -228,7 +228,7 @@ export function cardPage(view: CardView): string {
     .join('\n');
 
   const count = view.items.length;
-  const title = count === 1 ? `Xác nhận thay đổi task ${view.items[0]?.recordId ?? ''}` : `Xác nhận thay đổi ${count} task`;
+  const title = count === 1 ? `Xác nhận thay đổi ${view.items[0]?.recordId ?? ''}` : `Xác nhận thay đổi ${count} mục`;
   const pending = `<div class="actions">
 <form method="post" action="/xac-nhan/${esc(view.proposalId)}/gui">
 <input type="hidden" name="csrf" value="${esc(view.csrfToken)}">

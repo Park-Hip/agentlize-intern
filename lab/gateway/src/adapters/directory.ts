@@ -34,7 +34,7 @@ export const EMPLOYEE_FIELD_LABELS: Readonly<Record<string, string>> = Object.fr
 
 /** A changeable employee field and the rule action it needs. */
 export const EMPLOYEE_CHANGEABLE: Readonly<Record<string, TableAction>> = {
-  work_email: 'edit_directory',
+  work_email: 'edit_work_email',
 };
 
 const employeeSchema = z.record(z.string(), z.union([z.string(), z.number()]));

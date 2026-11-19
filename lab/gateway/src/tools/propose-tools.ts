@@ -22,6 +22,7 @@ import {
   type ProposalItem,
 } from '../proposals/index.js';
 import { wrapSystemData } from './block.js';
+import { EMPLOYEE_PROPOSE_TOOLS } from './propose-employee-tools.js';
 import { defineTool, notFoundTask } from './read-tools.js';
 import type { RegisteredTool, ToolContext, ToolResult } from './types.js';
 import type { WriteCommand } from '../writes/command-store.js';
@@ -413,21 +414,29 @@ const STATUS_SENTENCE: Readonly<Record<'cancelled' | 'expired', string>> = {
 
 /** Why a write command did not land, said in the words the caller needs to act on. */
 const COMMAND_FAILURE_SENTENCE: Readonly<Partial<Record<ReasonCode, string>>> = {
-  TARGET_CHANGED: 'Task đã bị người khác sửa sau khi đề xuất được soạn nên cổng không ghi. Hãy nhờ AI soạn lại với dữ liệu mới.',
+  TARGET_CHANGED: 'Bản ghi đã bị người khác sửa sau khi đề xuất được soạn nên cổng không ghi. Hãy nhờ AI soạn lại với dữ liệu mới.',
   CONTENT_CHANGED: 'Nội dung đề xuất không còn khớp với lúc soạn nên cổng không ghi. Hãy nhờ AI soạn lại.',
-  GATEWAY_UNAVAILABLE: 'Danh sách task từ chối lệnh hoặc trả lời không đọc được nên cổng không ghi. Hãy báo người vận hành Lab.',
+  GATEWAY_UNAVAILABLE: 'Hệ thống đích từ chối lệnh hoặc trả lời không đọc được nên cổng không ghi. Hãy báo người vận hành Lab.',
 };
+
+/** `task`, `nhân viên` or `bản ghi`, so a status answer reads the same way for every record type. */
+function recordWord(recordType: string): string {
+  if (recordType === 'task') return 'task';
+  if (recordType === 'employee') return 'nhân viên';
+  return 'bản ghi';
+}
 
 interface StatusAnswer {
   readonly text: string;
   readonly reasonCode: ReasonCode | null;
 }
 
-/** `cho task T-12` or `cho 30 task`, the same opening the draft answer uses. */
+/** `cho task T-12` or `cho 30 task`, with the record type the proposal changes. */
 function proposalHead(proposal: Proposal): string {
+  const word = recordWord(proposal.recordType);
   return proposal.items.length === 1
-    ? `Đề xuất ${proposal.proposalId} cho task ${proposal.items[0]?.recordId ?? ''}:`
-    : `Đề xuất ${proposal.proposalId} cho ${proposal.items.length} task:`;
+    ? `Đề xuất ${proposal.proposalId} cho ${word} ${proposal.items[0]?.recordId ?? ''}:`
+    : `Đề xuất ${proposal.proposalId} cho ${proposal.items.length} ${word}:`;
 }
 
 function commandSentence(item: ProposalItem, command: WriteCommand | undefined): string {
@@ -495,12 +504,15 @@ function describeStatus(proposal: Proposal, context: ToolContext): StatusAnswer 
     }
     if (command.status === 'sent_unknown') {
       return {
-        text: `${head} cổng đã gửi lệnh nhưng chưa nhận được kết quả. Cổng giữ lệnh và gửi lại với đúng mã cũ, nên task không bị ghi hai lần.`,
+        text: `${head} cổng đã gửi lệnh nhưng chưa nhận được kết quả. Cổng giữ lệnh và gửi lại với đúng mã cũ, nên bản ghi không bị ghi hai lần.`,
         reasonCode: null,
       };
     }
     if (command.status === 'done') {
-      return { text: `${head} đã ghi thay đổi vào task ${command.recordId} ở lần gửi thứ ${command.attempts}.`, reasonCode: null };
+      return {
+        text: `${head} đã ghi thay đổi vào ${recordWord(proposal.recordType)} ${command.recordId} ở lần gửi thứ ${command.attempts}.`,
+        reasonCode: null,
+      };
     }
     const code = command.reasonCode;
     const sentence =
@@ -553,11 +565,11 @@ const getRequestStatus = defineTool(
       outcome: 'ok',
       objectId: proposal.items[0]?.recordId ?? null,
       proposalId: proposal.proposalId,
-      ruleId: readRuleId('task', context.actor.role),
+      ruleId: readRuleId(proposal.recordType, context.actor.role),
       policyVersion: proposal.policyVersion,
     });
   },
 );
 
-/** The two tools of the write path. Neither one writes: the page does, after a person presses Gửi. */
-export const PROPOSE_TOOLS: readonly RegisteredTool[] = [proposeTaskChange, getRequestStatus];
+/** The tools of the write path. None writes: the page does, after a person presses Gửi. */
+export const PROPOSE_TOOLS: readonly RegisteredTool[] = [proposeTaskChange, getRequestStatus, ...EMPLOYEE_PROPOSE_TOOLS];
