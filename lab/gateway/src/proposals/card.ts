@@ -48,7 +48,7 @@ function labelOf(adapter: ResourceAdapter, field: ChangeField): string {
   return adapter.fields.find((candidate) => candidate.name === field)?.label ?? field;
 }
 
-/** `HH:mm` in Vietnam time, so the person reads the deadline as the wall clock shows it. */
+/** `HH:mm` in Vietnam time, so the person reads the time as the wall clock shows it. */
 export function formatClock(date: Date): string {
   return new Intl.DateTimeFormat('vi-VN', {
     timeZone: 'Asia/Ho_Chi_Minh',
@@ -56,4 +56,28 @@ export function formatClock(date: Date): string {
     minute: '2-digit',
     hour12: false,
   }).format(date);
+}
+
+const VIETNAM_DAY = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+const VIETNAM_DATE = new Intl.DateTimeFormat('vi-VN', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+});
+
+/**
+ * The same wall clock as `formatClock`, with the date added when the moment is
+ * not today in Vietnam. A deadline that crosses midnight cannot be mistaken
+ * for one earlier the same day.
+ */
+export function formatMoment(date: Date, now: Date = new Date()): string {
+  const time = formatClock(date);
+  return VIETNAM_DAY.format(date) === VIETNAM_DAY.format(now) ? time : `${time} ${VIETNAM_DATE.format(date)}`;
 }

@@ -15,12 +15,14 @@ const NAM = PERSONAS.nam.employeeId;
 const MINH = PERSONAS.minh.employeeId;
 
 /**
- * Scenarios A, B and D of the spec (section 2.2), the task whose description
+ * Scenarios A, B, C and D of the spec (section 2.2), the task whose description
  * carries an embedded command, and a question outside the asker's scope.
  * `2026-11-20` is a Friday and differs from T-12's seeded due date, so the
  * first run always drafts a change.
  * The embedded line is on T-13, not T-12: the seed puts it there on purpose
  * (lab/README.md), and the spec's risk table was corrected to match.
+ * Scenario C uses the thirty open tasks of chị Lan (T-5 to T-34), so the bulk
+ * threshold is crossed and the proposal waits for the lead's approval.
  */
 export const SCENARIOS: readonly Scenario[] = [
   {
@@ -40,6 +42,18 @@ export const SCENARIOS: readonly Scenario[] = [
     tool: 'propose_task_change',
     employeeId: NAM,
     args: { task_ids: ['T-12'], changes: { assignee: MINH, due: '2026-11-20' } },
+  },
+  {
+    key: 'c',
+    title: 'C. Chị Hoa chuyển 30 task của chị Lan cho anh Minh',
+    summary:
+      'Ba mươi mục chạm ngưỡng duyệt hàng loạt. Đề xuất vẫn được soạn và trả link, nhưng sau khi chị Hoa bấm Gửi thì nằm trong hộp Chờ tôi duyệt của anh Quang; chỉ khi anh Quang bấm Duyệt cổng mới ghi.',
+    tool: 'propose_task_change',
+    employeeId: HOA,
+    args: {
+      task_ids: Array.from({ length: 30 }, (_, index) => `T-${index + 5}`),
+      changes: { assignee: MINH },
+    },
   },
   {
     key: 'd',

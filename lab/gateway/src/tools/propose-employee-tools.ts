@@ -1,9 +1,10 @@
 import { EMPLOYEE_ID_PATTERN } from '@lab/shared';
 import { z } from 'zod';
-import { adapterOf, recordValue, SystemUnavailableError, type RecordData } from '../adapters/index.js';
+import { adapterOf, recordValue, type RecordData } from '../adapters/index.js';
 import { refuse } from '../call.js';
-import { ACTION_PHRASE, RULE_IDS, type PersonRef, type PolicyDecision, type TableAction } from '../policy/index.js';
-import { formatClock, itemRows } from '../proposals/card.js';
+import { ACTION_PHRASE, RULE_IDS, type PolicyDecision, type TableAction } from '../policy/index.js';
+import { formatMoment, itemRows } from '../proposals/card.js';
+import { approvalRoster, approverSentence, waitText } from '../proposals/index.js';
 import { wrapSystemData } from './block.js';
 import { defineTool } from './read-tools.js';
 import type { RegisteredTool, ToolContext, ToolResult } from './types.js';
@@ -24,28 +25,9 @@ const proposeInput = z.strictObject({
 });
 
 /** The people the rule file lets approve this request, read from the directory. */
-async function approverNames(context: ToolContext): Promise<readonly PersonRef[]> {
+async function rosterFor(context: ToolContext): Promise<Awaited<ReturnType<typeof approvalRoster>>> {
   const { actor, adapters, policy } = context;
-  const directory = adapterOf(adapters, 'employee');
-  try {
-    const people = await directory.list({});
-    const refs: PersonRef[] = [];
-    for (const person of people) {
-      const id = recordValue(person, directory.fields, 'id');
-      const name = recordValue(person, directory.fields, 'name');
-      if (id === undefined || name === undefined) continue;
-      refs.push({
-        id: String(id),
-        name: String(name),
-        role: String(person['role'] ?? ''),
-        department: String(person['department'] ?? ''),
-      });
-    }
-    return policy.approversFor({ department: actor.department }, refs).approvers;
-  } catch (error) {
-    if (error instanceof SystemUnavailableError) return [];
-    throw error;
-  }
+  return approvalRoster(adapters, policy, { employeeId: actor.employeeId, department: actor.department });
 }
 
 /** Why the rule file said no, in the words the caller needs to act on. */
@@ -72,24 +54,16 @@ async function refusalForDecision(
     };
   }
 
-  const leads = (await approverNames(context)).map((person) => person.name);
+  const roster = await rosterFor(context);
   const whom =
-    leads.length > 0 ? `Hãy hỏi ${leads.join(' hoặc ')}, trưởng nhóm ${actor.department}.` : `Hãy hỏi trưởng nhóm ${actor.department}.`;
+    roster.approvers.length > 0
+      ? `Hãy hỏi ${roster.approvers.map((person) => person.name).join(' hoặc ')}, trưởng nhóm ${actor.department}.`
+      : `Hãy hỏi trưởng nhóm ${actor.department}.`;
   const what = ACTION_PHRASE[action];
 
   if (decision.ruleId.endsWith('.undeclared')) {
     return {
       ...refuse('NOT_PERMITTED', decision.ruleId, `Bộ luật quyền chưa khai việc ${what} cho vai của bạn. ${whom}`),
-      ...extra,
-    };
-  }
-  if (decision.effect === 'needs_approval') {
-    return {
-      ...refuse(
-        'NEEDS_APPROVAL',
-        decision.ruleId,
-        `Việc ${what} cần trưởng nhóm duyệt, và bước duyệt chưa có trong bản này nên cổng chưa soạn đề xuất. ${whom}`,
-      ),
       ...extra,
     };
   }
@@ -183,6 +157,7 @@ const proposeEmployeeChange = defineTool(
       recordType: directory.type,
       changes: { work_email: args.work_email },
       requiresApproval,
+      approvalReason: requiresApproval ? 'Bộ luật quyền yêu cầu trưởng nhóm duyệt việc sửa email công việc trước khi ghi.' : null,
       policyVersion: decision.policyVersion ?? 0,
       items: [
         {
@@ -216,12 +191,14 @@ const proposeEmployeeChange = defineTool(
       `Đã soạn đề xuất ${proposal.proposalId} đổi email công việc của ${name} (${objectId}). Chưa có gì được ghi vào danh bạ.`,
     ];
     if (requiresApproval) {
-      const leads = (await approverNames(context)).map((person) => person.name);
-      const whom = leads.length > 0 ? `Hãy hỏi ${leads.join(' hoặc ')}.` : 'Hãy hỏi trưởng nhóm cùng phòng.';
-      lines.push(`Việc này cần trưởng nhóm ${actor.department} duyệt. ${whom}`);
+      const roster = await rosterFor(context);
+      lines.push(
+        `Việc này cần trưởng nhóm ${actor.department} duyệt trước khi ghi.`,
+        `${approverSentence(roster)} Sau khi bạn bấm Gửi, đề xuất chờ duyệt tối đa ${waitText(roster.waitMinutes)}.`,
+      );
     }
     lines.push(
-      `Đề xuất hết hạn lúc ${formatClock(new Date(proposal.expiresAt))} (30 phút). Người yêu cầu cần mở link dưới đây, đăng nhập giả lập, kiểm tra thẻ rồi bấm Gửi.`,
+      `Đề xuất hết hạn lúc ${formatMoment(new Date(proposal.expiresAt), context.now())} (30 phút). Người yêu cầu cần mở link dưới đây, đăng nhập giả lập, kiểm tra thẻ rồi bấm Gửi.`,
       wrapSystemData(rows.join('\n')),
       'Link xác nhận:',
       `${context.publicBaseUrl}/xac-nhan/${proposal.proposalId}`,

@@ -651,10 +651,13 @@ test('propose: thirty codes at the bulk threshold are drafted with a note that a
     assert.match(batch.body.text, /30 task/);
     assert.match(batch.body.text, /cần trưởng nhóm Vận hành duyệt/);
     assert.match(batch.body.text, /30 mục/);
+    assert.match(batch.body.text, /Người duyệt: Trần Văn Quang/);
+    assert.match(batch.body.text, /2 giờ/);
     const batchId = linkOf(batch.body.text).id;
     const stored = f.gateway.proposals.get(batchId);
     assert.equal(stored?.items.length, 30);
     assert.equal(stored?.requiresApproval, true);
+    assert.match(stored?.approvalReason ?? '', /30 mục/);
     assert.equal(f.systems.writeCount('T-100'), 0);
 
     const three = await f.call(

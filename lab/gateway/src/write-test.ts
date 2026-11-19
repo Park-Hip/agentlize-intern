@@ -11,6 +11,7 @@ import type { ProposalExecutor } from './proposals/index.js';
 import type { WriteCommand } from './writes/index.js';
 
 const HOA = 'NV-02';
+const QUANG = 'NV-01';
 const NAM = 'NV-05';
 const MINUTE = 60_000;
 
@@ -125,6 +126,32 @@ async function pressConfirm(
   return { browser, response, elapsedMs: Date.now() - started };
 }
 
+/** Log in as a lead through the approval link and read the token from the approval page. */
+async function signInForApproval(f: GatewayFixture, proposalId: string, employeeId = QUANG): Promise<Browser> {
+  const { response, cookie } = await login(f, employeeId, f.pagePasswordFor(employeeId), `/duyet/${proposalId}`);
+  assert.equal(response.status, 303);
+  const page = await fetch(`${f.gateway.url}/duyet/${proposalId}`, { redirect: 'manual', headers: { cookie } });
+  assert.equal(page.status, 200);
+  const csrf = /name="csrf" value="([^"]+)"/.exec(await page.text())?.[1];
+  assert.ok(csrf !== undefined, 'the approval page carries a CSRF token');
+  return { cookie, csrf };
+}
+
+function pressApproval(
+  f: GatewayFixture,
+  proposalId: string,
+  button: 'duyet' | 'tu-choi',
+  browser: Browser,
+  form: Record<string, string> = {},
+): Promise<Response> {
+  return fetch(`${f.gateway.url}/duyet/${proposalId}/${button}`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: { cookie: browser.cookie, 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: browser.csrf, ...form }).toString(),
+  });
+}
+
 /** Wait for the background loop to settle a proposal's commands. */
 async function waitCommands(
   f: GatewayFixture,
@@ -185,6 +212,8 @@ test('write: Gửi answers at once, then writes once, and the command keeps its 
     const { html } = await openCard(f, id, await loginFor(f, HOA, id));
     assert.match(html, /Đã ghi thay đổi vào T-12 ở lần gửi thứ 1/);
     assert.doesNotMatch(html, /<button/);
+    assert.doesNotMatch(html, /Lần gửi lại kế tiếp/, 'a finished proposal has no retry column');
+    assert.doesNotMatch(html, /Hạn duyệt lúc|Hết hạn lúc/, 'a finished proposal has no deadline line left');
 
     const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
     assert.match(status.body.text, /đã ghi thay đổi vào task T-12 ở lần gửi thứ 1/);
@@ -551,7 +580,7 @@ test('write: one changed task is skipped while the other items of the proposal a
   });
 });
 
-test('write: a batch at the bulk threshold is refused at Gửi with the real item count, and nothing is written', async () => {
+test('write: a batch at the bulk threshold waits for the lead, then the approval writes every item once', async () => {
   await withGateway(async (f) => {
     const thirty = Array.from({ length: 30 }, (_, index) => `T-${100 + index}`);
     const answer = await f.call(
@@ -569,17 +598,43 @@ test('write: a batch at the bulk threshold is refused at Gửi with the real ite
     assert.match(card.html, /cần trưởng nhóm duyệt/);
 
     const pressed = await press(f, id, 'gui', { cookie: browser.cookie }, { csrf: browser.csrf });
-    assert.equal(pressed.status, 403);
-    assert.match(await pressed.text(), /\[NEEDS_APPROVAL\]/);
-    assert.equal(f.gateway.proposals.get(id)?.status, 'awaiting_confirmation');
-    assert.equal(f.gateway.commands.listByProposal(id).length, 0, 'a refused press creates no command');
+    assert.equal(pressed.status, 303);
+    assert.equal(f.gateway.proposals.get(id)?.status, 'awaiting_approval');
+    assert.equal(f.gateway.commands.listByProposal(id).length, 0, 'waiting creates no command');
     assert.equal(f.systems.writeCount('T-100'), 0);
     const sendLine = f.gateway.trace.list().find((line) => line.tool === 'proposal_send');
-    assert.equal(sendLine?.ruleId, 'task.change_task_assignee_or_due.staff.bulk', 'Gửi asks the rule with the same count');
+    assert.equal(sendLine?.ruleId, 'task.change_task_assignee_or_due.staff.bulk', 'Gửi asked the rule with the same count');
+    assert.equal(sendLine?.reasonCode, null, 'waiting for a lead is not a refusal');
 
     const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
-    assert.equal(status.body.reason_code, 'NEEDS_APPROVAL');
-    assert.match(status.body.text, /bước duyệt chưa có trong bản này/);
+    assert.equal(status.body.reason_code, null);
+    assert.match(status.body.text, /đang chờ Trần Văn Quang duyệt/);
+    assert.match(status.body.text, /2 giờ/);
+
+    const lead = await signInForApproval(f, id);
+    const approvalPage = await fetch(`${f.gateway.url}/duyet/${id}`, { headers: { cookie: lead.cookie } });
+    const approvalHtml = await approvalPage.text();
+    assert.match(approvalHtml, /30 mục/);
+    assert.match(approvalHtml, /Lý do cần duyệt: Đề xuất có 30 mục/);
+    assert.match(approvalHtml, /Hạn duyệt/);
+
+    const approved = await pressApproval(f, id, 'duyet', lead);
+    assert.equal(approved.status, 303);
+    assert.equal(approved.headers.get('location'), `/duyet/${id}`);
+    assert.equal(f.gateway.proposals.get(id)?.status, 'confirmed');
+    assert.equal(f.gateway.proposals.get(id)?.approval?.decision, 'approve');
+    assert.equal(f.gateway.proposals.get(id)?.approval?.actor, QUANG);
+
+    const commands = await waitCommands(f, id, 30);
+    assert.ok(commands.every((command) => command.status === 'done'));
+    assert.equal(f.systems.writeCount('T-100'), 1);
+    const after = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
+    assert.match(after.body.text, /đã ghi 30 trên 30 mục/);
+
+    const again = await pressApproval(f, id, 'duyet', lead);
+    assert.equal(again.status, 409);
+    assert.match(await again.text(), /\[APPROVAL_USED\]/);
+    assert.equal(f.gateway.commands.listByProposal(id).length, 30, 'the second press creates no second set');
   });
 });
 

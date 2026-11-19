@@ -94,10 +94,21 @@ test('console playground: scenario A drafts a proposal through the real gateway 
   assert.equal(scenarioB.includes('Mở thẻ xác nhận'), false, 'a refused draft has no confirmation link');
   assert.match(scenarioB, /<th scope="row">Người hỏi<\/th><td>NV-05<\/td>/);
 
+  // Scenario C: thirty tasks need the lead, so the answer says so and still returns the card link.
+  const scenarioC = await postScenario(consoleUrl, csrf, 'c');
+  assert.match(scenarioC, /HTTP 200/);
+  assert.match(scenarioC, /Đã soạn đề xuất dx-[0-9a-f]{16} cho 30 task/);
+  assert.match(scenarioC, /Mã lý do: <strong>NEEDS_APPROVAL<\/strong>/);
+  assert.match(scenarioC, /Người duyệt: Trần Văn Quang/);
+  assert.match(scenarioC, /2 giờ/);
+  assert.match(scenarioC, /Mở thẻ xác nhận/);
+  assert.match(scenarioC, /<th scope="row">Người hỏi<\/th><td>NV-02<\/td>/);
+
   // Both calls went through the gateway's own door, under the console caller.
   const trace = traceTable(env);
   assert.match(trace, /NV-02\s+lab-console\s+http\s+propose_task_change\s+T-12\s+ok\s+-\s+-\s+task\.change_task_assignee_or_due\.(staff|intern)/);
   assert.match(trace, /NV-05\s+lab-console\s+http\s+propose_task_change\s+T-12\s+refused\s+NOT_PERMITTED/);
+  assert.match(trace, /NV-02\s+lab-console\s+http\s+propose_task_change\s+T-5\s+ok\s+NEEDS_APPROVAL/);
 
   // One key per persona plus the guest is active while the console runs, and no raw key reaches the log.
   const keys = runCli('keys-main.js', ['list'], env);

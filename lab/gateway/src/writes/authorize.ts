@@ -18,7 +18,13 @@ export interface WriteCheckInput {
 }
 
 export type WriteCheck =
-  | { readonly ok: true; readonly ruleId: string; readonly policyVersion: number | null }
+  | {
+      readonly ok: true;
+      /** The rule file still says this request needs a lead before it is written. */
+      readonly requiresApproval: boolean;
+      readonly ruleId: string;
+      readonly policyVersion: number | null;
+    }
   | {
       readonly ok: false;
       readonly code: ReasonCode;
@@ -115,41 +121,39 @@ export function checkWrite(input: WriteCheckInput): WriteCheck {
     }
   }
   const decision = strictestOf(decisions);
-  if (decision === undefined || decision.effect !== 'allow') {
-    const fallback: PolicyDecision = {
-      effect: 'deny',
-      reasonCode: 'NOT_PERMITTED',
-      ruleId: RULE_IDS.inputInvalid,
-      policyVersion: null,
-    };
-    const answer = decision ?? fallback;
-    const version = answer.policyVersion;
-    if (answer.reasonCode === 'POLICY_UNAVAILABLE') {
-      return denied(
-        'POLICY_UNAVAILABLE',
-        503,
-        answer.ruleId,
-        'Cổng không đọc được bộ luật quyền nên chặn mọi lệnh ghi. Hãy báo người vận hành Lab.',
-        version,
-      );
-    }
-    if (answer.effect === 'needs_approval') {
-      return denied(
-        'NEEDS_APPROVAL',
-        403,
-        answer.ruleId,
-        'Việc này cần trưởng nhóm duyệt, và bước duyệt chưa có trong bản này nên cổng không ghi. Hãy hỏi trưởng nhóm phòng bạn.',
-        version,
-      );
-    }
+  if (decision === undefined) {
     return denied(
       'NOT_PERMITTED',
       403,
-      answer.ruleId,
+      RULE_IDS.inputInvalid,
       'Bộ luật quyền không cho vai hiện tại của bạn ghi thay đổi này nữa. Hãy hỏi trưởng nhóm phòng bạn.',
-      version,
+    );
+  }
+  if (decision.reasonCode === 'POLICY_UNAVAILABLE') {
+    return denied(
+      'POLICY_UNAVAILABLE',
+      503,
+      decision.ruleId,
+      'Cổng không đọc được bộ luật quyền nên chặn mọi lệnh ghi. Hãy báo người vận hành Lab.',
+      decision.policyVersion,
+    );
+  }
+  if (decision.effect === 'deny') {
+    return denied(
+      'NOT_PERMITTED',
+      403,
+      decision.ruleId,
+      'Bộ luật quyền không cho vai hiện tại của bạn ghi thay đổi này nữa. Hãy hỏi trưởng nhóm phòng bạn.',
+      decision.policyVersion,
     );
   }
 
-  return { ok: true, ruleId: decision.ruleId, policyVersion: decision.policyVersion };
+  // `needs_approval` is not a refusal any more: the press moves the proposal to
+  // the lead's inbox, and approval writes it (ADR-0008 section 3.2).
+  return {
+    ok: true,
+    requiresApproval: decision.effect === 'needs_approval',
+    ruleId: decision.ruleId,
+    policyVersion: decision.policyVersion,
+  };
 }
