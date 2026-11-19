@@ -27,6 +27,11 @@ export interface ReadDecision extends PolicyDecision {
   readonly scope: 'own_department' | 'any' | null;
 }
 
+/** How far back the bulk count looks; 0 whenever the engine cannot read the file. */
+export interface WindowDecision extends PolicyDecision {
+  readonly minutes: number;
+}
+
 /** One person the directory knows, as the approval question needs them. */
 export interface PersonRef {
   readonly id: string;

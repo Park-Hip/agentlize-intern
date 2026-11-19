@@ -6,10 +6,12 @@ import { TraceUnavailableError, type GatewayDeps } from '../call.js';
 import type { KeyRecord } from '../identity/index.js';
 import { formatMoment, itemRows, personLabel } from '../proposals/card.js';
 import {
+  actionFields,
   approvalRoster,
   effectiveStatus,
   PROPOSAL_ID_PATTERN,
   waitText,
+  type ConfirmRoute,
   type DecideFailure,
   type Decision,
   type Proposal,
@@ -172,6 +174,7 @@ const DECIDE_REFUSAL: Readonly<Record<DecideFailure, { readonly status: number; 
   NOT_FOUND: { status: 404, code: null },
   NOT_REQUESTER: { status: 403, code: 'NOT_PERMITTED' },
   NOT_PERMITTED: { status: 403, code: 'NOT_PERMITTED' },
+  POLICY_UNAVAILABLE: { status: 503, code: 'POLICY_UNAVAILABLE' },
   SELF_APPROVAL: { status: 403, code: 'SELF_APPROVAL' },
   APPROVAL_EXPIRED: { status: 410, code: 'APPROVAL_EXPIRED' },
   APPROVAL_USED: { status: 409, code: 'APPROVAL_USED' },
@@ -182,6 +185,7 @@ const DECIDE_SENTENCE: Readonly<Record<DecideFailure, string>> = {
   NOT_FOUND: 'Không tìm thấy đề xuất này.',
   NOT_REQUESTER: 'Chỉ người đã nhờ AI soạn đề xuất mới bấm được. Hãy đăng nhập đúng nhân vật.',
   NOT_PERMITTED: 'Bộ luật quyền không còn cho bạn gửi đề xuất này. Hãy hỏi trưởng nhóm phòng bạn.',
+  POLICY_UNAVAILABLE: 'Cổng không đọc được bộ luật quyền nên chưa gửi. Hãy báo người vận hành Lab.',
   SELF_APPROVAL: 'Bạn là người yêu cầu nên không tự duyệt được.',
   APPROVAL_EXPIRED: 'Đề xuất đã hết hạn nên không gửi được. Hãy nhờ AI soạn lại.',
   APPROVAL_USED: 'Đề xuất này đã được gửi hoặc huỷ, và mỗi đề xuất chỉ bấm được một lần.',
@@ -190,17 +194,39 @@ const DECIDE_SENTENCE: Readonly<Record<DecideFailure, string>> = {
 
 interface WriteCheckOk {
   readonly ok: true;
-  readonly requiresApproval: boolean;
   readonly department: string;
   readonly ruleId: string;
   readonly policyVersion: number | null;
+  /** The requester as the directory holds them now, reused by the recheck inside the press transaction. */
+  readonly employee: RecordData;
+  /** The target records read now, in item order, reused by the recheck inside the press transaction. */
+  readonly records: readonly (RecordData | undefined)[];
+  /** The start of the cumulative window, fixed for this press. */
+  readonly since: Date;
+  /** Length of that window, kept for the approval sentence in the same press. */
+  readonly windowMinutes: number;
+}
+
+/** The items this person already has in flight for the actions of this proposal. */
+function carriedFor(deps: GatewayDeps, proposal: Proposal, since: Date): Record<string, number> {
+  const adapter = adapterOf(deps.adapters, proposal.recordType);
+  return deps.proposals.countTowardBulk({
+    requester: proposal.requester,
+    recordType: proposal.recordType,
+    actions: actionFields(proposal.changes, adapter.changeable),
+    since,
+    includeAwaitingPress: false,
+    excludeProposalId: proposal.proposalId,
+  });
 }
 
 /**
  * The checks that depend on the key, the directory, the task list and the rule
  * file are done again here, right before the proposal is confirmed: any of them
- * may have changed since the draft. Time and content stay in the proposal
- * store, inside the transaction that changes the status.
+ * may have changed since the draft. The cumulative count is read here for the
+ * answer; the store reads it again inside the transaction that changes the
+ * status, so two presses cannot both pass with the same count. Time and content
+ * stay in the proposal store.
  */
 async function writeChecks(
   deps: GatewayDeps,
@@ -229,14 +255,41 @@ async function writeChecks(
     };
   }
 
-  const check = checkWrite({ proposal, key, employee, adapter: records, records: current, policy: deps.policy });
+  const windowMinutes = deps.policy.cumulativeWindow().minutes;
+  const since = new Date(deps.now().getTime() - windowMinutes * 60_000);
+  const check = checkWrite({
+    proposal,
+    key,
+    employee,
+    adapter: records,
+    records: current,
+    carriedItems: carriedFor(deps, proposal, since),
+    policy: deps.policy,
+  });
   if (!check.ok) return { ok: false, check };
+  // `checkWrite` already refuses a missing employee; this keeps the value narrowed for the caller.
+  if (employee === undefined) {
+    return {
+      ok: false,
+      check: {
+        ok: false,
+        code: 'KEY_INVALID',
+        status: 401,
+        ruleId: 'WRITE.NOT_IN_DIRECTORY',
+        policyVersion: check.policyVersion,
+        sentence: 'Người của khoá này không còn trong danh bạ nên cổng không ghi. Hãy hỏi người đã cấp khoá cho bạn.',
+      },
+    };
+  }
   return {
     ok: true,
-    requiresApproval: check.requiresApproval,
-    department: employee === undefined ? '' : String(employee[directory.ownerField] ?? ''),
+    department: String(employee[directory.ownerField] ?? ''),
     ruleId: check.ruleId,
     policyVersion: check.policyVersion,
+    employee,
+    records: current,
+    since,
+    windowMinutes,
   };
 }
 
@@ -344,14 +397,16 @@ async function handleDecision(
         return refusalPage(res, status, code, sentence);
       }
 
-      // The rule asked at Gửi with the real item count says a lead must answer first.
-      if (checked.requiresApproval) {
-        const waitMinutes = deps.policy.approversFor({ department: checked.department }, []).waitMinutes;
-        if (waitMinutes <= 0) {
-          return refused(503, 'POLICY_UNAVAILABLE', checked.ruleId, 'Cổng không đọc được thời hạn duyệt trong file luật nên chưa gửi. Hãy báo người vận hành Lab.', proposal);
-        }
-        const approvalExpiresAt = new Date(deps.now().getTime() + waitMinutes * 60_000);
-        const sent = deps.proposals.sendForApproval(proposal.proposalId, active.session.employeeId, approvalExpiresAt, (decided) => {
+      // The rule is asked again inside the store transaction, with the items
+      // already counted in the window, so two presses cannot both pass under
+      // the threshold. A press that now needs a lead waits instead of failing
+      // (ADR-0007 section 3.4).
+      let routed: ConfirmRoute | undefined;
+      const sent = deps.proposals.decide(
+        proposal.proposalId,
+        active.session.employeeId,
+        'confirm',
+        (decided) => {
           traceStep(deps, started, {
             tool,
             requester: decided.requester,
@@ -360,16 +415,60 @@ async function handleDecision(
             proposalId: decided.proposalId,
             outcome: 'ok',
             reasonCode: null,
-            ruleId: checked.ruleId,
-            policyVersion: checked.policyVersion,
+            ruleId: routed !== undefined && routed.kind !== 'refuse' ? routed.ruleId : checked.ruleId,
+            policyVersion: routed !== undefined && routed.kind !== 'refuse' ? routed.policyVersion : checked.policyVersion,
           });
-        });
-        if (!sent.ok) {
-          const { status, code } = DECIDE_REFUSAL[sent.reason];
-          return refused(status, code, `WEB.${sent.reason}`, DECIDE_SENTENCE[sent.reason], sent.proposal);
-        }
-        return redirect(res, `/xac-nhan/${sent.proposal.proposalId}`);
+          // The command exists from the same transaction as the confirmation; a press that waits for a lead creates none.
+          if (decided.status === 'confirmed') deps.commands.createForProposal(decided);
+        },
+        (stored) => {
+          const recheck = checkWrite({
+            proposal: stored,
+            key: draftedKey,
+            employee: checked.employee,
+            adapter: adapterOf(deps.adapters, stored.recordType),
+            records: checked.records,
+            carriedItems: carriedFor(deps, stored, checked.since),
+            policy: deps.policy,
+          });
+          if (!recheck.ok) {
+            routed = {
+              kind: 'refuse',
+              reason: recheck.code === 'POLICY_UNAVAILABLE' ? 'POLICY_UNAVAILABLE' : 'NOT_PERMITTED',
+            };
+            return routed;
+          }
+          if (!recheck.requiresApproval) {
+            routed = { kind: 'write', ruleId: recheck.ruleId, policyVersion: recheck.policyVersion };
+            return routed;
+          }
+          const waitMinutes = deps.policy.approversFor({ department: checked.department }, []).waitMinutes;
+          if (waitMinutes <= 0) {
+            routed = { kind: 'refuse', reason: 'POLICY_UNAVAILABLE' };
+            return routed;
+          }
+          routed = {
+            kind: 'wait',
+            approvalExpiresAt: new Date(deps.now().getTime() + waitMinutes * 60_000),
+            approvalReason: recheck.ruleId.endsWith('.cumulative')
+              ? `Đề xuất có ${stored.items.length} mục, cộng với các mục cùng việc đã đếm trong ${checked.windowMinutes} phút qua nên cần trưởng nhóm duyệt trước khi ghi.`
+              : recheck.ruleId.endsWith('.bulk')
+                ? `Đề xuất có ${stored.items.length} mục, chạm ngưỡng duyệt hàng loạt nên cần trưởng nhóm duyệt trước khi ghi.`
+                : (stored.approvalReason ?? 'Đề xuất này cần trưởng nhóm duyệt trước khi ghi.'),
+            ruleId: recheck.ruleId,
+            policyVersion: recheck.policyVersion,
+          };
+          return routed;
+        },
+      );
+      if (!sent.ok) {
+        const { status, code } = DECIDE_REFUSAL[sent.reason];
+        const ruleId = routed !== undefined && routed.kind !== 'refuse' ? routed.ruleId : `WEB.${sent.reason}`;
+        return refused(status, code, ruleId, DECIDE_SENTENCE[sent.reason], sent.proposal);
       }
+      // A waiting proposal has no command; only a confirmed one wakes the background loop.
+      if (sent.proposal.status === 'confirmed') await deps.executor.execute(sent.proposal);
+      return redirect(res, `/xac-nhan/${sent.proposal.proposalId}`);
     }
   }
 

@@ -1,7 +1,7 @@
 # Lab - AI Operations Connector
 
 Khung mã của bản thử: bốn dịch vụ chạy trên máy, một lệnh khởi động và một lệnh chạy phép thử.
-Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/mcp`, đường soạn đề xuất một hay nhiều mục, đường ghi sau khi bấm Gửi, hộp chờ duyệt và trang duyệt của trưởng nhóm, cùng sáu màn hình của trang điều khiển (tổng quan, tool, quyền và trường, sân chơi, dữ liệu gốc, vết) đã có logic.
+Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/mcp`, đường soạn đề xuất một hay nhiều mục, phép đếm tách nhỏ theo cửa sổ 60 phút, đường ghi sau khi bấm Gửi, hộp chờ duyệt và trang duyệt của trưởng nhóm, cùng sáu màn hình của trang điều khiển (tổng quan, tool, quyền và trường, sân chơi, dữ liệu gốc, vết) đã có logic.
 
 ## Gói
 
@@ -344,10 +344,13 @@ Một đề xuất chứa từ một tới 50 mục, mỗi mục một task; đ�
   Tool chưa ghi gì vào task.
 - Mã nằm ngoài phạm vi đọc làm cả đề xuất bị từ chối, và câu trả lời nêu đúng các mã đó với "không tìm thấy".
   Task đã có sẵn giá trị mới bị bỏ khỏi đề xuất và được liệt kê trong câu trả lời.
-- Bộ luật được hỏi với số mục thật, cả lúc soạn lẫn lúc bấm Gửi.
-  Số mục chạm `bulk_threshold` thì ô `bulk` quyết định, nên chị Hoa đổi người phụ trách 30 task thì câu trả lời nói việc này cần trưởng nhóm duyệt.
+- Bộ luật được hỏi với số mục thật cộng số mục cùng loại bản ghi, cùng hành động và cùng người yêu cầu đã đếm trong `cumulative_window_minutes` (60 phút), cả lúc soạn lẫn lúc bấm Gửi.
+  Số mục chạm `bulk_threshold` thì ô `bulk` quyết định, nên chị Hoa đổi người phụ trách 30 task, hay chia 5 đề xuất một task trong 60 phút, thì câu trả lời nói việc này cần trưởng nhóm duyệt.
+  Mã luật trong vết là `<loại>.<hành động>.<vai>.cumulative` khi phần đã đếm là thứ chạm ngưỡng, và `.bulk` khi chính lần gọi đủ số mục.
 - Bấm Gửi kiểm lại khoá, người trong danh bạ, luật với đủ số mục, hạn 30 phút và dấu vân tay.
-  Nếu lần kiểm này vẫn ra "cần duyệt", đề xuất sang `awaiting_approval` với hạn `approval.wait_minutes` tính từ lúc bấm; chưa có lệnh ghi nào.
+  Lúc bấm, phép đếm chỉ gồm đề xuất đã bấm hoặc đã ghi mà chưa qua duyệt, cộng các mục của lần bấm này; đề xuất còn chờ bấm không tính, vì mỗi đề xuất tự đếm khi được bấm.
+  Nhờ vậy hai lần bấm cùng lúc chỉ một đề xuất chờ duyệt, và tổng số mục đã bấm trong cửa sổ không vượt ngưỡng mà không có ai duyệt.
+  Nếu lần kiểm này ra "cần duyệt", đề xuất sang `awaiting_approval` với hạn `approval.wait_minutes` tính từ lúc bấm; chưa có lệnh ghi nào.
   Nếu không cần duyệt, đề xuất sang `confirmed` bằng một câu lệnh chỉ đổi khi trạng thái còn `awaiting_confirmation`, nên hai lần bấm cùng lúc chỉ một lần thắng.
 - Khi trưởng nhóm bấm Duyệt, đề xuất sang `confirmed` trong một giao dịch, và trong cùng giao dịch đó cổng tạo một dòng ở bảng `write_commands` cho mỗi mục: mã lệnh, đề xuất, mã bản ghi, vị trí, mã chống ghi trùng `<mã đề xuất>:<vị trí>`, số phiên bản mong đợi, trạng thái `not_sent`, số lần gửi 0, và cột `next_attempt_at` để trống nghĩa là gửi ngay.
 - Trang Gửi và trang duyệt trả lời ngay sau giao dịch: cổng chỉ đánh thức vòng chạy nền rồi chuyển trang.

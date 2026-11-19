@@ -14,6 +14,8 @@ export interface WriteCheckInput {
   readonly adapter: ResourceAdapter;
   /** The records as they are now, in item order; every department is part of the policy question. */
   readonly records: readonly (RecordData | undefined)[];
+  /** Items of the same action already counted in the cumulative window, by action name. */
+  readonly carriedItems?: Readonly<Record<string, number>>;
   readonly policy: PolicyEngine;
 }
 
@@ -56,12 +58,13 @@ function codeList(proposal: Proposal, missing: readonly number[]): string {
  * The permission part of the second check: the key still belongs to the same
  * person, that person is still in the directory, the target system still holds
  * every record, and the rule file still allows every field the proposal
- * changes. The rule is asked with the real item count, so a batch that reaches
- * the bulk threshold is judged as a batch at Gửi too (ADR-0007 section 3.3).
+ * changes. The rule is asked with the real item count plus the items already
+ * counted in the window, so a batch, or a split that reaches the bulk
+ * threshold, is judged the same way at Gửi (ADR-0007 sections 3.3 and 3.4).
  * Time and content are checked by the proposal store in the same transaction.
  */
 export function checkWrite(input: WriteCheckInput): WriteCheck {
-  const { proposal, key, employee, adapter, records, policy } = input;
+  const { proposal, key, employee, adapter, records, carriedItems = {}, policy } = input;
 
   if (key === undefined) {
     return denied('KEY_INVALID', 401, 'WRITE.KEY_INVALID', 'Khoá của phiên không còn trong danh sách cấp khoá nên cổng không ghi. Hãy đăng nhập lại bằng khoá hợp lệ.');
@@ -114,6 +117,7 @@ export function checkWrite(input: WriteCheckInput): WriteCheck {
             kind: adapter.type,
             department: String(record[adapter.ownerField]),
             taskCount: proposal.items.length,
+            carriedItems: carriedItems[action] ?? 0,
           },
           context: { scope: key.scope === 'read_only' ? 'read_only' : 'read_write', caller: key.caller },
         }),

@@ -129,12 +129,15 @@ export const actorSchema = z.strictObject({
 /**
  * What the action touches. `kind` is the record type of the adapter,
  * `department` the department that owns the record, `taskCount` the number of
- * records one command changes, `field` the employee field that is read.
+ * records one command changes, `carriedItems` the items of the same action
+ * already counted in the cumulative window, `field` the employee field that is
+ * read (ADR-0007 sections 3.2 and 3.4).
  */
 export const policyObjectSchema = z.strictObject({
   kind: z.string().min(1),
   department: z.string().min(1).optional(),
   taskCount: z.number().int().nonnegative().optional(),
+  carriedItems: z.number().int().nonnegative().optional(),
   field: z.string().min(1).optional(),
 });
 

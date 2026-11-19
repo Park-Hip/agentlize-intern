@@ -140,10 +140,18 @@ const proposeEmployeeChange = defineTool(
     }
 
     const department = String(employee[directory.ownerField] ?? '');
+    const windowMinutes = policy.cumulativeWindow().minutes;
+    const carried = proposals.countTowardBulk({
+      requester: actor.employeeId,
+      recordType: directory.type,
+      actions: { [action]: ['work_email'] },
+      since: new Date(context.now().getTime() - windowMinutes * 60_000),
+      includeAwaitingPress: true,
+    });
     const decision = policy.decide({
       actor: { id: actor.employeeId, role: actor.role, department: actor.department },
       action,
-      object: { kind: directory.type, department, taskCount: 1 },
+      object: { kind: directory.type, department, taskCount: 1, carriedItems: carried[action] ?? 0 },
       context: { scope: actor.identity.scope === 'read_only' ? 'read_only' : 'read_write', caller: actor.identity.caller },
     });
     if (decision.effect === 'deny') return refusalForDecision(decision, action, context, objectId);
@@ -157,7 +165,11 @@ const proposeEmployeeChange = defineTool(
       recordType: directory.type,
       changes: { work_email: args.work_email },
       requiresApproval,
-      approvalReason: requiresApproval ? 'Bộ luật quyền yêu cầu trưởng nhóm duyệt việc sửa email công việc trước khi ghi.' : null,
+      approvalReason: requiresApproval
+        ? decision.ruleId.endsWith('.cumulative')
+          ? `Đề xuất có 1 mục, cộng với các mục cùng việc đã đếm trong ${windowMinutes} phút qua nên cần trưởng nhóm duyệt trước khi ghi.`
+          : 'Bộ luật quyền yêu cầu trưởng nhóm duyệt việc sửa email công việc trước khi ghi.'
+        : null,
       policyVersion: decision.policyVersion ?? 0,
       items: [
         {

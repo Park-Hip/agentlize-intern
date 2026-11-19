@@ -4,6 +4,7 @@ export { CHANGE_FIELDS, compareRecordIds, fingerprintOf } from './fingerprint.js
 export type { ChangeField, Changes, FingerprintItem } from './fingerprint.js';
 export type { ExecutionReceipt, ProposalExecutor } from './executor.js';
 export {
+  actionFields,
   effectiveStatus,
   MAX_APPROVAL_REASON,
   OLD_DATABASE_MESSAGE,
@@ -14,6 +15,8 @@ export {
 } from './proposal-store.js';
 export type {
   Approval,
+  BulkCountQuery,
+  ConfirmRoute,
   DecideFailure,
   DecideResult,
   Decision,
