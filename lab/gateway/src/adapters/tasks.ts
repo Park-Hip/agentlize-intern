@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import type { TableAction } from '../policy/schema.js';
-import type { ChangeField } from '../proposals/fingerprint.js';
 import { HttpSystem, type HttpSystemOptions } from './http.js';
 import type { AdapterWrite, ApplyResult, FieldSpec, Filter, ResourceAdapter } from './types.js';
 
@@ -41,7 +40,7 @@ export const TASK_FIELDS = [
 export type TaskField = (typeof TASK_FIELDS)[number];
 
 /** Which rule action each changeable task field needs. */
-export const TASK_CHANGEABLE: Readonly<Record<ChangeField, TableAction>> = {
+export const TASK_CHANGEABLE: Readonly<Record<string, TableAction>> = {
   description: 'edit_task_description',
   status: 'change_task_status',
   assignee: 'change_task_assignee_or_due',

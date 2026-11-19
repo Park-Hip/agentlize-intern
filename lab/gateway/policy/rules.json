@@ -58,7 +58,7 @@
         "hr": ["id", "name", "department", "role", "work_email", "personal_phone", "home_address"]
       },
       "actions": {
-        "edit_directory": {
+        "edit_work_email": {
           "intern": { "effect": "deny", "scope": "any" },
           "staff": { "effect": "deny", "scope": "any" },
           "lead": { "effect": "deny", "scope": "any" },

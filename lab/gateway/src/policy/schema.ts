@@ -7,7 +7,7 @@ import { z } from 'zod';
  */
 export const RESOURCE_ACTIONS = {
   task: ['edit_task_description', 'change_task_status', 'change_task_assignee_or_due'],
-  employee: ['edit_directory'],
+  employee: ['edit_work_email'],
 } as const;
 
 export type ResourceType = keyof typeof RESOURCE_ACTIONS;

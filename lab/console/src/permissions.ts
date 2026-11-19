@@ -49,7 +49,7 @@ export const ACTION_LABEL: Readonly<Record<PolicyAction, string>> = {
   edit_task_description: 'Sửa mô tả task',
   change_task_status: 'Đổi trạng thái task',
   change_task_assignee_or_due: 'Đổi người phụ trách hoặc hạn',
-  edit_directory: 'Sửa danh bạ',
+  edit_work_email: 'Sửa email công việc',
 };
 
 /** The fields are named as the rule file names them; this is the reverse of the gateway map. */

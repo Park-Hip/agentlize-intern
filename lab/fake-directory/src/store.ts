@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import Database from 'better-sqlite3';
@@ -14,11 +15,28 @@ export interface EmployeeFilter {
   readonly department?: string | undefined;
 }
 
-export type UpdateResult =
-  | { readonly kind: 'updated'; readonly employee: Employee }
+export interface PatchInput {
+  readonly employeeId: string;
+  readonly idempotencyKey: string;
+  readonly expectedVersion: number;
+  readonly changes: Readonly<Record<string, string>>;
+}
+
+/** A response worth keeping: the exact status and body a caller received. */
+export interface StoredResponse {
+  readonly status: number;
+  readonly body: string;
+}
+
+export type PatchOutcome =
+  /** The key was seen before with the same content: the old response, untouched. */
+  | { readonly kind: 'replayed'; readonly response: StoredResponse }
+  /** The key was seen before with different content. */
+  | { readonly kind: 'key_reused' }
   | { readonly kind: 'not_found' }
   | { readonly kind: 'conflict'; readonly currentVersion: number }
-  | { readonly kind: 'unknown_field'; readonly field: string };
+  | { readonly kind: 'unknown_field'; readonly field: string }
+  | { readonly kind: 'written'; readonly response: StoredResponse };
 
 export type AddFieldResult = { readonly kind: 'added'; readonly count: number } | { readonly kind: 'exists' };
 
@@ -26,6 +44,46 @@ interface Row {
   employee_id: string;
   version: number;
   doc: string;
+}
+
+interface KeyRow {
+  fingerprint: string;
+  status: number;
+  body: string;
+}
+
+const SCHEMA = `
+CREATE TABLE IF NOT EXISTS employees (
+  employee_id TEXT PRIMARY KEY,
+  version INTEGER NOT NULL,
+  doc TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS idempotency (
+  key TEXT PRIMARY KEY,
+  fingerprint TEXT NOT NULL,
+  employee_id TEXT NOT NULL,
+  status INTEGER NOT NULL,
+  body TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS writes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  employee_id TEXT NOT NULL,
+  key TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS writes_employee ON writes (employee_id);
+`;
+
+/** The JSON shape of one employee: the document with its code and version beside it. */
+export function serializeEmployee(employee: Employee): Record<string, string | number> {
+  return { employee_id: employee.employeeId, version: employee.version, ...employee.document };
+}
+
+/** Same employee, same version, same changes: same fingerprint, whatever the key order. */
+export function fingerprintOf(input: PatchInput): string {
+  const changes = Object.fromEntries(Object.entries(input.changes).sort(([a], [b]) => (a < b ? -1 : 1)));
+  return createHash('sha256')
+    .update(JSON.stringify([input.employeeId, input.expectedVersion, changes]))
+    .digest('hex');
 }
 
 /**
@@ -61,13 +119,8 @@ export class DirectoryStore {
     }
     this.db = new Database(file);
     this.db.pragma('journal_mode = WAL');
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS employees (
-        employee_id TEXT PRIMARY KEY,
-        version INTEGER NOT NULL,
-        doc TEXT NOT NULL
-      )
-    `);
+    this.db.pragma('synchronous = FULL');
+    this.db.exec(SCHEMA);
     const { total } = this.db.prepare('SELECT COUNT(*) AS total FROM employees').get() as { total: number };
     if (total === 0) {
       this.reset();
@@ -78,11 +131,11 @@ export class DirectoryStore {
     this.db.close();
   }
 
-  /** Replace everything with the fixed starting data, every version back to 1. */
+  /** Replace everything with the fixed starting data, every version back to 1, and forget saved keys. */
   reset(): void {
     const insert = this.db.prepare('INSERT INTO employees (employee_id, version, doc) VALUES (?, 1, ?)');
     this.db.transaction(() => {
-      this.db.exec('DELETE FROM employees');
+      this.db.exec('DELETE FROM employees; DELETE FROM idempotency; DELETE FROM writes;');
       for (const seed of SEED_EMPLOYEES) {
         insert.run(seed.employeeId, JSON.stringify(seed.document));
       }
@@ -114,36 +167,63 @@ export class DirectoryStore {
     return row === undefined ? undefined : toEmployee(row);
   }
 
-  /** Apply changes if the stored version still equals `expectedVersion`. */
-  update(employeeId: string, expectedVersion: number, changes: Readonly<Record<string, string>>): UpdateResult {
-    return this.db.transaction((): UpdateResult => {
+  /** How many writes really committed for an employee, replays excluded. */
+  writeCount(employeeId: string): number {
+    const row = this.db.prepare('SELECT COUNT(*) AS n FROM writes WHERE employee_id = ?').get(employeeId) as { n: number };
+    return row.n;
+  }
+
+  /**
+   * One versioned write. The order is the same as the fake task list: a saved
+   * key first, so a retry after a lost answer gets the old response and not a
+   * version conflict; then the record, the field names and the version.
+   */
+  patch(input: PatchInput): PatchOutcome {
+    return this.db.transaction((): PatchOutcome => {
+      const print = fingerprintOf(input);
+
+      const seen = this.db.prepare('SELECT fingerprint, status, body FROM idempotency WHERE key = ?').get(input.idempotencyKey) as
+        | KeyRow
+        | undefined;
+      if (seen !== undefined) {
+        if (seen.fingerprint !== print) return { kind: 'key_reused' };
+        return { kind: 'replayed', response: { status: seen.status, body: seen.body } };
+      }
+
       const row = this.db
         .prepare('SELECT employee_id, version, doc FROM employees WHERE employee_id = ?')
-        .get(employeeId) as Row | undefined;
+        .get(input.employeeId) as Row | undefined;
       if (row === undefined) {
         return { kind: 'not_found' };
       }
 
       const document = JSON.parse(row.doc) as EmployeeDocument;
-      for (const field of Object.keys(changes)) {
+      for (const field of Object.keys(input.changes)) {
         if (!Object.hasOwn(document, field)) {
           return { kind: 'unknown_field', field };
         }
       }
-      if (row.version !== expectedVersion) {
+      if (row.version !== input.expectedVersion) {
         return { kind: 'conflict', currentVersion: row.version };
       }
 
       const next = row.version + 1;
-      const result = this.db
+      const changed = this.db
         .prepare('UPDATE employees SET version = ?, doc = ? WHERE employee_id = ? AND version = ?')
-        .run(next, JSON.stringify({ ...document, ...changes }), employeeId, row.version);
-      if (result.changes !== 1) {
+        .run(next, JSON.stringify({ ...document, ...input.changes }), input.employeeId, row.version);
+      if (changed.changes !== 1) {
         return { kind: 'conflict', currentVersion: row.version };
       }
 
-      return { kind: 'updated', employee: { employeeId, version: next, document: { ...document, ...changes } } };
-    })();
+      const employee: Employee = { employeeId: input.employeeId, version: next, document: { ...document, ...input.changes } };
+      const response: StoredResponse = { status: 200, body: `${JSON.stringify(serializeEmployee(employee))}\n` };
+      this.db
+        .prepare('INSERT INTO idempotency (key, fingerprint, employee_id, status, body) VALUES (?, ?, ?, ?, ?)')
+        .run(input.idempotencyKey, print, input.employeeId, response.status, response.body);
+      this.db.prepare('INSERT INTO writes (employee_id, key) VALUES (?, ?)').run(input.employeeId, input.idempotencyKey);
+
+      return { kind: 'written', response };
+    }).immediate();
   }
 
   /** Add one field to every employee and raise every version, since every document changed. */

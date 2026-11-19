@@ -1,7 +1,11 @@
 import { createHash } from 'node:crypto';
 
-/** The task fields a proposal may change. The names are the ones the task list takes in a PATCH. */
-export const CHANGE_FIELDS = ['assignee', 'due', 'description', 'status'] as const;
+/**
+ * The fields a proposal may change, in the order a card shows them.
+ * The adapter of the record type decides which ones apply: `work_email`
+ * belongs to the directory, the other four to the task list (ADR-0007 section 3.6).
+ */
+export const CHANGE_FIELDS = ['assignee', 'due', 'description', 'status', 'work_email'] as const;
 export type ChangeField = (typeof CHANGE_FIELDS)[number];
 
 /** The normalised content of one item: only the fields that differ from what the system holds. */

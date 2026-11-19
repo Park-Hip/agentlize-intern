@@ -24,6 +24,6 @@ test('adapters: one adapter per record type, each with fields, an owner field an
   const task = adapterOf(adapters, 'task');
   assert.equal(task.ownerField, 'department');
   assert.equal(task.changeable['assignee'], 'change_task_assignee_or_due');
-  assert.equal(adapterOf(adapters, 'employee').changeable['work_email'], 'edit_directory');
+  assert.equal(adapterOf(adapters, 'employee').changeable['work_email'], 'edit_work_email');
   assert.throws(() => adapterOf(adapters, 'invoice'), /no adapter/);
 });

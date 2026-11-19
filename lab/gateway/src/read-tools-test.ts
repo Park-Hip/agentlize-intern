@@ -22,7 +22,7 @@ async function withGateway(run: (f: GatewayFixture) => Promise<void>): Promise<v
   }
 }
 
-test('read: the catalog lists the three read tools and the two proposal tools, in Vietnamese, with no tool that writes or confirms', async () => {
+test('read: the catalog lists the three read tools and the three proposal tools, in Vietnamese, with no tool that writes or confirms', async () => {
   await withGateway(async (f) => {
     const response = await fetch(`${f.gateway.url}/v1/tools`);
     assert.equal(response.status, 200);
@@ -35,8 +35,15 @@ test('read: the catalog lists the three read tools and the two proposal tools, i
       }[];
     };
 
-    assert.deepEqual(body.tools.map((tool) => tool.name), ['find_employee', 'get_task', 'list_tasks', 'propose_task_change', 'get_request_status']);
-    // Only propose_task_change drafts a change; get_request_status reads a proposal like the other read tools.
+    assert.deepEqual(body.tools.map((tool) => tool.name), [
+      'find_employee',
+      'get_task',
+      'list_tasks',
+      'propose_task_change',
+      'get_request_status',
+      'propose_employee_change',
+    ]);
+    // The two propose tools draft a change; get_request_status reads a proposal like the other read tools.
     assert.deepEqual(
       Object.fromEntries(body.tools.map((tool) => [tool.name, tool.kind])),
       {
@@ -45,6 +52,7 @@ test('read: the catalog lists the three read tools and the two proposal tools, i
         list_tasks: 'read',
         propose_task_change: 'propose',
         get_request_status: 'read',
+        propose_employee_change: 'propose',
       },
     );
     for (const tool of body.tools) {

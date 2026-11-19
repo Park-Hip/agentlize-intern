@@ -15,7 +15,7 @@ import type { PolicyEffect, PolicyEngine, PersonRef } from './index.js';
 
 type Role = 'intern' | 'staff' | 'lead' | 'hr';
 type TaskAction = 'edit_task_description' | 'change_task_status' | 'change_task_assignee_or_due';
-type EmployeeAction = 'edit_directory';
+type EmployeeAction = 'edit_work_email';
 
 const ROLES: readonly Role[] = ['intern', 'staff', 'lead', 'hr'];
 
@@ -50,7 +50,7 @@ const TASK_MATRIX: Readonly<Record<TaskAction, Readonly<Record<Role, CellExpecta
 };
 
 const EMPLOYEE_MATRIX: Readonly<Record<EmployeeAction, Readonly<Record<Role, CellExpectation>>>> = {
-  edit_directory: {
+  edit_work_email: {
     intern: { effect: 'deny', bulk: 'deny', scope: 'any' },
     staff: { effect: 'deny', bulk: 'deny', scope: 'any' },
     lead: { effect: 'deny', bulk: 'deny', scope: 'any' },
@@ -163,25 +163,25 @@ for (const action of Object.keys(TASK_MATRIX) as TaskAction[]) {
 
 // 4 roles x 1 employee action: the cell itself, the bulk threshold and a record of another department.
 for (const role of ROLES) {
-  const expected = EMPLOYEE_MATRIX.edit_directory[role];
+  const expected = EMPLOYEE_MATRIX.edit_work_email[role];
 
-  test(`policy table: employee edit_directory / ${role} -> ${expected.effect}`, () => {
-    const decision = shipped.decide(inputOf(role, 'edit_directory', ownEmployee()));
+  test(`policy table: employee edit_work_email / ${role} -> ${expected.effect}`, () => {
+    const decision = shipped.decide(inputOf(role, 'edit_work_email', ownEmployee()));
     assert.equal(decision.effect, expected.effect);
     assert.equal(decision.reasonCode, REASON_OF[expected.effect]);
-    assert.equal(decision.ruleId, `employee.edit_directory.${role}`);
+    assert.equal(decision.ruleId, `employee.edit_work_email.${role}`);
   });
 
-  test(`policy table: employee edit_directory / ${role} on another department -> ${expected.effect}`, () => {
-    const decision = shipped.decide(inputOf(role, 'edit_directory', { kind: 'employee', department: OTHER_DEPARTMENT }));
+  test(`policy table: employee edit_work_email / ${role} on another department -> ${expected.effect}`, () => {
+    const decision = shipped.decide(inputOf(role, 'edit_work_email', { kind: 'employee', department: OTHER_DEPARTMENT }));
     assert.equal(decision.effect, expected.effect);
-    assert.equal(decision.ruleId, `employee.edit_directory.${role}`);
+    assert.equal(decision.ruleId, `employee.edit_work_email.${role}`);
   });
 
-  test(`policy table: employee edit_directory / ${role} at five records -> ${expected.bulk}`, () => {
-    const decision = shipped.decide(inputOf(role, 'edit_directory', { kind: 'employee', department: OWN_DEPARTMENT, taskCount: 5 }));
+  test(`policy table: employee edit_work_email / ${role} at five records -> ${expected.bulk}`, () => {
+    const decision = shipped.decide(inputOf(role, 'edit_work_email', { kind: 'employee', department: OWN_DEPARTMENT, taskCount: 5 }));
     assert.equal(decision.effect, expected.bulk);
-    assert.equal(decision.ruleId, `employee.edit_directory.${role}`);
+    assert.equal(decision.ruleId, `employee.edit_work_email.${role}`);
   });
 }
 
@@ -360,9 +360,9 @@ test('policy default: a malformed question is refused, not guessed', () => {
     assert.equal(decision.policyVersion, 1);
   }
   assert.equal(shipped.decide(null).ruleId, RULE_IDS.inputInvalid);
-  assert.equal(shipped.decide(inputOf('lead', 'edit_directory', ownTask(1))).ruleId, RULE_IDS.objectInvalid);
+  assert.equal(shipped.decide(inputOf('lead', 'edit_work_email', ownTask(1))).ruleId, RULE_IDS.objectInvalid);
   assert.equal(shipped.decide(inputOf('lead', 'read_employee_field', { kind: 'employee' })).ruleId, RULE_IDS.objectInvalid);
-  assert.equal(shipped.decide(inputOf('lead', 'edit_directory', { kind: 'invoice' })).ruleId, RULE_IDS.objectInvalid);
+  assert.equal(shipped.decide(inputOf('lead', 'edit_work_email', { kind: 'invoice' })).ruleId, RULE_IDS.objectInvalid);
 });
 
 test('policy scope: a read_only key turns every write cell into NOT_PERMITTED, for every role', () => {
@@ -373,7 +373,7 @@ test('policy scope: a read_only key turns every write cell into NOT_PERMITTED, f
       assert.equal(decision.reasonCode, 'NOT_PERMITTED');
       assert.equal(decision.ruleId, RULE_IDS.scopeReadOnly);
     }
-    const directory = shipped.decide(inputOf(role, 'edit_directory', ownEmployee(), { scope: 'read_only' }));
+    const directory = shipped.decide(inputOf(role, 'edit_work_email', ownEmployee(), { scope: 'read_only' }));
     assert.equal(directory.effect, 'deny');
     assert.equal(directory.ruleId, RULE_IDS.scopeReadOnly);
   }
@@ -422,7 +422,7 @@ test('policy undeclared: a record type the file omits is refused, while the decl
     assert.equal(task.ruleId, 'task.change_task_status.staff.undeclared');
     assert.equal(engine.readScope('staff', 'task').ruleId, 'task.read.staff.undeclared');
     assert.equal(engine.allowedFields('staff', 'task').ruleId, 'task.fields.staff.undeclared');
-    assert.equal(engine.decide(inputOf('hr', 'edit_directory', ownEmployee())).effect, 'allow');
+    assert.equal(engine.decide(inputOf('hr', 'edit_work_email', ownEmployee())).effect, 'allow');
   });
 });
 

@@ -21,7 +21,13 @@ interface Harness {
   readonly dataDir: string;
   call(
     path: string,
-    init?: { method?: string; body?: unknown; rawBody?: string; key?: string | null },
+    init?: {
+      method?: string;
+      body?: unknown;
+      rawBody?: string;
+      key?: string | null;
+      idempotencyKey?: string;
+    },
   ): Promise<Response>;
 }
 
@@ -59,6 +65,7 @@ async function start(
         headers: {
           ...(presented === null ? {} : { authorization: `Bearer ${presented}` }),
           ...(init.body === undefined && init.rawBody === undefined ? {} : { 'content-type': 'application/json' }),
+          ...(init.idempotencyKey === undefined ? {} : { 'idempotency-key': init.idempotencyKey }),
         },
         ...(init.rawBody === undefined
           ? init.body === undefined
@@ -228,6 +235,7 @@ test('directory: PATCH applies the change and raises the version by one', async 
 
   const first = await call(`/employees/${code}`, {
     method: 'PATCH',
+    idempotencyKey: 'test-hoa-email',
     body: { expected_version: 1, changes: { work_email: 'hoa.new@lab.example' } },
   });
   assert.equal(first.status, 200);
@@ -238,6 +246,7 @@ test('directory: PATCH applies the change and raises the version by one', async 
 
   const second = await call(`/employees/${code}`, {
     method: 'PATCH',
+    idempotencyKey: 'test-hoa-role',
     body: { expected_version: 2, changes: { role: 'intern' } },
   });
   assert.equal(second.status, 200);
@@ -256,12 +265,14 @@ test('directory: PATCH with a stale version answers 409 and changes nothing', as
 
   const ok = await call(`/employees/${code}`, {
     method: 'PATCH',
+    idempotencyKey: 'test-lan-first',
     body: { expected_version: 1, changes: { work_email: 'lan.one@lab.example' } },
   });
   assert.equal(ok.status, 200);
 
   const stale = await call(`/employees/${code}`, {
     method: 'PATCH',
+    idempotencyKey: 'test-lan-stale',
     body: { expected_version: 1, changes: { work_email: 'lan.two@lab.example' } },
   });
   assert.equal(stale.status, 409);
@@ -273,10 +284,89 @@ test('directory: PATCH with a stale version answers 409 and changes nothing', as
   assert.equal(before['version'], 1);
 });
 
+test('directory: PATCH requires a well-formed Idempotency-Key before it reads the body', async (t) => {
+  const { call } = await start(t);
+  const code = PERSONAS.minh.employeeId;
+
+  for (const key of [undefined, '', 'has a space', 'x'.repeat(201)]) {
+    const response = await call(`/employees/${code}`, {
+      method: 'PATCH',
+      ...(key === undefined ? {} : { idempotencyKey: key }),
+      body: { expected_version: 1, changes: { work_email: 'minh.new@lab.example' } },
+    });
+    assert.equal(response.status, 400, JSON.stringify(key));
+    assert.equal(((await response.json()) as Json)['error'], 'invalid_idempotency_key');
+  }
+
+  const stored = (await (await call(`/employees/${code}`)).json()) as Json;
+  assert.equal(stored['version'], 1);
+  assert.equal(stored['work_email'], 'minh.vu@lab.example');
+});
+
+test('directory: the same Idempotency-Key replays the first answer, even with the old version', async (t) => {
+  const { call } = await start(t, { hooks: true });
+  const code = PERSONAS.minh.employeeId;
+  const body = { expected_version: 1, changes: { work_email: 'minh.new@lab.example' } };
+
+  const first = await call(`/employees/${code}`, { method: 'PATCH', idempotencyKey: 'test-minh-replay', body });
+  assert.equal(first.status, 200);
+  const written = (await first.json()) as Json;
+  assert.equal(written['version'], 2);
+
+  // The key is checked before the version, so the retry gets the first answer and not a 409.
+  const replay = await call(`/employees/${code}`, { method: 'PATCH', idempotencyKey: 'test-minh-replay', body });
+  assert.equal(replay.status, 200);
+  assert.equal(replay.headers.get('idempotent-replayed'), 'true');
+  assert.deepEqual(await replay.json(), written);
+
+  const stored = (await (await call(`/employees/${code}`)).json()) as Json;
+  assert.equal(stored['version'], 2);
+  assert.equal(stored['work_email'], 'minh.new@lab.example');
+
+  const count = await call(`/admin/write-count?employee=${code}`);
+  assert.equal(count.status, 200);
+  assert.deepEqual(await count.json(), { employee: code, count: 1 });
+});
+
+test('directory: reusing an Idempotency-Key for different content answers 422 and writes nothing', async (t) => {
+  const { call } = await start(t, { hooks: true });
+  const code = PERSONAS.lan.employeeId;
+
+  const first = await call(`/employees/${code}`, {
+    method: 'PATCH',
+    idempotencyKey: 'test-lan-reused',
+    body: { expected_version: 1, changes: { work_email: 'lan.first@lab.example' } },
+  });
+  assert.equal(first.status, 200);
+
+  const reused = await call(`/employees/${code}`, {
+    method: 'PATCH',
+    idempotencyKey: 'test-lan-reused',
+    body: { expected_version: 1, changes: { work_email: 'lan.other@lab.example' } },
+  });
+  assert.equal(reused.status, 422);
+  assert.equal(((await reused.json()) as Json)['error'], 'idempotency_key_reused');
+
+  const stored = (await (await call(`/employees/${code}`)).json()) as Json;
+  assert.equal(stored['work_email'], 'lan.first@lab.example');
+  assert.equal(stored['version'], 2);
+
+  const count = await call(`/admin/write-count?employee=${code}`);
+  assert.deepEqual(await count.json(), { employee: code, count: 1 });
+});
+
+test('directory: write counts are hidden unless LAB_TEST_HOOKS is 1', async (t) => {
+  const { call } = await start(t);
+  const response = await call(`/admin/write-count?employee=${PERSONAS.minh.employeeId}`);
+  assert.equal(response.status, 404);
+  await response.text();
+});
+
 test('directory: PATCH refuses bad input and leaves the record alone', async (t) => {
   const { call } = await start(t);
   const code = PERSONAS.nam.employeeId;
-  const patch = (body: unknown): Promise<Response> => call(`/employees/${code}`, { method: 'PATCH', body });
+  const patch = (body: unknown): Promise<Response> =>
+    call(`/employees/${code}`, { method: 'PATCH', idempotencyKey: 'test-nam-bad-input', body });
 
   const cases: ReadonlyArray<[string, unknown, number, string]> = [
     ['no version', { changes: { role: 'staff' } }, 400, 'invalid_body'],
@@ -297,12 +387,17 @@ test('directory: PATCH refuses bad input and leaves the record alone', async (t)
     assert.equal(((await response.json()) as Json)['error'], error, label);
   }
 
-  const notJson = await call(`/employees/${code}`, { method: 'PATCH', rawBody: '{not json' });
+  const notJson = await call(`/employees/${code}`, {
+    method: 'PATCH',
+    idempotencyKey: 'test-nam-not-json',
+    rawBody: '{not json',
+  });
   assert.equal(notJson.status, 400);
   assert.equal(((await notJson.json()) as Json)['error'], 'invalid_json');
 
   const missing = await call('/employees/NV-99', {
     method: 'PATCH',
+    idempotencyKey: 'test-missing-employee',
     body: { expected_version: 1, changes: { role: 'staff' } },
   });
   assert.equal(missing.status, 404);
@@ -371,6 +466,7 @@ test('directory: /admin/reset restores the seed and every version', async (t) =>
 
   const changed = await call(`/employees/${code}`, {
     method: 'PATCH',
+    idempotencyKey: 'test-hoa-before-reset',
     body: { expected_version: 1, changes: { role: 'intern', work_email: 'hoa.moved@lab.example' } },
   });
   assert.equal(changed.status, 200);
@@ -407,6 +503,7 @@ test('directory: /admin/add-field adds one field to every employee and keeps old
   // The new field is an ordinary field: PATCH can change it, a filter cannot use it.
   const patched = await call(`/employees/${PERSONAS.hoa.employeeId}`, {
     method: 'PATCH',
+    idempotencyKey: 'test-hoa-badge',
     body: { expected_version: 2, changes: { badge_color: 'đỏ' } },
   });
   assert.equal(patched.status, 200);
@@ -432,6 +529,7 @@ test('directory: data survives a restart on the same file and lives in directory
     const first = await start(t, { dataDir, key });
     const patched = await first.call(`/employees/${code}`, {
       method: 'PATCH',
+      idempotencyKey: 'test-quang-kept',
       body: { expected_version: 1, changes: { work_email: 'quang.kept@lab.example' } },
     });
     assert.equal(patched.status, 200);

@@ -284,7 +284,7 @@ test('card: opening it needs a session, shows the values read from the systems, 
     const { response, html } = await openCard(f, id, cookie);
     assert.equal(response.status, 200);
     assert.match(response.headers.get('content-security-policy') ?? '', /default-src 'none'/);
-    assert.ok(html.includes('Xác nhận thay đổi task T-12'));
+    assert.ok(html.includes('Xác nhận thay đổi T-12'));
     assert.ok(html.includes('NV-02 Nguyễn Thị Hoa'), 'the requester name comes from the directory');
     assert.ok(html.includes('&lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;quote&quot;'));
     assert.ok(html.includes('&lt;img src=x onerror=alert(2)&gt;'), 'the old value read from the system is escaped too');

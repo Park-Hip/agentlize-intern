@@ -4,6 +4,7 @@ import { z } from 'zod';
 import {
   BodyError,
   DEPARTMENTS,
+  EMPLOYEE_ID_PATTERN,
   LOOPBACK_HOST,
   hasValidServiceKey,
   ROLES,
@@ -15,12 +16,13 @@ import {
   testHooksEnabled,
   type RunningService,
 } from '@lab/shared';
-import { DirectoryStore, type Employee } from './store.js';
+import { DirectoryStore, serializeEmployee, type PatchInput, type StoredResponse } from './store.js';
 
 export const DIRECTORY_FILE_NAME = 'directory.sqlite';
 
 const LIST_PARAMS = new Set(['name', 'department']);
 const EMPLOYEE_PATH = /^\/employees\/([^/]+)$/;
+const KEY_PATTERN = /^[A-Za-z0-9._:-]{1,200}$/;
 
 /** Field names a hook may add: lower case words joined by underscores. */
 const FIELD_NAME = z.string().regex(/^[a-z][a-z0-9_]{0,39}$/);
@@ -50,13 +52,18 @@ export interface DirectoryOptions {
   readonly file?: string;
 }
 
-/** The JSON shape of one employee: the document with its code and version beside it. */
-export function serializeEmployee(employee: Employee): Record<string, string | number> {
-  return { employee_id: employee.employeeId, version: employee.version, ...employee.document };
-}
-
 function fail(res: ServerResponse, status: number, error: string, extra: Record<string, unknown> = {}): void {
   sendJson(res, status, { error, ...extra });
+}
+
+/** Write a response kept from an earlier request, so a replay is byte-for-byte the first answer. */
+function sendStored(res: ServerResponse, response: StoredResponse, headers: Record<string, string> = {}): void {
+  res.writeHead(response.status, {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store',
+    ...headers,
+  });
+  res.end(response.body);
 }
 
 /** A malformed escape cannot name an employee, so it decodes to a code nobody has. */
@@ -142,6 +149,17 @@ export function createDirectoryHandler(options: {
       return addField(store, req, res);
     }
 
+    if (path === '/admin/write-count') {
+      if (!testHooks) return fail(res, 404, 'not_found');
+      if (method !== 'GET') return methodNotAllowed(res, 'GET');
+      const employee = url.searchParams.get('employee');
+      if (employee === null || !EMPLOYEE_ID_PATTERN.test(employee)) {
+        return fail(res, 400, 'invalid_query', { allowed: ['employee'] });
+      }
+      sendJson(res, 200, { employee, count: store.writeCount(employee) });
+      return;
+    }
+
     fail(res, 404, 'not_found');
   };
 }
@@ -171,7 +189,10 @@ async function patchEmployee(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  if (store.get(employeeId) === undefined) return fail(res, 404, 'employee_not_found');
+  const key = req.headers['idempotency-key'];
+  if (typeof key !== 'string' || !KEY_PATTERN.test(key)) {
+    return fail(res, 400, 'invalid_idempotency_key', { header: 'Idempotency-Key' });
+  }
 
   const body = await parseBody(req, res, patchBody);
   if (body === undefined) return;
@@ -183,17 +204,28 @@ async function patchEmployee(
     }
   }
 
-  const result = store.update(employeeId, body.expected_version, body.changes);
+  const input: PatchInput = {
+    employeeId,
+    idempotencyKey: key,
+    expectedVersion: body.expected_version,
+    changes: body.changes,
+  };
+  const result = store.patch(input);
   switch (result.kind) {
-    case 'updated':
-      sendJson(res, 200, serializeEmployee(result.employee));
+    case 'replayed':
+      sendStored(res, result.response, { 'idempotent-replayed': 'true' });
       return;
+    case 'key_reused':
+      return fail(res, 422, 'idempotency_key_reused');
     case 'conflict':
       return fail(res, 409, 'version_conflict', { current_version: result.currentVersion });
     case 'unknown_field':
       return fail(res, 400, 'unknown_field', { field: result.field });
     case 'not_found':
       return fail(res, 404, 'employee_not_found');
+    case 'written':
+      sendStored(res, result.response);
+      return;
   }
 }
 

@@ -191,7 +191,14 @@ for (const door of DOORS) {
       assert.deepEqual(await door.toolNames(base, hoa.key), names);
       const open = (await (await fetch(`${base}/v1/tools`)).json()) as { tools: { name: string }[] };
       assert.deepEqual(names, open.tools.map((tool) => tool.name));
-      assert.deepEqual(names, ['find_employee', 'get_task', 'list_tasks', 'propose_task_change', 'get_request_status']);
+      assert.deepEqual(names, [
+        'find_employee',
+        'get_task',
+        'list_tasks',
+        'propose_task_change',
+        'get_request_status',
+        'propose_employee_change',
+      ]);
       for (const name of names) {
         assert.doesNotMatch(name, /confirm|approve|write/i, `no tool may confirm, approve or write: ${name}`);
       }
@@ -226,7 +233,7 @@ for (const door of DOORS) {
       };
       const patched = await fetch(`${directoryUrl}/employees/NV-02`, {
         method: 'PATCH',
-        headers,
+        headers: { ...headers, 'idempotency-key': `test-email-reading-${current.version}` },
         body: JSON.stringify({ expected_version: current.version, changes: { work_email: 'hoa.changed@lab.example' } }),
       });
       assert.equal(patched.status, 200, await patched.text());
@@ -332,7 +339,14 @@ test('gateway read path: the three doors publish one catalog with no confirm, ap
   for (const door of DOORS) {
     assert.deepEqual(catalogs.get(door.name), names, `${door.name} publishes the same catalog`);
   }
-  assert.deepEqual(names, ['find_employee', 'get_task', 'list_tasks', 'propose_task_change', 'get_request_status']);
+  assert.deepEqual(names, [
+    'find_employee',
+    'get_task',
+    'list_tasks',
+    'propose_task_change',
+    'get_request_status',
+    'propose_employee_change',
+  ]);
   for (const name of names) {
     assert.doesNotMatch(name, /confirm|approve|write/i);
   }
