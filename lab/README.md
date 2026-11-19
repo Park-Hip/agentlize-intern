@@ -327,22 +327,33 @@ Một đề xuất chứa từ một tới 50 mục, mỗi mục một task; đ�
   Bước duyệt chưa có trong bản này, nên câu trả lời báo cần duyệt và lần bấm Gửi bị từ chối.
 - Bấm Gửi kiểm lại khoá, người trong danh bạ, luật với đủ số mục, hạn 30 phút và dấu vân tay.
   Đề xuất sang `confirmed` bằng một câu lệnh chỉ đổi khi trạng thái còn `awaiting_confirmation`, nên hai lần bấm cùng lúc chỉ một lần thắng.
-- Trong cùng giao dịch đó, cổng tạo một dòng ở bảng `write_commands` cho mỗi mục: mã lệnh, đề xuất, mã bản ghi, vị trí, mã chống ghi trùng `<mã đề xuất>:<vị trí>`, số phiên bản mong đợi, trạng thái `not_sent`, số lần gửi 0.
-- Cổng gửi từng mục theo vị trí, mỗi mục một lần.
-  Trước mỗi lần PATCH, cổng ghi `sent_unknown` và tăng số lần gửi.
-  2xx thì `done`; 409 hoặc 404 thì `failed` với `TARGET_CHANGED`; 422 thì `failed` với `CONTENT_CHANGED`; lỗi mạng, hết giờ hoặc 5xx thì giữ `sent_unknown` và gửi lại, tối đa ba lần gửi lại, với đúng mã cũ.
+- Trong cùng giao dịch đó, cổng tạo một dòng ở bảng `write_commands` cho mỗi mục: mã lệnh, đề xuất, mã bản ghi, vị trí, mã chống ghi trùng `<mã đề xuất>:<vị trí>`, số phiên bản mong đợi, trạng thái `not_sent`, số lần gửi 0, và cột `next_attempt_at` để trống nghĩa là gửi ngay.
+- Trang Gửi trả lời ngay sau giao dịch: cổng chỉ đánh thức vòng chạy nền rồi chuyển trang.
+  Vòng chạy nền kiểm bảng mỗi giây, và được đánh thức ngay sau giao dịch nên không phải chờ hết một giây.
+  Mỗi đề xuất chạy từng mục theo vị trí, một mục một lúc; mục sau không vượt mục trước.
+- Trước mỗi lần PATCH, cổng ghi `sent_unknown`, tăng số lần gửi và xoá hẹn giờ.
+  2xx thì `done`; 409 hoặc 404 thì `failed` với `TARGET_CHANGED`; 422 thì `failed` với `CONTENT_CHANGED`; lỗi mạng, hết giờ hoặc 5xx thì giữ `sent_unknown` và hẹn lần gửi lại sau 1 giây, rồi 2, 4, 8, 16, 32 và tối đa 60 giây.
+  Số lần gửi lại không giới hạn và mọi lần dùng đúng mã cũ.
   Một mục bị bỏ qua không chặn các mục còn lại.
-- Khi khởi động, mọi lệnh `not_sent` hoặc `sent_unknown` được gửi lại với đúng mã cũ.
+- Khi khởi động, vòng chạy nền nhận mọi lệnh `not_sent` hoặc `sent_unknown`; không còn hàm `resume()` riêng cho lần khởi động.
+  Cột `next_attempt_at` nằm trong bảng nên thời gian chờ còn lại vẫn đúng sau khi sập.
   Danh sách task kiểm mã trước số phiên bản, nên lần gửi lại sau khi đã ghi nhận đúng phản hồi cũ chứ không nhận 409.
-- Trang xác nhận và `get_request_status` liệt kê từng mục và kết quả từng mục: đã ghi ở lần gửi thứ mấy, chưa biết kết quả, hay `CHƯA THỰC HIỆN [<mã>]` kèm câu nói vì sao.
-  Với `TARGET_CHANGED`, cả hai nhắc nhờ AI soạn lại với dữ liệu mới.
+- Trang xác nhận hiện tiến độ, ví dụ "đang chạy nền: đã chuyển 17 trên 30 mục", tự làm mới mỗi 2 giây khi còn mục đang chạy, và có cột "Lần gửi lại kế tiếp".
+  Đề xuất kết thúc ở một trong ba trạng thái: xong hết, xong một phần (có mục `TARGET_CHANGED`), hoặc không ghi được mục nào.
+  `get_request_status` liệt kê từng mục và kết quả từng mục: đã ghi ở lần gửi thứ mấy, đang gửi lại, hay `CHƯA THỰC HIỆN [<mã>]` kèm câu nói vì sao.
+  Với `TARGET_CHANGED`, trang và tool nhắc nhờ AI soạn lại với dữ liệu mới.
 
 Danh sách mã đọc bằng một lời gọi nên 50 mục vẫn trả lời xa dưới giới hạn 60 giây của Thổ Thần.
 Mỗi mục có một lệnh và một mã chống ghi trùng riêng, nên gửi lại một mục không đụng tới các mục khác.
 
 Phép thử của đường ghi nằm ở `gateway/src/write-test.ts` và chạy trên hệ thống giả trong bộ nhớ.
-Phép thử đầu cuối `tests/src/gateway-write-test.ts` chạy ba dịch vụ thật qua cả ba lối vào, làm rơi hoặc giữ phản hồi bằng `POST /admin/faults`, đếm bằng `GET /admin/write-count`, và dừng cổng bằng SIGKILL để kiểm lần gửi lại lúc khởi động.
+Phép thử đầu cuối `tests/src/gateway-write-test.ts` chạy ba dịch vụ thật qua cả ba lối vào, làm rơi hoặc giữ phản hồi bằng `POST /admin/faults`, đếm bằng `GET /admin/write-count`, và dừng cổng bằng SIGKILL để kiểm lần gửi lại.
+`tests/src/outbox-test.ts` chạy đề xuất 30 mục của anh Quang, dừng cổng ở ba thời điểm (trước mục đầu, giữa mục 17, sau mục 30) rồi khởi động lại, và kiểm mỗi task đúng một lần ghi.
+Nó cũng tắt danh sách task 20 giây giữa chừng rồi bật lại, và cổng phải chạy tiếp mà không khởi động lại.
+Hai chế độ `hold_item_before_commit` và `hold_item_after_commit` của `POST /admin/faults` giữ đúng mục thứ k, nhận vị trí từ mã chống ghi trùng `<mã đề xuất>:<vị trí>`.
 File luật của phép thử là bản sao trong thư mục tạm, nên lúc làm hỏng nó repo không đổi.
+
+Số đo M5 (độ phức tạp vận hành): lõi chạy nền và chạy tiếp nằm trong `writes/outbox.ts`, 319 dòng (267 dòng mã, không tính dòng trống và chú thích), và không thêm biến môi trường nào.
 
 ## Đường hầm cho một phiên nghiệm thu
 

@@ -9,7 +9,7 @@ import { PROPOSE_TOOLS } from './tools/propose-tools.js';
 import { READ_TOOLS } from './tools/read-tools.js';
 import { TraceStore } from './trace/index.js';
 import { SessionStore } from './web/session-store.js';
-import { CommandStore, TaskListExecutor } from './writes/index.js';
+import { CommandStore, Outbox } from './writes/index.js';
 
 export interface GatewayOptions {
   /** Explicit port, used by tests with 0. Defaults to `LAB_GATEWAY_PORT`. */
@@ -21,7 +21,7 @@ export interface GatewayOptions {
   readonly rulesPath?: string;
   /** Replaces the clock. Tests use it to pass the 30 minutes of a proposal and the 15 minutes of a login. */
   readonly now?: () => Date;
-  /** Replaces the executor that takes a confirmed proposal. Defaults to one that only acknowledges. */
+  /** Replaces the executor that takes a confirmed proposal. Defaults to the background outbox. */
   readonly executor?: ProposalExecutor;
 }
 
@@ -67,8 +67,14 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
         serviceKey,
       });
 
-    const executor: ProposalExecutor =
-      options.executor ?? new TaskListExecutor({ commands, proposals, adapters, trace });
+    let outbox: Outbox | undefined;
+    let executor: ProposalExecutor;
+    if (options.executor === undefined) {
+      outbox = new Outbox({ commands, proposals, adapters, trace, now });
+      executor = outbox;
+    } else {
+      executor = options.executor;
+    }
 
     const running = await startService({
       service: 'gateway',
@@ -93,12 +99,8 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
 
     listeningUrl = running.url;
 
-    // A previous run may have confirmed a write and crashed before or during the send; settle those with their old keys.
-    if (options.executor === undefined) {
-      void executor.resume?.().catch((error: unknown) => {
-        console.error(`[gateway] startup resend failed: ${error instanceof Error ? error.message : String(error)}`);
-      });
-    }
+    // Every command a previous run left open is picked up by this first round, with no separate startup path.
+    outbox?.start();
 
     return {
       ...running,
@@ -112,7 +114,11 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
         try {
           await running.close();
         } finally {
-          db.close();
+          try {
+            await outbox?.close();
+          } finally {
+            db.close();
+          }
         }
       },
     };

@@ -49,6 +49,26 @@ const faultBodySchema = z.discriminatedUnion('mode', [
     count: z.number().int().min(0).max(1_000).default(1),
     delay_ms: z.number().int().min(1).max(60_000).default(1_500),
   }),
+  z.strictObject({
+    /**
+     * Hold one chosen item before it commits, so a test can stop the gateway
+     * before the first write of an item. The position comes from the
+     * idempotency key `<proposal>:<position>`.
+     */
+    mode: z.literal('hold_item_before_commit'),
+    position: z.number().int().min(1).max(1_000),
+    delay_ms: z.number().int().min(1).max(120_000).default(60_000),
+  }),
+  z.strictObject({
+    /**
+     * Commit one chosen item, then hold its answer, so a test can stop the
+     * gateway between that item and the next. The position comes from the
+     * idempotency key `<proposal>:<position>`.
+     */
+    mode: z.literal('hold_item_after_commit'),
+    position: z.number().int().min(1).max(1_000),
+    delay_ms: z.number().int().min(1).max(120_000).default(60_000),
+  }),
 ]);
 
 export interface TasksServerOptions {
@@ -167,8 +187,30 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
   /** Committed writes whose response is held open for a while (test hook). */
   let delaysLeft = 0;
   let delayMs = 0;
+  /** One chosen position whose send is held, so a test can stop the gateway between items. */
+  let heldPosition: number | null = null;
+  let heldMs = 0;
+  let heldBeforeCommit = false;
 
-  function handlePatch(req: IncomingMessage, res: ServerResponse, taskId: string, body: unknown): void {
+  /** The position part of `<proposal>:<position>`, or null for a key from another caller. */
+  function positionOfKey(key: string): number | null {
+    const match = /:(\d+)$/.exec(key);
+    return match === null ? null : Number(match[1]);
+  }
+
+  /** Commit, then answer late; the caller being gone is fine, the committed write is what matters. */
+  function answerLater(res: ServerResponse, response: StoredResponse, afterMs: number): void {
+    const timer = setTimeout(() => {
+      try {
+        if (!res.writableEnded && !res.destroyed) sendRaw(res, response);
+      } catch {
+        // The caller is gone; the committed write is what the test needs.
+      }
+    }, afterMs);
+    timer.unref();
+  }
+
+  async function handlePatch(req: IncomingMessage, res: ServerResponse, taskId: string, body: unknown): Promise<void> {
     const key = req.headers['idempotency-key'];
     if (typeof key !== 'string' || !KEY_PATTERN.test(key)) {
       throw new HttpError(400, 'invalid_idempotency_key', 'Idempotency-Key header is required');
@@ -180,6 +222,16 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
       expectedVersion: parsed.expected_version,
       changes: definedOnly(parsed.changes),
     };
+
+    if (heldBeforeCommit && heldPosition !== null && positionOfKey(key) === heldPosition) {
+      const afterMs = heldMs;
+      heldPosition = null;
+      // The caller can be stopped before the write; nothing is committed yet.
+      await new Promise<void>((resolveWait) => {
+        const timer = setTimeout(resolveWait, afterMs);
+        timer.unref();
+      });
+    }
 
     const outcome = store.patch(input);
     switch (outcome.kind) {
@@ -194,6 +246,12 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
         sendJson(res, 409, { error: 'version_conflict', current_version: outcome.currentVersion });
         return;
       case 'written':
+        if (!heldBeforeCommit && heldPosition !== null && positionOfKey(key) === heldPosition) {
+          const afterMs = heldMs;
+          heldPosition = null;
+          answerLater(res, outcome.response, afterMs);
+          return;
+        }
         if (dropsLeft > 0) {
           // The write is committed; the caller never hears about it.
           dropsLeft -= 1;
@@ -203,14 +261,7 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
         if (delaysLeft > 0) {
           // The write is committed; the answer is held so a caller can be stopped before reading it.
           delaysLeft -= 1;
-          const timer = setTimeout(() => {
-            try {
-              if (!res.writableEnded && !res.destroyed) sendRaw(res, outcome.response);
-            } catch {
-              // The caller is gone; the committed write is what the test needs.
-            }
-          }, delayMs);
-          timer.unref();
+          answerLater(res, outcome.response, delayMs);
           return;
         }
         sendRaw(res, outcome.response);
@@ -251,7 +302,7 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
       }
       if (method === 'PATCH') {
         if (!TASK_ID.test(id)) throw new HttpError(404, 'task_not_found');
-        handlePatch(req, res, id, await readJson(req));
+        await handlePatch(req, res, id, await readJson(req));
         return;
       }
       throw new HttpError(405, 'method_not_allowed');
@@ -263,11 +314,27 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
         dropsLeft = 0;
         delaysLeft = 0;
         delayMs = 0;
+        heldPosition = null;
+        heldMs = 0;
+        heldBeforeCommit = false;
         sendJson(res, 200, { status: 'reset' });
         return;
       }
       if (path === '/admin/faults' && method === 'POST') {
         const fault = parseBody(faultBodySchema, await readJson(req));
+        if (fault.mode === 'hold_item_after_commit' || fault.mode === 'hold_item_before_commit') {
+          dropsLeft = 0;
+          delaysLeft = 0;
+          delayMs = 0;
+          heldPosition = fault.position;
+          heldMs = fault.delay_ms;
+          heldBeforeCommit = fault.mode === 'hold_item_before_commit';
+          sendJson(res, 200, { mode: fault.mode, position: heldPosition, delay_ms: heldMs });
+          return;
+        }
+        heldPosition = null;
+        heldMs = 0;
+        heldBeforeCommit = false;
         if (fault.mode === 'delay_response_after_commit') {
           dropsLeft = 0;
           delaysLeft = fault.count;

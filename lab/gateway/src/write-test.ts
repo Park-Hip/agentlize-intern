@@ -7,21 +7,22 @@ import Database from 'better-sqlite3';
 import { GATEWAY_DB_FILE } from './database.js';
 import { StubSystems, startFixture, type GatewayFixture } from './fixture.js';
 import { DEFAULT_RULES_PATH } from './policy/index.js';
+import type { ProposalExecutor } from './proposals/index.js';
 import type { WriteCommand } from './writes/index.js';
 
 const HOA = 'NV-02';
 const NAM = 'NV-05';
 const MINUTE = 60_000;
-/** One try plus the retries the executor allows. */
-const ATTEMPTS_PER_ROUND = 4;
 
 interface Clock {
   at: number;
 }
 
+/** The clock moves by itself, so a retry wait costs real time but a test can still jump ahead. */
 function harness(): { clock: Clock; now: () => Date } {
+  const started = Date.now();
   const clock = { at: Date.parse('2026-11-17T09:00:00.000Z') };
-  return { clock, now: () => new Date(clock.at) };
+  return { clock, now: () => new Date(clock.at + (Date.now() - started)) };
 }
 
 async function withGateway(
@@ -117,10 +118,29 @@ async function pressConfirm(
   f: GatewayFixture,
   proposalId: string,
   employeeId = HOA,
-): Promise<{ browser: Browser; response: Response }> {
+): Promise<{ browser: Browser; response: Response; elapsedMs: number }> {
   const browser = await signIn(f, employeeId, proposalId);
+  const started = Date.now();
   const response = await press(f, proposalId, 'gui', { cookie: browser.cookie }, { csrf: browser.csrf });
-  return { browser, response };
+  return { browser, response, elapsedMs: Date.now() - started };
+}
+
+/** Wait for the background loop to settle a proposal's commands. */
+async function waitCommands(
+  f: GatewayFixture,
+  proposalId: string,
+  count: number,
+  done: (command: WriteCommand) => boolean = (command) => command.status === 'done' || command.status === 'failed',
+): Promise<WriteCommand[]> {
+  const deadline = Date.now() + 15_000;
+  for (;;) {
+    const commands = f.gateway.commands.listByProposal(proposalId);
+    if (commands.length === count && commands.every(done)) return commands;
+    if (Date.now() >= deadline) {
+      throw new Error(`timed out waiting for ${count} settled commands: ${JSON.stringify(commands)}`);
+    }
+    await new Promise((resolveSleep) => setTimeout(resolveSleep, 25));
+  }
 }
 
 async function waitForCommand(
@@ -137,13 +157,15 @@ async function waitForCommand(
   }
 }
 
-test('write: Gửi writes once, and the command keeps its key, version, count and result', async () => {
+test('write: Gửi answers at once, then writes once, and the command keeps its key, version, count and result', async () => {
   await withGateway(async (f) => {
     const id = await propose(f, HOA, { assignee: 'NV-04' });
-    const { response } = await pressConfirm(f, id);
+    const { response, elapsedMs } = await pressConfirm(f, id);
     assert.equal(response.status, 303);
+    assert.ok(elapsedMs < 1_000, `Gửi answered in ${elapsedMs} ms, before any system call`);
 
-    const command = commandOf(f, id);
+    const command = (await waitCommands(f, id, 1))[0];
+    assert.ok(command !== undefined);
     assert.match(command.commandId, /^wc-[0-9a-f]{16}$/);
     assert.equal(command.proposalId, id);
     assert.equal(command.recordId, 'T-12');
@@ -193,7 +215,8 @@ test('write: two presses at the same time make one command and one write', async
     assert.match(await refused.text(), /\[APPROVAL_USED\]/);
 
     assert.equal(f.gateway.commands.list().length, 1);
-    const command = commandOf(f, id);
+    const command = (await waitCommands(f, id, 1))[0];
+    assert.ok(command !== undefined);
     assert.equal(command.status, 'done');
     assert.equal(command.attempts, 1);
     assert.equal(f.systems.writeCount('T-12'), 1);
@@ -290,7 +313,8 @@ test('write: a task changed after the draft fails with TARGET_CHANGED and keeps 
     const { browser, response } = await pressConfirm(f, id);
     assert.equal(response.status, 303);
 
-    const command = commandOf(f, id);
+    const command = (await waitCommands(f, id, 1))[0];
+    assert.ok(command !== undefined);
     assert.equal(command.status, 'failed');
     assert.equal(command.reasonCode, 'TARGET_CHANGED');
     assert.equal(command.attempts, 1);
@@ -325,7 +349,8 @@ test('write: an answer lost after the write is sent again with the same key and 
     const { response } = await pressConfirm(f, id);
     assert.equal(response.status, 303);
 
-    const command = commandOf(f, id);
+    const command = (await waitCommands(f, id, 1))[0];
+    assert.ok(command !== undefined);
     assert.equal(command.status, 'done');
     assert.equal(command.attempts, 2, 'the first answer was lost, the second was the replay');
     assert.equal(f.systems.writeCount('T-12'), 1);
@@ -344,49 +369,81 @@ test('write: an answer lost after the write is sent again with the same key and 
 });
 
 test('write: with no answer the command stays sent_unknown, and the next start settles it with the old key', async () => {
-  const clock = { at: Date.parse('2026-11-17T09:00:00.000Z') };
   const dir = mkdtempSync(join(tmpdir(), 'lab-write-restart-'));
   const systems = new StubSystems();
-  let f = await startFixture({ dir, systems, now: () => new Date(clock.at) });
+  let f = await startFixture({ dir, systems });
   try {
-    systems.failBeforeCommit = 50;
+    systems.failBeforeCommit = 1_000;
     const id = await propose(f, HOA, { assignee: 'NV-04' });
     const { response } = await pressConfirm(f, id);
     assert.equal(response.status, 303);
 
-    const unknown = commandOf(f, id);
-    assert.equal(unknown.status, 'sent_unknown');
-    assert.equal(unknown.attempts, ATTEMPTS_PER_ROUND);
+    const unknown = await waitForCommand(
+      () => f.gateway.commands.findByProposal(id),
+      (command) => command.status === 'sent_unknown' && command.attempts >= 1,
+      'the first send to come back with no answer',
+    );
     assert.equal(systems.writeCount('T-12'), 0);
 
     const { html } = await openCard(f, id, await loginFor(f, HOA, id));
     assert.match(html, /chưa nhận được kết quả/);
     assert.match(html, /gửi lại với đúng mã cũ/);
+    assert.match(html, /data-label="Lần gửi lại kế tiếp">\d{2}:\d{2}</, 'the card says when the next send is due');
 
     const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
     assert.match(status.body.text, /chưa nhận được kết quả/);
     const unknownLine = f.gateway.trace.list().find((entry) => entry.tool === 'write_command');
     assert.equal(unknownLine?.outcome, 'error');
-    assert.equal(unknownLine?.attempts, ATTEMPTS_PER_ROUND);
+    assert.ok((unknownLine?.attempts ?? 0) >= 1);
 
-    // Restart on the same data dir: the gateway must resend every open command with its old key.
+    // Restart on the same data dir: the background loop picks every open command up with its old key.
     await f.close();
     systems.failBeforeCommit = 0;
-    f = await startFixture({ dir, systems, now: () => new Date(clock.at) });
+    f = await startFixture({ dir, systems });
 
     const settled = await waitForCommand(
       () => f.gateway.commands.findByProposal(id),
       (command) => command.status === 'done',
       'the restarted gateway to settle the command',
     );
-    assert.equal(settled.attempts, ATTEMPTS_PER_ROUND + 1);
+    assert.ok(settled.attempts > unknown.attempts, 'the restart sent the open command again');
     assert.equal(settled.idempotencyKey, `${id}:1`);
     assert.equal(systems.writeCount('T-12'), 1);
 
-    const resumedLine = f.gateway.trace.list().find((entry) => entry.tool === 'write_command' && entry.ruleId === 'WRITE.RESUME');
+    const resumedLine = f.gateway.trace.list().find((entry) => entry.tool === 'write_command' && entry.ruleId === 'WRITE.RETRY');
     assert.equal(resumedLine?.outcome, 'ok');
-    assert.equal(resumedLine?.attempts, ATTEMPTS_PER_ROUND + 1);
     assert.equal(resumedLine?.idempotencyKey, `${id}:1`);
+  } finally {
+    await f.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('write: a command left not_sent by a crash is sent by the first round of the next start', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lab-write-not-sent-'));
+  const systems = new StubSystems();
+  const quiet: ProposalExecutor = { execute: () => Promise.resolve({ state: 'received' }) };
+  let f = await startFixture({ dir, systems, executor: quiet });
+  let id = '';
+  try {
+    id = await propose(f, HOA, { assignee: 'NV-04' });
+    const { response } = await pressConfirm(f, id);
+    assert.equal(response.status, 303);
+    assert.equal(commandOf(f, id).status, 'not_sent', 'the quiet executor confirmed the proposal but sent nothing');
+    assert.equal(systems.writeCount('T-12'), 0);
+  } finally {
+    await f.close();
+  }
+
+  try {
+    f = await startFixture({ dir, systems });
+    const settled = await waitForCommand(
+      () => f.gateway.commands.findByProposal(id),
+      (command) => command.status === 'done',
+      'the first round to send the command left in not_sent',
+    );
+    assert.equal(settled.attempts, 1);
+    assert.equal(systems.writeCount('T-12'), 1);
   } finally {
     await f.close();
     rmSync(dir, { recursive: true, force: true });
@@ -435,7 +492,7 @@ test('write: a three-item proposal makes one command per item, writes each once 
     const { response } = await pressConfirm(f, id);
     assert.equal(response.status, 303);
 
-    const commands = f.gateway.commands.listByProposal(id);
+    const commands = await waitCommands(f, id, 3);
     assert.deepEqual(
       commands.map((command) => [command.position, command.recordId, command.idempotencyKey, command.status]),
       [
@@ -450,7 +507,7 @@ test('write: a three-item proposal makes one command per item, writes each once 
     }
 
     const { html } = await openCard(f, id, await loginFor(f, HOA, id));
-    assert.match(html, /Đã ghi 3 trên 3 mục/);
+    assert.match(html, /Xong hết: đã ghi 3 trên 3 mục/);
     assert.match(html, /<td class="code" data-label="Mục">T-12<\/td>/);
     assert.match(html, /Đã ghi \(lần 1\)/);
 
@@ -476,7 +533,7 @@ test('write: one changed task is skipped while the other items of the proposal a
 
     const { response } = await pressConfirm(f, id);
     assert.equal(response.status, 303);
-    const commands = f.gateway.commands.listByProposal(id);
+    const commands = await waitCommands(f, id, 3);
     assert.deepEqual(commands.map((command) => command.status), ['failed', 'done', 'done']);
     assert.equal(commands[0]?.reasonCode, 'TARGET_CHANGED');
     assert.equal(f.systems.writeCount('T-12'), 0, 'the changed task is not overwritten');
@@ -484,7 +541,7 @@ test('write: one changed task is skipped while the other items of the proposal a
     assert.equal(f.systems.writeCount('T-14'), 1);
 
     const { html } = await openCard(f, id, await loginFor(f, HOA, id));
-    assert.match(html, /CHƯA THỰC HIỆN đủ 3 mục: đã ghi 2, 1 mục bị bỏ qua/);
+    assert.match(html, /Xong một phần: đã ghi 2 trên 3 mục; 1 mục bị bỏ qua/);
     assert.match(html, /Bị bỏ qua \(TARGET_CHANGED\)/);
 
     const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));

@@ -12,11 +12,10 @@ export interface ExecutionReceipt {
 
 /**
  * The seam between the Gửi button and the write. The page calls it once per
- * confirmed proposal; the executor turns the proposal into one command for the
- * task list, with its fixed idempotency key and its expected version.
+ * confirmed proposal. The default executor is the background outbox: it wakes
+ * and returns, while the commands created in the confirmation transaction are
+ * sent with their fixed idempotency keys and expected versions.
  */
 export interface ProposalExecutor {
   execute(proposal: Proposal): Promise<ExecutionReceipt>;
-  /** Called once when the gateway starts: settle every command a previous run left open. */
-  resume?(): Promise<void>;
 }
