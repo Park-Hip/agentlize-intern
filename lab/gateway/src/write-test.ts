@@ -53,14 +53,14 @@ interface Browser {
 async function login(
   f: GatewayFixture,
   employeeId: string,
-  key: string,
+  password: string,
   next: string,
 ): Promise<{ response: Response; cookie: string }> {
   const response = await fetch(`${f.gateway.url}/dang-nhap`, {
     method: 'POST',
     redirect: 'manual',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ employee: employeeId, key, next }).toString(),
+    body: new URLSearchParams({ employee: employeeId, password, next }).toString(),
   });
   const setCookie = response.headers.get('set-cookie') ?? '';
   return { response, cookie: setCookie.split(';')[0] ?? '' };
@@ -73,7 +73,7 @@ async function openCard(f: GatewayFixture, proposalId: string, cookie: string): 
 
 /** Log in and follow the card link, without expecting buttons: a sent or expired card has none. */
 async function loginFor(f: GatewayFixture, employeeId: string, proposalId: string): Promise<string> {
-  const { response, cookie } = await login(f, employeeId, f.keyFor(employeeId), `/xac-nhan/${proposalId}`);
+  const { response, cookie } = await login(f, employeeId, f.pagePasswordFor(employeeId), `/xac-nhan/${proposalId}`);
   assert.equal(response.status, 303);
   return cookie;
 }
@@ -224,16 +224,16 @@ test('write: a role lowered after the draft is refused at Gửi with NOT_PERMITT
   });
 });
 
-test('write: a key removed or a person gone from the directory is KEY_INVALID at Gửi', async () => {
+test('write: a drafting key removed or a person gone from the directory is KEY_INVALID at Gửi', async () => {
   await withGateway(async (f) => {
     const id = await propose(f, HOA, { status: 'done' });
     const browser = await signIn(f, HOA, id);
-    const keyId = f.gateway.sessions.find(browser.cookie.slice('lab_session='.length))?.keyId ?? '';
-    assert.notEqual(keyId, '');
+    const draftedByKeyId = f.gateway.proposals.get(id)?.draftedByKeyId ?? '';
+    assert.notEqual(draftedByKeyId, '');
 
     const db = new Database(join(f.dir, GATEWAY_DB_FILE));
     try {
-      db.prepare('DELETE FROM api_keys WHERE key_id = ?').run(keyId);
+      db.prepare('DELETE FROM api_keys WHERE key_id = ?').run(draftedByKeyId);
     } finally {
       db.close();
     }

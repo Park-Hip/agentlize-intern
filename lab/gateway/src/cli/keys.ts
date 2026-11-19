@@ -2,11 +2,13 @@ import { parseArgs } from 'node:util';
 import { maskKey } from '@lab/shared';
 import { openGatewayDatabase } from '../database.js';
 import { KeyStore, type KeyRecord } from '../identity/key-store.js';
+import { PagePasswordStore } from '../identity/page-password-store.js';
 import { CALLERS, SCOPES } from '../identity/types.js';
 
 const USAGE = [
   'Usage:',
   '  npm run keys -- issue --employee <NV-xx> --caller <caller> [--scope full|read_only]',
+  '  npm run keys -- page-password --employee <NV-xx>',
   '  npm run keys -- revoke --key-id <key-id>',
   '  npm run keys -- list',
   `Callers: ${CALLERS.join(', ')}`,
@@ -33,7 +35,12 @@ export function formatKeyRow(record: KeyRecord): string {
   ].join('  ');
 }
 
-export function runKeysCli(argv: readonly string[], store: KeyStore, io: CliIo): void {
+export function runKeysCli(
+  argv: readonly string[],
+  store: KeyStore,
+  pagePasswords: PagePasswordStore,
+  io: CliIo,
+): void {
   const [command, ...rest] = argv;
 
   switch (command) {
@@ -59,6 +66,21 @@ export function runKeysCli(argv: readonly string[], store: KeyStore, io: CliIo):
       io.out(`This key is shown once and is not stored (log form: ${maskKey(issued.rawKey)}).`);
       return;
     }
+    case 'page-password': {
+      const { values } = parseArgs({ args: [...rest], options: { employee: { type: 'string' } }, strict: true });
+      if (values.employee === undefined) throw new UsageError('page-password needs --employee');
+      const revoked = pagePasswords.revokeActiveForEmployee(values.employee);
+      const issued = pagePasswords.issue({ employeeId: values.employee });
+      io.out(`password_id: ${issued.record.passwordId}`);
+      io.out(`employee:    ${issued.record.employeeId}`);
+      io.out(`password:    ${issued.rawPassword}`);
+      if (revoked > 0) io.out(`Revoked ${revoked} active page password(s) of ${issued.record.employeeId} first.`);
+      io.out(
+        `This page password is shown once and is not stored (log form: ${maskKey(issued.rawPassword)}). ` +
+          'It opens the gateway pages only; it never calls a tool.',
+      );
+      return;
+    }
     case 'revoke': {
       const { values } = parseArgs({ args: [...rest], options: { 'key-id': { type: 'string' } }, strict: true });
       const keyId = values['key-id'];
@@ -82,7 +104,7 @@ export function runKeysCli(argv: readonly string[], store: KeyStore, io: CliIo):
 export function keysMain(argv: readonly string[]): number {
   const db = openGatewayDatabase();
   try {
-    runKeysCli(argv, new KeyStore(db), { out: (line) => console.log(line) });
+    runKeysCli(argv, new KeyStore(db), new PagePasswordStore(db), { out: (line) => console.log(line) });
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

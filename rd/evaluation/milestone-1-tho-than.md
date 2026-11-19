@@ -1,6 +1,6 @@
 # Nghiệm thu mốc 1 trong Thổ Thần
 
-Ngày: 2026-11-18. Trạng thái: đạt trên bản desktop; bản web và số credit trước phiên được bỏ qua có chủ ý, việc bản web theo dõi ở #65.
+Ngày: 2026-11-19. Trạng thái: đạt trên bản desktop; bản web và số credit trước phiên được bỏ qua có chủ ý, việc bản web theo dõi ở #65.
 
 ## Đọc nhanh
 
@@ -67,21 +67,24 @@ Cổng chỉ nghe ở `127.0.0.1:8790`; đường hầm là thứ duy nhất m�
 
 **Kết luận:** địa chỉ in ra là đường công khai của cổng Lab, chỉ sống tối đa 45 phút, và chỉ dùng cho `/mcp`.
 
-## 3. Lấy khoá của chị Hoa và Nam
+## 3. Lấy khoá công cụ và mật khẩu trang của chị Hoa và Nam
 
-Khoá (API key) là một chuỗi dài bắt đầu bằng `lab_`, thay cho mật khẩu của từng nhân vật giả.
-Mỗi khoá gắn với một mã nhân viên; cổng đổi khoá thành mã đó ở mỗi lời gọi ([ADR-0005](../../docs/adr/adr-0005-requester-identity.md#31-khoá-riêng-từng-người-là-danh-tính-chính)).
+Khoá công cụ (API key) là một chuỗi dài bắt đầu bằng `lab_`, thay cho mật khẩu của từng nhân vật giả khi AI gọi tool.
+Mật khẩu trang (page password) là chuỗi bắt đầu bằng `trang_`, chỉ dùng để đăng nhập trang xác nhận; khoá `lab_` không mở được trang này ([ADR-0008, mục 3.1](../../docs/adr/adr-0008-approval-page-login.md#31-mật-khẩu-trang)).
+Mỗi khoá và mỗi mật khẩu trang gắn với một mã nhân viên; cổng đổi khoá thành mã đó ở mỗi lời gọi ([ADR-0005](../../docs/adr/adr-0005-requester-identity.md#31-khoá-riêng-từng-người-là-danh-tính-chính)).
 
 1. Ở cửa sổ thứ hai, chạy `npm run seed-keys`.
-   Nếu lệnh báo đã có khoá đang dùng, chạy `npm run seed-keys -- --rotate`.
-2. Lệnh in một bảng, mỗi dòng một nhân vật, cột cuối là khoá thô.
+   Nếu lệnh báo đã có khoá hoặc mật khẩu trang đang dùng, chạy `npm run seed-keys -- --rotate`.
+2. Lệnh in một bảng, mỗi dòng một nhân vật, với khoá thô và mật khẩu trang thô.
    Chị Hoa là `NV-02`, Nam là `NV-05`.
-3. Chỉ chép hai khoá này vào ô API Key của skill khi cần.
+3. Chỉ chép khoá `lab_` của chị Hoa và Nam vào ô API Key của skill khi cần.
    Không chép vào file, không chép vào chat, không chụp màn hình có khoá.
-4. Chép xong thì xoá nội dung cửa sổ lệnh.
-   Khoá chỉ hiện một lần và không được lưu ở đâu; mất thì cấp lại bằng `npm run keys -- issue --employee NV-02 --caller tho-than-desktop`.
+4. Giữ mật khẩu trang `trang_` của đúng nhân vật cho bước mở link xác nhận ở mốc 2 trở đi.
+   Dán mật khẩu trang ở `/dang-nhap`, không dán vào skill hay vào chat.
+5. Chép xong thì xoá nội dung cửa sổ lệnh.
+   Khoá và mật khẩu trang chỉ hiện một lần và không được lưu ở đâu; mất khoá thì cấp lại bằng `npm run keys -- issue --employee NV-02 --caller tho-than-desktop`, mất mật khẩu trang thì chạy `npm run keys -- page-password --employee NV-02`.
 
-**Kết luận:** có hai khoá dùng một lần cho hai nhân vật, và không khoá nào nằm trên đĩa.
+**Kết luận:** có hai khoá công cụ và hai mật khẩu trang dùng một lần, và không giá trị thô nào nằm trên đĩa.
 
 ## 4. Cài skill mới trong Thổ Thần
 
@@ -182,7 +185,7 @@ Skill vừa nhắc ở mục 1 cần một địa chỉ và một khoá ([spec, 
    - `mcp-probe`: địa chỉ `http://localhost:8787/mcp`, No auth.
    - `mcp-probe-stdio`: không còn biến `LAB_USER_KEY`.
 4. Chạy `npm run seed-keys -- --rotate` sau khi đường hầm đã tắt.
-   Lệnh này thu hồi hai khoá vừa đi qua Internet và cấp khoá mới; khoá mới cũng chỉ hiện một lần, nên xoá cửa sổ lệnh sau khi chép xong.
+   Lệnh này thu hồi hai khoá công cụ và hai mật khẩu trang của phiên rồi cấp bộ mới; bộ mới cũng chỉ hiện một lần, nên xoá cửa sổ lệnh sau khi chép xong.
 5. Ghi số credit sau cùng và số credit đã dùng vào bảng ở mục 9.
    Trần của phiên là 60 credit; vượt trần hoặc còn dưới 100 credit thì dừng và ghi rõ lý do.
 6. Không xoá thư mục `lab/.data` nếu còn cần đối chiếu vết.
@@ -251,6 +254,7 @@ Sau khi đủ, cập nhật dòng mốc 1 ở [tổng hợp, mục 8](../finding
 | Hiện tượng | Nguyên nhân thường gặp | Việc làm |
 | --- | --- | --- |
 | Kiểm tra kết nối trả 401 `KEY_INVALID` | Khoá dán thiếu ký tự, dán khoá đã thu hồi, hoặc dán vào ô khác | Lấy lại khoá bằng `npm run keys -- issue`, dán lại, không chụp màn hình |
+| Trang đăng nhập từ chối mật khẩu | Dán khoá công cụ `lab_` thay vì mật khẩu trang `trang_`, hoặc mật khẩu trang đã bị thu hồi | Dùng mật khẩu trang mà `seed-keys` đã in; mất thì chạy `npm run keys -- page-password --employee <mã>` |
 | Kiểm tra kết nối trả 404 | Địa chỉ thiếu `/mcp` ở cuối | Sửa địa chỉ, lưu lại |
 | Trình duyệt mở địa chỉ thấy lỗi 1033 hoặc 530 | Đường hầm đã tắt hoặc cổng đã dừng | Mở phiên mới bằng `npm run tunnel` |
 | Test connection đạt nhưng chat không gọi được | Lời gọi không tới cổng, hoặc skill chưa bật cho trợ lý đang dùng | Xem vết có dòng mới không; nếu không có thì lời gọi chưa tới |

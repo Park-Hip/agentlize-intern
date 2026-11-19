@@ -238,6 +238,7 @@ const proposeTaskChange = defineTool(
     const proposal = proposals.create({
       requester: actor.employeeId,
       caller: actor.identity.caller,
+      draftedByKeyId: actor.identity.keyId,
       tool: PROPOSE_TOOL,
       taskId: taskObjectId,
       changes,

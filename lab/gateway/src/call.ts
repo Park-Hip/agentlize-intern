@@ -2,7 +2,13 @@ import { performance } from 'node:perf_hooks';
 import { BodyError, maskKey, refusalMessage, type ReasonCode, type ToolKind } from '@lab/shared';
 import { z } from 'zod';
 import { adapterOf, SystemUnavailableError, type ResourceAdapter } from './adapters/index.js';
-import type { IdentityHeaders, IdentityProvider, IdentityResult, KeyStore } from './identity/index.js';
+import type {
+  IdentityHeaders,
+  IdentityProvider,
+  IdentityResult,
+  KeyStore,
+  PagePasswordStore,
+} from './identity/index.js';
 import { RULE_IDS, type PolicyEngine } from './policy/index.js';
 import type { ProposalExecutor, ProposalStore } from './proposals/index.js';
 import type { CommandStore } from './writes/index.js';
@@ -28,8 +34,10 @@ export interface GatewayDeps {
   readonly adapters: readonly ResourceAdapter[];
   readonly trace: TraceStore;
   readonly tools: readonly RegisteredTool[];
-  /** Read by the pages to check that the key behind a login is still valid. */
+  /** Read by the pages to check the key that drafted a proposal before a write. */
   readonly keys: KeyStore;
+  /** Read by the login page and at every press, so a revoked page password ends the session. */
+  readonly pagePasswords: PagePasswordStore;
   readonly proposals: ProposalStore;
   readonly sessions: SessionStore;
   /** The write commands a confirmed proposal turns into. Read by `get_request_status` and the page. */

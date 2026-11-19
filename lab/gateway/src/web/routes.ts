@@ -137,19 +137,27 @@ async function handleLogin(deps: GatewayDeps, req: IncomingMessage, res: ServerR
   const form = await readForm(req);
   if (form === undefined) return refusalPage(res, 400, null, 'Nội dung gửi lên không đọc được.');
   const employee = form.get('employee') ?? '';
-  const key = form.get('key') ?? '';
+  const password = form.get('password') ?? '';
   const nextValue = form.get('next') ?? '';
   const next = NEXT_PATTERN.test(nextValue) ? nextValue : '';
 
-  // The key is checked like any call's key; the page only adds "is it this person's".
-  const authenticated = EMPLOYEE_ID_PATTERN.test(employee) && key !== ''
-    ? await deps.identity.authenticate({ authorization: `Bearer ${key}` })
+  // A tool key is never looked up here, so a lab_ key is refused exactly like a wrong page password.
+  const record = EMPLOYEE_ID_PATTERN.test(employee) && password !== ''
+    ? deps.pagePasswords.findByRawPassword(password)
     : undefined;
-  if (authenticated === undefined || !authenticated.ok || authenticated.identity.employeeId !== employee) {
-    return sendHtml(res, 401, loginPage(next, 'Khoá không đúng với nhân vật này. Hãy kiểm tra lại, hoặc xin người quản lý Lab cấp khoá.', employee));
+  if (record === undefined || record.revokedAt !== null || record.employeeId !== employee) {
+    return sendHtml(
+      res,
+      401,
+      loginPage(
+        next,
+        'Mật khẩu trang không đúng với nhân vật này. Hãy kiểm tra lại, hoặc xin người quản lý Lab cấp mật khẩu trang mới.',
+        employee,
+      ),
+    );
   }
 
-  const session = deps.sessions.create(employee, authenticated.identity.keyId);
+  const session = deps.sessions.create(employee, record.passwordId);
   const cookie = { 'set-cookie': sessionCookie(deps, session.token) };
   if (next !== '') return redirect(res, next, cookie);
   return sendHtml(res, 200, messagePage('Đã đăng nhập giả lập', 'Phiên 15 phút đã mở. Hãy mở lại link xác nhận mà AI đưa cho bạn.', 'ok'), cookie);
@@ -255,7 +263,7 @@ async function handleDecision(
     traceStep(deps, started, {
       tool,
       requester,
-      caller: callerOf(deps, active?.session),
+      caller: callerOfProposal(deps, proposalId),
       taskId: proposal?.taskId ?? null,
       proposalId: PROPOSAL_ID_PATTERN.test(proposalId) ? proposalId : null,
       outcome: code === null ? 'not_found' : 'refused',
@@ -278,29 +286,67 @@ async function handleDecision(
     return refused(403, 'NOT_PERMITTED', 'WEB.CSRF', 'Thiếu hoặc sai mã chống giả mạo. Hãy mở lại trang xác nhận rồi bấm lại.');
   }
 
-  // A key revoked after the login ends the session at the next press.
-  const key = deps.keys.findById(active.session.keyId);
-  if (key === undefined) {
+  // A page password revoked after the login ends the session at the next press.
+  const password = deps.pagePasswords.findById(active.session.passwordId);
+  if (password === undefined) {
     deps.sessions.end(active.token);
-    return refused(401, 'KEY_INVALID', 'WEB.KEY_INVALID', 'Khoá của phiên không còn trong danh sách cấp khoá. Hãy đăng nhập lại bằng khoá hợp lệ.');
+    return refused(401, 'KEY_INVALID', 'WEB.PASSWORD_INVALID', 'Mật khẩu trang của phiên không còn trong danh sách cấp. Hãy đăng nhập lại bằng mật khẩu trang.');
   }
-  if (key.revokedAt !== null) {
+  if (password.revokedAt !== null) {
     deps.sessions.end(active.token);
-    return refused(401, 'KEY_REVOKED', 'WEB.KEY_REVOKED', 'Khoá của bạn đã bị thu hồi nên phiên bị đóng. Hãy xin người quản lý Lab cấp khoá mới.');
+    return refused(401, 'KEY_REVOKED', 'WEB.PASSWORD_REVOKED', 'Mật khẩu trang của bạn đã bị thu hồi nên phiên bị đóng. Hãy xin người quản lý Lab cấp mật khẩu trang mới.');
   }
 
-  // Pressing Gửi checks the key, the person, the rule file and the task again; only then does the proposal become confirmed.
+  // Pressing Gửi checks both credentials, the person, the rule file and the task again; only then does the proposal become confirmed.
   if (decision === 'confirm') {
     const proposal = PROPOSAL_ID_PATTERN.test(proposalId) ? deps.proposals.get(proposalId) : undefined;
     // Only a proposal still waiting for the press needs the second check; an expired or used one is answered by the store.
     if (proposal !== undefined && effectiveStatus(proposal, deps.now()) === 'awaiting_confirmation') {
-      const checked = await writeChecks(deps, proposal, key);
+      if (proposal.draftedByKeyId === null) {
+        traceStep(deps, started, {
+          tool,
+          requester,
+          caller: proposal.caller,
+          taskId: proposal.taskId,
+          proposalId: proposal.proposalId,
+          outcome: 'refused',
+          reasonCode: 'KEY_INVALID',
+          ruleId: 'WEB.DRAFT_KEY_MISSING',
+        });
+        return refusalPage(
+          res,
+          401,
+          'KEY_INVALID',
+          'Đề xuất này được soạn trước khi cổng lưu khoá đã soạn nên cổng không kiểm được khoá và không ghi. Hãy nhờ AI soạn lại.',
+        );
+      }
+      const draftedKey = deps.keys.findById(proposal.draftedByKeyId);
+      if (draftedKey === undefined) {
+        traceStep(deps, started, {
+          tool,
+          requester,
+          caller: proposal.caller,
+          taskId: proposal.taskId,
+          proposalId: proposal.proposalId,
+          outcome: 'refused',
+          reasonCode: 'KEY_INVALID',
+          ruleId: 'WEB.DRAFT_KEY_INVALID',
+        });
+        return refusalPage(
+          res,
+          401,
+          'KEY_INVALID',
+          'Khoá đã soạn đề xuất không còn trong danh sách cấp khoá nên cổng không ghi. Hãy nhờ AI soạn lại bằng một khoá còn hiệu lực.',
+        );
+      }
+
+      const checked = await writeChecks(deps, proposal, draftedKey);
       if (!checked.ok) {
         const { status, code, ruleId, policyVersion, sentence } = checked.check;
         traceStep(deps, started, {
           tool,
           requester,
-          caller: key.caller,
+          caller: draftedKey.caller,
           taskId: proposal.taskId,
           proposalId: proposal.proposalId,
           outcome: 'refused',
@@ -313,7 +359,7 @@ async function handleDecision(
     }
   }
 
-  const caller = key.caller;
+  const caller = callerOfProposal(deps, proposalId);
   const result = deps.proposals.decide(proposalId, active.session.employeeId, decision, (decided) => {
     traceStep(deps, started, {
       tool,
@@ -339,8 +385,13 @@ async function handleDecision(
   redirect(res, `/xac-nhan/${result.proposal.proposalId}`);
 }
 
-function callerOf(deps: GatewayDeps, session: Session | undefined): string | null {
-  return session === undefined ? null : (deps.keys.findById(session.keyId)?.caller ?? null);
+/** The caller of the key that drafted the proposal, kept on the proposal so a page step still names it. */
+function callerOfProposal(deps: GatewayDeps, proposalId: string): string | null {
+  if (!PROPOSAL_ID_PATTERN.test(proposalId)) return null;
+  const proposal = deps.proposals.get(proposalId);
+  if (proposal === undefined) return null;
+  if (proposal.draftedByKeyId === null) return proposal.caller;
+  return deps.keys.findById(proposal.draftedByKeyId)?.caller ?? proposal.caller;
 }
 
 /**

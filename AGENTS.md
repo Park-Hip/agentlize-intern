@@ -120,9 +120,13 @@ Runtime data lives in `lab/.data` (git-ignored); the gateway reads its live rule
 ```
 npm run seed-keys [-- --rotate]
 npm run keys -- issue --employee NV-07 --caller tho-than-desktop [--scope read_only]
+npm run keys -- page-password --employee NV-07
 npm run keys -- list
 npm run trace -- --task T-12
 ```
+
+`seed-keys` prints one tool key `lab_` and one page password `trang_` per persona; `--rotate` replaces both.
+The page password opens the gateway pages only, never a tool, and `page-password` replaces the previous one of that person.
 
 ### Tunnel for one acceptance session
 

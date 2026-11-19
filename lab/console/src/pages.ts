@@ -327,7 +327,7 @@ function resultPanel(result: PlaygroundResult): string {
       ? ''
       : `<div class="actions form-actions"><a class="btn" href="${esc(result.link)}">Mở thẻ xác nhận</a></div>
 <p class="link"><code>${esc(result.link)}</code></p>
-<p class="meta">Link mở trang của cổng và hỏi khoá của nhân vật. Console không đưa khoá ra khỏi bộ nhớ, nên hãy dùng khoá mà <code>npm run seed-keys</code> đã in.</p>`;
+<p class="meta">Link mở trang của cổng và hỏi mật khẩu trang của nhân vật. Console không giữ mật khẩu trang, nên hãy dùng mật khẩu <code>trang_</code> mà <code>npm run seed-keys</code> đã in; khoá công cụ <code>lab_</code> không mở được trang này.</p>`;
 
   return `<section class="panel call-result">
 <h2>Kết quả</h2>

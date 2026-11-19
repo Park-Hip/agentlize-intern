@@ -141,6 +141,8 @@ test('playground: a form POST calls the gateway with the chosen persona key and 
   assert.match(html, /Đã soạn đề xuất dx-0123456789abcdef/);
   assert.match(html, /Mã vết: <code>tr-[0-9a-f]{16}<\/code>/);
   assert.match(html, /<a class="btn" href="http:\/\/127\.0\.0\.1:8790\/xac-nhan\/dx-0123456789abcdef">Mở thẻ xác nhận<\/a>/);
+  assert.match(html, /hỏi mật khẩu trang của nhân vật/);
+  assert.match(html, /mật khẩu <code>trang_<\/code>/);
   assert.match(html, /<th scope="row">Nơi gọi<\/th><td>lab-console<\/td>/);
   assert.match(html, /<th scope="row">Đề xuất<\/th><td>dx-0123456789abcdef<\/td>/);
   assert.equal(html.includes('href="javascript:'), false, 'only an http link becomes clickable');

@@ -2,7 +2,7 @@ import { readPublicBaseUrl, readServiceKey, startService, type RunningService } 
 import { createHttpAdapters, systemUrl, type ResourceAdapter } from './adapters/index.js';
 import { createGatewayHandler } from './app.js';
 import { openGatewayDatabase, resolveDataDir } from './database.js';
-import { ApiKeyIdentity, KeyStore } from './identity/index.js';
+import { ApiKeyIdentity, KeyStore, PagePasswordStore } from './identity/index.js';
 import { createPolicyEngine, resolveRulesPath, seedRulesFile } from './policy/index.js';
 import { ProposalStore, type ProposalExecutor } from './proposals/index.js';
 import { PROPOSE_TOOLS } from './tools/propose-tools.js';
@@ -27,6 +27,7 @@ export interface GatewayOptions {
 
 export interface RunningGateway extends RunningService {
   readonly keys: KeyStore;
+  readonly pagePasswords: PagePasswordStore;
   readonly trace: TraceStore;
   readonly proposals: ProposalStore;
   readonly sessions: SessionStore;
@@ -49,6 +50,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
   const db = openGatewayDatabase(dataDir);
   try {
     const keys = new KeyStore(db);
+    const pagePasswords = new PagePasswordStore(db);
     const now = options.now ?? ((): Date => new Date());
     const trace = new TraceStore(db, now);
     const proposals = new ProposalStore(db, now);
@@ -79,6 +81,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
         trace,
         tools: [...READ_TOOLS, ...PROPOSE_TOOLS],
         keys,
+        pagePasswords,
         proposals,
         sessions,
         commands,
@@ -100,6 +103,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
     return {
       ...running,
       keys,
+      pagePasswords,
       trace,
       proposals,
       sessions,
