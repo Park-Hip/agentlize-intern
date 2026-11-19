@@ -170,6 +170,7 @@ test('approval inbox: only a lead of the requester department sees the waiting p
     const quangInbox = await fetch(`${f.gateway.url}/cho-duyet`, { headers: { cookie: quang.cookie } });
     assert.equal(quangInbox.status, 200);
     const html = await quangInbox.text();
+    assert.match(html, /<main class="wide">/);
     assert.ok(html.includes(id), 'the lead sees the proposal code');
     assert.ok(html.includes('NV-02 Nguyễn Thị Hoa'), 'and who asked');
     assert.match(html, /Đổi người phụ trách 30 task sang NV-04 Vũ Quốc Minh/);

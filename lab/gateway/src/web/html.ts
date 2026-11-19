@@ -37,7 +37,7 @@ const STYLE = `
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 main{max-width:44rem;margin:0 auto;padding:1.5rem 1rem 3rem}
-main.wide{max-width:60rem}
+main.wide{max-width:64rem}
 a{color:var(--accent);text-decoration:none;text-underline-offset:.15em}
 a:hover,a:focus-visible{text-decoration:underline}
 h1{font-size:1.4rem;line-height:1.25;margin:0 0 .25rem}
@@ -50,6 +50,8 @@ h2{font-size:1.05rem;line-height:1.3;margin:0 0 .5rem}
 table{width:100%;border-collapse:collapse}
 th,td{text-align:left;vertical-align:top;padding:.5rem .6rem;border-bottom:1px solid var(--line)}
 thead th{font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+.inbox th,.inbox td{padding:.5rem .55rem}
+.inbox td.nowrap{white-space:nowrap}
 tbody th{font-weight:600;color:var(--muted)}
 tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
 td.v{white-space:pre-wrap;overflow-wrap:anywhere}
@@ -60,6 +62,7 @@ table,tbody,tr,th,td{display:block;width:auto}
 tbody th{padding:.7rem 0 .15rem;border-bottom:0}
 tbody td{padding:.1rem 0 .4rem;border-bottom:0}
 tbody td::before{content:attr(data-label);display:block;font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.inbox td.nowrap{white-space:normal}
 tbody tr{border-bottom:1px solid var(--line)}
 tbody tr:last-child{border-bottom:0}
 }
@@ -396,8 +399,8 @@ export function approvalInboxPage(view: ApprovalInboxView): string {
           .map(
             (item) => `<tr>
 <td class="code" data-label="Đề xuất"><a href="/duyet/${esc(item.proposalId)}"><code>${esc(item.proposalId)}</code></a></td>
-<td data-label="Người yêu cầu">${esc(item.requesterLabel)}</td>
-<td data-label="Nội dung">${esc(item.summary)}</td>
+<td class="nowrap" data-label="Người yêu cầu">${esc(item.requesterLabel)}</td>
+<td class="nowrap" data-label="Nội dung">${esc(item.summary)}</td>
 <td data-label="Hạn duyệt">${esc(item.expiresAtLabel)}</td>
 <td data-label="Trạng thái">${item.expired ? '<strong>Đã hết hạn</strong>' : 'Đang chờ'}</td>
 </tr>`,
@@ -407,7 +410,7 @@ export function approvalInboxPage(view: ApprovalInboxView): string {
     view.items.length === 0
       ? '<section class="panel"><p>Không có đề xuất nào chờ bạn duyệt.</p></section>'
       : `<section class="panel">
-<table>
+<table class="inbox">
 <thead><tr><th scope="col">Đề xuất</th><th scope="col">Người yêu cầu</th><th scope="col">Nội dung</th><th scope="col">Hạn duyệt</th><th scope="col">Trạng thái</th></tr></thead>
 <tbody>
 ${rows}
@@ -420,6 +423,8 @@ ${rows}
 <p class="sub">Đăng nhập giả lập: ${esc(view.viewerLabel)}. Danh sách chỉ gồm đề xuất vai của bạn được duyệt; mỗi đề xuất có hạn ${esc(view.waitLabel)} tính từ lúc người yêu cầu bấm Gửi.</p>
 ${body}
 <p class="meta">Không có thông báo qua Lark, email hay chat. Hộp này chỉ để xem; mọi lần duyệt đều là một lần bấm có mã chống giả mạo.</p>`,
+    undefined,
+    true,
   );
 }
 
