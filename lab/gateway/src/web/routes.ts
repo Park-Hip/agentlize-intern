@@ -4,7 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { EMPLOYEE_ID_PATTERN, type ReasonCode } from '@lab/shared';
 import { adapterOf, SystemUnavailableError, type RecordData } from '../adapters/index.js';
 import { newTrail, TraceUnavailableError, writeTrace, type GatewayDeps } from '../call.js';
-import { cardRows, formatClock, personLabel } from '../proposals/card.js';
+import { itemRows, formatClock, personLabel } from '../proposals/card.js';
 import { effectiveStatus, PROPOSAL_ID_PATTERN, type Decision, type Proposal } from '../proposals/index.js';
 import type { KeyRecord } from '../identity/index.js';
 import type { ToolResult } from '../tools/types.js';
@@ -175,19 +175,28 @@ async function handleCard(deps: GatewayDeps, req: IncomingMessage, res: ServerRe
     return refusalPage(res, 403, 'NOT_PERMITTED', 'Đề xuất này của người khác nên bạn không xem được. Hãy đăng nhập đúng nhân vật đã nhờ AI soạn.');
   }
 
-  const rows = await cardRows(proposal, deps.adapters);
+  const commands = new Map(
+    deps.commands.listByProposal(proposal.proposalId).map((command) => [command.position, command]),
+  );
+  const items = await Promise.all(
+    proposal.items.map(async (item) => ({
+      position: item.position,
+      recordId: item.recordId,
+      rows: await itemRows(item, deps.adapters),
+      command: commands.get(item.position),
+    })),
+  );
   sendHtml(
     res,
     200,
     cardPage({
       proposalId: proposal.proposalId,
-      taskId: proposal.taskId,
       requesterLabel: await personLabel(deps.adapters, proposal.requester),
-      rows,
+      items,
       expiresAtLabel: formatClock(new Date(proposal.expiresAt)),
       status: effectiveStatus(proposal, deps.now()),
+      requiresApproval: proposal.requiresApproval,
       csrfToken: active.session.csrfToken,
-      command: deps.commands.findByProposal(proposal.proposalId),
     }),
   );
 }
@@ -221,12 +230,12 @@ async function writeChecks(
   key: KeyRecord,
 ): Promise<{ ok: true } | { ok: false; check: WriteRefusal }> {
   const directory = adapterOf(deps.adapters, 'employee');
-  const writes = adapterOf(deps.adapters, 'task');
+  const records = adapterOf(deps.adapters, proposal.recordType);
   let employee: RecordData | undefined;
-  let task: RecordData | undefined;
+  let current: (RecordData | undefined)[];
   try {
     employee = await directory.get(proposal.requester);
-    task = await writes.get(proposal.taskId);
+    current = await Promise.all(proposal.items.map((item) => records.get(item.recordId)));
   } catch (error) {
     if (!(error instanceof SystemUnavailableError)) throw error;
     return {
@@ -242,7 +251,7 @@ async function writeChecks(
     };
   }
 
-  const check = checkWrite({ proposal, key, employee, adapter: writes, record: task, policy: deps.policy });
+  const check = checkWrite({ proposal, key, employee, adapter: records, records: current, policy: deps.policy });
   return check.ok ? { ok: true } : { ok: false, check };
 }
 
@@ -264,7 +273,7 @@ async function handleDecision(
       tool,
       requester,
       caller: callerOfProposal(deps, proposalId),
-      taskId: proposal?.taskId ?? null,
+      taskId: proposal?.items[0]?.recordId ?? null,
       proposalId: PROPOSAL_ID_PATTERN.test(proposalId) ? proposalId : null,
       outcome: code === null ? 'not_found' : 'refused',
       reasonCode: code,
@@ -307,7 +316,7 @@ async function handleDecision(
           tool,
           requester,
           caller: proposal.caller,
-          taskId: proposal.taskId,
+          taskId: proposal.items[0]?.recordId ?? null,
           proposalId: proposal.proposalId,
           outcome: 'refused',
           reasonCode: 'KEY_INVALID',
@@ -326,7 +335,7 @@ async function handleDecision(
           tool,
           requester,
           caller: proposal.caller,
-          taskId: proposal.taskId,
+          taskId: proposal.items[0]?.recordId ?? null,
           proposalId: proposal.proposalId,
           outcome: 'refused',
           reasonCode: 'KEY_INVALID',
@@ -347,7 +356,7 @@ async function handleDecision(
           tool,
           requester,
           caller: draftedKey.caller,
-          taskId: proposal.taskId,
+          taskId: proposal.items[0]?.recordId ?? null,
           proposalId: proposal.proposalId,
           outcome: 'refused',
           reasonCode: code,
@@ -365,7 +374,7 @@ async function handleDecision(
       tool,
       requester: decided.requester,
       caller,
-      taskId: decided.taskId,
+      taskId: decided.items[0]?.recordId ?? null,
       proposalId: decided.proposalId,
       outcome: 'ok',
       reasonCode: null,

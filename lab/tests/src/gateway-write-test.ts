@@ -143,7 +143,7 @@ for (const door of DOORS) {
     const call = (tool: string, args: unknown, key: string): Promise<Answer> => door.call(base, tool, args, key);
 
     const draft = async (taskId: string, changes: Record<string, string>, key = hoa): Promise<ProposalAnswer> => {
-      const answer = await call('propose_task_change', { task_id: taskId, changes }, key);
+      const answer = await call('propose_task_change', { task_ids: [taskId], changes }, key);
       assert.equal(answer.reasonCode, null, answer.text);
       return proposalOf(answer.text);
     };
@@ -196,7 +196,7 @@ for (const door of DOORS) {
     };
 
     await t.test('SR1: Nam cannot move T-12, the refusal names anh Quang, and the trace keeps Nam', async () => {
-      const answer = await call('propose_task_change', { task_id: 'T-12', changes: { assignee: 'NV-04' } }, nam);
+      const answer = await call('propose_task_change', { task_ids: ['T-12'], changes: { assignee: 'NV-04' } }, nam);
       assert.equal(answer.reasonCode, 'NOT_PERMITTED');
       assert.match(answer.text, /^CHƯA THỰC HIỆN \[NOT_PERMITTED\] /);
       assert.ok(answer.text.includes('Trần Văn Quang'), 'the refusal says who to ask');
@@ -216,7 +216,7 @@ for (const door of DOORS) {
     });
 
     await t.test('SR2: a sales task is not found, and a role lowered before Gửi writes nothing', async () => {
-      const sales = await call('propose_task_change', { task_id: 'T-100', changes: { description: 'Mô tả mới' } }, hoa);
+      const sales = await call('propose_task_change', { task_ids: ['T-100'], changes: { description: 'Mô tả mới' } }, hoa);
       assert.equal(sales.reasonCode, null);
       assert.equal(sales.text, 'Không tìm thấy task T-100.');
       assert.equal(await writeCount('T-100'), 0);
@@ -260,7 +260,7 @@ for (const door of DOORS) {
     await t.test('SR3: Nam edits a description but not an assignee, and a read-only key cannot draft', async () => {
       const description = await call(
         'propose_task_change',
-        { task_id: 'T-12', changes: { description: 'Gọi lại khách hàng X trước 17 giờ.' } },
+        { task_ids: ['T-12'], changes: { description: 'Gọi lại khách hàng X trước 17 giờ.' } },
         nam,
       );
       assert.equal(description.reasonCode, null);
@@ -268,18 +268,18 @@ for (const door of DOORS) {
       proposalOf(description.text);
       assert.equal(await writeCount('T-12'), 0, 'a draft writes nothing');
 
-      const assignee = await call('propose_task_change', { task_id: 'T-12', changes: { assignee: 'NV-04' } }, nam);
+      const assignee = await call('propose_task_change', { task_ids: ['T-12'], changes: { assignee: 'NV-04' } }, nam);
       assert.equal(assignee.reasonCode, 'NOT_PERMITTED');
       assert.match(assignee.text, /^CHƯA THỰC HIỆN \[NOT_PERMITTED\] /);
 
-      const fullKey = await call('propose_task_change', { task_id: 'T-13', changes: { assignee: 'NV-04' } }, nhung);
+      const fullKey = await call('propose_task_change', { task_ids: ['T-13'], changes: { assignee: 'NV-04' } }, nhung);
       assert.equal(fullKey.reasonCode, null, 'HR with a full key can change the assignee of a Vận hành task');
       proposalOf(fullKey.text);
 
       const readOnly = issueKey(env, 'NV-06', 'read_only');
       const readOnlyAnswer = await call(
         'propose_task_change',
-        { task_id: 'T-13', changes: { assignee: 'NV-04' } },
+        { task_ids: ['T-13'], changes: { assignee: 'NV-04' } },
         readOnly.key,
       );
       assert.equal(readOnlyAnswer.reasonCode, 'NOT_PERMITTED');
@@ -301,13 +301,96 @@ for (const door of DOORS) {
       );
     });
 
+    await t.test('bulk: thirty codes of chị Lan by chị Hoa make one proposal with thirty items and ask for approval', async () => {
+      // T-5 to T-34 are the thirty open tasks of chị Lan (NV-03) in the fake task list.
+      const lanTasks = Array.from({ length: 30 }, (_, index) => `T-${index + 5}`);
+      const answer = await call('propose_task_change', { task_ids: lanTasks, changes: { assignee: 'NV-04' } }, hoa);
+      assert.equal(answer.status, 200, answer.text);
+      assert.equal(answer.reasonCode, 'NEEDS_APPROVAL', 'thirty items reach the bulk threshold');
+      assert.match(answer.text, /cho 30 task/);
+      assert.match(answer.text, /cần trưởng nhóm Vận hành duyệt/);
+      assert.match(answer.text, /30 mục/);
+      const proposal = proposalOf(answer.text);
+      assert.equal((answer.text.match(/^T-\d+: /gm) ?? []).length, 30, 'the card text lists every item');
+
+      const three = await call('propose_task_change', { task_ids: lanTasks.slice(0, 3), changes: { assignee: 'NV-04' } }, hoa);
+      assert.equal(three.status, 200, three.text);
+      assert.equal(three.reasonCode, null, 'three items are below the threshold');
+      assert.doesNotMatch(three.text, /cần trưởng nhóm .* duyệt/);
+      proposalOf(three.text);
+
+      assert.equal(await writeCount('T-5'), 0, 'a draft writes nothing');
+      assert.equal(await writeCount('T-34'), 0, 'a draft writes nothing');
+
+      const browser = await signIn(base, hoaPagePassword, proposal.id);
+      const pressed = await press(base, proposal.id, browser);
+      assert.equal(pressed.status, 403);
+      assert.match(await pressed.text(), /\[NEEDS_APPROVAL\]/);
+      assert.equal(await writeCount('T-5'), 0, 'a batch that needs approval writes nothing');
+      assert.match(
+        traceTable(env, ['--task', 'T-5']),
+        /proposal_send\s+T-5\s+refused\s+NEEDS_APPROVAL\s+-\s+task\.change_task_assignee_or_due\.staff\.bulk/,
+        'Gửi asked the rule with the same thirty items',
+      );
+    });
+
+    await t.test('bulk: one sales code refuses the whole proposal and names exactly that code', async () => {
+      const mixed = await call(
+        'propose_task_change',
+        { task_ids: ['T-5', 'T-6', 'T-100'], changes: { assignee: 'NV-04' } },
+        hoa,
+      );
+      assert.equal(mixed.reasonCode, null);
+      assert.equal(mixed.text, 'Không tìm thấy task T-100.');
+      assert.equal(mixed.text.includes('/xac-nhan/'), false, 'a refused proposal returns no link');
+      assert.equal(await writeCount('T-5'), 0);
+      assert.match(
+        traceTable(env, ['--task', 'T-100']),
+        new RegExp(
+          String.raw`NV-02\s+tho-than-desktop\s+${door.traceEntry}\s+propose_task_change\s+T-100\s+not_found\s+NOT_PERMITTED\s+out_of_scope\s+task\.read\.staff`,
+        ),
+        'only the trace tells a foreign code from a missing one',
+      );
+    });
+
+    await t.test('bulk: Gửi writes each of three items once, and the card and status list every item', async () => {
+      const three = ['T-5', 'T-6', 'T-7'];
+      const answer = await call('propose_task_change', { task_ids: three, changes: { assignee: 'NV-04' } }, hoa);
+      assert.equal(answer.reasonCode, null, answer.text);
+      const proposal = proposalOf(answer.text);
+      const browser = await signIn(base, hoaPagePassword, proposal.id);
+
+      const pressed = await press(base, proposal.id, browser);
+      assert.equal(pressed.status, 303);
+      for (const task of three) {
+        assert.equal(await writeCount(task), 1, `${task} was written exactly once`);
+        assert.equal((await taskOf(task)).assignee, 'NV-04');
+      }
+
+      const card = await cardOf(proposal.id, browser);
+      assert.match(card, /Đã ghi 3 trên 3 mục/);
+      for (const task of three) assert.ok(card.includes(`data-label="Mục">${task}<`), `the card names ${task}`);
+
+      const status = await call('get_request_status', { request_id: proposal.id }, hoa);
+      assert.equal(status.reasonCode, null);
+      assert.match(status.text, /đã ghi 3 trên 3 mục/);
+      for (const [index, task] of three.entries()) {
+        assert.match(status.text, new RegExp(`${task}: đã ghi ở lần gửi thứ 1`), 'the status names each item result');
+        assert.match(
+          traceTable(env, ['--task', task]),
+          new RegExp(String.raw`write_command\s+${task}\s+ok\s+-\s+\S+\s+WRITE\.SEND\s+v1\s+-\s+${proposal.id}\s+${proposal.id}:${index + 1}\s+1`),
+          `${task} used its own position in the idempotency key`,
+        );
+      }
+    });
+
     await t.test('SR5: a broken rule file stops every draft and press, and a changed task is not overwritten', async () => {
       const waiting = await draft('T-12', { assignee: 'NV-04' });
       const browser = await signIn(base, hoaPagePassword, waiting.id);
 
       await writeFile(rulesPath, '{"version": 1, "roles":');
 
-      const blocked = await call('propose_task_change', { task_id: 'T-13', changes: { description: 'Mô tả mới' } }, hoa);
+      const blocked = await call('propose_task_change', { task_ids: ['T-13'], changes: { description: 'Mô tả mới' } }, hoa);
       assert.equal(blocked.reasonCode, 'POLICY_UNAVAILABLE');
       assert.match(blocked.text, /^CHƯA THỰC HIỆN \[POLICY_UNAVAILABLE\] /);
 

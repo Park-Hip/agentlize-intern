@@ -30,7 +30,7 @@ export const SCENARIOS: readonly Scenario[] = [
       'Chị Hoa đủ quyền nên cổng soạn đề xuất và trả link xác nhận. Task chưa đổi cho tới khi có người mở link và bấm Gửi.',
     tool: 'propose_task_change',
     employeeId: HOA,
-    args: { task_id: 'T-12', changes: { assignee: MINH, due: '2026-11-20' } },
+    args: { task_ids: ['T-12'], changes: { assignee: MINH, due: '2026-11-20' } },
   },
   {
     key: 'b',
@@ -39,7 +39,7 @@ export const SCENARIOS: readonly Scenario[] = [
       'Nam là thực tập sinh nên bộ luật quyền từ chối, câu trả lời nêu việc phải hỏi trưởng nhóm. Không có link xác nhận.',
     tool: 'propose_task_change',
     employeeId: NAM,
-    args: { task_id: 'T-12', changes: { assignee: MINH, due: '2026-11-20' } },
+    args: { task_ids: ['T-12'], changes: { assignee: MINH, due: '2026-11-20' } },
   },
   {
     key: 'd',

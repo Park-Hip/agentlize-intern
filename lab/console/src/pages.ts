@@ -212,7 +212,11 @@ ${field.children.map((child) => fieldOf(child, values)).join('\n')}
 </div>
 </fieldset>`;
   }
-  const hint = field.date ? '<span class="hint">Gửi dạng YYYY-MM-DD</span>' : '';
+  const hint = field.date
+    ? '<span class="hint">Gửi dạng YYYY-MM-DD</span>'
+    : field.kind === 'array'
+      ? '<span class="hint">Nhiều giá trị, cách nhau bằng dấu phẩy</span>'
+      : '';
   return `<div class="field">
 ${labelOf(field)}
 ${controlOf(field, values)}

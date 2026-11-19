@@ -52,7 +52,7 @@ async function propose(
   changes: Record<string, string>,
   key = f.keyFor(employeeId),
 ): Promise<string> {
-  const answer = await f.call('propose_task_change', { task_id: 'T-12', changes }, key);
+  const answer = await f.call('propose_task_change', { task_ids: ['T-12'], changes }, key);
   assert.equal(answer.status, 200, answer.body.text);
   const link = answer.body.text.split('\n').find((line) => /^http:\/\/127\.0\.0\.1:\d+\/xac-nhan\/dx-[0-9a-f]{16}$/.test(line));
   assert.ok(link !== undefined, `the answer has a confirmation link: ${answer.body.text}`);

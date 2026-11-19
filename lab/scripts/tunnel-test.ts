@@ -132,7 +132,7 @@ async function proposeAsHoa(session: TunnelSession): Promise<string> {
   const response = await fetch(`${session.tunnel.stack.gatewayUrl}/v1/tools/propose_task_change`, {
     method: 'POST',
     headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ task_id: 'T-12', changes: { assignee: 'NV-04' } }),
+    body: JSON.stringify({ task_ids: ['T-12'], changes: { assignee: 'NV-04' } }),
   });
   const body = (await response.json()) as { text?: string };
   assert.equal(response.status, 200, body.text);

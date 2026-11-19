@@ -100,7 +100,7 @@ test('rules path: an edited rule file applies to the next call, and a broken one
 
     // A file that cannot be read stops the write path with the code SR5 asks for.
     writeFileSync(path, '{ not json');
-    const refused = await f.call('propose_task_change', { task_id: 'T-12', changes: { status: 'done' } }, key);
+    const refused = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { status: 'done' } }, key);
     assert.equal(refused.status, 503);
     assert.equal(refused.body.reason_code, 'POLICY_UNAVAILABLE');
     assert.match(refused.body.text, /^CHƯA THỰC HIỆN \[POLICY_UNAVAILABLE\] /);

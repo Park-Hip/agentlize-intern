@@ -86,7 +86,7 @@ test('playground: the form is built from the tool schema and lists the five scen
   assert.match(html, /<h1>Sân chơi<\/h1>/);
   assert.match(html, /<a class="nav-link" href="\/playground" aria-current="page">Sân chơi<\/a>/);
   assert.match(html, /<form method="post" action="\/playground">/);
-  assert.match(html, /name="arg\.task_id" type="text"[^>]* required/);
+  assert.match(html, /name="arg\.task_ids" type="text"[^>]* required/);
   assert.match(html, /name="arg\.changes\.assignee"/);
   assert.match(html, /name="arg\.changes\.due" type="date"/);
   assert.match(html, /<textarea id="f-changes-description" name="arg\.changes\.description"/);
@@ -120,7 +120,7 @@ test('playground: a form POST calls the gateway with the chosen persona key and 
     csrf: csrfFrom(page),
     persona: 'NV-02',
     tool: 'propose_task_change',
-    'arg.task_id': 'T-12',
+    'arg.task_ids': 'T-12',
     'arg.changes.assignee': 'NV-04',
     'arg.changes.due': '2026-11-20',
     'arg.changes.description': '',
@@ -131,7 +131,7 @@ test('playground: a form POST calls the gateway with the chosen persona key and 
 
   const [call] = fixture.toolCalls;
   assert.equal(call?.tool, 'propose_task_change');
-  assert.deepEqual(call?.args, { task_id: 'T-12', changes: { assignee: 'NV-04', due: '2026-11-20' } });
+  assert.deepEqual(call?.args, { task_ids: ['T-12'], changes: { assignee: 'NV-04', due: '2026-11-20' } });
   assert.equal(call?.employeeId, 'NV-02');
   assert.equal(call?.caller, CONSOLE_CALLER);
 
@@ -194,8 +194,8 @@ test('playground: each scenario button calls its own tool with its own persona',
 
   const csrf = csrfFrom(await (await fetch(`${fixture.url}/playground`)).text());
   const expected = [
-    { key: 'a', tool: 'propose_task_change', employee: 'NV-02', args: { task_id: 'T-12', changes: { assignee: 'NV-04', due: '2026-11-20' } } },
-    { key: 'b', tool: 'propose_task_change', employee: 'NV-05', args: { task_id: 'T-12', changes: { assignee: 'NV-04', due: '2026-11-20' } } },
+    { key: 'a', tool: 'propose_task_change', employee: 'NV-02', args: { task_ids: ['T-12'], changes: { assignee: 'NV-04', due: '2026-11-20' } } },
+    { key: 'b', tool: 'propose_task_change', employee: 'NV-05', args: { task_ids: ['T-12'], changes: { assignee: 'NV-04', due: '2026-11-20' } } },
     { key: 'd', tool: 'find_employee', employee: 'NV-02', args: { name: 'Minh' } },
     { key: 'embedded', tool: 'get_task', employee: 'NV-02', args: { task_id: 'T-13' } },
     { key: 'outside', tool: 'get_task', employee: 'NV-02', args: { task_id: 'T-61' } },

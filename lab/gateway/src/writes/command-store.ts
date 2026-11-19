@@ -1,38 +1,32 @@
 import { randomBytes } from 'node:crypto';
 import type { ReasonCode } from '@lab/shared';
 import type { GatewayDatabase } from '../database.js';
+import type { Proposal, ProposalItem } from '../proposals/index.js';
 
 /** The four states one write command can be in (spec section 5.3). */
 export const COMMAND_STATUSES = ['not_sent', 'sent_unknown', 'done', 'failed'] as const;
 export type CommandStatus = (typeof COMMAND_STATUSES)[number];
 
 /**
- * One command is one task write. A proposal that changes one task has exactly
- * one command; the position keeps room for a bulk proposal later, where each
- * task gets its own command and its own key.
+ * One command is one record write. A proposal with N items has N commands,
+ * one per position, each with its own idempotency key.
  */
 export interface WriteCommand {
   readonly commandId: string;
   readonly proposalId: string;
-  readonly taskId: string;
+  readonly recordId: string;
   readonly position: number;
   /** `<proposal code>:<position>`; every resend of this command uses this same key. */
   readonly idempotencyKey: string;
-  /** The task version read when the proposal was drafted. */
+  /** The record version read when the proposal was drafted. */
   readonly expectedVersion: number;
   readonly status: CommandStatus;
-  /** How many times the gateway has sent the PATCH, replays included. */
+  /** How many times the gateway has sent the write, replays included. */
   readonly attempts: number;
   /** A short machine-readable account of the last outcome, kept as JSON. */
   readonly result: string | null;
   readonly reasonCode: ReasonCode | null;
   readonly updatedAt: string;
-}
-
-export interface CommandTask {
-  readonly proposalId: string;
-  readonly taskId: string;
-  readonly baseVersion: number;
 }
 
 export interface SettledCommand {
@@ -44,7 +38,7 @@ export interface SettledCommand {
 interface Row {
   command_id: string;
   proposal_id: string;
-  task_id: string;
+  record_id: string;
   position: number;
   idempotency_key: string;
   expected_version: number;
@@ -61,7 +55,7 @@ function toCommand(row: Row): WriteCommand {
   return {
     commandId: row.command_id,
     proposalId: row.proposal_id,
-    taskId: row.task_id,
+    recordId: row.record_id,
     position: row.position,
     idempotencyKey: row.idempotency_key,
     expectedVersion: row.expected_version,
@@ -74,10 +68,10 @@ function toCommand(row: Row): WriteCommand {
 }
 
 /**
- * Owns the `write_commands` table (spec section 6). The row is created in the
- * same transaction that confirms the proposal, so a confirmation never exists
- * without the command that will carry it out. The status changes only through
- * the methods here, each in its own short transaction.
+ * Owns the `write_commands` table (spec section 6). The rows are created in
+ * the same transaction that confirms the proposal, so a confirmation never
+ * exists without the commands that will carry it out. The status changes only
+ * through the methods here, each in its own short transaction.
  */
 export class CommandStore {
   constructor(
@@ -88,7 +82,7 @@ export class CommandStore {
       CREATE TABLE IF NOT EXISTS write_commands (
         command_id       TEXT PRIMARY KEY,
         proposal_id      TEXT NOT NULL REFERENCES proposals (proposal_id),
-        task_id          TEXT NOT NULL,
+        record_id        TEXT NOT NULL,
         position         INTEGER NOT NULL,
         idempotency_key  TEXT NOT NULL UNIQUE,
         expected_version INTEGER NOT NULL,
@@ -104,18 +98,26 @@ export class CommandStore {
     `);
   }
 
-  /** The command of a proposal, or a new one in `not_sent`. Returns the existing row untouched, so a replay cannot fork it. */
-  createForProposal(proposal: CommandTask): WriteCommand {
-    const existing = this.findByProposal(proposal.proposalId);
-    if (existing !== undefined) return existing;
+  /**
+   * One command per item, in position order. Existing rows are returned
+   * untouched, so a replay cannot fork a proposal into a second set of writes.
+   */
+  createForProposal(proposal: Proposal): WriteCommand[] {
+    const existing = this.listByProposal(proposal.proposalId);
+    if (existing.length > 0) return existing;
+    return this.db
+      .transaction(() => proposal.items.map((item) => this.insert(proposal.proposalId, item)))
+      .immediate();
+  }
 
+  private insert(proposalId: string, item: ProposalItem): WriteCommand {
     const row: Row = {
       command_id: `wc-${randomBytes(8).toString('hex')}`,
-      proposal_id: proposal.proposalId,
-      task_id: proposal.taskId,
-      position: 1,
-      idempotency_key: `${proposal.proposalId}:1`,
-      expected_version: proposal.baseVersion,
+      proposal_id: proposalId,
+      record_id: item.recordId,
+      position: item.position,
+      idempotency_key: `${proposalId}:${item.position}`,
+      expected_version: item.baseVersion,
       status: 'not_sent',
       attempts: 0,
       result: null,
@@ -124,9 +126,9 @@ export class CommandStore {
     };
     this.db
       .prepare(
-        `INSERT INTO write_commands (command_id, proposal_id, task_id, position, idempotency_key,
+        `INSERT INTO write_commands (command_id, proposal_id, record_id, position, idempotency_key,
                                      expected_version, status, attempts, result, reason_code, updated_at)
-         VALUES (@command_id, @proposal_id, @task_id, @position, @idempotency_key,
+         VALUES (@command_id, @proposal_id, @record_id, @position, @idempotency_key,
                  @expected_version, @status, @attempts, @result, @reason_code, @updated_at)`,
       )
       .run(row);
@@ -138,21 +140,34 @@ export class CommandStore {
     return row === undefined ? undefined : toCommand(row);
   }
 
+  /** The first command of a proposal, for callers that only need one record's result. */
   findByProposal(proposalId: string): WriteCommand | undefined {
-    const row = this.db.prepare('SELECT * FROM write_commands WHERE proposal_id = ?').get(proposalId) as Row | undefined;
+    const row = this.db
+      .prepare('SELECT * FROM write_commands WHERE proposal_id = ? ORDER BY position LIMIT 1')
+      .get(proposalId) as Row | undefined;
     return row === undefined ? undefined : toCommand(row);
   }
 
-  /** Oldest first, so a restart resends in the order the commands were confirmed. */
+  /** Every command of one proposal, in the order the items were numbered. */
+  listByProposal(proposalId: string): WriteCommand[] {
+    const rows = this.db
+      .prepare('SELECT * FROM write_commands WHERE proposal_id = ? ORDER BY position')
+      .all(proposalId) as Row[];
+    return rows.map(toCommand);
+  }
+
+  /** Oldest first, then by proposal and position, so a restart resends in the order the person saw. */
   listByStatus(status: CommandStatus): WriteCommand[] {
     const rows = this.db
-      .prepare('SELECT * FROM write_commands WHERE status = ? ORDER BY updated_at, command_id')
+      .prepare('SELECT * FROM write_commands WHERE status = ? ORDER BY updated_at, proposal_id, position')
       .all(status) as Row[];
     return rows.map(toCommand);
   }
 
   list(): WriteCommand[] {
-    const rows = this.db.prepare('SELECT * FROM write_commands ORDER BY updated_at, command_id').all() as Row[];
+    const rows = this.db
+      .prepare('SELECT * FROM write_commands ORDER BY updated_at, proposal_id, position')
+      .all() as Row[];
     return rows.map(toCommand);
   }
 
@@ -178,7 +193,7 @@ export class CommandStore {
     return command;
   }
 
-  /** The send changed the task or was definitively refused: a terminal state, changed at most once. */
+  /** The send changed the record or was definitively refused: a terminal state, changed at most once. */
   settle(commandId: string, outcome: SettledCommand, record: (command: WriteCommand) => void): WriteCommand {
     return this.db
       .transaction((): WriteCommand => {

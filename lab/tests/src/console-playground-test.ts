@@ -72,7 +72,7 @@ test('console playground: scenario A drafts a proposal through the real gateway 
   assert.equal(page.status, 200);
   const pageHtml = await page.text();
   assert.match(pageHtml, /<h1>Sân chơi<\/h1>/);
-  assert.match(pageHtml, /name="arg\.task_id"/);
+  assert.match(pageHtml, /name="arg\.task_ids"/);
   const csrf = csrfOf(pageHtml);
 
   const scenarioA = await postScenario(consoleUrl, csrf, SCENARIO_A);

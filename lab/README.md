@@ -1,7 +1,7 @@
 # Lab - AI Operations Connector
 
 Khung mã của bản thử: bốn dịch vụ chạy trên máy, một lệnh khởi động và một lệnh chạy phép thử.
-Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/mcp`, đường soạn đề xuất, đường ghi sau khi bấm Gửi và sáu màn hình của trang điều khiển (tổng quan, tool, quyền và trường, sân chơi, dữ liệu gốc, vết) đã có logic.
+Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/mcp`, đường soạn đề xuất một hay nhiều mục, đường ghi sau khi bấm Gửi và sáu màn hình của trang điều khiển (tổng quan, tool, quyền và trường, sân chơi, dữ liệu gốc, vết) đã có logic.
 
 ## Gói
 
@@ -61,6 +61,8 @@ Trang điều khiển sửa chính file đó; mỗi lần lưu tăng `version` t
 Phép thử nghiệm thu trỏ `LAB_RULES_PATH` vào bản sao trong thư mục tạm, nên file luật hỏng không chạm vào repo.
 Cơ sở dữ liệu `gateway.sqlite` bật chế độ ghi nhật ký trước (WAL) và chờ khoá 5 giây, để tiến trình khác đọc được trong lúc cổng đang ghi.
 Console mở cùng file đó ở chế độ chỉ đọc, và mỗi request đóng file ngay sau khi đọc xong.
+Cơ sở dữ liệu kiểu cũ, chưa có bảng mục của đề xuất, làm cổng dừng khi khởi động và in câu nhắc xoá thư mục dữ liệu (ADR-0007 mục 4).
+Dữ liệu của Lab là giả lập nên không có bộ chuyển đổi.
 
 ## Trang điều khiển
 
@@ -292,6 +294,7 @@ Khoá của nơi gọi `lab-console` không tính: console cấp chúng lúc kh�
 ## Trang xác nhận
 
 Một người xác nhận đề xuất trong trình duyệt.
+Thẻ liệt kê từng mục của đề xuất: mã task, trường, giá trị cũ và giá trị đề xuất; sau khi ghi, cột Kết quả nói từng mục đã ghi hay bị bỏ qua.
 Mở link mà đề xuất trả về (`<địa chỉ gốc>/xac-nhan/<mã đề xuất>`), chọn nhân vật và dán mật khẩu trang `trang_` của nhân vật đó ở `/dang-nhap`.
 Khoá công cụ `lab_` bị từ chối như mật khẩu sai, vì nơi gọi công cụ không được giữ thứ mở được trang (ADR-0008).
 Đăng nhập này là giả lập và hết hạn sau 15 phút.
@@ -300,21 +303,31 @@ Lúc bấm Gửi, cổng kiểm lại mật khẩu trang của phiên và khoá 
 
 ## Đường ghi
 
-Ba bước: AI soạn đề xuất, người yêu cầu bấm Gửi trên trang của cổng, cổng gửi một lệnh ghi tới danh sách task.
+Ba bước: AI soạn đề xuất, người yêu cầu bấm Gửi trên trang của cổng, cổng gửi một lệnh ghi cho mỗi mục tới hệ thống đích.
+Một đề xuất chứa từ một tới 50 mục, mỗi mục một task; đề xuất một task là trường hợp một mục.
 
-- `propose_task_change` đọc task, hỏi bộ luật quyền, lưu đề xuất cùng số phiên bản của task lúc soạn và một dấu vân tay nội dung; chưa ghi gì vào task.
-- Bấm Gửi kiểm lại khoá, người trong danh bạ, luật, hạn 30 phút và dấu vân tay.
+- `propose_task_change` nhận `task_ids` (1 tới 50 mã) và một nhóm `changes`, đọc mọi task bằng một lời gọi danh sách, rồi lưu một đề xuất với một dòng cho mỗi mục: vị trí, loại bản ghi, mã, số phiên bản, giá trị cũ và thay đổi.
+  Dấu vân tay tính trên danh sách mục đã sắp theo mã, nên đổi một mục là đổi dấu vân tay.
+  Tool chưa ghi gì vào task.
+- Mã nằm ngoài phạm vi đọc làm cả đề xuất bị từ chối, và câu trả lời nêu đúng các mã đó với "không tìm thấy".
+  Task đã có sẵn giá trị mới bị bỏ khỏi đề xuất và được liệt kê trong câu trả lời.
+- Bộ luật được hỏi với số mục thật, cả lúc soạn lẫn lúc bấm Gửi.
+  Số mục chạm `bulk_threshold` thì ô `bulk` quyết định, nên chị Hoa đổi người phụ trách 30 task thì câu trả lời nói việc này cần trưởng nhóm duyệt.
+  Bước duyệt chưa có trong bản này, nên câu trả lời báo cần duyệt và lần bấm Gửi bị từ chối.
+- Bấm Gửi kiểm lại khoá, người trong danh bạ, luật với đủ số mục, hạn 30 phút và dấu vân tay.
   Đề xuất sang `confirmed` bằng một câu lệnh chỉ đổi khi trạng thái còn `awaiting_confirmation`, nên hai lần bấm cùng lúc chỉ một lần thắng.
-- Trong cùng giao dịch đó, cổng tạo một dòng ở bảng `write_commands`: mã lệnh, đề xuất, task, số thứ tự 1, mã chống ghi trùng `<mã đề xuất>:1`, số phiên bản mong đợi, trạng thái `not_sent`, số lần gửi 0.
-- Trước mỗi lần PATCH, cổng ghi `sent_unknown` và tăng số lần gửi.
+- Trong cùng giao dịch đó, cổng tạo một dòng ở bảng `write_commands` cho mỗi mục: mã lệnh, đề xuất, mã bản ghi, vị trí, mã chống ghi trùng `<mã đề xuất>:<vị trí>`, số phiên bản mong đợi, trạng thái `not_sent`, số lần gửi 0.
+- Cổng gửi từng mục theo vị trí, mỗi mục một lần.
+  Trước mỗi lần PATCH, cổng ghi `sent_unknown` và tăng số lần gửi.
   2xx thì `done`; 409 hoặc 404 thì `failed` với `TARGET_CHANGED`; 422 thì `failed` với `CONTENT_CHANGED`; lỗi mạng, hết giờ hoặc 5xx thì giữ `sent_unknown` và gửi lại, tối đa ba lần gửi lại, với đúng mã cũ.
+  Một mục bị bỏ qua không chặn các mục còn lại.
 - Khi khởi động, mọi lệnh `not_sent` hoặc `sent_unknown` được gửi lại với đúng mã cũ.
   Danh sách task kiểm mã trước số phiên bản, nên lần gửi lại sau khi đã ghi nhận đúng phản hồi cũ chứ không nhận 409.
-- Trang xác nhận và `get_request_status` đọc bảng này: đã ghi ở lần gửi thứ mấy, chưa biết kết quả, hay `CHƯA THỰC HIỆN [<mã>]` kèm câu nói vì sao.
+- Trang xác nhận và `get_request_status` liệt kê từng mục và kết quả từng mục: đã ghi ở lần gửi thứ mấy, chưa biết kết quả, hay `CHƯA THỰC HIỆN [<mã>]` kèm câu nói vì sao.
   Với `TARGET_CHANGED`, cả hai nhắc nhờ AI soạn lại với dữ liệu mới.
 
-Lệnh ghi chỉ có một bước ghi thật vì bản này chỉ soạn thay đổi cho một task.
-Bảng đã có cột số thứ tự để đề xuất hàng loạt dùng lại, mỗi task một lệnh và một mã riêng.
+Danh sách mã đọc bằng một lời gọi nên 50 mục vẫn trả lời xa dưới giới hạn 60 giây của Thổ Thần.
+Mỗi mục có một lệnh và một mã chống ghi trùng riêng, nên gửi lại một mục không đụng tới các mục khác.
 
 Phép thử của đường ghi nằm ở `gateway/src/write-test.ts` và chạy trên hệ thống giả trong bộ nhớ.
 Phép thử đầu cuối `tests/src/gateway-write-test.ts` chạy ba dịch vụ thật qua cả ba lối vào, làm rơi hoặc giữ phản hồi bằng `POST /admin/faults`, đếm bằng `GET /admin/write-count`, và dừng cổng bằng SIGKILL để kiểm lần gửi lại lúc khởi động.

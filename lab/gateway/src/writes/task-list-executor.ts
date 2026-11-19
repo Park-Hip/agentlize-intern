@@ -90,9 +90,28 @@ export class TaskListExecutor implements ProposalExecutor {
     this.log = options.log ?? ((line) => console.error(line));
   }
 
+  /**
+   * One command per item, sent in position order. Each item keeps its own
+   * result, so one task that changed meanwhile does not stop the rest
+   * (ADR-0002 section 3 point 8).
+   */
   async execute(proposal: Proposal): Promise<ExecutionReceipt> {
-    const command = this.options.commands.createForProposal(proposal);
-    return this.send(command, 'WRITE.SEND');
+    const commands = this.options.commands.createForProposal(proposal);
+    for (const command of commands) {
+      await this.send(command, 'WRITE.SEND');
+    }
+    return this.summaryOf(proposal.proposalId);
+  }
+
+  /** What the page and the tool can say about the proposal as a whole, from the per-item results. */
+  private summaryOf(proposalId: string): ExecutionReceipt {
+    const commands = this.options.commands.listByProposal(proposalId);
+    const last = commands[commands.length - 1];
+    if (last === undefined) return { state: 'received' };
+    const same = (status: WriteCommand['status']): boolean => commands.every((command) => command.status === status);
+    const open = commands.some((command) => command.status === 'not_sent' || command.status === 'sent_unknown');
+    const state = same('done') ? 'done' : same('failed') ? 'failed' : open ? 'sent_unknown' : 'failed';
+    return { state, commandId: last.commandId, attempts: last.attempts, reasonCode: last.reasonCode };
   }
 
   /** Every command a previous run left open: confirmed but not sent, or sent with no answer. */
@@ -126,13 +145,18 @@ export class TaskListExecutor implements ProposalExecutor {
         this.log(`[gateway] command ${command.commandId} points at a missing proposal`);
         return receiptOf(current);
       }
+      const item = proposal.items.find((candidate) => candidate.position === current.position);
+      if (item === undefined) {
+        this.log(`[gateway] command ${command.commandId} points at a missing item`);
+        return receiptOf(current);
+      }
 
-      const write = adapterOf(this.options.adapters, 'task');
+      const write = adapterOf(this.options.adapters, item.recordType);
       const result = await write.apply({
-        id: current.taskId,
+        id: current.recordId,
         idempotencyKey: current.idempotencyKey,
         expectedVersion: current.expectedVersion,
-        changes: proposal.changes,
+        changes: item.changes,
       });
 
       switch (result.kind) {
@@ -190,7 +214,7 @@ export class TaskListExecutor implements ProposalExecutor {
       caller: proposal?.caller ?? null,
       entry: 'web',
       tool: 'write_command',
-      objectId: command.taskId,
+      objectId: command.recordId,
       outcome,
       reasonCode,
       outOfScope: false,

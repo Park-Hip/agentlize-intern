@@ -113,7 +113,7 @@ export const TOOLS = {
       input_schema: {
         type: 'object',
         properties: {
-          task_id: { type: 'string', maxLength: 40 },
+          task_ids: { type: 'array', items: { type: 'string', maxLength: 40 }, minItems: 1, maxItems: 50 },
           changes: {
             type: 'object',
             properties: {
@@ -126,7 +126,7 @@ export const TOOLS = {
             additionalProperties: false,
           },
         },
-        required: ['task_id', 'changes'],
+        required: ['task_ids', 'changes'],
         additionalProperties: false,
       },
     },
