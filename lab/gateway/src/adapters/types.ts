@@ -1,5 +1,3 @@
-import type { TableAction } from '../policy/schema.js';
-
 /** One business record as an adapter returns it: its code, its version and the stored fields. */
 export type RecordData = Readonly<Record<string, string | number>>;
 
@@ -12,6 +10,37 @@ export interface FieldSpec {
   readonly name: string;
   readonly label: string;
   readonly key?: string;
+}
+
+/**
+ * One rule action an adapter declares: the name the rule file uses, the label
+ * the console shows, how a refusal says it, and the fields it changes
+ * (ADR-0007 section 3.1). A changeable field is declared here and nowhere else.
+ */
+export interface ActionSpec {
+  readonly name: string;
+  /** The short label of the console table, for example `Sửa mô tả task`. */
+  readonly label: string;
+  /** The phrase a refusal sentence uses, for example `sửa mô tả task`. */
+  readonly phrase: string;
+  /** The fields this action changes, in the order a page shows them. */
+  readonly fields: readonly string[];
+}
+
+/**
+ * What one record type is and may change, without touching a system. The
+ * registry, the rule schema and the console read this; the adapter class adds
+ * the three calls that reach the system.
+ */
+export interface RecordDeclaration {
+  /** The record type the rule file names, for example `task` or `employee`. */
+  readonly type: string;
+  /** The Vietnamese name a page or a sentence shows, for example `Task`. */
+  readonly label: string;
+  readonly fields: readonly FieldSpec[];
+  /** The field holding the department that owns the record. */
+  readonly ownerField: string;
+  readonly actions: readonly ActionSpec[];
 }
 
 /** A search as a tool passes it: each adapter reads only the keys it knows. */
@@ -45,15 +74,8 @@ export type ApplyResult =
  * through one of these; the tools and the write path never name a system
  * directly (ADR-0007 section 3.1).
  */
-export interface ResourceAdapter {
-  /** The record type the adapter serves, for example `task` or `employee`. */
-  readonly type: string;
+export interface ResourceAdapter extends RecordDeclaration {
   readonly idPattern: RegExp;
-  readonly fields: readonly FieldSpec[];
-  /** The field holding the department that owns the record. */
-  readonly ownerField: string;
-  /** A changeable field and the rule action it needs. */
-  readonly changeable: Readonly<Record<string, TableAction>>;
   get(id: string): Promise<RecordData | undefined>;
   list(filter: Filter): Promise<RecordData[]>;
   apply(write: AdapterWrite): Promise<ApplyResult>;
@@ -67,4 +89,35 @@ export function recordValue(
 ): string | number | undefined {
   const field = fields.find((candidate) => candidate.name === name);
   return field === undefined ? undefined : record[field.key ?? field.name];
+}
+
+/** Every field some action changes, in declaration order and without repeats. */
+export function changeableFields(actions: readonly ActionSpec[]): readonly string[] {
+  const fields = new Set<string>();
+  for (const action of actions) {
+    for (const field of action.fields) fields.add(field);
+  }
+  return [...fields];
+}
+
+/** The action that changes one field, or undefined when the adapter does not declare it. */
+export function actionOfField(actions: readonly ActionSpec[], field: string): string | undefined {
+  return actions.find((action) => action.fields.includes(field))?.name;
+}
+
+/** How a refusal sentence says one action, or the action name when the adapter has no phrase. */
+export function actionPhrase(declaration: RecordDeclaration, action: string): string {
+  return declaration.actions.find((candidate) => candidate.name === action)?.phrase ?? action;
+}
+
+/** `Task` becomes `task` and `Nhân viên` becomes `nhân viên`, for the middle of a sentence. */
+export function recordWord(declaration: RecordDeclaration | undefined): string {
+  const label = declaration?.label;
+  if (label === undefined || label === '') return 'bản ghi';
+  return label.charAt(0).toLowerCase() + label.slice(1);
+}
+
+/** The record type name as a sentence says it, from the adapter the gateway registered. */
+export function recordWordOf(declarations: readonly RecordDeclaration[], type: string): string {
+  return recordWord(declarations.find((candidate) => candidate.type === type));
 }

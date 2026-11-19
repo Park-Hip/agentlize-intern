@@ -1,13 +1,8 @@
 import { randomBytes } from 'node:crypto';
+import type { ActionSpec } from '../adapters/types.js';
 import type { GatewayDatabase } from '../database.js';
 import type { Caller } from '../identity/index.js';
-import {
-  CHANGE_FIELDS,
-  compareRecordIds,
-  fingerprintOf,
-  type ChangeField,
-  type Changes,
-} from './fingerprint.js';
+import { compareRecordIds, fingerprintOf, type Changes } from './fingerprint.js';
 
 /** A proposal lives this long before its requester has pressed Gửi. After it the page and the status tool say it has expired. */
 export const PROPOSAL_TTL_MS = 30 * 60 * 1000;
@@ -141,7 +136,7 @@ export interface BulkCountQuery {
   readonly requester: string;
   readonly recordType: string;
   /** Action name to the fields that carry it, as `actionFields` returns them. */
-  readonly actions: Readonly<Record<string, readonly ChangeField[]>>;
+  readonly actions: Readonly<Record<string, readonly string[]>>;
   /** Start of the window; a proposal drafted before it does not count. */
   readonly since: Date;
   /**
@@ -200,12 +195,15 @@ interface ApprovalRow {
 
 const quoted = (values: readonly string[]): string => values.map((value) => `'${value}'`).join(', ');
 
-/** Keep only the four known fields, so a changed column can never carry something the task list does not take. */
+/**
+ * Keep every string field and drop everything else, so an adapter may declare
+ * a field this file never heard of and a changed column can still never carry
+ * a value of another type.
+ */
 function parseChanges(json: string): Changes {
   const raw = JSON.parse(json) as Record<string, unknown>;
-  const kept: Partial<Record<ChangeField, string>> = {};
-  for (const field of CHANGE_FIELDS) {
-    const value = raw[field];
+  const kept: Record<string, string> = {};
+  for (const [field, value] of Object.entries(raw)) {
     if (typeof value === 'string') kept[field] = value;
   }
   return kept;
@@ -280,16 +278,11 @@ export function effectiveStatus(proposal: Proposal, now: Date): ProposalStatus {
  */
 export function actionFields(
   changes: Changes,
-  changeable: Readonly<Record<string, string>>,
-): Record<string, ChangeField[]> {
-  const asked = new Set<string>();
-  for (const field of CHANGE_FIELDS) {
-    const action = changeable[field];
-    if (action !== undefined && changes[field] !== undefined) asked.add(action);
-  }
-  const groups: Record<string, ChangeField[]> = {};
-  for (const action of asked) {
-    groups[action] = CHANGE_FIELDS.filter((field) => changeable[field] === action);
+  actions: readonly ActionSpec[],
+): Record<string, readonly string[]> {
+  const groups: Record<string, readonly string[]> = {};
+  for (const action of actions) {
+    if (action.fields.some((field) => changes[field] !== undefined)) groups[action.name] = [...action.fields];
   }
   return groups;
 }

@@ -56,12 +56,20 @@ Bộ tiếp hợp hệ thống (system adapter) là phần mã của cổng nói
 Mỗi bộ tiếp hợp là một module trong `lab/gateway/src/adapters/` và khai báo các loại bản ghi của hệ thống đó:
 
 ```ts
+interface ActionSpec {
+  readonly name: string;                 // 'change_task_assignee_or_due', tên hành động trong file luật
+  readonly label: string;                // 'Đổi người phụ trách hoặc hạn', nhãn trên console
+  readonly phrase: string;               // 'đổi người phụ trách hoặc hạn của task', câu từ chối
+  readonly fields: readonly string[];    // ['assignee', 'due'], các trường hành động này sửa
+}
+
 interface ResourceAdapter {
   readonly type: string;                       // 'task', 'employee'
+  readonly label: string;                      // 'Task', 'Nhân viên'
   readonly idPattern: RegExp;
-  readonly fields: readonly FieldSpec[];       // tên, nhãn tiếng Việt, có phải dữ liệu cá nhân không
+  readonly fields: readonly FieldSpec[];       // tên, nhãn tiếng Việt, khóa trong hệ thống
   readonly ownerField: string;                 // trường cho biết bản ghi thuộc phòng nào, ví dụ 'department'
-  readonly changeable: Readonly<Record<string, string>>; // trường sửa được -> hành động trong luật
+  readonly actions: readonly ActionSpec[];     // hành động của loại bản ghi, kèm trường sửa được
   get(id: string): Promise<RecordData | undefined>;
   list(filter: Filter): Promise<RecordData[]>;
   apply(write: { id: string; idempotencyKey: string; expectedVersion: number; changes: Changes }): Promise<ApplyResult>;
@@ -69,6 +77,8 @@ interface ResourceAdapter {
 ```
 
 - `ApplyResult` giữ năm kết quả của `TaskPatchResult` hôm nay: đã ghi, xung đột phiên bản, không có bản ghi, bị từ chối, không rõ kết quả.
+- Trường sửa được suy ra từ `actions`, không khai riêng, nên thêm một trường chỉ là thêm nó vào một hành động của bộ tiếp hợp.
+- Bộ luật, thẻ xác nhận, câu trả lời `get_request_status` và console đọc tên hành động cùng nhãn từ đây, không giữ bảng riêng.
 - Hệ thống đích phải nhận mã chống ghi trùng và số phiên bản, đúng điều kiện ở [ADR-0002, mục 4](adr-0002-safe-read-and-write.md#4-hệ-quả).
   Danh bạ giả hiện chưa nhận mã chống ghi trùng, nên phải thêm trước khi nối vào đường ghi chung.
 - Interface `Systems` bị bỏ; tool và đường ghi lấy bộ tiếp hợp từ một danh sách đăng ký duy nhất.
@@ -91,7 +101,7 @@ Mỗi ô là một vai với một hành động, gồm hiệu lực, phạm vi 
       "read": { "intern": "own_department", "staff": "own_department", "lead": "own_department", "hr": "own_department" },
       "fields": { "staff": ["id", "title", "description", "department", "assignee", "status", "due"] },
       "actions": {
-        "change_assignee_or_due": {
+        "change_task_assignee_or_due": {
           "intern": { "effect": "deny" },
           "staff": { "effect": "allow", "scope": "own_department", "bulk": "needs_approval" },
           "lead": { "effect": "allow", "scope": "own_department", "bulk": "allow" },
@@ -117,6 +127,7 @@ Mỗi ô là một vai với một hành động, gồm hiệu lực, phạm vi 
 - **Ô chưa khai là "không được".**
   Bộ tiếp hợp mới thêm hành động mà file luật chưa có ô thì hành động đó bị từ chối, kèm mã luật `<loại>.<hành động>.<vai>.undeclared`, và console hiện "chưa khai".
   Khoá trong file mà không bộ tiếp hợp nào khai (gõ sai tên) làm cả file hỏng, và mọi lệnh bị từ chối với `POLICY_UNAVAILABLE`, theo SR5 (không chắc thì chặn).
+  Cổng dựng schema của file luật từ danh sách đăng ký bộ tiếp hợp mà nó đang chạy, nên danh sách đó là nguồn duy nhất của tên hành động hợp lệ.
 - **File kiểu cũ không được tự đổi.**
   Cổng gặp file `rules.json` không có `schema: 2` thì coi như file hỏng; người vận hành bấm "về bản gốc" trên console.
   Dữ liệu của Lab là giả lập nên không viết bộ chuyển đổi.
@@ -164,12 +175,14 @@ Hàng đợi lệnh ghi (outbox) là bảng lệnh ghi đã có, cộng một v�
 Sau ADR này, thêm một hệ thống, ví dụ đơn nghỉ phép, gồm bốn bước:
 
 1. Hệ thống nhận mã chống ghi trùng và số phiên bản ở mỗi lệnh ghi.
-2. Viết một bộ tiếp hợp trong `lab/gateway/src/adapters/` và thêm nó vào danh sách đăng ký.
-3. Khai trường, phạm vi đọc và các ô hành động cho loại bản ghi mới trong file luật.
+2. Viết một bộ tiếp hợp trong `lab/gateway/src/adapters/`, khai loại bản ghi, nhãn tiếng Việt, trường, trường phòng và từng hành động (tên trong luật, nhãn, câu từ chối, các trường hành động sửa), rồi thêm nó vào danh sách đăng ký.
+3. Khai phạm vi đọc, trường được xem và các ô của những hành động đó cho loại bản ghi mới trong file luật.
 4. Viết tool cho từng việc nghiệp vụ, mỗi tool một file, và thêm ca của loại bản ghi mới vào bảng phép thử nghiệm thu.
 
-Không phải sửa danh tính, cửa `/mcp`, bộ luật, bảng đề xuất, hàng đợi lệnh ghi, các trang, vết hay console.
+Không phải sửa danh tính, cửa `/mcp`, lõi bộ luật, bảng đề xuất, hàng đợi lệnh ghi, các trang, thẻ xác nhận, câu trả lời `get_request_status`, vết hay console.
+Bộ luật kiểm tra tên hành động theo danh sách đăng ký, còn thẻ xác nhận, câu trả lời trạng thái và console đọc nhãn từ bộ tiếp hợp.
 Bằng chứng là danh bạ: chị Nhung sửa email công việc của một nhân viên qua `propose_employee_change`, đi đúng đường ghi của task.
+Phép thử `lab/gateway/src/adapters/declared-fields-test.ts` thêm trường `badge` và hành động `edit_badge` vào bộ tiếp hợp danh bạ trong bộ nhớ, rồi soạn và ghi được trường đó mà không sửa `proposals/`, `policy/schema.ts`, `web/` hay `console/`.
 
 **Kết luận:** lõi của cổng không còn biết tới task; task và danh bạ chỉ là hai bộ tiếp hợp.
 
@@ -179,7 +192,7 @@ Bằng chứng là danh bạ: chị Nhung sửa email công việc của một n
 - Mã đã dựng bị viết lại ở bộ luật, bảng đề xuất, bộ thực thi và màn hình luật của console; phép thử của mốc 1 và mốc 2 đổi theo tham số `task_ids`.
 - Bảng đề xuất đổi cấu trúc; cổng gặp `gateway.sqlite` kiểu cũ thì dừng và báo người vận hành xoá thư mục dữ liệu, vì dữ liệu là giả lập.
 - Console hiện và sửa được trường của task; dòng "trường của task cố định trong mã" ở [ADR-0006, mục 3.4](adr-0006-operator-console.md#34-sửa-quyền-và-trường) đọc theo ADR này.
-  Danh sách loại bản ghi và hành động vẫn đến từ mã của bộ tiếp hợp, nên console vẫn không thêm được hành động mới.
+  Danh sách loại bản ghi, hành động và nhãn của chúng đến từ mã của bộ tiếp hợp, nên console vẫn không thêm được hành động mới.
 - Một trưởng nhóm bị thu hồi khoá sau khi duyệt không chặn được việc đang chạy nền; thu hồi chỉ có hiệu lực với lần bấm sau.
 - Mốc 3 trễ khoảng một tuần, sang đầu tuần 4 ([spec, mục 9](../../rd/design/mvp-spec.md#9-bốn-mốc)).
 - Các issue dựng: bộ tiếp hợp; luật dạng dữ liệu và màn hình luật; đề xuất nhiều mục; hàng đợi lệnh ghi; chặn tách nhỏ; sửa danh bạ qua đường ghi chung; phép thử mốc 3.
@@ -191,6 +204,7 @@ Bằng chứng là danh bạ: chị Nhung sửa email công việc của một n
 | Điều cần đúng | Phép thử |
 | --- | --- |
 | Thêm loại bản ghi không sửa lõi | PR thêm `propose_employee_change` không sửa file nào trong `proposals/`, `writes/`, `policy/engine.ts`, `web/` hay `mcp.ts` |
+| Bộ tiếp hợp tự khai trường sửa được và nhãn hành động | Phép thử thêm trường `badge` và hành động `edit_badge` vào bộ tiếp hợp danh bạ trong bộ nhớ: soạn và ghi được trường đó mà không sửa `proposals/`, `policy/schema.ts`, `web/` hay `console/` |
 | Chia nhỏ không né được duyệt | Chị Hoa soạn và bấm Gửi 5 đề xuất một task trong 60 phút: đề xuất thứ 5 chờ duyệt; 0 lần ghi cho đề xuất đó trước khi anh Quang duyệt |
 | Ô chưa khai là "không được" | Xoá một ô khỏi file luật: hành động đó bị từ chối với mã luật `.undeclared`; các hành động khác vẫn chạy |
 | Tên gõ sai làm file hỏng | Thêm loại bản ghi `tsak` vào file luật: mọi lệnh bị từ chối với `POLICY_UNAVAILABLE` |

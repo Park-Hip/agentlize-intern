@@ -1,24 +1,27 @@
 import { z } from 'zod';
+import { ADAPTER_DECLARATIONS, actionsByType } from '../adapters/registry.js';
+import type { RecordDeclaration } from '../adapters/types.js';
 
 /**
- * The record types the gateway knows and the actions each adapter declares
- * (ADR-0007 section 3.2). A key in the rule file that is not listed here is a
- * typo, and a typo makes the whole file invalid instead of silently denying.
+ * The action names of each record type, from the adapters the gateway ships
+ * with (ADR-0007 section 3.2). A key in the rule file that no adapter declares
+ * is a typo, and a typo makes the whole file invalid instead of silently
+ * denying. A running gateway builds its own map from the adapters it started
+ * with, so a test adapter may declare an action of its own.
  */
-export const RESOURCE_ACTIONS = {
-  task: ['edit_task_description', 'change_task_status', 'change_task_assignee_or_due'],
-  employee: ['edit_work_email'],
-} as const;
+export const RESOURCE_ACTIONS = actionsByType(ADAPTER_DECLARATIONS);
 
-export type ResourceType = keyof typeof RESOURCE_ACTIONS;
-export type TableAction = (typeof RESOURCE_ACTIONS)[ResourceType][number];
-
-export const TABLE_ACTIONS: readonly TableAction[] = Object.values(RESOURCE_ACTIONS).flat();
+export const TABLE_ACTIONS: readonly string[] = [...new Set(Object.values(RESOURCE_ACTIONS).flat())];
 
 /** Reading one employee field is a question of its own, not a cell of the action table. */
 export const READ_EMPLOYEE_FIELD = 'read_employee_field';
-export const ACTIONS = [READ_EMPLOYEE_FIELD, ...TABLE_ACTIONS] as const;
-export type PolicyAction = (typeof ACTIONS)[number];
+
+/** Everything the rule file can name: the employee-field read and every action of every adapter. */
+export const ACTIONS: readonly string[] = [READ_EMPLOYEE_FIELD, ...TABLE_ACTIONS];
+
+/** An action name from an adapter. The adapter registry decides which names exist. */
+export type TableAction = string;
+export type PolicyAction = string;
 
 const effectSchema = z.enum(['allow', 'deny', 'needs_approval']);
 const scopeSchema = z.enum(['own_department', 'any']);
@@ -67,53 +70,62 @@ export const approvalSchema = z.strictObject({
  * Shape of `rules.json`, schema 2 (ADR-0007 section 3.2). Strict at every
  * level, so a misspelt record type, action or role makes the whole file
  * invalid and every command is refused with `POLICY_UNAVAILABLE`.
+ *
+ * `declarations` is the adapter registry the gateway is running with, so a
+ * new adapter action is a valid rule name without editing this file.
  */
-export const rulesSchema = z
-  .strictObject({
-    schema: z.literal(2),
-    version: z.number().int().positive(),
-    approval: approvalSchema,
-    cumulative_window_minutes: z.number().int().positive(),
-    resources: z.record(z.string().min(1), resourceSchema),
-  })
-  .superRefine((rules, ctx) => {
-    const types = Object.keys(rules.resources);
-    if (types.length === 0) {
-      ctx.addIssue({ code: 'custom', message: 'resources must not be empty', path: ['resources'] });
-      return;
-    }
-
-    let roleSet: readonly string[] | undefined;
-    for (const type of types) {
-      const resource = rules.resources[type];
-      if (resource === undefined) continue;
-      const path = ['resources', type];
-
-      if (!Object.hasOwn(RESOURCE_ACTIONS, type)) {
-        ctx.addIssue({ code: 'custom', message: `unknown record type "${type}"`, path });
-        continue;
+export function createRulesSchema(declarations: readonly RecordDeclaration[] = ADAPTER_DECLARATIONS) {
+  const knownActions = actionsByType(declarations);
+  return z
+    .strictObject({
+      schema: z.literal(2),
+      version: z.number().int().positive(),
+      approval: approvalSchema,
+      cumulative_window_minutes: z.number().int().positive(),
+      resources: z.record(z.string().min(1), resourceSchema),
+    })
+    .superRefine((rules, ctx) => {
+      const types = Object.keys(rules.resources);
+      if (types.length === 0) {
+        ctx.addIssue({ code: 'custom', message: 'resources must not be empty', path: ['resources'] });
+        return;
       }
-      const knownActions: readonly string[] = RESOURCE_ACTIONS[type as ResourceType];
-      for (const action of Object.keys(resource.actions)) {
-        if (!knownActions.includes(action)) {
-          ctx.addIssue({ code: 'custom', message: `unknown action "${action}" for "${type}"`, path: [...path, 'actions', action] });
+
+      let roleSet: readonly string[] | undefined;
+      for (const type of types) {
+        const resource = rules.resources[type];
+        if (resource === undefined) continue;
+        const path = ['resources', type];
+
+        const actions = Object.hasOwn(knownActions, type) ? knownActions[type] : undefined;
+        if (actions === undefined) {
+          ctx.addIssue({ code: 'custom', message: `unknown record type "${type}"`, path });
+          continue;
+        }
+        for (const action of Object.keys(resource.actions)) {
+          if (!actions.includes(action)) {
+            ctx.addIssue({ code: 'custom', message: `unknown action "${action}" for "${type}"`, path: [...path, 'actions', action] });
+          }
+        }
+
+        const roles = Object.keys(resource.read).sort();
+        if (roleSet === undefined) {
+          roleSet = roles;
+        } else if (roleSet.length !== roles.length || !roleSet.every((role, i) => role === roles[i])) {
+          ctx.addIssue({ code: 'custom', message: 'every record type must list the same roles', path });
         }
       }
 
-      const roles = Object.keys(resource.read).sort();
-      if (roleSet === undefined) {
-        roleSet = roles;
-      } else if (roleSet.length !== roles.length || !roleSet.every((role, i) => role === roles[i])) {
-        ctx.addIssue({ code: 'custom', message: 'every record type must list the same roles', path });
+      for (const role of rules.approval.approver_roles) {
+        if (roleSet !== undefined && !roleSet.includes(role)) {
+          ctx.addIssue({ code: 'custom', message: `approver role "${role}" is not a role of the file`, path: ['approval', 'approver_roles'] });
+        }
       }
-    }
+    });
+}
 
-    for (const role of rules.approval.approver_roles) {
-      if (roleSet !== undefined && !roleSet.includes(role)) {
-        ctx.addIssue({ code: 'custom', message: `approver role "${role}" is not a role of the file`, path: ['approval', 'approver_roles'] });
-      }
-    }
-  });
+/** The shape the shipped gateway validates against. */
+export const rulesSchema = createRulesSchema();
 
 export type Rules = z.infer<typeof rulesSchema>;
 export type ActionCell = z.infer<typeof cellSchema>;

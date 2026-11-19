@@ -1,10 +1,17 @@
 import { EMPLOYEE_ID_PATTERN } from '@lab/shared';
 import { z } from 'zod';
-import { adapterOf, recordValue, type RecordData } from '../adapters/index.js';
+import {
+  actionOfField,
+  actionPhrase,
+  adapterOf,
+  recordValue,
+  type RecordData,
+  type RecordDeclaration,
+} from '../adapters/index.js';
 import { refuse } from '../call.js';
-import { ACTION_PHRASE, RULE_IDS, type PolicyDecision, type TableAction } from '../policy/index.js';
+import { RULE_IDS, type PolicyDecision } from '../policy/index.js';
 import { formatMoment, itemRows } from '../proposals/card.js';
-import { approvalRoster, approverSentence, waitText } from '../proposals/index.js';
+import { actionFields, approvalRoster, approverSentence, waitText } from '../proposals/index.js';
 import { wrapSystemData } from './block.js';
 import { defineTool } from './read-tools.js';
 import type { RegisteredTool, ToolContext, ToolResult } from './types.js';
@@ -33,9 +40,10 @@ async function rosterFor(context: ToolContext): Promise<Awaited<ReturnType<typeo
 /** Why the rule file said no, in the words the caller needs to act on. */
 async function refusalForDecision(
   decision: PolicyDecision,
-  action: TableAction,
+  action: string,
   context: ToolContext,
   objectId: string,
+  declaration: RecordDeclaration,
 ): Promise<ToolResult> {
   const { actor } = context;
   const extra = { objectId, policyVersion: decision.policyVersion } as const;
@@ -59,7 +67,7 @@ async function refusalForDecision(
     roster.approvers.length > 0
       ? `Hãy hỏi ${roster.approvers.map((person) => person.name).join(' hoặc ')}, trưởng nhóm ${actor.department}.`
       : `Hãy hỏi trưởng nhóm ${actor.department}.`;
-  const what = ACTION_PHRASE[action];
+  const what = actionPhrase(declaration, action);
 
   if (decision.ruleId.endsWith('.undeclared')) {
     return {
@@ -128,7 +136,7 @@ const proposeEmployeeChange = defineTool(
       };
     }
 
-    const action = directory.changeable['work_email'];
+    const action = actionOfField(directory.actions, 'work_email');
     if (action === undefined) {
       return {
         status: 500,
@@ -144,7 +152,7 @@ const proposeEmployeeChange = defineTool(
     const carried = proposals.countTowardBulk({
       requester: actor.employeeId,
       recordType: directory.type,
-      actions: { [action]: ['work_email'] },
+      actions: actionFields({ work_email: args.work_email }, directory.actions),
       since: new Date(context.now().getTime() - windowMinutes * 60_000),
       includeAwaitingPress: true,
     });
@@ -154,7 +162,7 @@ const proposeEmployeeChange = defineTool(
       object: { kind: directory.type, department, taskCount: 1, carriedItems: carried[action] ?? 0 },
       context: { scope: actor.identity.scope === 'read_only' ? 'read_only' : 'read_write', caller: actor.identity.caller },
     });
-    if (decision.effect === 'deny') return refusalForDecision(decision, action, context, objectId);
+    if (decision.effect === 'deny') return refusalForDecision(decision, action, context, objectId, directory);
 
     const requiresApproval = decision.effect === 'needs_approval';
     const proposal = proposals.create({

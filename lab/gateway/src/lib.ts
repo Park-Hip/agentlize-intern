@@ -19,6 +19,8 @@ export * from './identity/index.js';
 export * from './policy/index.js';
 export * from './trace/index.js';
 export { PROPOSAL_ID_PATTERN } from './proposals/proposal-store.js';
+export { ADAPTER_DECLARATIONS, actionsByType } from './adapters/registry.js';
+export type { ActionSpec, RecordDeclaration } from './adapters/types.js';
 export { DIRECTORY_KEY, EMPLOYEE_FIELD_LABELS } from './adapters/directory.js';
 export { TASK_FIELDS } from './adapters/tasks.js';
 export type { TaskField } from './adapters/tasks.js';

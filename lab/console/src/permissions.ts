@@ -1,9 +1,10 @@
 import { DEPARTMENTS, ROLES } from '@lab/shared';
 import {
   ACTIONS,
+  ADAPTER_DECLARATIONS,
   DIRECTORY_KEY,
   EMPLOYEE_FIELD_LABELS,
-  RESOURCE_ACTIONS,
+  READ_EMPLOYEE_FIELD,
   rulesSchema,
   TASK_FIELDS,
   type ActionCell,
@@ -12,9 +13,7 @@ import {
   type PolicyEffect,
   type PolicyInput,
   type ReadScope,
-  type ResourceType,
   type Rules,
-  type TableAction,
 } from '@lab/gateway';
 import { roleLabel, type PersonaChoice } from './data.js';
 import type { Employee } from './upstream.js';
@@ -36,29 +35,27 @@ export const SCOPE_LABEL: Readonly<Record<ReadScope, string>> = {
   any: 'Mọi phòng',
 };
 
-/** The record types the console draws, in the order it draws them. */
-export const RESOURCE_ORDER = ['task', 'employee'] as const;
+/** The record types the console draws, in the order the adapters declare them. */
+export const RESOURCE_ORDER: readonly string[] = ADAPTER_DECLARATIONS.map((declaration) => declaration.type);
 
-export const RESOURCE_LABEL: Readonly<Record<string, string>> = {
-  task: 'Task',
-  employee: 'Nhân viên',
-};
+export const RESOURCE_LABEL: Readonly<Record<string, string>> = Object.fromEntries(
+  ADAPTER_DECLARATIONS.map((declaration) => [declaration.type, declaration.label] as const),
+);
 
-export const ACTION_LABEL: Readonly<Record<PolicyAction, string>> = {
-  read_employee_field: 'Xem một trường của nhân viên',
-  edit_task_description: 'Sửa mô tả task',
-  change_task_status: 'Đổi trạng thái task',
-  change_task_assignee_or_due: 'Đổi người phụ trách hoặc hạn',
-  edit_work_email: 'Sửa email công việc',
+/** The console labels, read from the adapters; the one read question is not an adapter action. */
+export const ACTION_LABEL: Readonly<Record<string, string>> = {
+  [READ_EMPLOYEE_FIELD]: 'Xem một trường của nhân viên',
+  ...Object.fromEntries(
+    ADAPTER_DECLARATIONS.flatMap((declaration) =>
+      declaration.actions.map((action) => [action.name, action.label] as const),
+    ),
+  ),
 };
 
 /** The fields are named as the rule file names them; this is the reverse of the gateway map. */
 const RULE_FIELD: Readonly<Record<string, string>> = Object.fromEntries(
   Object.entries(DIRECTORY_KEY).map(([ruleName, directoryKey]) => [directoryKey, ruleName]),
 );
-
-/** The task fields a rule file may declare; the record version is not one of them. */
-const TASK_RULE_FIELDS: readonly string[] = TASK_FIELDS.filter((field) => field.name !== 'version').map((field) => field.name);
 
 function orderFields(fields: Iterable<string>): readonly string[] {
   const known = Object.keys(EMPLOYEE_FIELD_LABELS);
@@ -91,8 +88,8 @@ export function resourceTypes(rules: Rules): readonly string[] {
 }
 
 /** The actions the adapters declare for one record type; a typo in the file never reaches here. */
-export function actionsOf(type: string): readonly TableAction[] {
-  return Object.hasOwn(RESOURCE_ACTIONS, type) ? RESOURCE_ACTIONS[type as ResourceType] : [];
+export function actionsOf(type: string): readonly string[] {
+  return ADAPTER_DECLARATIONS.find((declaration) => declaration.type === type)?.actions.map((action) => action.name) ?? [];
 }
 
 /**
@@ -166,7 +163,7 @@ export interface ResourceView {
   readonly type: string;
   readonly label: string;
   readonly bulkThreshold: number;
-  readonly actions: readonly TableAction[];
+  readonly actions: readonly string[];
 }
 
 export interface ApprovalView {
@@ -268,7 +265,13 @@ export function rulesFromForm(
       read[role] = scope;
     }
 
-    const catalog = type === 'employee' ? fields : type === 'task' ? TASK_RULE_FIELDS : undefined;
+    const declaration = ADAPTER_DECLARATIONS.find((candidate) => candidate.type === type);
+    const catalog =
+      type === 'employee'
+        ? fields
+        : declaration === undefined
+          ? undefined
+          : declaration.fields.filter((field) => field.name !== 'version').map((field) => field.name);
     const fieldLists: Record<string, string[]> = {};
     for (const role of roles) {
       const submitted = form.getAll(`fields.${type}.${role}`);

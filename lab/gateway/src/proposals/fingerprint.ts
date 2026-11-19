@@ -1,15 +1,11 @@
 import { createHash } from 'node:crypto';
 
 /**
- * The fields a proposal may change, in the order a card shows them.
- * The adapter of the record type decides which ones apply: `work_email`
- * belongs to the directory, the other four to the task list (ADR-0007 section 3.6).
+ * The normalised content of one item: only the fields that differ from what
+ * the system holds. A field is any name an adapter declares as changeable, so
+ * a new field needs no edit here (ADR-0007 section 3.6).
  */
-export const CHANGE_FIELDS = ['assignee', 'due', 'description', 'status', 'work_email'] as const;
-export type ChangeField = (typeof CHANGE_FIELDS)[number];
-
-/** The normalised content of one item: only the fields that differ from what the system holds. */
-export type Changes = Readonly<Partial<Record<ChangeField, string>>>;
+export type Changes = Readonly<Partial<Record<string, string>>>;
 
 /** One item as the fingerprint sees it: the record that would change and what would change. */
 export interface FingerprintItem {
@@ -32,17 +28,17 @@ export function compareRecordIds(left: string, right: string): number {
   return left.localeCompare(right, 'en', { numeric: true, sensitivity: 'base' });
 }
 
-function ordered(changes: Changes): readonly (readonly [ChangeField, string])[] {
-  return CHANGE_FIELDS.flatMap((field) => {
-    const value = changes[field];
-    return value === undefined ? [] : [[field, value] as const];
-  });
+/** Every field of an item, in name order, so the same changes always hash the same way. */
+function ordered(changes: Changes): readonly (readonly [string, string])[] {
+  return Object.entries(changes)
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+    .flatMap(([field, value]) => (value === undefined ? [] : [[field, value] as const]));
 }
 
 /**
- * SHA-256 of every item, sorted by record code, with the fields in a fixed
- * order. The same items always give the same print, whichever order the agent
- * sent them in, and changing one item always changes it (ADR-0007 section 3.3).
+ * SHA-256 of every item, sorted by record code, with the fields in name order.
+ * The same items always give the same print, whichever order the agent sent
+ * them in, and changing one item always changes it (ADR-0007 section 3.3).
  */
 export function fingerprintOf(items: readonly FingerprintItem[]): string {
   const sorted = [...items].sort((left, right) => compareRecordIds(left.recordId, right.recordId));

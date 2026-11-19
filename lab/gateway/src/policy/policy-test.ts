@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { EMPLOYEE_CHANGEABLE, TASK_CHANGEABLE } from '../adapters/index.js';
+import { EMPLOYEE_ACTIONS, TASK_ACTIONS } from '../adapters/index.js';
 import { createPolicyEngine, DEFAULT_RULES_PATH, RESOURCE_ACTIONS, RULE_IDS } from './index.js';
 import type { PolicyEffect, PolicyEngine, PersonRef } from './index.js';
 
@@ -270,8 +270,8 @@ test('policy file: the file declares read scope and fields for every role of eve
 });
 
 test('policy vocabulary: the schema actions are the actions the adapters declare', () => {
-  assert.deepEqual([...new Set(Object.values(TASK_CHANGEABLE))].sort(), [...RESOURCE_ACTIONS.task].sort());
-  assert.deepEqual([...new Set(Object.values(EMPLOYEE_CHANGEABLE))].sort(), [...RESOURCE_ACTIONS.employee].sort());
+  assert.deepEqual(TASK_ACTIONS.map((action) => action.name), [...(RESOURCE_ACTIONS['task'] ?? [])]);
+  assert.deepEqual(EMPLOYEE_ACTIONS.map((action) => action.name), [...(RESOURCE_ACTIONS['employee'] ?? [])]);
 });
 
 test('policy read: task reads are own department, employee reads are any department', () => {

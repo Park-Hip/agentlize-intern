@@ -1,8 +1,8 @@
 import type { ReasonCode } from '@lab/shared';
-import type { RecordData, ResourceAdapter } from '../adapters/index.js';
+import { actionOfField, type RecordData, type ResourceAdapter } from '../adapters/index.js';
 import type { KeyRecord } from '../identity/index.js';
 import { RULE_IDS, strictestOf, type PolicyDecision, type PolicyEngine } from '../policy/index.js';
-import { CHANGE_FIELDS, type Proposal } from '../proposals/index.js';
+import type { Proposal } from '../proposals/index.js';
 
 /** The checks that must pass again at the moment a person presses Gửi (ADR-0002 section 3 point 4). */
 export interface WriteCheckInput {
@@ -98,9 +98,8 @@ export function checkWrite(input: WriteCheckInput): WriteCheck {
 
   const actions = [
     ...new Set(
-      CHANGE_FIELDS.flatMap((field) => {
-        if (proposal.changes[field] === undefined) return [];
-        const action = adapter.changeable[field];
+      Object.entries(proposal.changes).flatMap(([field]) => {
+        const action = actionOfField(adapter.actions, field);
         return action === undefined ? [] : [action];
       }),
     ),

@@ -1,13 +1,4 @@
 import type { PolicyDecision, PolicyEffect } from './types.js';
-import type { TableAction } from './schema.js';
-
-/** How an action is said in a refusal sentence. */
-export const ACTION_PHRASE: Readonly<Record<TableAction, string>> = {
-  edit_task_description: 'sửa mô tả task',
-  change_task_status: 'đổi trạng thái task',
-  change_task_assignee_or_due: 'đổi người phụ trách hoặc hạn của task',
-  edit_work_email: 'sửa email công việc của nhân viên',
-};
 
 /** Higher is stricter. Mirrors the engine: "no" beats "needs approval" beats "yes". */
 const STRICTNESS: Readonly<Record<PolicyEffect, number>> = { allow: 0, needs_approval: 1, deny: 2 };

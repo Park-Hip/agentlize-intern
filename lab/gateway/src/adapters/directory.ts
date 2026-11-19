@@ -1,8 +1,15 @@
 import { EMPLOYEE_ID_PATTERN } from '@lab/shared';
 import { z } from 'zod';
-import type { TableAction } from '../policy/schema.js';
 import { HttpSystem, type HttpSystemOptions } from './http.js';
-import type { AdapterWrite, ApplyResult, FieldSpec, Filter, ResourceAdapter } from './types.js';
+import type {
+  ActionSpec,
+  AdapterWrite,
+  ApplyResult,
+  FieldSpec,
+  Filter,
+  RecordDeclaration,
+  ResourceAdapter,
+} from './types.js';
 
 /** One employee as the directory returns it: the code, the version and the stored fields. */
 export type EmployeeRecord = Readonly<Record<string, string | number>>;
@@ -32,9 +39,26 @@ export const EMPLOYEE_FIELD_LABELS: Readonly<Record<string, string>> = Object.fr
   EMPLOYEE_FIELDS.map((field) => [field.name, field.label] as const),
 );
 
-/** A changeable employee field and the rule action it needs. */
-export const EMPLOYEE_CHANGEABLE: Readonly<Record<string, TableAction>> = {
-  work_email: 'edit_work_email',
+/**
+ * The rule actions of an employee and the fields each one changes. A new
+ * changeable field is added here, with its action, and nowhere else in the
+ * gateway (ADR-0007 sections 3.1 and 3.6).
+ */
+export const EMPLOYEE_ACTIONS: readonly ActionSpec[] = [
+  {
+    name: 'edit_work_email',
+    label: 'Sửa email công việc',
+    phrase: 'sửa email công việc của nhân viên',
+    fields: ['work_email'],
+  },
+];
+
+export const EMPLOYEE_DECLARATION: RecordDeclaration = {
+  type: 'employee',
+  label: 'Nhân viên',
+  fields: EMPLOYEE_FIELDS,
+  ownerField: 'department',
+  actions: EMPLOYEE_ACTIONS,
 };
 
 const employeeSchema = z.record(z.string(), z.union([z.string(), z.number()]));
@@ -52,11 +76,12 @@ function query(filter: Filter, keys: readonly string[]): string {
 
 /** The fake directory as an adapter: reads by code or by name and department. */
 export class DirectoryAdapter implements ResourceAdapter {
-  readonly type = 'employee';
+  readonly type = EMPLOYEE_DECLARATION.type;
+  readonly label = EMPLOYEE_DECLARATION.label;
   readonly idPattern = EMPLOYEE_ID_PATTERN;
-  readonly fields = EMPLOYEE_FIELDS;
-  readonly ownerField = 'department';
-  readonly changeable = EMPLOYEE_CHANGEABLE;
+  readonly fields = EMPLOYEE_DECLARATION.fields;
+  readonly ownerField = EMPLOYEE_DECLARATION.ownerField;
+  readonly actions = EMPLOYEE_DECLARATION.actions;
   private readonly http: HttpSystem;
 
   constructor(options: HttpSystemOptions) {

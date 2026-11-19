@@ -9,15 +9,25 @@ import type { ResourceAdapter } from './types.js';
  */
 export * from './types.js';
 export { DEFAULT_SYSTEM_TIMEOUT_MS, HttpSystem, SystemUnavailableError, systemUrl } from './http.js';
+export { ADAPTER_DECLARATIONS, actionsByType } from './registry.js';
 export {
   DIRECTORY_KEY,
   DirectoryAdapter,
-  EMPLOYEE_CHANGEABLE,
+  EMPLOYEE_ACTIONS,
+  EMPLOYEE_DECLARATION,
   EMPLOYEE_FIELD_LABELS,
   EMPLOYEE_FIELDS,
 } from './directory.js';
 export type { EmployeeRecord } from './directory.js';
-export { TASK_CHANGEABLE, TASK_FIELDS, TASK_ID_PATTERN, TASK_STATUSES, TasksAdapter, taskSchema } from './tasks.js';
+export {
+  TASK_ACTIONS,
+  TASK_DECLARATION,
+  TASK_FIELDS,
+  TASK_ID_PATTERN,
+  TASK_STATUSES,
+  TasksAdapter,
+  taskSchema,
+} from './tasks.js';
 export type { TaskField, TaskRecord } from './tasks.js';
 
 export interface HttpAdaptersOptions {

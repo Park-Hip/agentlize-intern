@@ -1,6 +1,4 @@
 import { adapterOf, recordValue, SystemUnavailableError, type ResourceAdapter } from '../adapters/index.js';
-import type { ChangeField } from './fingerprint.js';
-import { CHANGE_FIELDS } from './fingerprint.js';
 import type { ProposalItem } from './proposal-store.js';
 
 /** One line of a proposal card: what the field held when the proposal was drafted and what it would become. */
@@ -26,12 +24,20 @@ export async function personLabel(adapters: readonly ResourceAdapter[], employee
 /**
  * The rows of one item, built from the values the gateway read at the time of
  * drafting and names read from the directory. Nothing here comes from words the
- * agent wrote about the proposal.
+ * agent wrote about the proposal. Fields are shown in the order the adapter
+ * declares them, so an adapter's new field appears without an edit here.
  */
 export async function itemRows(item: ProposalItem, adapters: readonly ResourceAdapter[]): Promise<CardRow[]> {
   const adapter = adapterOf(adapters, item.recordType);
+  const changed = Object.keys(item.changes);
+  const declared = adapter.fields.map((field) => field.name);
+  const order = [
+    ...declared.filter((field) => changed.includes(field)),
+    ...changed.filter((field) => !declared.includes(field)),
+  ];
+
   const rows: CardRow[] = [];
-  for (const field of CHANGE_FIELDS) {
+  for (const field of order) {
     const after = item.changes[field];
     if (after === undefined) continue;
     const before = item.previous[field] ?? '';
@@ -44,7 +50,7 @@ export async function itemRows(item: ProposalItem, adapters: readonly ResourceAd
   return rows;
 }
 
-function labelOf(adapter: ResourceAdapter, field: ChangeField): string {
+function labelOf(adapter: ResourceAdapter, field: string): string {
   return adapter.fields.find((candidate) => candidate.name === field)?.label ?? field;
 }
 

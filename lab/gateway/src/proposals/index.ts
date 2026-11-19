@@ -1,7 +1,7 @@
 export { approvalRoster, approverRefs, approverSentence, personRefs, waitText } from './approvers.js';
 export type { ApprovalRoster } from './approvers.js';
-export { CHANGE_FIELDS, compareRecordIds, fingerprintOf } from './fingerprint.js';
-export type { ChangeField, Changes, FingerprintItem } from './fingerprint.js';
+export { compareRecordIds, fingerprintOf } from './fingerprint.js';
+export type { Changes, FingerprintItem } from './fingerprint.js';
 export type { ExecutionReceipt, ProposalExecutor } from './executor.js';
 export {
   actionFields,
