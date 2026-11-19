@@ -15,6 +15,8 @@ export interface Proposal {
   readonly proposalId: string;
   readonly requester: string;
   readonly caller: Caller;
+  /** The tool key that drafted this proposal. Checked again at Gửi, so revoking it blocks the write. */
+  readonly draftedByKeyId: string | null;
   readonly tool: string;
   readonly taskId: string;
   /** What will change. Only fields that differ from the task at the time of drafting. */
@@ -34,6 +36,7 @@ export interface Proposal {
 export interface NewProposal {
   readonly requester: string;
   readonly caller: Caller;
+  readonly draftedByKeyId: string;
   readonly tool: string;
   readonly taskId: string;
   readonly changes: Changes;
@@ -54,6 +57,7 @@ interface Row {
   proposal_id: string;
   requester: string;
   caller: Caller;
+  drafted_by_key_id: string | null;
   tool: string;
   task_id: string;
   changes: string;
@@ -85,6 +89,7 @@ function toProposal(row: Row): Proposal {
     proposalId: row.proposal_id,
     requester: row.requester,
     caller: row.caller,
+    draftedByKeyId: row.drafted_by_key_id,
     tool: row.tool,
     taskId: row.task_id,
     changes: parseChanges(row.changes),
@@ -120,6 +125,7 @@ export class ProposalStore {
         proposal_id    TEXT PRIMARY KEY,
         requester      TEXT NOT NULL,
         caller         TEXT NOT NULL,
+        drafted_by_key_id TEXT,
         tool           TEXT NOT NULL,
         task_id        TEXT NOT NULL,
         changes        TEXT NOT NULL,
@@ -142,6 +148,13 @@ export class ProposalStore {
         at          TEXT NOT NULL
       );
     `);
+
+    // A table made before page passwords has no drafting key. Old rows keep
+    // null, and Gửi refuses them because it cannot check the key that wrote them.
+    const columns = db.prepare("PRAGMA table_info('proposals')").all() as { name: string }[];
+    if (!columns.some((column) => column.name === 'drafted_by_key_id')) {
+      db.exec('ALTER TABLE proposals ADD COLUMN drafted_by_key_id TEXT');
+    }
   }
 
   create(input: NewProposal): Proposal {
@@ -150,6 +163,7 @@ export class ProposalStore {
       proposal_id: `dx-${randomBytes(8).toString('hex')}`,
       requester: input.requester,
       caller: input.caller,
+      drafted_by_key_id: input.draftedByKeyId,
       tool: input.tool,
       task_id: input.taskId,
       changes: JSON.stringify(input.changes),
@@ -164,10 +178,10 @@ export class ProposalStore {
     };
     this.db
       .prepare(
-        `INSERT INTO proposals (proposal_id, requester, caller, tool, task_id, changes, previous, base_version,
-                                fingerprint, risk, policy_version, status, created_at, expires_at)
-         VALUES (@proposal_id, @requester, @caller, @tool, @task_id, @changes, @previous, @base_version,
-                 @fingerprint, @risk, @policy_version, @status, @created_at, @expires_at)`,
+        `INSERT INTO proposals (proposal_id, requester, caller, drafted_by_key_id, tool, task_id, changes, previous,
+                                base_version, fingerprint, risk, policy_version, status, created_at, expires_at)
+         VALUES (@proposal_id, @requester, @caller, @drafted_by_key_id, @tool, @task_id, @changes, @previous,
+                 @base_version, @fingerprint, @risk, @policy_version, @status, @created_at, @expires_at)`,
       )
       .run(row);
     return toProposal(row);

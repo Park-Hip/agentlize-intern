@@ -306,6 +306,8 @@ export interface GatewayFixture {
   readonly systems: StubSystems;
   /** Issue a key for an employee code and return the raw key. */
   keyFor(employeeId: string, scope?: string): string;
+  /** Issue a page password for an employee code and return the raw password. */
+  pagePasswordFor(employeeId: string): string;
   call(tool: string, args: unknown, key?: string): Promise<{ status: number; body: ToolResponse }>;
   close(): Promise<void>;
 }
@@ -341,6 +343,7 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Gatewa
     systems,
     keyFor: (employeeId, scope) =>
       gateway.keys.issue({ employeeId, caller: 'test', ...(scope === undefined ? {} : { scope }) }).rawKey,
+    pagePasswordFor: (employeeId) => gateway.pagePasswords.issue({ employeeId }).rawPassword,
     async call(tool, args, key) {
       const response = await fetch(`${gateway.url}/v1/tools/${tool}`, {
         method: 'POST',

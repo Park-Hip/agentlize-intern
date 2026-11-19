@@ -107,15 +107,15 @@ export function loginPage(next: string, error?: string, selected?: string): stri
   return layout(
     'Đăng nhập giả lập',
     `<h1>Đăng nhập giả lập</h1>
-<p class="sub">Chọn nhân vật và dán khoá riêng của nhân vật đó. Đây không phải đăng nhập thật: cổng chỉ kiểm khoá đúng người rồi cấp một phiên 15 phút.</p>
+<p class="sub">Chọn nhân vật và dán mật khẩu trang của nhân vật đó. Đây không phải đăng nhập thật: cổng chỉ kiểm mật khẩu trang đúng người rồi cấp một phiên 15 phút. Khoá công cụ <code>lab_</code> không mở được trang này.</p>
 ${error === undefined ? '' : banner(error, 'bad')}
 <form class="panel" method="post" action="/dang-nhap">
 <label for="employee">Nhân vật</label>
 <select id="employee" name="employee" required>
 ${options}
 </select>
-<label for="key">Khoá riêng</label>
-<input id="key" name="key" type="password" autocomplete="off" required placeholder="lab_...">
+<label for="password">Mật khẩu trang</label>
+<input id="password" name="password" type="password" autocomplete="off" required placeholder="trang_...">
 <input type="hidden" name="next" value="${esc(next)}">
 <button type="submit">Đăng nhập giả lập</button>
 </form>`,

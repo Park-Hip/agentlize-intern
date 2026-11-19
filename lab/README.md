@@ -8,7 +8,7 @@ Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/m
 | Gói | Vai trò |
 | --- | --- |
 | `shared` | Cổng mạng, mã lý do, câu từ chối, kiểu danh mục tool và phản hồi tool, sáu nhân vật cố định, kiểm khoá dịch vụ, che khoá trong log |
-| `gateway` | Cổng kiểm soát: `GET /health`, cửa `/mcp` (`src/mcp.ts`), module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`), bộ tiếp hợp theo hệ thống (`src/adapters/`), bộ luật quyền (`src/policy/`), ba tool đọc (`src/tools/`), đường soạn đề xuất và đường ghi (`src/proposals/`, `src/writes/`), bảng vết (`src/trace/`, lệnh `npm run trace`) |
+| `gateway` | Cổng kiểm soát: `GET /health`, cửa `/mcp` (`src/mcp.ts`), module danh tính theo khoá và mật khẩu trang (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`), bộ tiếp hợp theo hệ thống (`src/adapters/`), bộ luật quyền (`src/policy/`), ba tool đọc (`src/tools/`), đường soạn đề xuất và đường ghi (`src/proposals/`, `src/writes/`), bảng vết (`src/trace/`, lệnh `npm run trace`) |
 | `fake-directory` | Danh bạ giả 20 nhân viên, xem mục Danh bạ giả |
 | `fake-tasks` | Danh sách task giả: 100 task nạp cố định, đọc, ghi có mã chống ghi trùng và số phiên bản |
 | `console` | Trang điều khiển chỉ nghe `127.0.0.1`: tổng quan ba dịch vụ, luật đang áp, bảy danh tính, màn hình tool, màn hình quyền và trường (sửa luật, thử quyết định), sân chơi gọi thử qua cổng, dữ liệu gốc của hai hệ thống giả và bảng vết |
@@ -114,8 +114,8 @@ Năm nút kịch bản mẫu:
 
 Mỗi lần bấm dùng chung cơ chế chống giả mạo với màn hình quyền và ba nút thử: mã do console cấp cho trang và header `Origin` đúng địa chỉ console.
 Thiếu một trong hai thì trả 403 trước khi gọi cổng.
-Link xác nhận mở trang của cổng và hỏi khoá của nhân vật.
-Console không đưa khoá ra khỏi bộ nhớ, nên lúc bấm Gửi hãy dùng khoá mà `npm run seed-keys` đã in.
+Link xác nhận mở trang của cổng và hỏi mật khẩu trang của nhân vật.
+Console không giữ mật khẩu trang, nên lúc bấm Gửi hãy dùng mật khẩu `trang_` mà `npm run seed-keys` đã in; khoá công cụ `lab_` không mở được trang này.
 Kịch bản A chỉ soạn đề xuất khi T-12 chưa ở đúng người và hạn đó; sau một lần ghi, xoá thư mục dữ liệu rồi chạy lại để thấy đề xuất mới.
 
 Khoá của sân chơi: lúc khởi động, console thu hồi mọi khoá còn hiệu lực của nơi gọi `lab-console`, rồi cấp một khoá cho mỗi nhân vật và khách, cũng nơi gọi `lab-console`.
@@ -259,27 +259,33 @@ Cửa `tho-than-host` dùng client giả ở `tests/src/fake-host.ts`.
 Mỗi lời gọi mở một phiên Streamable HTTP mới (`initialize`, rồi `tools/list` hoặc `tools/call`, rồi đóng), gửi `Authorization: Bearer <khoá lab_>` cùng bốn header `x-user-id`, `x-user-email`, `x-agent-id`, `x-executor-id` giả, và cắt ở 60 giây.
 Con số 60 giây là giả định lấy từ phép đo qua stdio, chưa đo qua HTTPS; client ghi lại thời gian mở phiên và thời gian gọi để dùng cho M1.
 
-## Khoá theo người
+## Khoá theo người và mật khẩu trang
 
-Khoá của từng người nằm ở bảng `api_keys` trong `LAB_DATA_DIR/gateway.sqlite`, chỉ lưu bản băm.
+Khoá công cụ của từng người nằm ở bảng `api_keys` trong `LAB_DATA_DIR/gateway.sqlite`, chỉ lưu bản băm.
+Mật khẩu trang của từng người nằm ở bảng `page_passwords` cùng file, cũng chỉ lưu bản băm và sáu ký tự đầu.
+Hai bảng tách nhau: khoá `lab_` không mở được trang, mật khẩu `trang_` không gọi được tool.
 
 ```
 npm run keys -- issue --employee NV-07 --caller tho-than-desktop [--scope read_only]
+npm run keys -- page-password --employee NV-07
 npm run keys -- revoke --key-id <mã khoá>
 npm run keys -- list
 npm run seed-keys [-- --rotate]
 ```
 
-`issue` và `seed-keys` in mỗi khoá thô đúng một lần và không ghi nó ra đĩa; `list` chỉ hiện sáu ký tự đầu.
-`seed-keys` cấp một khoá cho mỗi nhân vật cộng khách, và từ chối chạy lại cho tới khi `--rotate` thu hồi các khoá cũ.
+`issue`, `page-password` và `seed-keys` in mỗi giá trị thô đúng một lần và không ghi nó ra đĩa; `list` chỉ hiện sáu ký tự đầu của khoá công cụ.
+`seed-keys` cấp một khoá `lab_` và một mật khẩu `trang_` cho mỗi nhân vật cộng khách, và từ chối chạy lại cho tới khi `--rotate` thu hồi cả hai loại cũ.
+`page-password` thu hồi mật khẩu trang cũ của người đó rồi cấp mật khẩu mới.
 Khoá của nơi gọi `lab-console` không tính: console cấp chúng lúc khởi động và thu hồi khi tắt, nên `npm run seed-keys` vẫn chạy được khi console đang mở.
 
 ## Trang xác nhận
 
 Một người xác nhận đề xuất trong trình duyệt.
-Mở link mà đề xuất trả về (`<địa chỉ gốc>/xac-nhan/<mã đề xuất>`), chọn nhân vật và dán khoá của nhân vật đó ở `/dang-nhap`.
+Mở link mà đề xuất trả về (`<địa chỉ gốc>/xac-nhan/<mã đề xuất>`), chọn nhân vật và dán mật khẩu trang `trang_` của nhân vật đó ở `/dang-nhap`.
+Khoá công cụ `lab_` bị từ chối như mật khẩu sai, vì nơi gọi công cụ không được giữ thứ mở được trang (ADR-0008).
 Đăng nhập này là giả lập và hết hạn sau 15 phút.
 Sau đó bấm Gửi để cổng nhận lệnh, hoặc bấm Sửa để huỷ đề xuất và nhờ AI soạn lại.
+Lúc bấm Gửi, cổng kiểm lại mật khẩu trang của phiên và khoá công cụ đã soạn đề xuất; thu hồi một trong hai thì không ghi.
 
 ## Đường ghi
 

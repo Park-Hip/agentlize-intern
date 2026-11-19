@@ -13,6 +13,7 @@ import {
   ApiKeyIdentity,
   CONSOLE_CALLER,
   KeyStore,
+  PagePasswordStore,
   SEED_IDENTITIES,
   hashKey,
   hashesEqual,
@@ -36,6 +37,7 @@ function tempDir(): string {
 interface Fixture {
   readonly dir: string;
   readonly store: KeyStore;
+  readonly pagePasswords: PagePasswordStore;
   readonly provider: IdentityProvider;
   close(): void;
 }
@@ -44,7 +46,13 @@ function fixture(): Fixture {
   const dir = tempDir();
   const db = openGatewayDatabase(dir);
   const store = new KeyStore(db);
-  return { dir, store, provider: new ApiKeyIdentity(store), close: () => db.close() };
+  return {
+    dir,
+    store,
+    pagePasswords: new PagePasswordStore(db),
+    provider: new ApiKeyIdentity(store),
+    close: () => db.close(),
+  };
 }
 
 const bearer = (key: string): { authorization: string } => ({ authorization: `Bearer ${key}` });
@@ -197,14 +205,14 @@ test('identity: the keys command prints a raw key once and list shows only six c
   const lines: string[] = [];
   const io = { out: (line: string): void => void lines.push(line) };
 
-  runKeysCli(['issue', '--employee', 'NV-07', '--caller', 'tho-than-desktop'], f.store, io);
+  runKeysCli(['issue', '--employee', 'NV-07', '--caller', 'tho-than-desktop'], f.store, f.pagePasswords, io);
   const rawKey = /^key: {6}(\S+)$/m.exec(lines.join('\n'))?.[1] ?? '';
   assert.ok(rawKey.startsWith('lab_'));
   assert.equal(lines.join('\n').split(rawKey).length - 1, 1, 'raw key printed more than once');
   assert.equal(lines.join('\n').includes(maskKey(rawKey)), true);
 
   lines.length = 0;
-  runKeysCli(['list'], f.store, io);
+  runKeysCli(['list'], f.store, f.pagePasswords, io);
   assert.equal(lines.length, 1);
   assert.equal(lines[0]?.includes(rawKey), false);
   assert.match(lines[0] ?? '', new RegExp(`${rawKey.slice(0, KEY_PREFIX_LENGTH)}\\.\\.\\.`));
@@ -212,14 +220,14 @@ test('identity: the keys command prints a raw key once and list shows only six c
 
   const keyId = f.store.list()[0]?.keyId ?? '';
   lines.length = 0;
-  runKeysCli(['revoke', '--key-id', keyId], f.store, io);
+  runKeysCli(['revoke', '--key-id', keyId], f.store, f.pagePasswords, io);
   assert.deepEqual(lines, [`revoked ${keyId}`]);
-  runKeysCli(['list'], f.store, io);
+  runKeysCli(['list'], f.store, f.pagePasswords, io);
   assert.match(lines[1] ?? '', /revoked 20\d\d-/);
 
-  assert.throws(() => runKeysCli(['revoke', '--key-id', 'key-nope'], f.store, io), UsageError);
-  assert.throws(() => runKeysCli(['issue', '--employee', 'NV-07'], f.store, io), UsageError);
-  assert.throws(() => runKeysCli(['frobnicate'], f.store, io), UsageError);
+  assert.throws(() => runKeysCli(['revoke', '--key-id', 'key-nope'], f.store, f.pagePasswords, io), UsageError);
+  assert.throws(() => runKeysCli(['issue', '--employee', 'NV-07'], f.store, f.pagePasswords, io), UsageError);
+  assert.throws(() => runKeysCli(['frobnicate'], f.store, f.pagePasswords, io), UsageError);
   f.close();
 });
 
@@ -261,32 +269,40 @@ test('identity: seed-keys issues one key per persona plus the guest, once, and r
   const lines: string[] = [];
   const io = { out: (line: string): void => void lines.push(line) };
 
-  seedKeys(f.store, io);
-  const rows = lines.filter((line) => line.includes('lab_'));
+  seedKeys(f.store, f.pagePasswords, io);
+  const rows = lines.filter((line) => line.includes('lab_') && line.includes('trang_'));
   assert.equal(rows.length, 7);
   assert.equal(SEED_IDENTITIES.length, 7);
   assert.ok(SEED_IDENTITIES.some((identity) => identity.name === 'khach'));
   assert.equal(new Set(f.store.list().map((record) => record.employeeId)).size, 7);
+  assert.equal(f.pagePasswords.list().length, 7);
 
-  const printed = new Map<string, string>();
+  const printed = new Map<string, { key: string; password: string }>();
   for (const row of rows) {
-    const [slug, , , key] = row.split('  ');
-    printed.set(slug ?? '', key ?? '');
+    const [slug, , , key, , password] = row.split('  ');
+    printed.set(slug ?? '', { key: key ?? '', password: password ?? '' });
   }
   for (const identity of SEED_IDENTITIES) {
-    const result = await f.provider.authenticate(bearer(printed.get(identity.name) ?? ''));
+    const values = printed.get(identity.name);
+    assert.ok(values !== undefined, `no row for ${identity.name}`);
+    const result = await f.provider.authenticate(bearer(values.key));
     assert.equal(result.ok && result.identity.employeeId, identity.employeeId);
+    const pagePassword = f.pagePasswords.findByRawPassword(values.password);
+    assert.equal(pagePassword?.employeeId, identity.employeeId);
+    assert.equal(pagePassword?.revokedAt, null);
   }
 
-  assert.throws(() => seedKeys(f.store, io), /--rotate/);
+  assert.throws(() => seedKeys(f.store, f.pagePasswords, io), /--rotate/);
   assert.equal(f.store.list().length, 7);
 
-  seedKeys(f.store, { out: () => undefined }, { rotate: true });
-  assert.deepEqual(await f.provider.authenticate(bearer(printed.get('hoa') ?? '')), {
+  seedKeys(f.store, f.pagePasswords, { out: () => undefined }, { rotate: true });
+  assert.deepEqual(await f.provider.authenticate(bearer(printed.get('hoa')?.key ?? '')), {
     ok: false,
     reason: 'KEY_REVOKED',
   });
+  assert.notEqual(f.pagePasswords.findByRawPassword(printed.get('hoa')?.password ?? '')?.revokedAt, null);
   assert.equal(f.store.list().length, 14);
+  assert.equal(f.pagePasswords.list().length, 14);
   f.close();
 });
 
@@ -343,11 +359,12 @@ test('identity: the console keys do not block seed-keys while the console is ope
   const f = fixture();
   const consoleKey = f.store.issue({ employeeId: 'NV-02', caller: CONSOLE_CALLER });
 
-  seedKeys(f.store, { out: () => undefined });
+  seedKeys(f.store, f.pagePasswords, { out: () => undefined });
 
   assert.equal(f.store.list().filter((record) => record.caller === CONSOLE_CALLER && record.revokedAt === null).length, 1);
   assert.equal(f.store.findById(consoleKey.record.keyId)?.revokedAt, null);
   assert.equal(f.store.list().length, 8);
+  assert.equal(f.pagePasswords.list().length, 7);
   f.close();
 });
 

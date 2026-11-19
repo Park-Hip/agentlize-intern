@@ -79,7 +79,7 @@ function stopChild(child: ChildProcess): Promise<void> {
 /** `seed-keys` prints one line per persona; read one raw key without writing it anywhere. */
 function seededKey(output: string, persona: string): string {
   const line = output.split('\n').find((candidate) => candidate.startsWith(`${persona}  `));
-  const key = line?.trim().split(/\s+/).at(-1);
+  const key = line?.trim().split(/\s+/)[3];
   assert.ok(key !== undefined && key.startsWith('lab_'), `no key for ${persona}`);
   return key;
 }

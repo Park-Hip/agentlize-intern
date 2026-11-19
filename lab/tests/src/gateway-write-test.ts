@@ -11,7 +11,7 @@ import {
   SERVICE_KEY_ENV,
   TEST_HOOKS_ENV,
 } from '@lab/shared';
-import { issueKey, keyOf, runCli, traceTable } from './cli.js';
+import { issueKey, keyOf, pagePasswordOf, runCli, traceTable } from './cli.js';
 import { DOORS, type Answer } from './doors.js';
 import { freePorts, killChild, labRoot, spawnBuiltService, stopChild, waitForHealth, type SpawnedService } from './process.js';
 
@@ -43,12 +43,12 @@ function proposalOf(text: string): ProposalAnswer {
   return { id: link.slice(link.lastIndexOf('/') + 1), text };
 }
 
-async function signIn(base: string, key: string, proposalId: string): Promise<Browser> {
+async function signIn(base: string, password: string, proposalId: string): Promise<Browser> {
   const login = await fetch(`${base}/dang-nhap`, {
     method: 'POST',
     redirect: 'manual',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ employee: HOA, key, next: `/xac-nhan/${proposalId}` }).toString(),
+    body: new URLSearchParams({ employee: HOA, password, next: `/xac-nhan/${proposalId}` }).toString(),
   });
   assert.equal(login.status, 303);
   const cookie = (login.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
@@ -136,6 +136,7 @@ for (const door of DOORS) {
     // Keys come from the identity module through its CLI; no raw key is written in this file.
     const keys = runCli('seed-keys-main.js', [], env);
     const hoa = keyOf(keys, 'hoa').key;
+    const hoaPagePassword = pagePasswordOf(keys, 'hoa').password;
     const nam = keyOf(keys, 'nam').key;
     const nhung = keyOf(keys, 'nhung').key;
 
@@ -230,7 +231,7 @@ for (const door of DOORS) {
       );
 
       const proposal = await draft('T-12', { assignee: 'NV-04' });
-      const browser = await signIn(base, hoa, proposal.id);
+      const browser = await signIn(base, hoaPagePassword, proposal.id);
       await setRole(HOA, 'intern');
 
       const sent = await press(base, proposal.id, browser);
@@ -302,7 +303,7 @@ for (const door of DOORS) {
 
     await t.test('SR5: a broken rule file stops every draft and press, and a changed task is not overwritten', async () => {
       const waiting = await draft('T-12', { assignee: 'NV-04' });
-      const browser = await signIn(base, hoa, waiting.id);
+      const browser = await signIn(base, hoaPagePassword, waiting.id);
 
       await writeFile(rulesPath, '{"version": 1, "roles":');
 
@@ -326,7 +327,7 @@ for (const door of DOORS) {
       await copyFile(DEFAULT_RULES, rulesPath);
 
       const waitingForTarget = await draft('T-12', { assignee: 'NV-04' });
-      const secondBrowser = await signIn(base, hoa, waitingForTarget.id);
+      const secondBrowser = await signIn(base, hoaPagePassword, waitingForTarget.id);
 
       // Someone else finishes T-12 while the proposal waits.
       const direct = await directPatch('T-12', { status: 'done' }, 1, 'e2e-direct-write-T-12:1');
@@ -357,7 +358,7 @@ for (const door of DOORS) {
 
     await t.test('SR6: a lost answer is one write, and a retry reads the old result', async () => {
       const proposal = await draft('T-19', { assignee: 'NV-04' });
-      const browser = await signIn(base, hoa, proposal.id);
+      const browser = await signIn(base, hoaPagePassword, proposal.id);
 
       // The next committed write is answered by closing the connection: the gateway cannot know it landed.
       await setFault({ mode: 'drop_response_after_commit', count: 1 });
@@ -389,7 +390,7 @@ for (const door of DOORS) {
 
     await t.test('SR6: two presses at once commit one write', async () => {
       const proposal = await draft('T-20', { status: 'done' });
-      const browser = await signIn(base, hoa, proposal.id);
+      const browser = await signIn(base, hoaPagePassword, proposal.id);
 
       const [first, second] = await Promise.all([press(base, proposal.id, browser), press(base, proposal.id, browser)]);
       const statuses = [first.status, second.status].sort((a, b) => a - b);
@@ -408,7 +409,7 @@ for (const door of DOORS) {
 
     await t.test('SR6: a gateway stopped after sending resumes once and writes once', async () => {
       const proposal = await draft('T-21', { assignee: 'NV-04' });
-      const browser = await signIn(base, hoa, proposal.id);
+      const browser = await signIn(base, hoaPagePassword, proposal.id);
 
       // The write commits, then its answer is held open so the gateway can be killed before reading it.
       await setFault({ mode: 'delay_response_after_commit', count: 1, delay_ms: 2_000 });

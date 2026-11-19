@@ -57,12 +57,12 @@ interface Browser {
 }
 
 /** What a person does in the browser: log in, then open the card. */
-async function login(f: GatewayFixture, employeeId: string, key: string, next: string): Promise<{ response: Response; cookie: string }> {
+async function login(f: GatewayFixture, employeeId: string, password: string, next: string): Promise<{ response: Response; cookie: string }> {
   const response = await fetch(`${f.gateway.url}/dang-nhap`, {
     method: 'POST',
     redirect: 'manual',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ employee: employeeId, key, next }).toString(),
+    body: new URLSearchParams({ employee: employeeId, password, next }).toString(),
   });
   const setCookie = response.headers.get('set-cookie') ?? '';
   return { response, cookie: setCookie.split(';')[0] ?? '' };
@@ -74,7 +74,7 @@ async function openCard(f: GatewayFixture, proposalId: string, cookie: string): 
 }
 
 async function signIn(f: GatewayFixture, employeeId: string, proposalId: string): Promise<Browser> {
-  const { response, cookie } = await login(f, employeeId, f.keyFor(employeeId), `/xac-nhan/${proposalId}`);
+  const { response, cookie } = await login(f, employeeId, f.pagePasswordFor(employeeId), `/xac-nhan/${proposalId}`);
   assert.equal(response.status, 303);
   const { html } = await openCard(f, proposalId, cookie);
   const csrf = /name="csrf" value="([^"]+)"/.exec(html)?.[1];
@@ -228,22 +228,30 @@ test('propose: get_request_status shows the link while waiting, hides another pe
   });
 });
 
-test('login: only the right key of the chosen person opens a session, as an HttpOnly SameSite=Strict cookie for 15 minutes', async () => {
+test('login: only the right page password of the chosen person opens a session, as an HttpOnly SameSite=Strict cookie for 15 minutes', async () => {
   await withGateway(async (f) => {
     const page = await fetch(`${f.gateway.url}/dang-nhap`);
     assert.equal(page.status, 200);
     const html = await page.text();
     assert.match(html, /Đăng nhập giả lập/);
-    assert.match(html, /đăng nhập thật|không phải đăng nhập thật/i);
+    assert.match(html, /không phải đăng nhập thật/i);
+    assert.match(html, /Mật khẩu trang/);
+    assert.match(html, /placeholder="trang_\.\.\."/);
 
-    const wrongPerson = await login(f, HOA, f.keyFor(NAM), '');
+    const wrongPerson = await login(f, HOA, f.pagePasswordFor(NAM), '');
     assert.equal(wrongPerson.response.status, 401);
     assert.equal(wrongPerson.response.headers.get('set-cookie'), null);
     assert.match(await wrongPerson.response.text(), /<option value="NV-02" selected>/, 'the chosen person stays chosen');
-    const garbage = await login(f, HOA, 'lab_not-a-key', '');
+
+    // The tool key is not a page password, even for the right person.
+    const toolKey = await login(f, HOA, f.keyFor(HOA), '');
+    assert.equal(toolKey.response.status, 401);
+    assert.equal(toolKey.response.headers.get('set-cookie'), null);
+
+    const garbage = await login(f, HOA, 'trang_not-a-password', '');
     assert.equal(garbage.response.status, 401);
 
-    const ok = await login(f, HOA, f.keyFor(HOA), '');
+    const ok = await login(f, HOA, f.pagePasswordFor(HOA), '');
     assert.equal(ok.response.status, 200);
     const cookie = ok.response.headers.get('set-cookie') ?? '';
     assert.match(cookie, /^lab_session=[A-Za-z0-9_-]{43};/);
@@ -253,7 +261,7 @@ test('login: only the right key of the chosen person opens a session, as an Http
     assert.doesNotMatch(cookie, /Secure/, 'the local address is http');
 
     // `next` that is not one of our own links is dropped, so the login cannot be used to bounce a person elsewhere.
-    const bounce = await login(f, HOA, f.keyFor(HOA), 'https://evil.example/');
+    const bounce = await login(f, HOA, f.pagePasswordFor(HOA), 'https://evil.example/');
     assert.equal(bounce.response.status, 200);
   });
 });
@@ -269,7 +277,7 @@ test('card: opening it needs a session, shows the values read from the systems, 
     assert.equal(anonymous.headers.get('location'), `/dang-nhap?next=${encodeURIComponent(`/xac-nhan/${id}`)}`);
 
     const traceBefore = f.gateway.trace.count();
-    const { cookie } = await login(f, HOA, f.keyFor(HOA), `/xac-nhan/${id}`);
+    const { cookie } = await login(f, HOA, f.pagePasswordFor(HOA), `/xac-nhan/${id}`);
     const { response, html } = await openCard(f, id, cookie);
     assert.equal(response.status, 200);
     assert.match(response.headers.get('content-security-policy') ?? '', /default-src 'none'/);
@@ -283,7 +291,7 @@ test('card: opening it needs a session, shows the values read from the systems, 
     assert.equal(f.gateway.trace.count(), traceBefore, 'and leaves no step in the trace');
 
     // Not the other person's to look at.
-    const lead = await login(f, QUANG, f.keyFor(QUANG), '');
+    const lead = await login(f, QUANG, f.pagePasswordFor(QUANG), '');
     const peek = await openCard(f, id, lead.cookie);
     assert.equal(peek.response.status, 403);
     assert.ok(!peek.html.includes('quote') && !peek.html.includes('Nguyễn Thị Hoa'), 'the other person sees none of the card');
@@ -367,7 +375,7 @@ test('send: the session of another person is refused and the proposal stays open
   await withGateway(async (f, h) => {
     const { id } = await propose(f, HOA, { status: 'done' });
     // Quang cannot open the card, so he has no token from it; he uses the one of his own session, the best a forger could do.
-    const { cookie } = await login(f, QUANG, f.keyFor(QUANG), '');
+    const { cookie } = await login(f, QUANG, f.pagePasswordFor(QUANG), '');
     const csrf = f.gateway.sessions.find(cookie.slice('lab_session='.length))?.csrfToken ?? '';
     assert.notEqual(csrf, '');
 
@@ -434,7 +442,7 @@ test('expiry: after 30 minutes the page and both buttons say APPROVAL_EXPIRED an
   });
 });
 
-test('session: it ends after 15 minutes, and when its key is revoked', async () => {
+test('session: it ends after 15 minutes, and when its page password is revoked', async () => {
   await withGateway(async (f, h) => {
     const { id } = await propose(f, HOA, { status: 'done' });
     const browser = await signIn(f, HOA, id);
@@ -445,11 +453,11 @@ test('session: it ends after 15 minutes, and when its key is revoked', async () 
     const card = await openCard(f, id, browser.cookie);
     assert.equal(card.response.status, 303, 'an ended session is asked to log in again');
 
-    // Revoking the key ends a session that is still within its 15 minutes.
+    // Revoking the page password ends a session that is still within its 15 minutes.
     const { id: second } = await propose(f, HOA, { status: 'todo' });
     const again = await signIn(f, HOA, second);
-    const keyId = f.gateway.sessions.find(again.cookie.slice('lab_session='.length))?.keyId ?? '';
-    assert.ok(f.gateway.keys.revoke(keyId));
+    const passwordId = f.gateway.sessions.find(again.cookie.slice('lab_session='.length))?.passwordId ?? '';
+    assert.ok(f.gateway.pagePasswords.revoke(passwordId));
     const revoked = await press(f, second, 'gui', { cookie: again.cookie }, { csrf: again.csrf });
     assert.equal(revoked.status, 401);
     assert.match(await revoked.text(), /\[KEY_REVOKED\]/);
