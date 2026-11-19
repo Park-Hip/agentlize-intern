@@ -10,10 +10,10 @@ export interface WriteCheckInput {
   readonly key: KeyRecord | undefined;
   /** The key's person, read from the directory now, never kept from the draft. */
   readonly employee: RecordData | undefined;
-  /** The adapter of the record the proposal changes, taken from the registry. */
+  /** The adapter of the record type the proposal changes, taken from the registry. */
   readonly adapter: ResourceAdapter;
-  /** The record as it is now; its department is part of the policy question. */
-  readonly record: RecordData | undefined;
+  /** The records as they are now, in item order; every department is part of the policy question. */
+  readonly records: readonly (RecordData | undefined)[];
   readonly policy: PolicyEngine;
 }
 
@@ -41,14 +41,21 @@ function denied(
   return { ok: false, code, status, ruleId, policyVersion, sentence };
 }
 
+/** `T-5, T-7`, in the order the proposal holds them. */
+function codeList(proposal: Proposal, missing: readonly number[]): string {
+  return missing.map((index) => proposal.items[index]?.recordId ?? '?').join(', ');
+}
+
 /**
  * The permission part of the second check: the key still belongs to the same
  * person, that person is still in the directory, the target system still holds
- * the record, and the rule file still allows every field the proposal changes.
+ * every record, and the rule file still allows every field the proposal
+ * changes. The rule is asked with the real item count, so a batch that reaches
+ * the bulk threshold is judged as a batch at Gửi too (ADR-0007 section 3.3).
  * Time and content are checked by the proposal store in the same transaction.
  */
 export function checkWrite(input: WriteCheckInput): WriteCheck {
-  const { proposal, key, employee, adapter, record, policy } = input;
+  const { proposal, key, employee, adapter, records, policy } = input;
 
   if (key === undefined) {
     return denied('KEY_INVALID', 401, 'WRITE.KEY_INVALID', 'Khoá của phiên không còn trong danh sách cấp khoá nên cổng không ghi. Hãy đăng nhập lại bằng khoá hợp lệ.');
@@ -69,12 +76,14 @@ export function checkWrite(input: WriteCheckInput): WriteCheck {
     return denied('NOT_PERMITTED', 403, RULE_IDS.roleUnknown, 'Danh bạ không cho biết vai và phòng của bạn nên cổng không ghi. Hãy báo người quản lý danh bạ.');
   }
 
-  if (record === undefined) {
+  const missing = proposal.items.flatMap((_item, index) => (records[index] === undefined ? [index] : []));
+  if (missing.length > 0 || records.length !== proposal.items.length) {
+    const codes = codeList(proposal, missing.length > 0 ? missing : proposal.items.map((_item, index) => index));
     return denied(
       'TARGET_CHANGED',
       409,
-      'WRITE.TASK_GONE',
-      `Task ${proposal.taskId} không còn trong danh sách task nên cổng không ghi. Hãy nhờ AI soạn lại.`,
+      'WRITE.RECORD_GONE',
+      `Task ${codes} không còn trong danh sách task nên cổng không ghi. Hãy nhờ AI soạn lại.`,
     );
   }
 
@@ -87,14 +96,24 @@ export function checkWrite(input: WriteCheckInput): WriteCheck {
       }),
     ),
   ];
-  const decisions = actions.map((action) =>
-    policy.decide({
-      actor: { id: key.employeeId, role, department },
-      action,
-      object: { kind: adapter.type, department: String(record[adapter.ownerField]), taskCount: 1 },
-      context: { scope: key.scope === 'read_only' ? 'read_only' : 'read_write', caller: key.caller },
-    }),
-  );
+  const decisions: PolicyDecision[] = [];
+  for (const record of records) {
+    if (record === undefined) continue;
+    for (const action of actions) {
+      decisions.push(
+        policy.decide({
+          actor: { id: key.employeeId, role, department },
+          action,
+          object: {
+            kind: adapter.type,
+            department: String(record[adapter.ownerField]),
+            taskCount: proposal.items.length,
+          },
+          context: { scope: key.scope === 'read_only' ? 'read_only' : 'read_write', caller: key.caller },
+        }),
+      );
+    }
+  }
   const decision = strictestOf(decisions);
   if (decision === undefined || decision.effect !== 'allow') {
     const fallback: PolicyDecision = {

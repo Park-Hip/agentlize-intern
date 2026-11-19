@@ -102,7 +102,7 @@ function press(
 }
 
 async function propose(f: GatewayFixture, employeeId: string, changes: Record<string, string>, task = 'T-12'): Promise<string> {
-  const answer = await f.call('propose_task_change', { task_id: task, changes }, f.keyFor(employeeId));
+  const answer = await f.call('propose_task_change', { task_ids: [task], changes }, f.keyFor(employeeId));
   assert.equal(answer.status, 200, answer.body.text);
   return linkOf(answer.body.text).id;
 }
@@ -146,7 +146,7 @@ test('write: Gửi writes once, and the command keeps its key, version, count an
     const command = commandOf(f, id);
     assert.match(command.commandId, /^wc-[0-9a-f]{16}$/);
     assert.equal(command.proposalId, id);
-    assert.equal(command.taskId, 'T-12');
+    assert.equal(command.recordId, 'T-12');
     assert.equal(command.position, 1);
     assert.equal(command.idempotencyKey, `${id}:1`);
     assert.equal(command.expectedVersion, 1);
@@ -421,4 +421,126 @@ test('write: a proposal that expired after the draft is refused with APPROVAL_EX
     assert.equal(f.gateway.commands.findByProposal(id), undefined);
     assert.equal(f.systems.writeCount('T-12'), 0);
   });
+});
+
+test('write: a three-item proposal makes one command per item, writes each once and lists each result', async () => {
+  await withGateway(async (f) => {
+    const answer = await f.call(
+      'propose_task_change',
+      { task_ids: ['T-12', 'T-13', 'T-14'], changes: { description: 'Mô tả chung.' } },
+      f.keyFor(HOA),
+    );
+    assert.equal(answer.status, 200, answer.body.text);
+    const id = linkOf(answer.body.text).id;
+    const { response } = await pressConfirm(f, id);
+    assert.equal(response.status, 303);
+
+    const commands = f.gateway.commands.listByProposal(id);
+    assert.deepEqual(
+      commands.map((command) => [command.position, command.recordId, command.idempotencyKey, command.status]),
+      [
+        [1, 'T-12', `${id}:1`, 'done'],
+        [2, 'T-13', `${id}:2`, 'done'],
+        [3, 'T-14', `${id}:3`, 'done'],
+      ],
+      'one command per position, each with its own key',
+    );
+    for (const task of ['T-12', 'T-13', 'T-14']) {
+      assert.equal(f.systems.writeCount(task), 1, `${task} was written exactly once`);
+    }
+
+    const { html } = await openCard(f, id, await loginFor(f, HOA, id));
+    assert.match(html, /Đã ghi 3 trên 3 mục/);
+    assert.match(html, /<td class="code" data-label="Mục">T-12<\/td>/);
+    assert.match(html, /Đã ghi \(lần 1\)/);
+
+    const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
+    assert.match(status.body.text, /đã ghi 3 trên 3 mục/);
+    assert.match(status.body.text, /T-12: đã ghi ở lần gửi thứ 1/);
+    assert.equal(status.body.reason_code, null);
+  });
+});
+
+test('write: one changed task is skipped while the other items of the proposal are written', async () => {
+  await withGateway(async (f) => {
+    const answer = await f.call(
+      'propose_task_change',
+      { task_ids: ['T-12', 'T-13', 'T-14'], changes: { description: 'Mô tả chung.' } },
+      f.keyFor(HOA),
+    );
+    const id = linkOf(answer.body.text).id;
+    // Someone else changes T-12 while the proposal waits.
+    f.systems.tasks = f.systems.tasks.map((task) =>
+      task.id === 'T-12' ? { ...task, description: 'Người khác sửa', version: 2 } : task,
+    );
+
+    const { response } = await pressConfirm(f, id);
+    assert.equal(response.status, 303);
+    const commands = f.gateway.commands.listByProposal(id);
+    assert.deepEqual(commands.map((command) => command.status), ['failed', 'done', 'done']);
+    assert.equal(commands[0]?.reasonCode, 'TARGET_CHANGED');
+    assert.equal(f.systems.writeCount('T-12'), 0, 'the changed task is not overwritten');
+    assert.equal(f.systems.writeCount('T-13'), 1);
+    assert.equal(f.systems.writeCount('T-14'), 1);
+
+    const { html } = await openCard(f, id, await loginFor(f, HOA, id));
+    assert.match(html, /CHƯA THỰC HIỆN đủ 3 mục: đã ghi 2, 1 mục bị bỏ qua/);
+    assert.match(html, /Bị bỏ qua \(TARGET_CHANGED\)/);
+
+    const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
+    assert.equal(status.body.reason_code, 'TARGET_CHANGED');
+    assert.match(status.body.text, /T-12: CHƯA THỰC HIỆN \[TARGET_CHANGED\]/);
+    assert.match(status.body.text, /T-13: đã ghi ở lần gửi thứ 1/);
+  });
+});
+
+test('write: a batch at the bulk threshold is refused at Gửi with the real item count, and nothing is written', async () => {
+  await withGateway(async (f) => {
+    const thirty = Array.from({ length: 30 }, (_, index) => `T-${100 + index}`);
+    const answer = await f.call(
+      'propose_task_change',
+      { task_ids: thirty, changes: { assignee: 'NV-04' } },
+      f.keyFor(HOA),
+    );
+    assert.equal(answer.body.reason_code, 'NEEDS_APPROVAL');
+    const id = linkOf(answer.body.text).id;
+    const draftLine = f.gateway.trace.list().find((line) => line.proposalId === id);
+    assert.equal(draftLine?.ruleId, 'task.change_task_assignee_or_due.staff.bulk', 'the draft asked the rule with thirty items');
+
+    const browser = await signIn(f, HOA, id);
+    const card = await openCard(f, id, browser.cookie);
+    assert.match(card.html, /cần trưởng nhóm duyệt/);
+
+    const pressed = await press(f, id, 'gui', { cookie: browser.cookie }, { csrf: browser.csrf });
+    assert.equal(pressed.status, 403);
+    assert.match(await pressed.text(), /\[NEEDS_APPROVAL\]/);
+    assert.equal(f.gateway.proposals.get(id)?.status, 'awaiting_confirmation');
+    assert.equal(f.gateway.commands.listByProposal(id).length, 0, 'a refused press creates no command');
+    assert.equal(f.systems.writeCount('T-100'), 0);
+    const sendLine = f.gateway.trace.list().find((line) => line.tool === 'proposal_send');
+    assert.equal(sendLine?.ruleId, 'task.change_task_assignee_or_due.staff.bulk', 'Gửi asks the rule with the same count');
+
+    const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
+    assert.equal(status.body.reason_code, 'NEEDS_APPROVAL');
+    assert.match(status.body.text, /bước duyệt chưa có trong bản này/);
+  });
+});
+
+test('write: a gateway.sqlite from the old layout stops the gateway and says to delete the data folder', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lab-old-db-'));
+  const db = new Database(join(dir, GATEWAY_DB_FILE));
+  try {
+    db.exec('CREATE TABLE proposals (proposal_id TEXT PRIMARY KEY, task_id TEXT NOT NULL)');
+  } finally {
+    db.close();
+  }
+  try {
+    await assert.rejects(
+      () => startFixture({ dir }),
+      /xoá thư mục dữ liệu/,
+      'the gateway refuses a database that predates change sets',
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

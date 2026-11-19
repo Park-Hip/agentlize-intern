@@ -35,7 +35,7 @@ const STYLE = `
 @media (prefers-color-scheme:dark){:root{--bg:#14171a;--panel:#1d2126;--text:#e8ebee;--muted:#9aa5b1;--line:#343b43;--accent:#5b92ff;--accent-text:#0a0f1a;--warn-bg:#3a3017;--warn-line:#8a6d1c;--ok-bg:#172a1d;--ok-line:#2f7a47;--bad-bg:#3a1c1c;--bad-line:#9c3d3d}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-main{max-width:40rem;margin:0 auto;padding:1.5rem 1rem 3rem}
+main{max-width:44rem;margin:0 auto;padding:1.5rem 1rem 3rem}
 h1{font-size:1.4rem;line-height:1.25;margin:0 0 .25rem}
 .sub{color:var(--muted);margin:0 0 1.25rem}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:.6rem;padding:1rem 1.1rem;margin:0 0 1rem}
@@ -45,10 +45,11 @@ h1{font-size:1.4rem;line-height:1.25;margin:0 0 .25rem}
 table{width:100%;border-collapse:collapse}
 th,td{text-align:left;vertical-align:top;padding:.5rem .6rem;border-bottom:1px solid var(--line)}
 thead th{font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
-tbody th{width:9rem;font-weight:600;color:var(--muted)}
+tbody th{font-weight:600;color:var(--muted)}
 tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
 td.v{white-space:pre-wrap;overflow-wrap:anywhere}
-@media (max-width:34rem){
+td.code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:nowrap}
+@media (max-width:40rem){
 thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 table,tbody,tr,th,td{display:block;width:auto}
 tbody th{padding:.7rem 0 .15rem;border-bottom:0}
@@ -122,16 +123,22 @@ ${options}
   );
 }
 
+/** One item of the card: its rows and, after Gửi, the result of its own write command. */
+export interface CardItemView {
+  readonly position: number;
+  readonly recordId: string;
+  readonly rows: readonly CardRow[];
+  readonly command?: WriteCommand | undefined;
+}
+
 export interface CardView {
   readonly proposalId: string;
-  readonly taskId: string;
   readonly requesterLabel: string;
-  readonly rows: readonly CardRow[];
+  readonly items: readonly CardItemView[];
   readonly expiresAtLabel: string;
   readonly status: 'awaiting_confirmation' | 'confirmed' | 'cancelled' | 'expired';
+  readonly requiresApproval: boolean;
   readonly csrfToken: string;
-  /** The write command behind a confirmed proposal; absent for a proposal nobody has sent. */
-  readonly command?: WriteCommand | undefined;
 }
 
 const STATUS_BANNER: Readonly<Record<'cancelled' | 'expired', { text: string; tone: Tone }>> = {
@@ -155,33 +162,73 @@ const COMMAND_BANNER: Readonly<Record<string, { text: string; tone: Tone }>> = {
   },
 };
 
+function resultOf(item: CardItemView): string {
+  const command = item.command;
+  if (command === undefined || command.status === 'not_sent') return 'Chưa gửi';
+  if (command.status === 'sent_unknown') return 'Đang gửi lại';
+  if (command.status === 'done') return `Đã ghi (lần ${command.attempts})`;
+  return command.reasonCode === null ? 'Bị bỏ qua' : `Bị bỏ qua (${command.reasonCode})`;
+}
+
 function confirmedBanner(view: CardView): { text: string; tone: Tone } {
-  const command = view.command;
-  if (command === undefined || command.status === 'not_sent') {
-    return { text: 'Đã xác nhận đề xuất. Cổng chưa gửi lệnh ghi.', tone: 'info' };
+  const total = view.items.length;
+  const commands = view.items.map((item) => item.command);
+  const done = commands.filter((command) => command?.status === 'done').length;
+  const unknown = commands.filter((command) => command?.status === 'sent_unknown').length;
+
+  if (total === 1) {
+    const item = view.items[0];
+    const command = item?.command;
+    if (item === undefined || command === undefined || command.status === 'not_sent') {
+      return { text: 'Đã xác nhận đề xuất. Cổng chưa gửi lệnh ghi.', tone: 'info' };
+    }
+    if (command.status === 'sent_unknown') {
+      return {
+        text: 'Cổng đã gửi lệnh nhưng chưa nhận được kết quả. Cổng giữ lệnh và gửi lại với đúng mã cũ, nên task không bị ghi hai lần. Hãy mở lại trang sau ít phút.',
+        tone: 'info',
+      };
+    }
+    if (command.status === 'done') {
+      return { text: `Đã ghi thay đổi vào task ${item.recordId} ở lần gửi thứ ${command.attempts}.`, tone: 'ok' };
+    }
+    const known = command.reasonCode === null ? undefined : COMMAND_BANNER[command.reasonCode];
+    return known ?? { text: 'CHƯA THỰC HIỆN Lệnh ghi không thành công. Hãy báo người vận hành Lab.', tone: 'bad' };
   }
-  if (command.status === 'sent_unknown') {
+
+  if (done === total) return { text: `Đã ghi ${done} trên ${total} mục.`, tone: 'ok' };
+  const skipped = total - done - unknown;
+  if (unknown > 0) {
+    const rest = skipped > 0 ? `, ${skipped} mục bị bỏ qua` : '';
     return {
-      text: 'Cổng đã gửi lệnh nhưng chưa nhận được kết quả. Cổng giữ lệnh và gửi lại với đúng mã cũ, nên task không bị ghi hai lần. Hãy mở lại trang sau ít phút.',
+      text: `Đã ghi ${done} trên ${total} mục; ${unknown} mục đang gửi lại${rest}. Cổng sẽ gửi lại với đúng mã cũ.`,
       tone: 'info',
     };
   }
-  if (command.status === 'done') {
-    return { text: `Đã ghi thay đổi vào task ${view.taskId} ở lần gửi thứ ${command.attempts}.`, tone: 'ok' };
+  if (done > 0) {
+    return {
+      text: `CHƯA THỰC HIỆN đủ ${total} mục: đã ghi ${done}, ${skipped} mục bị bỏ qua. Cột Kết quả nói lý do từng mục.`,
+      tone: 'bad',
+    };
   }
-  const known = command.reasonCode === null ? undefined : COMMAND_BANNER[command.reasonCode];
-  return known ?? { text: 'CHƯA THỰC HIỆN Lệnh ghi không thành công. Hãy báo người vận hành Lab.', tone: 'bad' };
+  return {
+    text: `CHƯA THỰC HIỆN Không ghi được mục nào trong ${total} mục. Cột Kết quả nói lý do từng mục.`,
+    tone: 'bad',
+  };
 }
 
 /** The confirmation card. Every value on it was read from the systems by the gateway, none is the agent's wording. */
 export function cardPage(view: CardView): string {
-  const rows = view.rows
-    .map(
-      (row) =>
-        `<tr><th scope="row">${esc(row.label)}</th><td class="v" data-label="Hiện tại">${esc(row.before === '' ? '(trống)' : row.before)}</td><td class="v" data-label="Đề xuất">${esc(row.after)}</td></tr>`,
+  const rows = view.items
+    .flatMap((item) =>
+      item.rows.map(
+        (row) =>
+          `<tr><td class="code" data-label="Mục">${esc(item.recordId)}</td><th scope="row">${esc(row.label)}</th><td class="v" data-label="Hiện tại">${esc(row.before === '' ? '(trống)' : row.before)}</td><td class="v" data-label="Đề xuất">${esc(row.after)}</td><td class="v" data-label="Kết quả">${esc(view.status === 'confirmed' ? resultOf(item) : '-')}</td></tr>`,
+      ),
     )
     .join('\n');
 
+  const count = view.items.length;
+  const title = count === 1 ? `Xác nhận thay đổi task ${view.items[0]?.recordId ?? ''}` : `Xác nhận thay đổi ${count} task`;
   const pending = `<div class="actions">
 <form method="post" action="/xac-nhan/${esc(view.proposalId)}/gui">
 <input type="hidden" name="csrf" value="${esc(view.csrfToken)}">
@@ -197,15 +244,21 @@ export function cardPage(view: CardView): string {
   if (view.status !== 'awaiting_confirmation') {
     const info = view.status === 'confirmed' ? confirmedBanner(view) : STATUS_BANNER[view.status];
     state = banner(info.text, info.tone);
+  } else if (view.requiresApproval) {
+    state =
+      banner(
+        `Việc này cần trưởng nhóm duyệt vì đề xuất có ${count} mục. Bước duyệt chưa có trong bản này nên bấm Gửi sẽ bị từ chối.`,
+        'info',
+      ) + pending;
   }
 
   return layout(
-    `Xác nhận thay đổi ${view.taskId}`,
-    `<h1>Xác nhận thay đổi task ${esc(view.taskId)}</h1>
+    title,
+    `<h1>${esc(title)}</h1>
 <p class="sub">Người yêu cầu: ${esc(view.requesterLabel)}</p>
 <div class="panel">
 <table>
-<thead><tr><th scope="col">Trường</th><th scope="col">Hiện tại</th><th scope="col">Đề xuất</th></tr></thead>
+<thead><tr><th scope="col">Mục</th><th scope="col">Trường</th><th scope="col">Hiện tại</th><th scope="col">Đề xuất</th><th scope="col">Kết quả</th></tr></thead>
 <tbody>
 ${rows}
 </tbody>

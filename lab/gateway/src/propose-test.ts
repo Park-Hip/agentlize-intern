@@ -98,7 +98,7 @@ function press(
 }
 
 async function propose(f: GatewayFixture, employeeId: string, changes: Record<string, string>, task = 'T-12'): Promise<{ id: string; text: string }> {
-  const answer = await f.call('propose_task_change', { task_id: task, changes }, f.keyFor(employeeId));
+  const answer = await f.call('propose_task_change', { task_ids: [task], changes }, f.keyFor(employeeId));
   assert.equal(answer.status, 200, answer.body.text);
   return { id: linkOf(answer.body.text).id, text: answer.body.text };
 }
@@ -110,7 +110,7 @@ function statusOf(f: GatewayFixture, proposalId: string): string | undefined {
 test('propose: chị Hoa gets a card and a link, and nothing is written', async () => {
   await withGateway(async (f, h) => {
     const before = structuredClone(f.systems.tasks);
-    const answer = await f.call('propose_task_change', { task_id: 'T-12', changes: { assignee: 'Vũ Quốc Minh' } }, f.keyFor(HOA));
+    const answer = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { assignee: 'Vũ Quốc Minh' } }, f.keyFor(HOA));
     assert.equal(answer.status, 200);
     assert.equal(answer.body.reason_code, null);
     assert.match(answer.body.text, /Người phụ trách: NV-03 Đỗ Thị Lan -> NV-04 Vũ Quốc Minh/);
@@ -122,10 +122,13 @@ test('propose: chị Hoa gets a card and a link, and nothing is written', async 
     assert.ok(stored !== undefined);
     assert.equal(stored.requester, HOA);
     assert.equal(stored.caller, 'test');
-    assert.equal(stored.taskId, 'T-12');
-    assert.deepEqual(stored.changes, { assignee: 'NV-04' });
-    assert.deepEqual(stored.previous, { assignee: 'NV-03' });
-    assert.equal(stored.baseVersion, 1);
+    assert.equal(stored.items.length, 1);
+    const [item] = stored.items;
+    assert.equal(item?.recordId, 'T-12');
+    assert.deepEqual(item?.changes, { assignee: 'NV-04' });
+    assert.deepEqual(item?.previous, { assignee: 'NV-03' });
+    assert.equal(item?.baseVersion, 1);
+    assert.equal(stored.requiresApproval, false);
     assert.match(stored.fingerprint, /^[0-9a-f]{64}$/);
     assert.equal(stored.status, 'awaiting_confirmation');
     assert.equal(stored.policyVersion, 1);
@@ -141,7 +144,7 @@ test('propose: chị Hoa gets a card and a link, and nothing is written', async 
 
 test('propose: the same words from Nam are refused with the reason and the lead to ask, and no link', async () => {
   await withGateway(async (f) => {
-    const answer = await f.call('propose_task_change', { task_id: 'T-12', changes: { assignee: 'NV-04' } }, f.keyFor(NAM));
+    const answer = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { assignee: 'NV-04' } }, f.keyFor(NAM));
     assert.equal(answer.status, 403);
     assert.equal(answer.body.reason_code, 'NOT_PERMITTED');
     assert.match(answer.body.text, /^CHƯA THỰC HIỆN \[NOT_PERMITTED\] /);
@@ -159,10 +162,10 @@ test('propose: the same words from Nam are refused with the reason and the lead 
 test('propose: with several fields the strictest answer wins', async () => {
   await withGateway(async (f) => {
     // Nam may change a status but not an assignee; both in one call is refused as a whole.
-    const both = await f.call('propose_task_change', { task_id: 'T-12', changes: { status: 'done', assignee: 'NV-04' } }, f.keyFor(NAM));
+    const both = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { status: 'done', assignee: 'NV-04' } }, f.keyFor(NAM));
     assert.equal(both.body.reason_code, 'NOT_PERMITTED');
 
-    const statusOnly = await f.call('propose_task_change', { task_id: 'T-12', changes: { status: 'done' } }, f.keyFor(NAM));
+    const statusOnly = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { status: 'done' } }, f.keyFor(NAM));
     assert.equal(statusOnly.status, 200);
     assert.match(statusOnly.body.text, /Trạng thái: doing -> done/);
   });
@@ -170,12 +173,12 @@ test('propose: with several fields the strictest answer wins', async () => {
 
 test('propose: a read-only key cannot draft, a task of another department is not found, a missing one is the same', async () => {
   await withGateway(async (f) => {
-    const readOnly = await f.call('propose_task_change', { task_id: 'T-12', changes: { status: 'done' } }, f.keyFor(HOA, 'read_only'));
+    const readOnly = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { status: 'done' } }, f.keyFor(HOA, 'read_only'));
     assert.equal(readOnly.body.reason_code, 'NOT_PERMITTED');
     assert.match(readOnly.body.text, /chỉ để đọc/);
 
-    const other = await f.call('propose_task_change', { task_id: 'T-70', changes: { status: 'done' } }, f.keyFor(HOA));
-    const missing = await f.call('propose_task_change', { task_id: 'T-9999', changes: { status: 'done' } }, f.keyFor(HOA));
+    const other = await f.call('propose_task_change', { task_ids: ['T-70'], changes: { status: 'done' } }, f.keyFor(HOA));
+    const missing = await f.call('propose_task_change', { task_ids: ['T-9999'], changes: { status: 'done' } }, f.keyFor(HOA));
     assert.equal(other.body.text, 'Không tìm thấy task T-70.');
     assert.equal(other.body.text.replace('T-70', 'T-9999'), missing.body.text);
     assert.equal(other.body.reason_code, null);
@@ -187,22 +190,22 @@ test('propose: a read-only key cannot draft, a task of another department is not
 
 test('propose: a change that equals the task makes no proposal, an unclear name is asked back, a wrong date is a bad request', async () => {
   await withGateway(async (f) => {
-    const same = await f.call('propose_task_change', { task_id: 'T-12', changes: { status: 'doing', assignee: 'NV-03' } }, f.keyFor(HOA));
+    const same = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { status: 'doing', assignee: 'NV-03' } }, f.keyFor(HOA));
     assert.equal(same.status, 200);
     assert.match(same.body.text, /không cần soạn đề xuất/);
 
-    const ambiguous = await f.call('propose_task_change', { task_id: 'T-12', changes: { assignee: 'Minh' } }, f.keyFor(HOA));
+    const ambiguous = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { assignee: 'Minh' } }, f.keyFor(HOA));
     assert.equal(ambiguous.status, 400);
     assert.ok(ambiguous.body.text.includes('NV-04') && ambiguous.body.text.includes('NV-11'));
 
-    const nobody = await f.call('propose_task_change', { task_id: 'T-12', changes: { assignee: 'NV-77' } }, f.keyFor(HOA));
+    const nobody = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { assignee: 'NV-77' } }, f.keyFor(HOA));
     assert.match(nobody.body.text, /Không tìm thấy nhân viên/);
 
-    const date = await f.call('propose_task_change', { task_id: 'T-12', changes: { due: '2026-02-30' } }, f.keyFor(HOA));
+    const date = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { due: '2026-02-30' } }, f.keyFor(HOA));
     assert.equal(date.status, 400);
-    const field = await f.call('propose_task_change', { task_id: 'T-12', changes: { title: 'x' } }, f.keyFor(HOA));
+    const field = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { title: 'x' } }, f.keyFor(HOA));
     assert.equal(field.status, 400);
-    const none = await f.call('propose_task_change', { task_id: 'T-12', changes: {} }, f.keyFor(HOA));
+    const none = await f.call('propose_task_change', { task_ids: ['T-12'], changes: {} }, f.keyFor(HOA));
     assert.equal(none.status, 400);
 
     assert.equal(f.gateway.trace.list().filter((line) => line.proposalId !== null).length, 0);
@@ -473,7 +476,7 @@ test('send: a stored proposal whose content no longer matches its print is refus
 
     const db = new Database(join(f.dir, GATEWAY_DB_FILE));
     try {
-      db.prepare("UPDATE proposals SET changes = '{\"assignee\":\"NV-05\"}' WHERE proposal_id = ?").run(id);
+      db.prepare("UPDATE proposal_items SET changes = '{\"assignee\":\"NV-05\"}' WHERE proposal_id = ?").run(id);
     } finally {
       db.close();
     }
@@ -523,14 +526,161 @@ test('mcp: the same proposal comes through /mcp, and a refusal is an error there
       }
     }
 
-    const ok = await call(HOA, { task_id: 'T-12', changes: { assignee: 'NV-04' } });
+    const ok = await call(HOA, { task_ids: ['T-12'], changes: { assignee: 'NV-04' } });
     assert.equal(ok.isError, false);
     const { id } = linkOf(ok.text);
     assert.equal(f.gateway.proposals.get(id)?.requester, HOA);
     assert.equal(f.gateway.trace.list().find((line) => line.proposalId === id)?.entry, 'mcp');
 
-    const refused = await call(NAM, { task_id: 'T-12', changes: { assignee: 'NV-04' } });
+    const refused = await call(NAM, { task_ids: ['T-12'], changes: { assignee: 'NV-04' } });
     assert.equal(refused.isError, true);
     assert.match(refused.text, /^CHƯA THỰC HIỆN \[NOT_PERMITTED\]/);
+  });
+});
+
+test('propose: one call with several codes makes one proposal with one item per task, read in one list call', async () => {
+  await withGateway(async (f) => {
+    const searchesBefore = f.systems.taskSearches.length;
+    const answer = await f.call(
+      'propose_task_change',
+      { task_ids: ['T-14', 'T-12', 'T-13'], changes: { description: 'Mô tả chung cho cả nhóm.' } },
+      f.keyFor(HOA),
+    );
+    assert.equal(answer.status, 200, answer.body.text);
+    assert.equal(answer.body.reason_code, null);
+    assert.match(answer.body.text, /Đã soạn đề xuất dx-[0-9a-f]{16} cho 3 task/);
+    assert.match(answer.body.text, /T-12: Mô tả: /);
+    assert.match(answer.body.text, /T-13: Mô tả: /);
+    assert.match(answer.body.text, /T-14: Mô tả: /);
+    assert.equal(f.systems.taskSearches.length - searchesBefore, 1, 'the draft read every task with one list call');
+    assert.equal(f.systems.writeCount('T-12'), 0);
+
+    const { id } = linkOf(answer.body.text);
+    const stored = f.gateway.proposals.get(id);
+    assert.ok(stored !== undefined);
+    assert.equal(stored.recordType, 'task');
+    assert.equal(stored.items.length, 3);
+    assert.deepEqual(
+      stored.items.map((item) => [item.position, item.recordId]),
+      [[1, 'T-12'], [2, 'T-13'], [3, 'T-14']],
+      'items are numbered in code order, not in the order the agent sent them',
+    );
+    assert.ok(stored.items.every((item) => item.changes['description'] === 'Mô tả chung cho cả nhóm.'));
+    assert.deepEqual(stored.changes, { description: 'Mô tả chung cho cả nhóm.' });
+    assert.equal(stored.requiresApproval, false);
+    assert.match(stored.fingerprint, /^[0-9a-f]{64}$/);
+  });
+});
+
+test('propose: the fingerprint covers the sorted item list, so order does not matter and one changed item does', async () => {
+  await withGateway(async (f) => {
+    const changes = { description: 'Cùng một mô tả.' };
+    const first = await f.call('propose_task_change', { task_ids: ['T-12', 'T-13'], changes }, f.keyFor(HOA));
+    const second = await f.call('propose_task_change', { task_ids: ['T-13', 'T-12'], changes }, f.keyFor(HOA));
+    const other = await f.call('propose_task_change', { task_ids: ['T-12', 'T-14'], changes }, f.keyFor(HOA));
+
+    const printOf = (answer: { body: { text: string } }): string | undefined => {
+      const { id } = linkOf(answer.body.text);
+      return f.gateway.proposals.get(id)?.fingerprint;
+    };
+    const firstPrint = printOf(first);
+    assert.ok(firstPrint !== undefined);
+    assert.equal(printOf(second), firstPrint, 'the same two codes in another order have the same print');
+    assert.notEqual(printOf(other), firstPrint, 'swapping one item changes the print');
+    assert.equal(f.gateway.proposals.get(linkOf(first.body.text).id)?.items.length, 2);
+  });
+});
+
+test('propose: one code outside the read scope refuses the whole proposal and names exactly the failing codes', async () => {
+  await withGateway(async (f) => {
+    const before = f.gateway.proposals.get('dx-0000000000000000');
+    assert.equal(before, undefined);
+
+    const mixed = await f.call(
+      'propose_task_change',
+      { task_ids: ['T-12', 'T-70', 'T-100'], changes: { description: 'Mô tả mới.' } },
+      f.keyFor(HOA),
+    );
+    assert.equal(mixed.status, 200);
+    assert.equal(mixed.body.reason_code, null);
+    assert.equal(mixed.body.text, 'Không tìm thấy task T-70.');
+    assert.ok(!mixed.body.text.includes('/xac-nhan/'), 'a refused proposal has no link');
+    assert.equal(f.gateway.trace.list({ task: 'T-70' })[0]?.outOfScope, true);
+    assert.equal(f.systems.writeCount('T-70'), 0);
+
+    const missing = await f.call(
+      'propose_task_change',
+      { task_ids: ['T-12', 'T-9998', 'T-9999'], changes: { description: 'Mô tả mới.' } },
+      f.keyFor(HOA),
+    );
+    assert.equal(missing.body.text, 'Không tìm thấy task T-9998, T-9999.');
+    assert.equal(f.gateway.trace.list({ task: 'T-9998' })[0]?.outOfScope, false);
+  });
+});
+
+test('propose: a task already at the new value is left out of the proposal and named in the answer', async () => {
+  await withGateway(async (f) => {
+    // T-12 already belongs to chị Lan, T-13 belongs to anh Minh.
+    const answer = await f.call(
+      'propose_task_change',
+      { task_ids: ['T-12', 'T-13'], changes: { assignee: 'NV-03' } },
+      f.keyFor(HOA),
+    );
+    assert.equal(answer.status, 200, answer.body.text);
+    assert.match(answer.body.text, /Đã bỏ qua vì đã có đúng giá trị mới: T-12\./);
+
+    const { id } = linkOf(answer.body.text);
+    const stored = f.gateway.proposals.get(id);
+    assert.equal(stored?.items.length, 1);
+    assert.equal(stored?.items[0]?.recordId, 'T-13');
+    assert.deepEqual(stored?.items[0]?.changes, { assignee: 'NV-03' });
+    assert.deepEqual(stored?.items[0]?.previous, { assignee: 'NV-04' });
+  });
+});
+
+test('propose: thirty codes at the bulk threshold are drafted with a note that a lead must approve, three are not', async () => {
+  await withGateway(async (f) => {
+    const thirty = Array.from({ length: 30 }, (_, index) => `T-${100 + index}`);
+    const batch = await f.call(
+      'propose_task_change',
+      { task_ids: thirty, changes: { assignee: 'NV-04' } },
+      f.keyFor(HOA),
+    );
+    assert.equal(batch.status, 200, batch.body.text);
+    assert.equal(batch.body.reason_code, 'NEEDS_APPROVAL');
+    assert.match(batch.body.text, /30 task/);
+    assert.match(batch.body.text, /cần trưởng nhóm Vận hành duyệt/);
+    assert.match(batch.body.text, /30 mục/);
+    const batchId = linkOf(batch.body.text).id;
+    const stored = f.gateway.proposals.get(batchId);
+    assert.equal(stored?.items.length, 30);
+    assert.equal(stored?.requiresApproval, true);
+    assert.equal(f.systems.writeCount('T-100'), 0);
+
+    const three = await f.call(
+      'propose_task_change',
+      { task_ids: thirty.slice(0, 3), changes: { assignee: 'NV-04' } },
+      f.keyFor(HOA),
+    );
+    assert.equal(three.status, 200, three.body.text);
+    assert.equal(three.body.reason_code, null);
+    assert.doesNotMatch(three.body.text, /cần trưởng nhóm .* duyệt/);
+    assert.equal(f.gateway.proposals.get(linkOf(three.body.text).id)?.requiresApproval, false);
+  });
+});
+
+test('propose: task_ids is capped at fifty and the old task_id parameter is refused', async () => {
+  await withGateway(async (f) => {
+    const tooMany = Array.from({ length: 51 }, (_, index) => `T-${100 + index}`);
+    const many = await f.call('propose_task_change', { task_ids: tooMany, changes: { status: 'done' } }, f.keyFor(HOA));
+    assert.equal(many.status, 400);
+    assert.match(many.body.text, /task_ids/);
+
+    const old = await f.call('propose_task_change', { task_id: 'T-12', changes: { status: 'done' } }, f.keyFor(HOA));
+    assert.equal(old.status, 400);
+    assert.match(old.body.text, /task_id/);
+
+    const empty = await f.call('propose_task_change', { task_ids: [], changes: { status: 'done' } }, f.keyFor(HOA));
+    assert.equal(empty.status, 400);
   });
 });

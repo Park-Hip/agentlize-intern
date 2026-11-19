@@ -93,7 +93,7 @@ test('smoke: four services start on temporary ports and answer /health', async (
   assert.match(toolHtml, /propose_task_change/);
   assert.match(toolHtml, /Chỉ đọc/);
   assert.match(toolHtml, /Soạn đề xuất/);
-  assert.match(toolHtml, /task_id/);
+  assert.match(toolHtml, /task_ids/);
   assert.equal(overviewHtml.includes(key), false, 'the console pages must never hold the service key');
   assert.equal(toolHtml.includes(key), false, 'the console pages must never hold the service key');
 

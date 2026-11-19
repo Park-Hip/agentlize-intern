@@ -1,7 +1,7 @@
 import { adapterOf, recordValue, SystemUnavailableError, type ResourceAdapter } from '../adapters/index.js';
 import type { ChangeField } from './fingerprint.js';
 import { CHANGE_FIELDS } from './fingerprint.js';
-import type { Proposal } from './proposal-store.js';
+import type { ProposalItem } from './proposal-store.js';
 
 /** One line of a proposal card: what the field held when the proposal was drafted and what it would become. */
 export interface CardRow {
@@ -24,19 +24,19 @@ export async function personLabel(adapters: readonly ResourceAdapter[], employee
 }
 
 /**
- * The rows of a card, built from the values the gateway read at the time of
+ * The rows of one item, built from the values the gateway read at the time of
  * drafting and names read from the directory. Nothing here comes from words the
  * agent wrote about the proposal.
  */
-export async function cardRows(proposal: Proposal, adapters: readonly ResourceAdapter[]): Promise<CardRow[]> {
-  const tasks = adapterOf(adapters, 'task');
+export async function itemRows(item: ProposalItem, adapters: readonly ResourceAdapter[]): Promise<CardRow[]> {
+  const adapter = adapterOf(adapters, item.recordType);
   const rows: CardRow[] = [];
   for (const field of CHANGE_FIELDS) {
-    const after = proposal.changes[field];
+    const after = item.changes[field];
     if (after === undefined) continue;
-    const before = proposal.previous[field] ?? '';
+    const before = item.previous[field] ?? '';
     rows.push({
-      label: labelOf(tasks, field),
+      label: labelOf(adapter, field),
       before: field === 'assignee' && before !== '' ? await personLabel(adapters, before) : before,
       after: field === 'assignee' ? await personLabel(adapters, after) : after,
     });

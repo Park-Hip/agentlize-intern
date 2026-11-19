@@ -483,7 +483,7 @@ test('read: a typo in a record type stops every tool with POLICY_UNAVAILABLE', a
       assert.equal(answer.body.reason_code, 'POLICY_UNAVAILABLE', tool);
       assert.equal(f.gateway.trace.list()[0]?.policyVersion, null, tool);
     }
-    const propose = await f.call('propose_task_change', { task_id: 'T-12', changes: { status: 'done' } }, key);
+    const propose = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { status: 'done' } }, key);
     assert.equal(propose.status, 503);
     assert.equal(propose.body.reason_code, 'POLICY_UNAVAILABLE');
   } finally {

@@ -4,10 +4,10 @@
  * a tool by name: a tool the gateway adds later gets a form on the next load.
  */
 
-export type FieldKind = 'string' | 'integer' | 'number' | 'boolean' | 'enum' | 'object';
+export type FieldKind = 'string' | 'integer' | 'number' | 'boolean' | 'enum' | 'object' | 'array';
 
 export interface FormField {
-  /** `task_id` or `changes.assignee`; the form field is `arg.<path>`. */
+  /** `task_ids` or `changes.assignee`; the form field is `arg.<path>`. */
   readonly path: string;
   readonly name: string;
   readonly kind: FieldKind;
@@ -40,6 +40,10 @@ function kindOf(schema: Readonly<Record<string, unknown>>): FieldKind | undefine
   const type = schema['type'];
   if (type === 'string' || type === 'integer' || type === 'number' || type === 'boolean') return type;
   if (type === 'object') return 'object';
+  if (type === 'array') {
+    const items = asRecord(schema['items']);
+    return items?.['type'] === 'string' ? 'array' : undefined;
+  }
   return undefined;
 }
 
@@ -116,6 +120,15 @@ function valueOf(field: FormField, raw: string): ValueResult {
       return field.enumValues.includes(raw)
         ? { ok: true, value: raw }
         : { ok: false, problem: `Tham số ${field.path} phải là một trong: ${field.enumValues.join(', ')}.` };
+    case 'array': {
+      const values = raw
+        .split(',')
+        .map((value) => value.trim())
+        .filter((value) => value !== '');
+      return values.length === 0
+        ? { ok: false, problem: `Tham số ${field.path} cần ít nhất một giá trị, cách nhau bằng dấu phẩy.` }
+        : { ok: true, value: values };
+    }
     default:
       return { ok: true, value: raw };
   }
@@ -179,6 +192,13 @@ export function argsToFormValues(
         continue;
       }
       const value = source[field.name];
+      if (field.kind === 'array') {
+        if (Array.isArray(value)) {
+          const list = value.filter((entry): entry is string => typeof entry === 'string');
+          if (list.length > 0) values.set(field.path, list.join(', '));
+        }
+        continue;
+      }
       if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
         values.set(field.path, String(value));
       }
