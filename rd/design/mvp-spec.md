@@ -1,6 +1,6 @@
 # Spec bản thử đầu: cổng kiểm soát cắm vào Thổ Thần
 
-Ngày: 2026-11-18. Trạng thái: đã chốt phạm vi và thiết kế cho mốc 0 tới mốc 2; đủ năm quyết định ở mục 11 đã ghi thành ADR; bốn câu hỏi Kevin không chặn việc dựng.
+Ngày: 2026-11-19. Trạng thái: mốc 1 và mốc 2 đã chạy trong Thổ Thần desktop; ADR-0007 và ADR-0008 đổi đường ghi, bộ luật và bước duyệt trước mốc 3.
 
 ## Đọc nhanh
 
@@ -8,7 +8,8 @@ Ngày: 2026-11-18. Trạng thái: đã chốt phạm vi và thiết kế cho m�
 - Thổ Thần chỉ là nơi người dùng gõ yêu cầu; mọi kiểm soát nằm ở một cổng riêng của Lab, vì Thổ Thần không cho biết ai đang hỏi và không hỏi duyệt.
 - AI chỉ soạn đề xuất; người dùng bấm xác nhận trên trang của cổng, nơi AI không bấm thay được.
 - Xong khi bốn kịch bản chạy được trong Thổ Thần, tám phép thử tự động đều đạt, và một trợ lý AI thứ hai dùng lại cùng cổng mà không sửa gì.
-- Tiếp theo: năm ADR đã ghi; dựng theo bốn mốc ở mục 9, từ tuần 2 tới tuần 4.
+- Một task hay 30 task đều dùng cùng công cụ đổi task; cổng tự tính khi nào cần trưởng nhóm duyệt, kể cả khi AI chia nhỏ thành nhiều lần.
+- Tiếp theo: dựng lại lõi theo hai quyết định mới, rồi làm mốc 3 (duyệt và chuyển 30 task), nghiệm thu đầu tuần 4.
 
 ## 1. Bản thử chứng minh gì
 
@@ -58,7 +59,7 @@ Toàn bộ là dữ liệu giả, theo [PRD, mục 3.2 và 3.3](../problem/prd-a
 | --- | --- | --- |
 | A. Làm được ngay | Chị Hoa: "chuyển T-12 sang anh Minh, hạn thứ Sáu" | AI trả thẻ đề xuất và link. Chị Hoa mở link, bấm Gửi. T-12 đổi người phụ trách và hạn. |
 | B. Bị từ chối | Nam gõ đúng câu đó | AI báo "chưa thực hiện", vì sao, cần hỏi anh Quang. Không có link xác nhận. |
-| C. Cần duyệt | Chị Hoa: "chuyển hết task của chị Lan sang anh Minh" | Chị Hoa bấm Gửi. Đề xuất chờ anh Quang. Anh Quang duyệt trên trang của cổng. 30 task được chuyển. |
+| C. Cần duyệt | Chị Hoa: "chuyển hết task của chị Lan sang anh Minh" | AI lấy 30 mã bằng `list_tasks` rồi gọi `propose_task_change` một lần. Chị Hoa bấm Gửi. Đề xuất chờ anh Quang tối đa 2 giờ. Anh Quang duyệt trong hộp "Chờ tôi duyệt" của cổng. 30 task được chuyển nền, trang hiện tiến độ. |
 | D. Tra cứu có lọc | Chị Hoa: "cho chị số điện thoại anh Minh" | AI chỉ có email công việc. Câu trả lời nói rõ chị không được xem số cá nhân. |
 
 Nam vẫn thấy T-12, vì task thuộc phòng của Nam, nên ở kịch bản B cổng nêu lý do và người cần hỏi.
@@ -114,10 +115,11 @@ flowchart LR
 
 | Thành phần | Làm gì | Không làm gì |
 | --- | --- | --- |
-| Danh bạ giả | API đọc và sửa nhân viên; dữ liệu riêng trong SQLite; mỗi bản ghi có số phiên bản | Không kiểm quyền; ai gọi được API thì được trả lời, nên chỉ cổng được gọi |
+| Danh bạ giả | API đọc và sửa nhân viên; dữ liệu riêng trong SQLite; mỗi bản ghi có số phiên bản; nhận mã chống ghi trùng ở mỗi lệnh ghi ([ADR-0007, mục 3.1](../../docs/adr/adr-0007-system-adapters-and-change-sets.md#31-bộ-tiếp-hợp-hệ-thống)) | Không kiểm quyền; ai gọi được API thì được trả lời, nên chỉ cổng được gọi |
 | Danh sách task giả | API đọc và sửa task; mỗi task có số phiên bản; nhận mã chống ghi trùng (idempotency key) và phiên bản mong đợi ở mỗi lệnh ghi; trả lại kết quả cũ khi gặp mã đã thấy, trả "xung đột" khi phiên bản đã đổi | Không kiểm quyền |
-| Cổng kiểm soát | Đổi khoá thành người qua một module danh tính thay được; hỏi bộ luật quyền; chỉ trả trường đã khai; lưu đề xuất, lời xác nhận, lời duyệt; chạy lệnh ghi; ghi vết; phục vụ trang đăng nhập, xác nhận và duyệt | Không gọi model, không đoán ý người dùng |
-| Bộ luật quyền | Một module trong cổng, đọc file luật dạng bảng có số phiên bản, trả "được", "không được" hoặc "cần duyệt", luôn kèm mã lý do | Không ghi, không gọi hệ thống |
+| Cổng kiểm soát | Đổi khoá thành người qua một module danh tính thay được; hỏi bộ luật quyền; chỉ trả trường đã khai; lưu đề xuất nhiều mục, lời xác nhận, lời duyệt; chạy lệnh ghi bằng hàng đợi chạy nền; ghi vết; phục vụ trang đăng nhập, xác nhận, hộp chờ duyệt và trang duyệt | Không gọi model, không đoán ý người dùng |
+| Bộ luật quyền | Một module trong cổng, đọc file luật khai theo từng loại bản ghi (phạm vi đọc, trường được xem, ô vai × hành động có phạm vi và hiệu lực khi hàng loạt, người duyệt), trả "được", "không được" hoặc "cần duyệt", luôn kèm mã lý do ([ADR-0007, mục 3.2](../../docs/adr/adr-0007-system-adapters-and-change-sets.md#32-luật-dạng-dữ-liệu)) | Không ghi, không gọi hệ thống; không biết trước có những hệ thống nào |
+| Bộ tiếp hợp hệ thống | Mỗi hệ thống một module: khai loại bản ghi, trường và nhãn, trường cho biết phòng sở hữu, trường sửa được ứng với hành động nào; đọc và ghi có mã chống ghi trùng ([ADR-0007, mục 3.1](../../docs/adr/adr-0007-system-adapters-and-change-sets.md#31-bộ-tiếp-hợp-hệ-thống)) | Không kiểm quyền; không phải là tool |
 | Cửa `/mcp` của cổng | Streamable HTTP, không giữ trạng thái phiên; xác thực bằng `Authorization: Bearer <khoá>`; danh mục tool lấy từ cùng nguồn với `GET /v1/tools` | Không có tool nào ngoài những gì cổng khai báo |
 | Trang điều khiển | Chỉ mở được trên máy chạy cổng; cho xem tool, sửa luật và trường được xem, gọi thử tool dưới tên từng nhân vật qua cổng, xem dữ liệu gốc và vết ([ADR-0006](../../docs/adr/adr-0006-operator-console.md)) | Không ra Internet; không sửa dữ liệu nghiệp vụ; không gọi thẳng bộ luật hay hai hệ thống giả khi gọi thử |
 | Trợ lý gọi hàm | Chương trình chat dòng lệnh của Lab, gọi model với định nghĩa tool lấy từ cùng danh mục của cổng | Không có đường tắt tới hai hệ thống giả |
@@ -144,12 +146,13 @@ Mốc 1 cần một địa chỉ công khai cho `/mcp`: đường hầm tạm c�
 | `find_employee` | Đọc | Tìm nhân viên theo tên hoặc phòng, chỉ so khớp trên tên và phòng; chỉ trả trường mà luật khai cho vai của người hỏi |
 | `get_task` | Đọc | Xem một task theo mã |
 | `list_tasks` | Đọc | Lọc task theo người phụ trách, phòng, trạng thái |
-| `propose_task_change` | Đề xuất | Soạn thay đổi người phụ trách, hạn, mô tả hoặc trạng thái của một task; trả thẻ đề xuất và link xác nhận |
-| `propose_bulk_reassign` | Đề xuất | Soạn việc chuyển mọi task đang mở của một người sang người khác |
+| `propose_task_change` | Đề xuất | Soạn cùng một thay đổi (người phụ trách, hạn, mô tả hoặc trạng thái) cho 1 tới 50 task, tham số `task_ids`; trả thẻ đề xuất, link xác nhận và cho biết việc này có cần duyệt không |
+| `propose_employee_change` | Đề xuất | Soạn việc sửa email công việc của một nhân viên; bằng chứng rằng thêm loại bản ghi không sửa lõi ([ADR-0007, mục 3.6](../../docs/adr/adr-0007-system-adapters-and-change-sets.md#36-thêm-một-hệ-thống-nghiệp-vụ)) |
 | `get_request_status` | Đọc | Cho biết một đề xuất đang ở bước nào và kết quả ra sao |
 
 Không có tool nào để xác nhận, duyệt hay ghi trực tiếp.
 Phép thử tự động kiểm điều này bằng cách đọc danh sách tool từ cả hai cửa.
+Không có tool hàng loạt riêng: có cần duyệt hay không do cổng tính từ số mục, cộng số mục cùng người đã đổi trong 60 phút ([ADR-0007, mục 3.4](../../docs/adr/adr-0007-system-adapters-and-change-sets.md#34-chặn-tách-nhỏ-để-né-duyệt)).
 
 ### 4.4. Cổng trả lời thế nào
 
@@ -213,12 +216,14 @@ Cổng kiểm luật hai lần, lúc soạn và lúc ghi, vì quyền hay khoá 
 Một cơ chế dùng cho cả hai việc: một người bấm trên trang của cổng, ngoài cuộc hội thoại với AI.
 
 - Việc thường: người yêu cầu tự xác nhận.
-- Việc cần duyệt: người yêu cầu xác nhận trước, rồi trưởng nhóm cùng phòng duyệt trong hộp "Chờ tôi duyệt" của trang.
-  Người duyệt phải khác người yêu cầu.
+- Việc cần duyệt: người yêu cầu xác nhận trước, rồi trưởng nhóm cùng phòng duyệt trong hộp "Chờ tôi duyệt" (`/cho-duyet`) của trang, trong tối đa 2 giờ.
+  Người duyệt phải khác người yêu cầu; vai nào được duyệt khai trong file luật.
+  Không có thông báo qua kênh khác; chat và `get_request_status` nói đang chờ ai và hạn mấy giờ.
 - Trang chỉ đổi trạng thái khi nhận `POST` từ một phiên đã đăng nhập, có mã chống giả mạo (CSRF token).
   Mở link bằng `GET` chỉ để xem.
   Vì vậy AI có công cụ duyệt web cũng không bấm thay được.
-- Đăng nhập giả lập: chọn nhân vật và dán khoá riêng một lần, cổng cấp phiên ngắn hạn.
+- Đăng nhập giả lập: chọn nhân vật và dán mật khẩu trang `trang_` của nhân vật đó, khác khoá công cụ `lab_`; cổng cấp phiên 15 phút.
+  Khoá công cụ không mở được trang, nên nơi giữ khoá công cụ, kể cả agent, không tự bấm được ([ADR-0008](../../docs/adr/adr-0008-approval-page-login.md)).
   Trang ghi rõ "đăng nhập giả lập".
 - Đề xuất không sửa được.
   Bấm Sửa sẽ huỷ đề xuất cũ và để AI soạn đề xuất mới, có dấu vân tay mới.
@@ -235,10 +240,11 @@ Một cơ chế dùng cho cả hai việc: một người bấm trên trang củ
   Trang kết quả liệt kê rõ task nào chuyển được, task nào bị bỏ qua và vì sao.
 - Cổng lưu trạng thái từng lệnh trước và sau khi gửi: "chưa gửi", "đã gửi, chưa biết kết quả", "xong" hoặc "lỗi".
   Đây là phân biệt mà SR6 (không ghi trùng) yêu cầu.
-- Khi khởi động, cổng tìm mọi lệnh "đã gửi, chưa biết kết quả" và gửi lại với đúng mã cũ.
+- Một vòng chạy nền trong cổng gửi mọi lệnh "chưa gửi", và gửi lại mọi lệnh "đã gửi, chưa biết kết quả" với đúng mã cũ, giãn dần tới 60 giây, cả lúc đang chạy lẫn sau khi khởi động lại.
   Danh sách task trả kết quả cũ nếu đã ghi, nên không có lần ghi thứ hai.
-- Việc chuyển 30 task chạy nền sau khi anh Quang duyệt, từng task một, lưu tiến độ sau mỗi task.
-  Đây là phần trả lời Q1 (sập giữa chừng).
+- Trang trả lời ngay sau lần bấm.
+  Việc chuyển 30 task chạy nền sau khi anh Quang duyệt, từng task một, lưu tiến độ sau mỗi task, và trang hiện "đã chuyển 17 trên 30".
+  Đây là phần trả lời Q1 (sập giữa chừng); chi tiết ở [ADR-0007, mục 3.5](../../docs/adr/adr-0007-system-adapters-and-change-sets.md#35-hàng-đợi-lệnh-ghi-chạy-nền).
 
 Bảo đảm là "tối đa một lần" (at-most-once effect) như PRD ghi, và chỉ đúng vì danh sách task giả tôn trọng mã chống ghi trùng.
 
@@ -249,9 +255,11 @@ Bảo đảm là "tối đa một lần" (at-most-once effect) như PRD ghi, và
 | Bảng | Giữ gì |
 | --- | --- |
 | Khoá | Mã băm của khoá, mã nhân viên của người sở hữu, nơi gọi, phạm vi khai báo (ví dụ "chỉ đọc"), lúc thu hồi |
-| Đề xuất | Người yêu cầu, nơi gọi, tool, nội dung đã chuẩn hoá, giá trị và số phiên bản của dữ liệu đích lúc soạn, dấu vân tay, mức rủi ro, phiên bản luật, trạng thái, hạn |
+| Mật khẩu trang | Mã băm của mật khẩu trang, mã nhân viên, lúc thu hồi |
+| Đề xuất | Người yêu cầu, khoá đã soạn, nơi gọi, tool, loại bản ghi, dấu vân tay, có cần duyệt không và vì sao, phiên bản luật, trạng thái, hạn bấm Gửi, hạn duyệt |
+| Mục của đề xuất | Đề xuất, vị trí, hệ thống, mã bản ghi, giá trị cũ, thay đổi, số phiên bản lúc soạn |
 | Lời xác nhận và lời duyệt | Đề xuất, người bấm, dấu vân tay lúc bấm, quyết định, lý do, thời điểm |
-| Lệnh ghi | Đề xuất, task, mã chống ghi trùng, số phiên bản mong đợi, trạng thái, số lần gửi, kết quả |
+| Lệnh ghi | Đề xuất, vị trí, mã chống ghi trùng, số phiên bản mong đợi, trạng thái, số lần gửi, lần gửi lại kế tiếp, kết quả |
 | Vết | Chỉ ghi thêm: mã vết, người yêu cầu, bên thực hiện, người duyệt, dấu vân tay, mã chống ghi trùng, kết quả, mã lý do khi từ chối, chi phí, phiên bản luật |
 
 Danh sách trường của vết lấy theo biên lai của Liyagent ([tổng hợp, mục 3](../findings.md#3-thị-trường-2026)).
@@ -259,7 +267,7 @@ Vết không chứa số điện thoại cá nhân, địa chỉ nhà hay khoá;
 Khoá chỉ lưu dạng băm và chỉ hiện 6 ký tự đầu trong log, như probe đã làm.
 Khoá giả của các nhân vật được sinh lúc nạp dữ liệu giả và in ra một lần; repo không chứa khoá thô nào.
 
-**Kết luận:** năm bảng trong một file SQLite là đủ cho mọi yêu cầu của bản thử; không cần hàng đợi hay dịch vụ ngoài.
+**Kết luận:** bảy bảng trong một file SQLite là đủ cho mọi yêu cầu của bản thử; hàng đợi lệnh ghi là bảng lệnh ghi cộng một vòng chạy nền, không cần dịch vụ ngoài.
 
 ## 7. Cài vào Thổ Thần
 
@@ -296,10 +304,10 @@ Hướng dẫn cài phải ghi điều này, và ghi rõ đây cũng là điểm
 | --- | --- |
 | SR1 (danh tính và một cửa ghi) | Khoá của Nam gọi `propose_task_change` đổi người phụ trách T-12: bị từ chối kèm tên anh Quang, vết ghi người yêu cầu là Nam. Thu hồi khoá của chị Hoa: lần gọi sau bị từ chối với `KEY_REVOKED`. Khoá của nhân vật "khách": mọi lệnh bị từ chối với `KEY_INVALID`. Đổi email của chị Hoa trong danh bạ giả: quyền của chị không đổi. Hai hệ thống giả từ chối lời gọi không mang khoá dịch vụ của cổng. |
 | SR2 (luật chạy được) | Khoá của chị Hoa đề xuất sửa một task phòng Kinh doanh: nhận "không tìm thấy" và 0 lần ghi, dù không có prompt nào. Chị Hoa soạn đề xuất đổi người phụ trách một task Vận hành, rồi vai của chị bị hạ xuống thực tập sinh trước khi bấm Gửi: lệnh ghi bị từ chối với `NOT_PERMITTED` và 0 lần ghi. |
-| SR3 (phạm vi quyền) | Chị Hoa `find_employee` anh Minh: không có số cá nhân. Thêm trường mới vào danh bạ giả mà luật chưa khai: trường đó không xuất hiện ở bất kỳ vai nào. Chị Hoa `find_employee` với một đoạn số điện thoại của anh Minh: không có kết quả, vì cổng không so khớp trên trường bị giữ. Chị Hoa `get_task` một task phòng Kinh doanh: "không tìm thấy". Chị Nhung dùng khoá khai báo "chỉ đọc" gọi `propose_task_change` trên một task Vận hành mà khoá đầy đủ của chị được đổi: bị từ chối với `NOT_PERMITTED`; danh mục tool không có tool sửa danh bạ. Mô tả task chứa dấu đóng khối giả: dữ liệu vẫn nằm trọn trong khối có nhãn. Quét vết: 0 trường cá nhân. |
-| SR4 (điểm dừng rủi ro) | Chuyển 30 task: dừng chờ duyệt. Sửa nội dung đang lưu sau khi duyệt: bị từ chối với `CONTENT_CHANGED`. Duyệt quá hạn, duyệt lần hai, người yêu cầu tự duyệt, dùng lại phiên đăng nhập đã hết hạn: bị từ chối. Danh sách tool không có tool xác nhận hay duyệt. |
+| SR3 (phạm vi quyền) | Chị Hoa `find_employee` anh Minh: không có số cá nhân. Thêm trường mới vào danh bạ giả mà luật chưa khai: trường đó không xuất hiện ở bất kỳ vai nào. Chị Hoa `find_employee` với một đoạn số điện thoại của anh Minh: không có kết quả, vì cổng không so khớp trên trường bị giữ. Chị Hoa `get_task` một task phòng Kinh doanh: "không tìm thấy". Chị Nhung dùng khoá khai báo "chỉ đọc" gọi `propose_task_change` trên một task Vận hành mà khoá đầy đủ của chị được đổi: bị từ chối với `NOT_PERMITTED`; khoá đó gọi `propose_employee_change` cũng bị từ chối với `NOT_PERMITTED`. Mô tả task chứa dấu đóng khối giả: dữ liệu vẫn nằm trọn trong khối có nhãn. Quét vết: 0 trường cá nhân. |
+| SR4 (điểm dừng rủi ro) | Chuyển 30 task: dừng chờ duyệt. Chị Hoa soạn và bấm Gửi 5 đề xuất một task trong 60 phút: đề xuất thứ 5 chờ duyệt, 0 lần ghi trước khi anh Quang duyệt. Dán khoá công cụ vào trang đăng nhập: bị từ chối. Sửa nội dung đang lưu sau khi duyệt: bị từ chối với `CONTENT_CHANGED`. Duyệt quá hạn, duyệt lần hai, người yêu cầu tự duyệt, dùng lại phiên đăng nhập đã hết hạn: bị từ chối. Danh sách tool không có tool xác nhận hay duyệt. |
 | SR5 (không chắc thì chặn) | Làm hỏng file luật, hoặc cho bộ luật quyền ném lỗi: mọi lệnh soạn và ghi bị từ chối với `POLICY_UNAVAILABLE`, 0 bản ghi đổi. Sửa T-12 trực tiếp ở danh sách task giả sau khi đề xuất được soạn: lệnh ghi bị từ chối với `TARGET_CHANGED`, T-12 giữ giá trị mới. |
-| SR6 (không ghi trùng) | Danh sách task ghi xong nhưng cổng không nhận được phản hồi, rồi gửi lại: 1 task, và lần gửi lại nhận kết quả cũ chứ không nhận "xung đột". Bấm Gửi hai lần cùng lúc: 1 lần ghi. Tắt cổng sau khi gửi, khởi động lại: gửi lại bằng mã cũ và đếm ghi bằng 1. |
+| SR6 (không ghi trùng) | Danh sách task ghi xong nhưng cổng không nhận được phản hồi, rồi gửi lại: 1 task, và lần gửi lại nhận kết quả cũ chứ không nhận "xung đột". Bấm Gửi hai lần cùng lúc: 1 lần ghi. Tắt cổng sau khi gửi, khởi động lại: gửi lại bằng mã cũ và đếm ghi bằng 1. Tắt cổng ở ba thời điểm của lệnh 30 task: đủ 30 task, mỗi task một lần ghi. Danh sách task không trả lời 20 giây giữa chừng: cổng tự gửi lại mà không cần khởi động lại. |
 | SR7 (vết xuyên suốt) | Một truy vấn theo "T-12" trả đủ chuỗi: yêu cầu, quyết định luật, xác nhận, lệnh ghi, kết quả. Mọi lần từ chối trong vết có mã lý do. |
 | SR8 (dùng lại, quyền theo người) | Cùng bộ phép thử qua ba lối vào `http`, `mcp-http`, `tho-than-host` cho cùng kết quả; 0 dòng sửa ở bộ nối khi thêm `/mcp`. |
 
@@ -324,7 +332,7 @@ M4 (khả năng mở rộng) đo sau, ở bước đánh giá.
 | 0 | ADR | Năm ADR ở mục 11 được chốt | Đầu tuần 2 |
 | 1 | Lát mỏng chỉ đọc | Kịch bản D chạy trong Thổ Thần; đổi khoá sang Nam thì vết ghi Nam; phép thử SR3 đạt, gồm trường chưa khai, "không tìm thấy" và khối dữ liệu có nhãn | Tuần 2 |
 | 2 | Ghi một task | Kịch bản A và B chạy trong Thổ Thần; SR1, SR2, SR5 (gồm `TARGET_CHANGED`), phần gửi lại và phần khởi động lại của SR6 đạt | Tuần 2, sang đầu tuần 3 nếu mốc 1 trễ |
-| 3 | Duyệt và hàng loạt | Kịch bản C chạy trong Thổ Thần; SR4, SR7 và phần sập giữa chừng của SR6 đạt; trả lời Q1 | Tuần 3 |
+| 3 | Duyệt và hàng loạt | Lõi viết lại theo ADR-0007 và ADR-0008; kịch bản C chạy trong Thổ Thần; SR4, SR7 và phần sập giữa chừng của SR6 đạt; sửa danh bạ đi qua đường ghi chung; trả lời Q1 | Tuần 3, nghiệm thu đầu tuần 4 |
 | 4 | Nơi gọi thứ hai và số đo đầu | SR8 đạt; có số M1, M2, M3, M5, M6 | Tuần 4 |
 
 Lát mỏng ở mốc 1 đi qua đủ chuỗi Thổ Thần, cửa `/mcp`, cổng, bộ luật quyền và danh bạ giả, trên cả bản web lẫn bản desktop.
@@ -367,6 +375,7 @@ Năm ADR, theo [tổng hợp, mục 8](../findings.md#8-bước-tiếp-theo):
 Quyết định 1, 4 và 5 đã ghi thành [ADR-0001](../../docs/adr/adr-0001-self-built-thin-gateway.md), [ADR-0002](../../docs/adr/adr-0002-safe-read-and-write.md) và [ADR-0003](../../docs/adr/adr-0003-technology-stack.md); ADR-0003 chọn `better-sqlite3`.
 Quyết định 2 đã ghi thành [ADR-0004](../../docs/adr/adr-0004-shared-gateway-over-https.md), quyết định 3 thành [ADR-0005](../../docs/adr/adr-0005-requester-identity.md).
 Trang điều khiển của Lab, thêm sau năm quyết định trên, ghi ở [ADR-0006](../../docs/adr/adr-0006-operator-console.md).
+Bộ tiếp hợp theo hệ thống, luật dạng dữ liệu, đề xuất nhiều mục và hàng đợi lệnh ghi ghi ở [ADR-0007](../../docs/adr/adr-0007-system-adapters-and-change-sets.md); đăng nhập trang bằng mật khẩu riêng, hộp chờ duyệt và hạn duyệt 2 giờ ghi ở [ADR-0008](../../docs/adr/adr-0008-approval-page-login.md).
 
 Để sau, không chặn mốc 0 tới mốc 2:
 

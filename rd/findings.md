@@ -1,6 +1,6 @@
 # Tổng hợp phát hiện - AI Operations Connector Lab
 
-Ngày: 2026-11-19. Trạng thái: bản thử của Lab đã chạy trong Thổ Thần desktop cho tra cứu có lọc và ghi một task; bản web tạm hoãn vì không bật được skill.
+Ngày: 2026-11-19. Trạng thái: bản thử của Lab đã chạy trong Thổ Thần desktop cho tra cứu có lọc và ghi một task; bản web tạm hoãn vì không bật được skill; ADR-0007 và ADR-0008 đổi phần lõi trước mốc 3.
 
 Đây là điểm vào của phần nghiên cứu.
 Mỗi mục tóm tắt một nhóm tài liệu và trỏ về bản chi tiết.
@@ -16,7 +16,8 @@ Mọi người và dữ liệu trong ví dụ đều là giả lập.
   Đọc mã nguồn xác nhận hộp duyệt của Thổ Thần chỉ là tính năng giao diện, không phải lớp bảo vệ.
   Lời gọi trong chat đi qua máy chủ Thổ Thần, cả trên web lẫn desktop; máy chủ gắn thêm mã người dùng, nhưng khoá do người thêm skill đặt nên chưa biết có riêng từng người không.
 - Bản thử đã chạy trong Thổ Thần bản cài trên máy: chị Hoa tra cứu chỉ thấy đúng phần được xem, và chuyển được một việc sau khi bấm duyệt; Nam bị từ chối.
-- Tiếp theo: kiểm lại trên bản Thổ Thần mới ra ngày 18/11, rồi thử chuyển 30 việc cần sếp duyệt và chạy lại khi bị ngắt giữa chừng.
+- Đọc lại mã cho thấy cổng mới chỉ biết sửa từng việc một; Lab dựng lại phần lõi để nối thêm hệ thống không phải sửa lõi, và để chuyển nhiều việc dùng chung một công cụ.
+- Tiếp theo: kiểm lại trên bản Thổ Thần mới ra ngày 18/11, dựng lại phần lõi, rồi thử chuyển 30 việc cần sếp duyệt và chạy lại khi bị ngắt giữa chừng.
 
 ## 1. Vấn đề
 
@@ -176,7 +177,9 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 | Xong 2026-11-18 | Link xác nhận dùng địa chỉ đường hầm (#63); cổng nói rõ trường bị ẩn theo quyền (#64) | Phép thử máy đạt; chưa chạy lại trong Thổ Thần |
 | Hoãn | Tìm vì sao Thổ Thần web không bật được skill (#65) | Làm lại khi Thổ Thần web bật được skill tùy chỉnh; tới lúc đó nghiệm thu chỉ dùng bản desktop |
 | Tuần 2-3, phiên đường hầm tiếp theo | H12 (bản dựng 2026-11-18 giữ hành vi MCP) trên desktop, chạy lại #63 và #64 trong Thổ Thần; rồi H9 và H10 trước khi bật lớp thứ hai của ADR-0005; H11 phục vụ kênh duyệt (mục 6) | Kết quả ghi vào cột cuối của bảng H trong [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được) |
-| Tuần 3-4 | Thêm cửa gọi hàm, kịch bản 30 task, trả lời Q1, đo lần đầu | Số đo baseline |
+| Tuần 3 | Dựng lại lõi theo [ADR-0007](../docs/adr/adr-0007-system-adapters-and-change-sets.md) (bộ tiếp hợp theo hệ thống, luật dạng dữ liệu, đề xuất nhiều mục, hàng đợi lệnh ghi, chặn tách nhỏ) và [ADR-0008](../docs/adr/adr-0008-approval-page-login.md) (mật khẩu trang riêng, hộp chờ duyệt, hạn duyệt 2 giờ) | Phép thử ở ADR-0007 mục 5 đạt; sửa danh bạ đi qua đường ghi chung |
+| Đầu tuần 4 | Kịch bản 30 task trong Thổ Thần, trả lời Q1 | Nghiệm thu mốc 3 |
+| Tuần 4 | Thêm cửa gọi hàm, đo lần đầu | Số đo baseline |
 | Tuần 5-6 | Đánh giá, trả lời Q2, chạy thử sản phẩm làm cột "mua" | Báo cáo có mục "khi nào không nên dùng MCP" |
 
 ## 9. Tài liệu chi tiết

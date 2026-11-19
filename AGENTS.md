@@ -27,7 +27,8 @@ Host facts that constrain the design are summarized in `rd/findings.md` section 
 The company ecosystem the lab plugs into is recorded in `docs/context/appota-ai-ecosystem.md` (AgentLize control plane, Thổ Thần AI execution plane, Kdata infrastructure, business data owners).
 It is context for where the work lands, not a decision on stack or architecture, and it needs Kevin to confirm it.
 
-Stack, architecture and prototype scope are recorded in ADR-0001 to ADR-0003, ADR-0006 and the prototype spec.
+Stack, architecture and prototype scope are recorded in ADR-0001 to ADR-0008 and the prototype spec.
+ADR-0007 (system adapters, rules as data, multi-item proposals, write outbox) and ADR-0008 (page password, approval inbox) replace the task-only write path before milestone 3.
 Read them before adding business logic.
 
 Setup, run and test commands are in section 6.
