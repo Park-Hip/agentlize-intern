@@ -179,7 +179,7 @@ Sau ADR này, thêm một hệ thống, ví dụ đơn nghỉ phép, gồm bốn
 3. Khai phạm vi đọc, trường được xem và các ô của những hành động đó cho loại bản ghi mới trong file luật.
 4. Viết tool cho từng việc nghiệp vụ, mỗi tool một file, và thêm ca của loại bản ghi mới vào bảng phép thử nghiệm thu.
 
-Không phải sửa danh tính, cửa `/mcp`, lõi bộ luật, bảng đề xuất, hàng đợi lệnh ghi, các trang, thẻ xác nhận, câu trả lời `get_request_status`, vết hay console.
+Không phải sửa danh tính, cửa `/mcp`, lõi bộ luật, bảng đề xuất, hàng đợi lệnh ghi, các trang, thẻ xác nhận, câu trả lời `get_request_status`, vết hay phần nhãn và hành động của console.
 Bộ luật kiểm tra tên hành động theo danh sách đăng ký, còn thẻ xác nhận, câu trả lời trạng thái và console đọc nhãn từ bộ tiếp hợp.
 Bằng chứng là danh bạ: chị Nhung sửa email công việc của một nhân viên qua `propose_employee_change`, đi đúng đường ghi của task.
 Phép thử `lab/gateway/src/adapters/declared-fields-test.ts` thêm trường `badge` và hành động `edit_badge` vào bộ tiếp hợp danh bạ trong bộ nhớ, rồi soạn và ghi được trường đó mà không sửa `proposals/`, `policy/schema.ts`, `web/` hay `console/`.
