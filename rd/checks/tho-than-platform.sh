@@ -10,6 +10,7 @@
 # Cách chạy: bash rd/checks/tho-than-platform.sh
 # Ngày chạy đầu: 2026-11-13.
 # Bổ sung 2026-11-17: 29 câu kiểm mã nguồn LobeHub 2.1.56 (L1-L29).
+# Bổ sung 2026-11-18: 16 câu kiểm bản dựng mới, ứng dụng điện thoại và Thổ Thần Bridge (S20-S25).
 
 set -u
 PASS=0
@@ -147,6 +148,24 @@ check "https://thothan.appota.ai/robots.txt" "Host: https://lobechat.com" "S2 ro
 check "https://thothan.appota.ai/robots.txt" "Disallow: /knowledge/*" "S2 robots knowledge path"
 check_redirect "https://thothan.appota.ai/" "signin?callbackUrl" "S3 mọi route công khai đều đá về signin"
 check_header "https://thothan.appota.ai/" "railway-hikari" "S4 chạy trên Railway"
+
+# --- S20 tới S25: bản dựng ngày 2026-11-18, ứng dụng điện thoại và Thổ Thần Bridge ---
+check "https://thothan.ai/" "Trợ lý AI giúp bạn tìm hiểu, sáng tạo và xử lý công việc ngay trên điện thoại." "S20 trang giới thiệu cho điện thoại"
+check "https://thothan.ai/" "Apple TestFlight" "S20 app iOS qua TestFlight"
+check "https://thothan.ai/" "Nhờ Thổ Thần làm việc trên máy Mac hoặc Windows ngay từ cuộc trò chuyện trên điện thoại." "S20 Bridge làm việc trên máy tính"
+check "https://thothan.ai/" "Chạy tập lệnh, kiểm tra bản dựng hoặc dùng các công cụ đã cài trên máy." "S20 Bridge chạy lệnh"
+check "https://thothan.ai/" "Thổ Thần có thể chụp màn hình chính, bấm chuột, cuộn và gõ phím." "S20 Bridge điều khiển màn hình"
+check "https://thothan.ai/" "Cài Bridge và đăng nhập bằng tài khoản Thổ Thần bạn đang dùng trên điện thoại." "S20 Bridge dùng chung tài khoản"
+check "https://thothan.ai/privacy.html" "Cập nhật ngày 16 tháng 11 năm 2026" "S21 chính sách cập nhật 16/11"
+check "https://thothan.ai/privacy.html" "Bridge chỉ hỗ trợ máy tính bạn ghép nối." "S21 chính sách nhắc Bridge"
+check "https://thothan.ai/terms.html" "bạn chịu trách nhiệm chọn đúng tài khoản, thiết bị và phạm vi truy cập" "S22 điều khoản giao trách nhiệm cho người dùng"
+check_raw "https://thothan.appota.ai/trpc/lambda/config.getGlobalConfig" '"agentGatewayUrl":"https://agent-gateway.appota.ai"' "S23 cấu hình có agent gateway"
+check_raw "https://thothan.appota.ai/trpc/lambda/config.getGlobalConfig" '"enableAgentTask":true' "S23 cấu hình bật giao việc cho agent"
+check_raw "https://thothan.appota.ai/trpc/lambda/config.getGlobalConfig" '"enableKlavis":true' "S23 cấu hình bật Klavis"
+check_raw "https://thothan.appota.ai/trpc/lambda/config.getGlobalConfig" '"model":"deepseek/deepseek-v4.1-flash","chatConfig"' "S23 mô hình mặc định"
+check_raw "https://agent-gateway.appota.ai/health" "OK" "S23 agent gateway đang chạy"
+check_raw "https://thothan.appota.ai/api/version" '{"version":"2.1.56"}' "S24 máy chủ vẫn là LobeHub 2.1.56"
+check_header "https://thothan.appota.ai/auth/login-background-loop.mp4" "video/mp4" "S25 video nền trang đăng nhập mới"
 
 # --- S5 tới S9: docs 2024 của docs-srd.appota.ai/tho-than ---
 check "https://docs-srd.appota.ai/tho-than/gioi-thieu.md" "nền tảng phát triển app trò chuyện với trí thông minh AI" "S5 docs giới thiệu"

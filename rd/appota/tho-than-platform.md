@@ -1,14 +1,14 @@
 # Thổ Thần: cùng một cái tên, bốn thứ khác nhau
 
-Ngày: 2026-11-17. Trạng thái: khảo sát công khai ngày 2026-11-13, cắm MCP thử bằng tài khoản ngày 2026-11-16 (mục 3.5), đo HTTPS công khai và đọc mã LobeHub 2.1.56 ngày 2026-11-17 (mục 3.6 và 6).
+Ngày: 2026-11-19. Trạng thái: khảo sát công khai ngày 2026-11-13, cắm MCP thử bằng tài khoản ngày 2026-11-16 (mục 3.5), đo HTTPS công khai và đọc mã LobeHub 2.1.56 ngày 2026-11-17 (mục 3.6 và 6), đọc bản dựng mới ngày 2026-11-18 và xem giao diện sau đăng nhập ngày 2026-11-19 (mục 3.7).
 
 ## Đọc nhanh
 
 - "Thổ Thần" là bốn thứ khác nhau; bản web đang chạy là LobeHub 2.1.56 đổi nhãn, không phải mã của Appota.
 - Lần cắm thử bằng tài khoản cho thấy công cụ của Lab chạy được trong chat: qua stdio trên máy người dùng, và qua một địa chỉ HTTPS công khai (mục 3.6).
 - Mã LobeHub 2.1.56 không tự gắn danh tính người dùng vào lời gọi công cụ, nhưng phép đo HTTPS thấy máy chủ Thổ Thần gắn thêm header danh tính; chưa biết người dùng có giả được không.
-- Mã LobeHub có một chế độ duyệt bị ẩn cho phép công cụ chạy mà không hỏi.
-- Lời gọi tới nhà cung cấp mô hình có gửi mã người dùng, nằm trong nội dung gửi đi.
+- Mã LobeHub có một chế độ duyệt bị ẩn cho phép công cụ chạy mà không hỏi; lời gọi tới nhà cung cấp mô hình có gửi mã người dùng.
+- Ngày 2026-11-18, Appota ra bản web mới cùng ứng dụng điện thoại và Thổ Thần Bridge, một ứng dụng cho chat trên điện thoại chạy lệnh trên máy tính; nền vẫn là LobeHub 2.1.56 (mục 3.7).
 - Vì vậy cổng của Lab phải tự kiểm danh tính và tự chặn ghi, không dựa vào phần mềm chat.
 
 ## 0. Câu hỏi
@@ -47,7 +47,7 @@ Không có thứ nào là đặc tả, và các tài liệu công khai đang mô
 
 | # | Thực thể | Ở đâu | Trạng thái | Là gì |
 | --- | --- | --- | --- | --- |
-| 1 | Thổ Thần web | `thothan.appota.ai` | Chạy, sau đăng nhập | Bản đổi nhãn của LobeHub 2.1.56, không phải mã của Appota |
+| 1 | Thổ Thần web | `thothan.appota.ai`, cùng ứng dụng iOS (TestFlight) và Thổ Thần Bridge cho máy tính, giới thiệu ở `thothan.ai` | Chạy, sau đăng nhập | Bản đổi nhãn của LobeHub 2.1.56, không phải mã của Appota; ứng dụng điện thoại và Bridge dùng chung tài khoản (mục 3.7) |
 | 2 | Thổ Thần Coding Agent | Visual Studio Marketplace, id `ThothanCoding.thothan-code` | Chạy | Coding agent riêng cho VS Code, khai báo được MCP server |
 | 3 | Tài liệu Thổ Thần | `docs-srd.appota.ai/tho-than` | Còn mở, gần như đóng băng từ 2024-08 | Tài liệu của một nền tảng dạng Dify, không phải của thực thể 1 hay 2 |
 | 4 | "Thổ Thần" như tên IP | Toàn công ty | - | Tên IP văn hoá của Appota, dùng cho cả sự kiện nội bộ; không phải nền tảng |
@@ -93,8 +93,8 @@ Hệ quả thực tế: `robots.txt` của Appota đang chỉ đường sitemap 
 | Ngôn ngữ | Trang mặc định `lang="en"`; bundle có chuỗi `vi-VN` và bản dịch `vi` | HTML và bundle |
 | Có app di động đi kèm | Bundle chứa `com.appotahub.mobile`, `mobileAuthCallback`, `Capacitor.Plugins.Browser`, `NativeGoogleSignIn` | Bundle |
 
-Chi tiết đáng chú ý: `com.appotahub.mobile` cho thấy có một ứng dụng di động tên AppotaHub nhúng trang này qua Capacitor, và luồng đăng nhập có nhánh gọi sang ứng dụng đó.
-Chi tiết này chưa được xác minh thêm vì không có thiết bị hay bản cài để kiểm.
+Chi tiết đáng chú ý: `com.appotahub.mobile` cho thấy có một ứng dụng di động tên AppotaHub nhúng trang này qua Capacitor (khung đóng gói trang web thành ứng dụng điện thoại), và luồng đăng nhập có nhánh gọi sang ứng dụng đó.
+Ngày 2026-11-18, trang `thothan.ai` xác nhận ứng dụng này tồn tại và đang thử nghiệm trên iOS (mục 3.7); chưa cài thử trên thiết bị.
 
 ### 3.3 Bề mặt tính năng đọc từ bundle
 
@@ -200,6 +200,63 @@ Bằng chứng và cách chạy lại.
 **Kết luận:** hai phép đo bổ sung cho nhau, không mâu thuẫn.
 Trên stdio, Thổ Thần không cho server biết ai đang hỏi; trên HTTP công khai, máy chủ Thổ Thần gắn danh tính vào lời gọi.
 Danh tính này chỉ dùng được cho cổng sau khi H9 và H10 đúng; trước đó khoá riêng từng người vẫn là cách chính.
+
+### 3.7 Bản dựng mới ngày 2026-11-18: ứng dụng điện thoại và Thổ Thần Bridge
+
+Ngày 2026-11-18, giao diện bản web đổi.
+Câu hỏi: nền tảng có đổi không, và thay đổi có chạm tới các kết luận về MCP ở mục 3.5, 3.6 và 6 không.
+Cách làm: đọc lại trang công khai bằng curl, so với khảo sát ngày 2026-11-13, đọc trang giới thiệu mới `thothan.ai`, rồi chạy lại script ở mục 12.
+
+Nền tảng không đổi.
+
+| Điều kiểm | Quan sát ngày 2026-11-18 | Nguồn |
+| --- | --- | --- |
+| Phiên bản LobeHub | `/api/version` trả `{"version":"2.1.56"}`; bundle vẫn chứa `@lobehub/lobehub` 2.1.56. Bản gốc LobeHub cùng ngày đã là 2.3.4. | S24, mục 12 |
+| Thời điểm triển khai | 27 trên 28 tệp của trang đăng nhập có `last-modified: Wed, 18 Nov 2026 14:19:59 GMT`; tệp còn lại mang mốc 2026-11-17 10:21 GMT | Header phản hồi, mục 12 |
+| Script kiểm chéo | Mọi câu kiểm cũ vẫn PASS, gồm manifest, `robots.txt` và chuyển hướng về `/signin` | Mục 12 |
+
+Số phiên bản giữ nguyên trong khi bản dựng mới, nên Appota đang sửa trên bản tách riêng (fork) của mình, không theo bản gốc lên 2.2 hay 2.3.
+
+Phần đổi là giao diện và các kênh dùng mới.
+
+| Thay đổi | Chi tiết | Nguồn |
+| --- | --- | --- |
+| Trang đăng nhập mới | Linh vật, video nền `/auth/login-background-loop.mp4`, dải thẻ kỹ năng ("Create presentations", "Recurring reports"...). Dòng bản quyền đổi từ "© 2026 Thổ Thần" sang "© 2026 APPOTA CORP. All rights reserved." | S25, ảnh chụp ngày 2026-11-18 |
+| Trang giới thiệu `thothan.ai` | "Trợ lý AI trên điện thoại"; nút "Thử trên web" dẫn về `thothan.appota.ai` | S20 |
+| Ứng dụng điện thoại | iOS phát hành thử qua Apple TestFlight; Google Play ghi "Sắp có" | S20 |
+| Thổ Thần Bridge | Ứng dụng cho macOS và Windows, bộ cài đặt ngày 2026-11-15. Người dùng quét mã QR từ mục "Thiết bị" trong chat trên điện thoại để ghép máy. Sau đó Thổ Thần tìm và sửa tệp, chạy lệnh, và khi bật điều khiển màn hình thì chụp màn hình, bấm chuột, gõ phím trên máy đó. | S20 |
+| Chính sách và điều khoản | Cập nhật ngày 16/11/2026, áp dụng cho iOS, Android, web, Bridge và `thothan.ai`; nhắc tới Google Drive, Apple Health, lịch, danh bạ và gói trả phí | S21, S22 |
+
+Cấu hình công khai của máy chủ (`config.getGlobalConfig`, đọc được mà không đăng nhập) cho thêm ba điều.
+Trước ngày này Lab chưa đọc trang cấu hình đó, nên không biết mục nào là mới.
+
+- Có địa chỉ `agentGatewayUrl: https://agent-gateway.appota.ai`; `/health` của địa chỉ đó trả `OK`.
+- Tính năng giao việc cho agent (`enableAgentTask`) và Klavis (`enableKlavis`, dịch vụ MCP dựng sẵn) đang bật.
+- Mô hình mặc định là `deepseek/deepseek-v4.1-flash` qua nhà cung cấp `takaai`; OpenRouter cũng bật.
+
+Ngày 2026-11-19, Lab xem giao diện bản web mới bằng tài khoản của Lab, chỉ mở menu để đọc, không bật tắt gì và không gửi tin nhắn.
+
+| Chỗ xem | Quan sát ngày 2026-11-19 | So với trước |
+| --- | --- | --- |
+| Thanh bên | New chat, Library, Artifacts, Assistants, Contacts, Tasks, Departments, Community | Bố cục mới |
+| Cài đặt | General, Billing (Subscription, Payment Management, Referral), Agent (Provider, Service Model, Integration, Memory), System; tài khoản Free có 500 credit mỗi kỳ và hạn mức ảnh, âm thanh, video theo tháng | Thêm mục thanh toán và hạn mức |
+| Cài đặt > Integration | Khoảng 40 skill dựng sẵn của Appota, các kết nối Lark và Google, hai skill tùy chỉnh của Lab (`lab-gateway`, `mcp-probe-stdio`) vẫn còn | Skill tùy chỉnh cài trước đó không mất |
+| Add > "Add Custom MCP Skill" | Streamable HTTP ("Web and desktop compatible") hoặc STDIO ("STDIO only available on desktop"); xác thực "No auth" hoặc "API Key"; HTTP Headers; phải Test connection trước khi cài | Giống mục 3.5 |
+| Menu "+" trong ô chat | Attachments, Conversation (Mode: Web search, Deep Research cho gói trả phí, nén ngữ cảnh tự động), Tools (Skills, Integrations, Social accounts), Agent (Devices) | Bố cục mới |
+| "+" > Integrations | `lab-gateway` hiện và đang bật cho agent mặc định; `mcp-probe-stdio` hiện nhưng tắt | Skill MCP tùy chỉnh giờ nằm trong Integrations, không nằm trong Skills |
+| "+" > Devices | "Pair a computer and choose the device to use in chats. Device permissions still apply."; ô nhập mã ghép từ Thổ Thần Bridge | Mới; bản web cũng ghép được Bridge, không chỉ điện thoại |
+| Chế độ duyệt công cụ | Không thấy chữ "Approval", "Auto Approve" hay "Manual" trong trang chat; nút cạnh micro chỉ chọn mức suy luận (Off, Light, Standard, Deep, Maximum) | Mục 3.5 có Auto Approve và Manual trên bản desktop; bản web mới không còn hiện chỗ chọn |
+
+Bảng này chỉ cho thấy chỗ cắm skill MCP của Lab vẫn còn và đang bật.
+Nó chưa cho biết lời gọi tool có còn mang bốn header danh tính, còn chạy không hỏi và còn bị cắt ở 60 giây không; phần đó cần một lần gọi thật (H12).
+
+Bridge là bản đóng gói của phần "thiết bị từ xa" đã thấy trong bundle ở mục 3.3 (`builtin-tool-remote-device`, `builtin-tool-device-controller`).
+Với Lab, đó là một đường thứ hai để agent của Thổ Thần làm việc ngoài chat: agent chạy lệnh thẳng trên máy người dùng, không qua MCP.
+Trang giới thiệu không nhắc tới bước duyệt trước mỗi lệnh; điều khoản ghi người dùng "chịu trách nhiệm chọn đúng tài khoản, thiết bị và phạm vi truy cập".
+
+**Kết luận:** bản dựng ngày 2026-11-18 mở thêm kênh dùng (điện thoại, Bridge) trên cùng nền LobeHub 2.1.56, không đổi nền tảng.
+Các kết luận về MCP ở mục 3.5, 3.6 và 6 vẫn đứng về mặt mã, nhưng đã đo trên bản dựng cũ; H12 ở mục 9 kiểm lại chúng trên bản mới.
+Bridge củng cố hướng hiện tại: nền tảng mở rộng quyền chạy lệnh nhanh hơn lớp duyệt, nên cổng của Lab vẫn phải tự chặn ghi.
 
 ## 4. Tài liệu Thổ Thần: mô tả một nền tảng khác
 
@@ -421,19 +478,20 @@ Bốn điều dễ làm sai, ghi ra để người sau không mắc lại.
 
 Mỗi giả thuyết kèm cách kiểm và người có thể trả lời.
 
-| ID | Giả thuyết | Cách kiểm | Ai trả lời được | Kết quả đến 2026-11-17 |
+| ID | Giả thuyết | Cách kiểm | Ai trả lời được | Kết quả đến 2026-11-19 |
 | --- | --- | --- | --- | --- |
 | H1 | Instance `thothan.appota.ai` bật tính năng skill và MCP cho người dùng | Đăng nhập, mở Cài đặt, tìm mục thêm MCP server tùy chỉnh; thử cắm một MCP server cục bộ | Người có tài khoản, Kevin | Đúng ở cả hai bản: cắm được. Desktop 2026-11-16: trong chat chỉ stdio chạy (mục 3.5). Web và desktop 2026-11-17: HTTPS công khai chạy (mục 3.6). |
 | H2 | Có một Tool/MCP Runtime dùng chung cho nghiệp vụ, tách khỏi LobeHub | Hỏi trực tiếp; tìm tên miền nội bộ dạng `mcp.*` hoặc `gateway.*` | Kevin | Chưa kiểm. |
 | H3 | Duyệt người trước khi ghi chưa tồn tại ở tầng nền tảng | Hỏi trực tiếp; nếu chưa có thì lab được phép đề xuất đặt ở runtime | Kevin | Đúng ở tầng MCP tool: không có bước duyệt, kể cả chế độ Manual (mục 3.5). Mã ở mục 6.4 giải thích: tool MCP không khai báo chính sách duyệt. Cần Kevin xác nhận không có cơ chế khác. |
 | H4 | Bộ tài liệu 2024 đã bị bỏ, không còn người cập nhật | Gửi `sendFeedback` qua chính MCP server của tài liệu và xem có phản hồi | Phòng SRD, `srd@appota.com` | Chưa kiểm. |
 | H5 | Ngôn ngữ mặc định của instance là tiếng Anh, tiếng Việt chỉ là bản dịch có sẵn | Kiểm sau khi đăng nhập, đổi ngôn ngữ, xem chất lượng bản dịch ở màn hình agent và skill | Người có tài khoản | Một phần: giao diện desktop hiện tiếng Anh; chưa đổi ngôn ngữ. |
-| H6 | App mobile AppotaHub nhúng chính trang này qua Capacitor, nên là cùng một phiên đăng nhập | Mở app, kiểm luồng `mobileAuthCallback` | Người có app | Chưa kiểm. |
+| H6 | App mobile AppotaHub nhúng chính trang này qua Capacitor, nên là cùng một phiên đăng nhập | Mở app, kiểm luồng `mobileAuthCallback` | Người có app | Một phần: `thothan.ai` xác nhận app iOS qua TestFlight, và Bridge đăng nhập bằng cùng tài khoản (mục 3.7); chưa cài thử. |
 | H7 | Lời gọi tool trong chat qua HTTP đi qua máy chủ Thổ Thần, nên server phải có địa chỉ công khai | Hỏi Kevin; hoặc mở tunnel HTTPS khi được phép rồi gọi lại | Kevin | Đúng: lỗi `fetch failed` ở localhost (mục 3.5), và địa chỉ công khai gọi được từ máy chủ Thổ Thần ở cả web lẫn desktop (mục 3.6). |
 | H8 | Khoá riêng của từng người (API Key hoặc biến môi trường stdio) tới được server, nên dùng được để biết ai đang hỏi | Cài lại skill stdio với `LAB_USER_KEY`, gọi `whoami`, xem trường `labEnv` | Người có tài khoản | Đúng: khoá tới server qua biến môi trường stdio và qua `Authorization: Bearer` của kiểu "API Key"; đổi khoá có hiệu lực ngay ([kịch bản đo, mục 5.5](tho-than-mcp-probe.md#55-khoá-riêng-của-từng-người-h8)). |
 | H9 | Thổ Thần ghi đè header `x-user-id` người dùng gửi, không nối thêm | Thêm header `x-user-id: spoof-test` vào skill, gọi `whoami`, xem probe nhận giá trị nào; nếu thấy giá trị đánh dấu hoặc hai giá trị thì H9 sai | Người có tài khoản, Kevin | Chưa kiểm. Phép đo HTTPS (mục 3.6) mới thấy header có mặt, chưa gửi header giả. |
 | H10 | Phiên MCP tách theo người dùng, không dùng chung cho hai người cùng cấu hình | Hai tài khoản cùng skill URL, so `mcp-session-id` và `x-user-id`; nếu chung phiên hoặc sai người thì H10 sai | Người có hai tài khoản | Chưa kiểm. |
 | H11 | Gọi `execAgent` không kèm cấu hình duyệt sẽ chạy tool ghi mà không hỏi | Gọi API với tool ghi giả lập, xem có bản ghi chờ duyệt không; chỉ dùng dữ liệu giả lập | Người có quyền gọi API, Kevin | Chưa kiểm; mã ở mục 6.4 cho thấy mặc định là `headless`. |
+| H12 | Bản dựng ngày 2026-11-18 giữ nguyên hành vi MCP đã đo: thêm skill ở cùng chỗ, bốn header danh tính, không hỏi duyệt, cắt ở 60 giây | Đăng nhập bản web mới, tìm chỗ thêm skill MCP, cắm probe qua đường hầm HTTPS, gọi `whoami` và `fake_write`; nếu một trong bốn điểm khác thì H12 sai | Người có tài khoản | Một phần (2026-11-19): chỗ thêm skill MCP giữ nguyên, `lab-gateway` vẫn bật; chỗ chọn chế độ duyệt không còn hiện trên bản web. Header, duyệt và 60 giây chưa gọi thật. |
 
 H1 đã đúng, nên "lab là Tool/MCP Runtime cắm vào Thổ Thần" là một thử nghiệm làm được ngay.
 
@@ -449,6 +507,7 @@ H9 và H10 quyết định ADR-0005 có dùng được `x-user-id` làm lớp ki
 - Chưa xác minh quan hệ giữa extension VS Code và nền tảng web; hai bên có thể dùng chung tài khoản hoặc không.
 - Chưa đo hiệu năng. Ngưỡng 60 giây ở mục 3.5 là hành vi của host, không phải số đo độ trễ, độ ổn định hay chi phí.
 - Con số phiên bản 2.1.56 đọc từ bundle có thể đổi sau mỗi lần triển khai, vì tên file chunk đổi theo bản dựng.
+- Mục 3.7 xem giao diện sau đăng nhập bằng một tài khoản Free, chỉ đọc menu; chưa gọi tool trên bản dựng mới, chưa cài ứng dụng iOS và chưa cài Bridge.
 - Mục 6 chỉ đọc mã nguồn công khai của LobeHub, không đọc mã Thổ Thần đang chạy.
   Không biết header được thêm ở tầng ứng dụng hay ở proxy, và không biết nó ghi đè hay nối thêm.
 - Chưa chạy LobeHub và chưa gọi thử API `execAgent`.
@@ -462,7 +521,7 @@ H9 và H10 quyết định ADR-0005 có dùng được `x-user-id` làm lớp ki
 
 ## 11. Sổ nguồn
 
-Cột "khớp" là `có` khi script ở mục 12 mở lại URL ngày 2026-11-17 và so khớp nguyên văn câu trích dùng trong file này.
+Cột "khớp" là `có` khi script ở mục 12 mở lại URL (S1 tới S19 ngày 2026-11-17, S20 tới S25 ngày 2026-11-18) và so khớp nguyên văn câu trích dùng trong file này.
 
 | ID | Nguồn | Loại | URL | Ngày | Khớp | Dùng ở |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -485,6 +544,12 @@ Cột "khớp" là `có` khi script ở mục 12 mở lại URL ngày 2026-11-17
 | S17 | Appota, Huyền Thoại Thổ Thần ra mắt | Bài đăng chính thức | https://vn.linkedin.com/posts/appota_appota-huyenthoaithothan-ipviet-activity-7403703635899293696-gKUR | 2025-12-08 | không kiểm trong script | 2 |
 | S18 | Nhân Dân, Huyền thoại thổ thần | Báo | https://nhandan.vn/huyen-thoai-tho-than-dau-an-moi-cua-van-hoc-fantasy-viet-nam-post928299.html | 2025-12-05 | không kiểm trong script | 2 |
 | S19 | LobeHub 2.1.56, mã nguồn | Mã nguồn | https://github.com/lobehub/lobehub/tree/v2.1.56 | 2026-05-01, commit `eddb0c9` | có, 29 câu kiểm L1-L29 | 6 |
+| S20 | Thổ Thần, trang giới thiệu | Trang sản phẩm | https://thothan.ai/ | không hiển thị ngày | có | 2, 3.7 |
+| S21 | Thổ Thần, chính sách quyền riêng tư | Văn bản pháp lý | https://thothan.ai/privacy.html | 2026-11-16 | có | 3.7 |
+| S22 | Thổ Thần, điều khoản sử dụng | Văn bản pháp lý | https://thothan.ai/terms.html | 2026-11-16 | có | 3.7 |
+| S23 | Thổ Thần, cấu hình công khai của máy chủ | Quan sát trực tiếp | https://thothan.appota.ai/trpc/lambda/config.getGlobalConfig | 2026-11-18 | có | 3.7 |
+| S24 | Thổ Thần, phiên bản máy chủ | Quan sát trực tiếp | https://thothan.appota.ai/api/version | 2026-11-18 | có | 3.7 |
+| S25 | Thổ Thần, video nền trang đăng nhập | Quan sát trực tiếp | https://thothan.appota.ai/auth/login-background-loop.mp4 | 2026-11-18 | có | 3.7 |
 
 Ghi chú S16 tới S18: ba nguồn này chỉ dùng cho dòng 4 của bảng ở mục 2, tức phần nhận dạng tên, không dùng cho bất kỳ khẳng định kỹ thuật nào.
 Chúng không nằm trong script vì hai trang LinkedIn và báo dễ chặn truy cập tự động.
@@ -504,6 +569,14 @@ bash rd/checks/tho-than-platform.sh
 ```
 
 Kết quả ngày 2026-11-17: 50 PASS, 0 MISS, 0 BLOCKED, mã thoát 0.
+Kết quả ngày 2026-11-18, sau khi thêm S20 tới S25: 66 PASS, 0 MISS, 0 BLOCKED, mã thoát 0.
+
+Đọc phiên bản và thời điểm triển khai của bản dựng đang chạy (mục 3.7):
+
+```bash
+curl -s https://thothan.appota.ai/api/version
+curl -sI "https://thothan.appota.ai$(curl -s https://thothan.appota.ai/signin | grep -o '/_next/static/chunks/[a-zA-Z0-9_.-]*\.js' | head -1)" | grep -i last-modified
+```
 
 Kiểm lại tag và commit của LobeHub 2.1.56:
 
