@@ -166,6 +166,17 @@ for (const door of DOORS) {
       return ((await response.json()) as { count: number }).count;
     };
 
+    /** Wait until the background loop has really written a task, or failed it, before reading the card. */
+    const waitWritten = (taskId: string, count = 1): Promise<number> =>
+      eventually(
+        `${taskId} to have ${count} committed writes`,
+        async () => {
+          const current = await writeCount(taskId);
+          return current === count ? current : undefined;
+        },
+        20_000,
+      );
+
     const setFault = async (fault: Record<string, unknown>): Promise<void> => {
       const response = await fetch(`${tasksUrl}/admin/faults`, {
         method: 'POST',
@@ -363,12 +374,13 @@ for (const door of DOORS) {
       const pressed = await press(base, proposal.id, browser);
       assert.equal(pressed.status, 303);
       for (const task of three) {
+        await waitWritten(task, 1);
         assert.equal(await writeCount(task), 1, `${task} was written exactly once`);
         assert.equal((await taskOf(task)).assignee, 'NV-04');
       }
 
       const card = await cardOf(proposal.id, browser);
-      assert.match(card, /Đã ghi 3 trên 3 mục/);
+      assert.match(card, /Xong hết: đã ghi 3 trên 3 mục/);
       for (const task of three) assert.ok(card.includes(`data-label="Mục">${task}<`), `the card names ${task}`);
 
       const status = await call('get_request_status', { request_id: proposal.id }, hoa);
@@ -419,6 +431,11 @@ for (const door of DOORS) {
 
       const pressed = await press(base, waitingForTarget.id, secondBrowser);
       assert.equal(pressed.status, 303);
+      const failedSoon = await eventually('the changed task to be refused', async () => {
+        const answer = await call('get_request_status', { request_id: waitingForTarget.id }, hoa);
+        return answer.reasonCode === 'TARGET_CHANGED' ? answer : undefined;
+      });
+      assert.equal(failedSoon.reasonCode, 'TARGET_CHANGED');
       assert.equal(await writeCount('T-12'), 1, 'the gateway did not write over the other change');
 
       const task = await taskOf('T-12');
@@ -449,13 +466,17 @@ for (const door of DOORS) {
       const sent = await press(base, proposal.id, browser);
       assert.equal(sent.status, 303);
 
+      const settled = await eventually('the retry to settle the lost answer', async () => {
+        const answer = await call('get_request_status', { request_id: proposal.id }, hoa);
+        return /đã ghi thay đổi vào task T-19 ở lần gửi thứ 2/.test(answer.text) ? answer : undefined;
+      });
       assert.equal(await writeCount('T-19'), 1, 'exactly one committed write, replays excluded');
       const task = await taskOf('T-19');
       assert.equal(task.assignee, 'NV-04');
       assert.equal(task.version, 2, 'one write bumps the version one step');
 
       const status = await call('get_request_status', { request_id: proposal.id }, hoa);
-      assert.match(status.text, /đã ghi thay đổi vào task T-19 ở lần gửi thứ 2/);
+      assert.match(settled.text, /đã ghi thay đổi vào task T-19 ở lần gửi thứ 2/);
       assert.equal(status.reasonCode, null);
 
       const card = await cardOf(proposal.id, browser);
@@ -465,7 +486,7 @@ for (const door of DOORS) {
       assert.match(
         trace,
         new RegExp(
-          String.raw`write_command\s+T-19\s+ok\s+-\s+\S+\s+WRITE\.SEND\s+v1\s+-\s+${proposal.id}\s+${proposal.id}:1\s+2`,
+          String.raw`write_command\s+T-19\s+ok\s+-\s+\S+\s+WRITE\.RETRY\s+v1\s+-\s+${proposal.id}\s+${proposal.id}:1\s+2`,
         ),
         'the retry used the old key and the fake task replayed its stored answer',
       );
@@ -481,6 +502,11 @@ for (const door of DOORS) {
       const loser = first.status === 409 ? first : second;
       assert.match(await loser.text(), /\[APPROVAL_USED\]/);
 
+      const done = await eventually('the winning press to write T-20', async () => {
+        const answer = await call('get_request_status', { request_id: proposal.id }, hoa);
+        return /đã ghi thay đổi vào task T-20 ở lần gửi thứ 1/.test(answer.text) ? answer : undefined;
+      });
+      assert.match(done.text, /đã ghi thay đổi vào task T-20 ở lần gửi thứ 1/);
       assert.equal(await writeCount('T-20'), 1, 'two presses, one committed write');
       const task = await taskOf('T-20');
       assert.equal(task.status, 'done');
@@ -522,7 +548,7 @@ for (const door of DOORS) {
       assert.equal(task.version, 2);
 
       const trace = traceTable(env, ['--task', 'T-21']);
-      assert.match(trace, /write_command\s+T-21\s+ok\s+-\s+\S+\s+WRITE\.RESUME\s+v1\s+-\s+\S+\s+\S+:1\s+2/);
+      assert.match(trace, /write_command\s+T-21\s+ok\s+-\s+\S+\s+WRITE\.RETRY\s+v1\s+-\s+\S+\s+\S+:1\s+2/);
     });
   });
 }

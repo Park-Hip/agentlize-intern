@@ -390,6 +390,7 @@ async function handleDecision(
     return refused(status, code, `WEB.${result.reason}`, DECIDE_SENTENCE[result.reason], result.proposal);
   }
 
+  // The commands already exist from the confirmation transaction; this only wakes the background loop and answers.
   if (decision === 'confirm') await deps.executor.execute(result.proposal);
   redirect(res, `/xac-nhan/${result.proposal.proposalId}`);
 }

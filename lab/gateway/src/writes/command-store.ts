@@ -26,6 +26,8 @@ export interface WriteCommand {
   /** A short machine-readable account of the last outcome, kept as JSON. */
   readonly result: string | null;
   readonly reasonCode: ReasonCode | null;
+  /** When the outbox may send again; null means now. Kept in the row, so a restart keeps the wait. */
+  readonly nextAttemptAt: string | null;
   readonly updatedAt: string;
 }
 
@@ -46,6 +48,7 @@ interface Row {
   attempts: number;
   result: string | null;
   reason_code: ReasonCode | null;
+  next_attempt_at: string | null;
   updated_at: string;
 }
 
@@ -63,6 +66,7 @@ function toCommand(row: Row): WriteCommand {
     attempts: row.attempts,
     result: row.result,
     reasonCode: row.reason_code,
+    nextAttemptAt: row.next_attempt_at,
     updatedAt: row.updated_at,
   };
 }
@@ -90,12 +94,18 @@ export class CommandStore {
         attempts         INTEGER NOT NULL,
         result           TEXT,
         reason_code      TEXT,
+        next_attempt_at  TEXT,
         updated_at       TEXT NOT NULL,
         UNIQUE (proposal_id, position)
       );
       CREATE INDEX IF NOT EXISTS write_commands_proposal ON write_commands (proposal_id);
       CREATE INDEX IF NOT EXISTS write_commands_status ON write_commands (status);
     `);
+    // A database from the first outbox version has no retry column; adding it keeps the simulated rows.
+    const columns = db.prepare("PRAGMA table_info('write_commands')").all() as { name: string }[];
+    if (!columns.some((column) => column.name === 'next_attempt_at')) {
+      db.exec('ALTER TABLE write_commands ADD COLUMN next_attempt_at TEXT');
+    }
   }
 
   /**
@@ -122,14 +132,15 @@ export class CommandStore {
       attempts: 0,
       result: null,
       reason_code: null,
+      next_attempt_at: null,
       updated_at: this.now().toISOString(),
     };
     this.db
       .prepare(
         `INSERT INTO write_commands (command_id, proposal_id, record_id, position, idempotency_key,
-                                     expected_version, status, attempts, result, reason_code, updated_at)
+                                     expected_version, status, attempts, result, reason_code, next_attempt_at, updated_at)
          VALUES (@command_id, @proposal_id, @record_id, @position, @idempotency_key,
-                 @expected_version, @status, @attempts, @result, @reason_code, @updated_at)`,
+                 @expected_version, @status, @attempts, @result, @reason_code, @next_attempt_at, @updated_at)`,
       )
       .run(row);
     return toCommand(row);
@@ -164,6 +175,20 @@ export class CommandStore {
     return rows.map(toCommand);
   }
 
+  /**
+   * Every command still open, first by proposal and then by position. The
+   * outbox uses the first row of each proposal, so an item never overtakes the
+   * one before it.
+   */
+  listOpen(): WriteCommand[] {
+    const rows = this.db
+      .prepare(
+        "SELECT * FROM write_commands WHERE status IN ('not_sent', 'sent_unknown') ORDER BY proposal_id, position",
+      )
+      .all() as Row[];
+    return rows.map(toCommand);
+  }
+
   list(): WriteCommand[] {
     const rows = this.db
       .prepare('SELECT * FROM write_commands ORDER BY updated_at, proposal_id, position')
@@ -174,14 +199,15 @@ export class CommandStore {
   /**
    * The moment before every send: the state becomes "sent, result unknown" and
    * the send count grows. Committed first, so a crash between here and the
-   * PATCH leaves a row the next start will pick up.
+   * PATCH leaves a row the next start will pick up. The retry time is cleared
+   * while the request is in flight.
    */
   markSent(commandId: string): WriteCommand {
     const now = this.now().toISOString();
     const changed = this.db
       .prepare(
         `UPDATE write_commands
-            SET status = 'sent_unknown', attempts = attempts + 1, updated_at = ?
+            SET status = 'sent_unknown', attempts = attempts + 1, next_attempt_at = NULL, updated_at = ?
           WHERE command_id = ? AND status IN ('not_sent', 'sent_unknown')`,
       )
       .run(now, commandId);
@@ -203,7 +229,9 @@ export class CommandStore {
         if (current.status === 'done' || current.status === 'failed') return current;
 
         this.db
-          .prepare('UPDATE write_commands SET status = ?, result = ?, reason_code = ?, updated_at = ? WHERE command_id = ?')
+          .prepare(
+            'UPDATE write_commands SET status = ?, result = ?, reason_code = ?, next_attempt_at = NULL, updated_at = ? WHERE command_id = ?',
+          )
           .run(outcome.status, outcome.result, outcome.reasonCode, this.now().toISOString(), commandId);
         const updated = this.get(commandId);
         if (updated === undefined) throw new Error(`command ${commandId} disappeared`);
@@ -213,8 +241,13 @@ export class CommandStore {
       .immediate();
   }
 
-  /** The outcome is still unknown: keep `sent_unknown` and note what the last attempt saw. */
-  noteAttempt(commandId: string, result: string, record: (command: WriteCommand) => void): WriteCommand {
+  /** The outcome is still unknown: keep `sent_unknown`, note what the last attempt saw, and say when to try again. */
+  noteAttempt(
+    commandId: string,
+    result: string,
+    nextAttemptAt: Date,
+    record: (command: WriteCommand) => void,
+  ): WriteCommand {
     return this.db
       .transaction((): WriteCommand => {
         const current = this.get(commandId);
@@ -223,8 +256,8 @@ export class CommandStore {
         if (current.status !== 'sent_unknown') return current;
 
         this.db
-          .prepare('UPDATE write_commands SET result = ?, updated_at = ? WHERE command_id = ? AND status = ?')
-          .run(result, this.now().toISOString(), commandId, 'sent_unknown');
+          .prepare('UPDATE write_commands SET result = ?, next_attempt_at = ?, updated_at = ? WHERE command_id = ? AND status = ?')
+          .run(result, nextAttemptAt.toISOString(), this.now().toISOString(), commandId, 'sent_unknown');
         const updated = this.get(commandId);
         if (updated === undefined) throw new Error(`command ${commandId} disappeared`);
         record(updated);

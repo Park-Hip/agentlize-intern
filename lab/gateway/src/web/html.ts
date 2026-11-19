@@ -1,5 +1,5 @@
 import { PERSONAS } from '@lab/shared';
-import type { CardRow } from '../proposals/card.js';
+import { formatClock, type CardRow } from '../proposals/card.js';
 import type { WriteCommand } from '../writes/command-store.js';
 
 /** Escape the five characters that can open a tag or leave an attribute. Every value that reaches a page goes through this. */
@@ -70,13 +70,14 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 footer{color:var(--muted);font-size:.85rem;margin-top:1.5rem}
 `;
 
-export function layout(title: string, body: string): string {
+export function layout(title: string, body: string, refreshSeconds?: number): string {
+  const refresh = refreshSeconds === undefined ? '' : `<meta http-equiv="refresh" content="${refreshSeconds}">\n`;
   return `<!doctype html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)} - Lab kết nối</title>
+${refresh}<title>${esc(title)} - Lab kết nối</title>
 <style>${STYLE}</style>
 </head>
 <body>
@@ -165,9 +166,18 @@ const COMMAND_BANNER: Readonly<Record<string, { text: string; tone: Tone }>> = {
 function resultOf(item: CardItemView): string {
   const command = item.command;
   if (command === undefined || command.status === 'not_sent') return 'Chưa gửi';
-  if (command.status === 'sent_unknown') return 'Đang gửi lại';
+  if (command.status === 'sent_unknown') return `Đang gửi lại (lần ${command.attempts})`;
   if (command.status === 'done') return `Đã ghi (lần ${command.attempts})`;
   return command.reasonCode === null ? 'Bị bỏ qua' : `Bị bỏ qua (${command.reasonCode})`;
+}
+
+/** The "lần gửi lại kế tiếp" cell: a clock time for a waiting send, and a word for the other states. */
+function retryOf(item: CardItemView): string {
+  const command = item.command;
+  if (command === undefined || command.status === 'done' || command.status === 'failed') return '-';
+  if (command.status === 'not_sent') return 'Ngay';
+  if (command.nextAttemptAt === null) return 'Đang gửi';
+  return formatClock(new Date(command.nextAttemptAt));
 }
 
 function confirmedBanner(view: CardView): { text: string; tone: Tone } {
@@ -175,16 +185,21 @@ function confirmedBanner(view: CardView): { text: string; tone: Tone } {
   const commands = view.items.map((item) => item.command);
   const done = commands.filter((command) => command?.status === 'done').length;
   const unknown = commands.filter((command) => command?.status === 'sent_unknown').length;
+  const waiting = commands.filter((command) => command === undefined || command.status === 'not_sent').length;
+
+  if (waiting === total) {
+    return { text: 'Đã xác nhận đề xuất. Cổng chưa gửi lệnh ghi.', tone: 'info' };
+  }
 
   if (total === 1) {
     const item = view.items[0];
     const command = item?.command;
-    if (item === undefined || command === undefined || command.status === 'not_sent') {
+    if (item === undefined || command === undefined) {
       return { text: 'Đã xác nhận đề xuất. Cổng chưa gửi lệnh ghi.', tone: 'info' };
     }
     if (command.status === 'sent_unknown') {
       return {
-        text: 'Cổng đã gửi lệnh nhưng chưa nhận được kết quả. Cổng giữ lệnh và gửi lại với đúng mã cũ, nên bản ghi không bị ghi hai lần. Hãy mở lại trang sau ít phút.',
+        text: 'Cổng đã gửi lệnh nhưng chưa nhận được kết quả. Cổng giữ lệnh và gửi lại với đúng mã cũ, nên bản ghi không bị ghi hai lần. Trang tự cập nhật khi có kết quả.',
         tone: 'info',
       };
     }
@@ -192,26 +207,32 @@ function confirmedBanner(view: CardView): { text: string; tone: Tone } {
       return { text: `Đã ghi thay đổi vào ${item.recordId} ở lần gửi thứ ${command.attempts}.`, tone: 'ok' };
     }
     const known = command.reasonCode === null ? undefined : COMMAND_BANNER[command.reasonCode];
-    return known ?? { text: 'CHƯA THỰC HIỆN Lệnh ghi không thành công. Hãy báo người vận hành Lab.', tone: 'bad' };
+    return known ?? { text: 'Không ghi được: lệnh ghi không thành công. Cột Kết quả nói lý do. Hãy báo người vận hành Lab.', tone: 'bad' };
   }
 
-  if (done === total) return { text: `Đã ghi ${done} trên ${total} mục.`, tone: 'ok' };
-  const skipped = total - done - unknown;
-  if (unknown > 0) {
-    const rest = skipped > 0 ? `, ${skipped} mục bị bỏ qua` : '';
+  if (done === total) return { text: `Xong hết: đã ghi ${done} trên ${total} mục.`, tone: 'ok' };
+  const skipped = total - done - unknown - waiting;
+  if (unknown > 0 || waiting > 0) {
+    const next = view.items.find((item) => item.command?.status === 'sent_unknown' && item.command.nextAttemptAt !== null);
+    const when =
+      next?.command?.nextAttemptAt == null
+        ? ''
+        : ` Lần gửi lại kế tiếp lúc ${formatClock(new Date(next.command.nextAttemptAt))}.`;
+    const left = skipped > 0 ? ` ${skipped} mục bị bỏ qua.` : '';
     return {
-      text: `Đã ghi ${done} trên ${total} mục; ${unknown} mục đang gửi lại${rest}. Cổng sẽ gửi lại với đúng mã cũ.`,
+      text: `Đang chạy nền: đã chuyển ${done} trên ${total} mục.${left}${when} Trang tự cập nhật mỗi 2 giây.`,
       tone: 'info',
     };
   }
+
   if (done > 0) {
     return {
-      text: `CHƯA THỰC HIỆN đủ ${total} mục: đã ghi ${done}, ${skipped} mục bị bỏ qua. Cột Kết quả nói lý do từng mục.`,
+      text: `Xong một phần: đã ghi ${done} trên ${total} mục; ${skipped} mục bị bỏ qua. Cột Kết quả nói lý do từng mục.`,
       tone: 'bad',
     };
   }
   return {
-    text: `CHƯA THỰC HIỆN Không ghi được mục nào trong ${total} mục. Cột Kết quả nói lý do từng mục.`,
+    text: `Không ghi được mục nào trong ${total} mục. Cột Kết quả nói lý do từng mục.`,
     tone: 'bad',
   };
 }
@@ -219,12 +240,17 @@ function confirmedBanner(view: CardView): { text: string; tone: Tone } {
 /** The confirmation card. Every value on it was read from the systems by the gateway, none is the agent's wording. */
 export function cardPage(view: CardView): string {
   const rows = view.items
-    .flatMap((item) =>
-      item.rows.map(
-        (row) =>
-          `<tr><td class="code" data-label="Mục">${esc(item.recordId)}</td><th scope="row">${esc(row.label)}</th><td class="v" data-label="Hiện tại">${esc(row.before === '' ? '(trống)' : row.before)}</td><td class="v" data-label="Đề xuất">${esc(row.after)}</td><td class="v" data-label="Kết quả">${esc(view.status === 'confirmed' ? resultOf(item) : '-')}</td></tr>`,
-      ),
-    )
+    .flatMap((item) => {
+      // The retry column belongs to the item, so it spans the item's field rows.
+      const itemRows = item.rows.length === 0 ? [{ label: '-', before: '', after: '' }] : item.rows;
+      return itemRows.map((row, index) => {
+        const retry =
+          index === 0
+            ? `<td class="v" rowspan="${itemRows.length}" data-label="Lần gửi lại kế tiếp">${esc(view.status === 'confirmed' ? retryOf(item) : '-')}</td>`
+            : '';
+        return `<tr><td class="code" data-label="Mục">${esc(item.recordId)}</td><th scope="row">${esc(row.label)}</th><td class="v" data-label="Hiện tại">${esc(row.before === '' ? '(trống)' : row.before)}</td><td class="v" data-label="Đề xuất">${esc(row.after)}</td><td class="v" data-label="Kết quả">${esc(view.status === 'confirmed' ? resultOf(item) : '-')}</td>${retry}</tr>`;
+      });
+    })
     .join('\n');
 
   const count = view.items.length;
@@ -252,13 +278,18 @@ export function cardPage(view: CardView): string {
       ) + pending;
   }
 
+  // While the background loop still has an item, the page reloads itself so the person sees the count move.
+  const inProgress =
+    view.status === 'confirmed' &&
+    view.items.some((item) => item.command === undefined || item.command.status === 'not_sent' || item.command.status === 'sent_unknown');
+
   return layout(
     title,
     `<h1>${esc(title)}</h1>
 <p class="sub">Người yêu cầu: ${esc(view.requesterLabel)}</p>
 <div class="panel">
 <table>
-<thead><tr><th scope="col">Mục</th><th scope="col">Trường</th><th scope="col">Hiện tại</th><th scope="col">Đề xuất</th><th scope="col">Kết quả</th></tr></thead>
+<thead><tr><th scope="col">Mục</th><th scope="col">Trường</th><th scope="col">Hiện tại</th><th scope="col">Đề xuất</th><th scope="col">Kết quả</th><th scope="col">Lần gửi lại kế tiếp</th></tr></thead>
 <tbody>
 ${rows}
 </tbody>
@@ -266,5 +297,6 @@ ${rows}
 <p class="meta">Mã đề xuất <code>${esc(view.proposalId)}</code>. Hết hạn lúc ${esc(view.expiresAtLabel)}.</p>
 </div>
 ${state}`,
+    inProgress ? 2 : undefined,
   );
 }
