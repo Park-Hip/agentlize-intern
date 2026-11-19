@@ -97,6 +97,7 @@ bash rd/checks/real-system-architectures.sh
 bash rd/checks/tho-than-platform.sh
 bash rd/checks/market-landscape.sh
 bash rd/checks/mausbot.sh
+bash rd/checks/eve.sh
 ```
 
 ### Lab POC
