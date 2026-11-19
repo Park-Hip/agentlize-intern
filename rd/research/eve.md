@@ -114,8 +114,8 @@ E1 cần Appota cấp một ứng dụng Lark và một khoá mô hình, nên Ke
 Spec hiện ghi nơi gọi thứ hai là "trợ lý gọi hàm của Lab", một chương trình chat dòng lệnh tự viết ([spec, mục 4](../design/mvp-spec.md#4-kiến-trúc)).
 Một trợ lý eve làm được cùng việc đó, theo hai lối vào của cổng:
 
-- **Lối MCP:** một kết nối MCP trỏ tới `/mcp` của cổng ([cửa `/mcp`](../../lab/README.md#cửa-mcp)).
-- **Lối gọi hàm:** năm công cụ tự viết, mỗi công cụ gọi `POST /v1/tools/<tên>` ([đường đọc của cổng](../../lab/README.md#đường-đọc-của-cổng)).
+- **Lối MCP:** một kết nối MCP trỏ tới `/mcp` của cổng ([cửa `/mcp`](../../lab/gateway/README.md#hai-cửa-vào)).
+- **Lối gọi hàm:** năm công cụ tự viết, mỗi công cụ gọi `POST /v1/tools/<tên>` ([đường đọc của cổng](../../lab/gateway/README.md#một-lời-gọi-đi-qua-đâu)).
 
 Cùng một trợ lý, cùng mô hình, chỉ đổi lối vào: đây là phép so MCP với gọi hàm sạch nhất mà Lab có thể dựng, vì mọi biến khác đứng yên.
 
