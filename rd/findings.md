@@ -63,6 +63,20 @@ Ba điều mang sang thiết kế:
 Sản phẩm dùng làm mốc "mua" ở bước đánh giá, không làm nền cho bản thử.
 Preloop là mã nguồn mở nên đọc được, nhưng thiếu đúng SR1 (người yêu cầu) và SR6, nên dựng trên nó vẫn phải viết lại phần lõi ([khảo sát thị trường, mục 6.2](research/market-landscape.md#62-sản-phẩm-có-giải-bài-toán-của-lab-không)).
 
+### 3.1. MausBot và eve, hai nơi gọi Kevin giao xem ở tuần 3
+
+Ngày 2026-11-19, Kevin giao tìm hiểu MausBot và eve, bộ khung dựng agent của Vercel vừa ra bản 1.0 ([MausBot](research/mausbot.md), [eve](research/eve.md)).
+Cả hai là nơi gọi, không phải cổng: không cái nào làm thay SR3 (phạm vi quyền), SR4 (điểm dừng rủi ro) hay SR6 (không ghi trùng), nên thiết kế cổng không đổi.
+
+| | MausBot | eve |
+| --- | --- | --- |
+| Là gì | Ứng dụng desktop cá nhân, chạy bằng tài khoản AI của từng người | Bộ khung để một đội lập trình dựng trợ lý chạy trên máy chủ |
+| Nhân viên Appota gặp ở đâu | Trên máy của người tự cài; không có Lark | Trong nhóm chat Lark, nhờ bộ nối Lark do Lark phát hành |
+| Vai trò trong Lab | Nơi gọi thêm cho người đã dùng Claude Code hay Codex (T1) | Ứng viên nơi gọi thứ hai ở mốc 4, so được lối MCP với lối gọi hàm trên cùng một trợ lý |
+
+**Kết luận:** eve gần công việc hằng ngày của nhân viên hơn MausBot, vì nó vào được Lark.
+Đề xuất dùng eve làm nơi gọi thứ hai ở mốc 4 thay chương trình chat tự viết, nếu năm phép kiểm đầu ở [eve, mục 7](research/eve.md#7-những-gì-cần-kiểm-tra) đạt; quyết định ghi thành ADR trước khi dựng.
+
 ## 4. Thổ Thần
 
 Bốn thứ khác nhau mang tên "Thổ Thần"; chỉ hai là phần mềm đang chạy ([khảo sát Thổ Thần](appota/tho-than-platform.md)).
@@ -179,7 +193,8 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 | Tuần 2-3, phiên đường hầm tiếp theo | H12 (bản dựng 2026-11-18 giữ hành vi MCP) trên desktop, chạy lại #63 và #64 trong Thổ Thần; rồi H9 và H10 trước khi bật lớp thứ hai của ADR-0005; H11 phục vụ kênh duyệt (mục 6) | Kết quả ghi vào cột cuối của bảng H trong [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được) |
 | Tuần 3 | Dựng lại lõi theo [ADR-0007](../docs/adr/adr-0007-system-adapters-and-change-sets.md) (bộ tiếp hợp theo hệ thống, luật dạng dữ liệu, đề xuất nhiều mục, hàng đợi lệnh ghi, chặn tách nhỏ) và [ADR-0008](../docs/adr/adr-0008-approval-page-login.md) (mật khẩu trang riêng, hộp chờ duyệt, hạn duyệt 2 giờ) | Phép thử ở ADR-0007 mục 5 đạt; sửa danh bạ đi qua đường ghi chung |
 | Đầu tuần 4 | Kịch bản 30 task trong Thổ Thần, trả lời Q1 | Nghiệm thu mốc 3 |
-| Tuần 4 | Thêm cửa gọi hàm, đo lần đầu | Số đo baseline |
+| Cuối tuần 3 | Hỏi Kevin ba câu về eve: trợ lý trong Lark, ứng dụng Lark thử và khoá mô hình, eve làm nơi gọi thứ hai (#92) | Câu trả lời ghi vào [eve, mục 9](research/eve.md#9-thứ-tự-làm) |
+| Tuần 4 | Thêm cửa gọi hàm, đo lần đầu; nếu Kevin đồng ý thì chạy phép kiểm eve KE1-KE5 và viết ADR chọn nơi gọi thứ hai | Số đo baseline |
 | Tuần 5-6 | Đánh giá, trả lời Q2, chạy thử sản phẩm làm cột "mua" | Báo cáo có mục "khi nào không nên dùng MCP" |
 
 ## 9. Tài liệu chi tiết
@@ -190,6 +205,7 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 - [So sánh phương án](research/option-comparison.md) và [khung so sánh chi tiết](research/comparison-framework.md): năm cách nối.
 - [Kiến trúc hệ thống thật](research/real-system-architectures.md) và [tổng quan MCP](research/mcp-overview.md).
 - [MausBot](research/mausbot.md): ứng dụng agent mã nguồn mở, ứng viên nơi chạy thứ hai cho bộ công cụ của Lab; đứng ở lớp thực thi cạnh Thổ Thần desktop và trùng vai một phần với AgentLize.
+- [eve](research/eve.md): bộ khung dựng agent của Vercel; vào được Lark, ứng viên nơi gọi thứ hai ở mốc 4.
 - [Khảo sát Thổ Thần](appota/tho-than-platform.md), [kịch bản đo MCP trong Thổ Thần](appota/tho-than-mcp-probe.md), [tình huống Appota](appota/appota-cases.md), [skill của AppotaPay](appota/appotapay-skills.md).
 - [Spec bản thử đầu](design/mvp-spec.md): bản thử chứng minh gì, kiến trúc, phép thử và bốn mốc.
 - [Bản đồ hệ thống](design/system-map.md) và [bản vẽ](design/system-map.html): năm mảnh ghép nối với nhau thế nào, mối nối nào đã đo, điều gì chưa biết và cách kiểm.

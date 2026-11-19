@@ -1,13 +1,13 @@
 # MausBot và cách tích hợp với Thổ Thần
 
-Ngày: 2026-11-17. Trạng thái: đọc tài liệu và mã nguồn xong, đã đặt MausBot vào bản đồ hệ sinh thái Appota; chưa chạy phép kiểm tra nào, chờ Kevin chọn hướng.
+Ngày: 2026-11-19. Trạng thái: đọc tài liệu và mã nguồn xong, thêm phần nhân viên Appota gặp MausBot ở đâu; chưa chạy phép kiểm tra nào, chờ Kevin chọn hướng.
 
 ## Đọc nhanh
 
 - MausBot là ứng dụng mã nguồn mở trên máy tính, cho mỗi người một nhóm trợ lý AI chạy bằng tài khoản AI của chính họ.
 - Trong hệ sinh thái Appota, nó đứng cùng chỗ với Thổ Thần desktop: nơi nhân viên giao việc cho AI. Nó còn tự mang luật duyệt, danh mục công cụ và giới hạn chi tiêu, vốn là việc của AgentLize.
-- Cách tích hợp có ích nhất là cho Thổ Thần và MausBot cùng dùng một bộ công cụ của Lab, để luật và lịch sử nằm một chỗ.
-- Thổ Thần sai được bot MausBot nhưng bị cắt sau 60 giây; chép mã MausBot vào Thổ Thần thì vướng phần phải mua và mã đổi gần 200 lần mỗi ngày.
+- Cách tích hợp có ích nhất là cho Thổ Thần và MausBot cùng dùng một bộ công cụ của Lab, để luật và lịch sử nằm một chỗ; hai cách còn lại (Thổ Thần sai bot MausBot, chép mã MausBot vào Thổ Thần) vướng giới hạn 60 giây, phần phải mua và mã đổi quá nhanh.
+- MausBot không vào được Lark, nơi nhân viên Appota đang làm việc; trợ lý dựng bằng eve thì vào được ([eve](eve.md)).
 - Tiếp theo: hỏi Kevin chọn hướng nào, rồi chạy các phép kiểm tra ở mục 6 theo đúng hướng đó, tối đa một ngày.
 
 ## 1. Câu hỏi nghiên cứu
@@ -36,9 +36,10 @@ Câu hỏi này gắn với tiêu chí nghiệm thu của Track 01: "chứng min
 | Mã nguồn | [milind-soni/OpenMausBot](https://github.com/milind-soni/OpenMausBot), tạo ngày 2026-08-11, khoảng 24 nghìn sao, hơn 100 người đóng góp. | GitHub, ngày 2026-11-17 |
 | Tốc độ đổi | 5.793 commit trong 30 ngày tới 2026-11-17, gần 200 commit mỗi ngày; ba bản phát hành trong hai ngày 15 và 16/11. | `gh api search/commits`, `gh api .../releases` |
 | Giấy phép | Phần lõi Apache 2.0. Thư mục `enterprise/` có giấy phép riêng, phải mua khi dùng thật. Tên "MausBot" là nhãn hiệu. | [LICENSING.md](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/LICENSING.md) |
-| Giá | Bản desktop miễn phí. Bản trên máy chủ của họ từ 15 USD/tháng; bản nhóm tự cài 299 USD/tháng; gói đổi nhãn từ 1.000 USD/tháng cộng 5.000 USD phí cài đặt. Tiền gọi mô hình AI người dùng tự trả. | [bảng giá](https://mausbot.com/pricing), [enterprise](https://mausbot.com/enterprise) |
+| Giá | Bản desktop miễn phí. Bản đám mây cá nhân từ 15 USD/tháng; gói nhóm 40 USD/tháng cho 2 người, thêm 20 USD mỗi người; bản tự cài cho doanh nghiệp 299 USD/tháng tới 20 người. Trang Enterprise, ngày 2026-11-17 còn ghi gói đổi nhãn từ 1.000 USD/tháng cộng 5.000 USD phí cài đặt, nay chuyển sang bán bộ SDK cho công ty phần mềm và không công bố giá. Tiền gọi mô hình AI người dùng tự trả. | [bảng giá](https://mausbot.com/pricing), [enterprise](https://mausbot.com/enterprise), đọc lại ngày 2026-11-19 |
 | Dữ liệu | Bản desktop giữ hội thoại trên máy. Nội dung chat vẫn được gửi tới nhà cung cấp AI mà người dùng chọn. | [chính sách riêng tư](https://mausbot.com/privacy) |
 | Bản trên máy Lab | 0.1.165, chạy ở cổng `8799`; máy có sẵn `claude` và `codex`. | `GET http://127.0.0.1:8799/api/health`, ngày 2026-11-17 |
+| Bản mới nhất | 0.1.170 ngày 2026-11-19; khoảng 25,6 nghìn sao; 144 commit trong hai ngày 18 và 19/11. | `gh api .../releases`, `gh api search/commits`, ngày 2026-11-19 |
 
 MausBot không phải chatbot cho khách hàng (kiểu Zalo, Messenger).
 Nó là một nơi để người trong công ty giao việc cho AI, giống Thổ Thần desktop.
@@ -91,6 +92,25 @@ Bốn mối nối, xếp theo giá trị cho Appota:
 
 **Kết luận:** mối nối rẻ nhất và đáng giá nhất là N1, đúng phần Lab đang dựng.
 N2 vá chỗ yếu về danh tính (SR1) của MausBot nhưng cần gói trả phí; N3 và N4 tùy câu trả lời của đội Thổ Thần và AgentLize.
+
+### 3.3. Nhân viên Appota gặp MausBot ở đâu
+
+Câu hỏi của Kevin tuần 3: MausBot gắn vào công việc hằng ngày của nhân viên ở đâu.
+Đọc lại kho mã ở commit `96acdd4` (bản 0.1.170) cho ba điều:
+
+- **Ở máy của từng người.** Mỗi người cài ứng dụng desktop, hoặc dùng app điện thoại để điều khiển máy đó từ xa.
+  Bot chạy bằng tài khoản Claude Code, Codex hay khoá API của chính người đó.
+- **Slack chỉ ở bản đám mây trả phí.** Người trong Slack của công ty nhắc `@MausBot` thì bot trả lời; tin Slack đi qua dịch vụ Admin của MausBot, nên chỉ bản đám mây (gói Pro trở lên hoặc gói nhóm) có đường này, còn ứng dụng desktop và máy chủ tự cài thì không ([team-slack](https://github.com/milind-soni/OpenMausBot/blob/96acdd4bcd14b702288fcca25baf414f469cd4c1/docs/team-slack.md)).
+- **Không có Lark.** Kho mã không có kênh Lark hay Feishu; tìm từ `feishu` trong mã ra 0 kết quả, từ `lark` ra một tệp kiểm thử không liên quan.
+
+| Nhóm nhân viên | MausBot hợp không | Vì sao |
+| --- | --- | --- |
+| Lập trình viên đã dùng Claude Code hay Codex | Hợp | Họ đã có tài khoản AI; MausBot cho họ bot chạy nền, chạy theo lịch, và gọi được cổng của Lab (T1) |
+| Nhân viên vận hành, kinh doanh làm việc trong Lark | Không hợp | Phải mở thêm một ứng dụng, tự có tài khoản AI, và không gặp bot trong Lark |
+| Cả công ty | Không hợp lúc này | Dữ liệu đi qua tài khoản AI cá nhân; đăng nhập bằng tài khoản `@appota.com` mới là kế hoạch của MausBot |
+
+**Kết luận:** MausBot hợp với nhóm nhỏ đã quen trình AI trên máy, không hợp làm cửa vào chung cho hơn 400 nhân viên.
+Với nhân viên làm việc trong Lark, đường ngắn hơn là trợ lý dựng bằng eve ([eve, mục 4](eve.md#4-gắn-vào-công-việc-hằng-ngày-của-nhân-viên-appota)); vai trò của MausBot trong Lab giữ nguyên là T1.
 
 ## 4. Bốn cách tích hợp
 
@@ -251,7 +271,7 @@ Bốn mẫu khớp với [bài học từ thị trường](market-lessons.md):
 | 3 | Chạy nhóm B (K12-K16) nếu Kevin chọn T2 | Hai giờ | Ảnh và log, bảng ở mục 4.1 đổi thành "đã đo" |
 | 4 | Làm nhóm C (K18-K19) nếu Kevin chọn T3 hoặc T4 | Không quá nửa ngày đọc mã; phần pháp lý do người khác | Danh sách tệp và ý kiến pháp lý |
 | 5 | Chạy K20 nếu Kevin chọn dùng cho cả nhóm và có gói nhóm | Hai giờ | Log probe có hai khoá khác nhau |
-| 6 | Khi bản thử của Lab chạy được trong Thổ Thần, chạy ba kịch bản ở [tổng hợp phát hiện, mục 5.2](../findings.md#52-phạm-vi-bản-thử) trong MausBot | Tuần 3-4 | Bằng chứng "agent thứ hai dùng lại cùng công cụ" |
+| 6 | Khi bản thử của Lab chạy được trong Thổ Thần, chạy ba kịch bản ở [tổng hợp phát hiện, mục 5.2](../findings.md#52-phạm-vi-bản-thử) trong MausBot | Tuần 3-4 | Bằng chứng "agent thứ hai dùng lại cùng công cụ"; so với trợ lý eve ở [eve, mục 5.1](eve.md#51-nơi-gọi-thứ-hai-cho-mốc-4) |
 
 Kiểm lại các câu trích trong tài liệu này: `bash rd/checks/mausbot.sh`.
 

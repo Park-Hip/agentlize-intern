@@ -11,6 +11,9 @@ FAIL=0
 
 COMMIT=d01c7be498bfe7ee3c0963b169fb63fe531b1425
 RAW="https://raw.githubusercontent.com/milind-soni/OpenMausBot/$COMMIT"
+# Lần đọc lại ngày 2026-11-19 (bản 0.1.170), cho mục 3.3
+COMMIT2=96acdd4bcd14b702288fcca25baf414f469cd4c1
+RAW2="https://raw.githubusercontent.com/milind-soni/OpenMausBot/$COMMIT2"
 
 norm() { sed -e 's/<[^>]*>//g' | tr -s ' \n\t' ' '; }
 
@@ -46,7 +49,9 @@ check "$RAW/LICENSING.md" 'Everything under `enterprise/` is source-available' "
 check "$RAW/LICENSING.md" "so a product built on OpenMausBot needs its own name" "giấy phép: sản phẩm dựng lại phải đổi tên"
 check "$RAW/enterprise/LICENSE" "Hosting for third parties, reselling, and white-labelling the product for third parties are permitted only under a written partner agreement" "giấy phép enterprise: đổi nhãn cần hợp đồng"
 check "$RAW/enterprise/FEATURES" "budgets" "enterprise: giới hạn chi tiêu nằm trong phần đóng"
-check "https://mausbot.com/enterprise" "5,000" "bảng giá đổi nhãn: phí cài đặt"
+check "https://mausbot.com/enterprise" "The AI Harness SDK gives software companies the agent harness behind MausBot" "enterprise: nay bán bộ SDK, không công bố giá đổi nhãn"
+check "https://mausbot.com/pricing" "For data kept in-house" "bảng giá: bản tự cài cho doanh nghiệp"
+check "https://mausbot.com/pricing" "your bots in Slack" "bảng giá: Slack có ở gói đám mây"
 
 # Gắn server MCP tự mang tới
 check "$RAW/docs/custom-mcp-servers.md" "a local stdio server: the executable" "MCP: nhận server chạy trên máy (stdio)"
@@ -86,6 +91,11 @@ check "$RAW/docs/bot-api.md" "It has no shell, computer, browser, phone, connect
 check "$RAW/docs/mcp-server.md" "The v1 server intentionally cannot approve requests" "MCP server của MausBot: không duyệt hộ"
 check "$RAW/docs/mcp-server.md" "returns the first send's receipt instead of a second message" "MCP server của MausBot: gửi lại không gửi trùng"
 check "$RAW/scripts/mcp-server.ts" 'maximum: 120, description: "Maximum wait (default: 30 seconds)."' "MCP server của MausBot: chờ mặc định 30 giây, tối đa 120"
+
+# Nhân viên gặp MausBot ở đâu (mục 3.3)
+check "$RAW2/docs/team-slack.md" "One MausBot Slack app is installed per company" "Slack: một ứng dụng Slack cho cả công ty"
+check "$RAW2/docs/team-slack.md" "Slack's events arrive at the Admin" "Slack: tin Slack đi qua dịch vụ Admin"
+check "$RAW2/docs/team-slack.md" "Everywhere else (the desktop app, a self-hosted server) every route below answers 404" "Slack: bản desktop và tự cài không có Slack"
 
 echo "----"
 echo "PASS: $PASS  FAIL: $FAIL"
