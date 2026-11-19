@@ -103,7 +103,8 @@ bash rd/checks/eve.sh
 ### Lab POC
 
 The lab is an npm workspace in `lab/` and needs Node 22 or newer.
-How each service behaves (ports, environment variables, the read and write paths, the console screens, the trace table) is in `lab/README.md`; read it before changing the lab.
+`lab/README.md` covers running the lab, the commands and the environment variables; each package's own README (`lab/gateway/README.md`, `lab/console/README.md`, `lab/fake-directory/README.md`, `lab/fake-tasks/README.md`) covers how that service behaves.
+Read them before changing the lab.
 
 ```
 cd lab

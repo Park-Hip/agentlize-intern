@@ -20,7 +20,7 @@ const MINH = PERSONAS.minh.employeeId;
  * `2026-11-20` is a Friday and differs from T-12's seeded due date, so the
  * first run always drafts a change.
  * The embedded line is on T-13, not T-12: the seed puts it there on purpose
- * (lab/README.md), and the spec's risk table was corrected to match.
+ * (lab/fake-tasks/README.md), and the spec's risk table was corrected to match.
  * Scenario C uses the thirty open tasks of chị Lan (T-5 to T-34), so the bulk
  * threshold is crossed and the proposal waits for the lead's approval.
  */
