@@ -22,8 +22,19 @@ function startFixture(options: FixtureOptions = {}): Promise<Fixture> {
   return startBaseFixture({ employees: EMPLOYEES_WITH_NEW_FIELD, ...options });
 }
 
-function checkbox(html: string, role: string, field: string): RegExpMatchArray | null {
-  return new RegExp(`<input type="checkbox" name="fields\\.${role}" value="${field}"( checked)?>`).exec(html);
+interface ResourceShape {
+  bulk_threshold: number;
+  read: Record<string, string>;
+  fields: Record<string, string[]>;
+  actions: Record<string, Record<string, { effect: string; scope?: string; bulk?: string }>>;
+}
+
+function resourcesOf(rules: Record<string, unknown>): Record<string, ResourceShape> {
+  return rules['resources'] as Record<string, ResourceShape>;
+}
+
+function checkbox(html: string, type: string, role: string, field: string): RegExpMatchArray | null {
+  return new RegExp(`<input type="checkbox" name="fields\\.${type}\\.${role}" value="${field}"( checked)?>`).exec(html);
 }
 
 function removeField(list: Map<string, string[]>, name: string, value: string): void {
@@ -43,7 +54,7 @@ function setField(list: Map<string, string[]>, name: string, value: string): voi
   list.set(name, [value]);
 }
 
-test('permissions: the screen shows the three-way cells, the threshold, the fields and the fixed task fields', async (t) => {
+test('permissions: the screen shows one table per record type, every cell in three parts, and editable task fields', async (t) => {
   const fixture = await startFixture();
   t.after(() => fixture.close());
 
@@ -54,41 +65,55 @@ test('permissions: the screen shows the three-way cells, the threshold, the fiel
   const html = await response.text();
 
   assert.match(html, /<h1>Quyền và trường<\/h1>/);
-  assert.match(html, /Bảng vai và hành động/);
+  assert.match(html, /<h2>Task<\/h2>/);
+  assert.match(html, /<h2>Nhân viên<\/h2>/);
 
-  // Six table actions times four roles, each cell a select with the three effects.
-  assert.equal(html.match(/<select name="cell\./g)?.length, 24);
+  // Three task actions and one employee action, four roles, three selects per cell.
+  assert.equal(html.match(/name="cell\./g)?.length, 48);
+  assert.equal(html.match(/name="cell\.task\.change_task_status\.staff\.effect"/g)?.length, 1);
+  assert.equal(html.match(/name="cell\.employee\.edit_directory\.hr\.effect"/g)?.length, 1);
+  assert.equal(html.match(/name="read\./g)?.length, 8, 'one read select per role and record type');
+
   const staffStatus = new RegExp(
-    '<select name="cell\\.staff\\.change_task_status"[^>]*>(.*?)</select>',
+    '<select name="cell\\.task\\.change_task_status\\.staff\\.effect"[^>]*>(.*?)</select>',
     's',
   ).exec(html)?.[1];
   assert.ok(staffStatus !== undefined);
   assert.match(staffStatus, /<option value="allow" selected>Được<\/option>/);
   assert.match(staffStatus, /<option value="deny">Không được<\/option>/);
   assert.match(staffStatus, /<option value="needs_approval">Cần duyệt<\/option>/);
+  assert.match(staffStatus, /<option value="">chưa khai<\/option>/);
 
-  // The bulk threshold is one number for everyone.
-  assert.match(html, /name="bulk_threshold" type="number" min="1" step="1" value="5"/);
+  // The bulk threshold is one number per record type.
+  assert.match(html, /name="bulk_threshold\.task" type="number" min="1" step="1" value="5"/);
+  assert.match(html, /name="bulk_threshold\.employee" type="number" min="1" step="1" value="5"/);
 
   // A field added to the directory after the rule file has no role yet: it is shown and marked.
   assert.match(html, /badge_code/);
   assert.match(html, /chưa khai/);
-  const badge = checkbox(html, 'staff', 'badge_code');
+  const badge = checkbox(html, 'employee', 'staff', 'badge_code');
   assert.ok(badge !== null, 'the new field has a checkbox');
   assert.equal(badge[1], undefined, 'the new field starts unchecked');
 
   // Rule names are shown with the directory name they map to.
   assert.match(html, /employee_id<\/code>/);
   assert.match(html, /full_name<\/code>/);
-  assert.match(html, /name="fields\.staff" value="work_email" checked/);
-  assert.match(html, /name="fields\.hr" value="personal_phone" checked/);
-  assert.equal(html.match(/name="fields\.staff" value="personal_phone" checked/g), null);
+  assert.match(html, /name="fields\.employee\.staff" value="work_email" checked/);
+  assert.match(html, /name="fields\.employee\.hr" value="personal_phone" checked/);
+  assert.equal(html.match(/name="fields\.employee\.staff" value="personal_phone" checked/g), null);
 
-  // Task fields are visible but fixed in code.
-  assert.match(html, /Trường của task/);
-  assert.match(html, /Cố định trong mã/);
-  assert.match(html, /Người phụ trách/);
-  assert.match(html, /taskLine/);
+  // Task fields are editable now, with their own catalog.
+  assert.match(html, /<h3>Trường của task mỗi vai được xem<\/h3>/);
+  assert.match(html, /name="fields\.task\.staff" value="title" checked/);
+  assert.match(html, /name="fields\.task\.hr" value="description" checked/);
+  assert.match(html, /name="catalog\.task" value="description"/);
+  assert.equal(html.includes('Cố định trong mã'), false);
+
+  // The approval block and the cumulative window are part of the form.
+  assert.match(html, /name="approver_roles" value="lead" checked/);
+  assert.match(html, /name="approval_same_department" value="true" checked/);
+  assert.match(html, /name="approval_wait_minutes" type="number" min="1" step="1" value="120"/);
+  assert.match(html, /name="cumulative_window_minutes" type="number" min="1" step="1" value="60"/);
 
   assert.equal(html.includes('<script>'), false);
   assert.equal(html.includes(SERVICE_KEY), false);
@@ -108,7 +133,7 @@ test('permissions: a valid save writes the next version and keeps a history copy
   assert.equal(hidden.version, '7');
   const before = readRules(fixture.rulesPath);
   const params = saveFields(before, hidden, catalogOf(page), (fields) => {
-    removeField(fields, 'fields.staff', 'work_email');
+    removeField(fields, 'fields.employee.staff', 'work_email');
   });
 
   const response = await postForm(fixture, params);
@@ -118,14 +143,15 @@ test('permissions: a valid save writes the next version and keeps a history copy
 
   const after = readRules(fixture.rulesPath);
   assert.equal(after['version'], 8);
-  const staff = (after['employee_fields'] as Record<string, string[]>)['staff'];
-  const beforeStaff = (before['employee_fields'] as Record<string, string[]>)['staff'];
+  const staff = resourcesOf(after)['employee']?.fields['staff'];
+  const beforeStaff = resourcesOf(before)['employee']?.fields['staff'];
   assert.ok(staff !== undefined && beforeStaff !== undefined);
   assert.equal(staff.includes('work_email'), false);
   assert.deepEqual(staff, beforeStaff.filter((field) => field !== 'work_email'));
-  // Another role keeps the field, and the cells are untouched.
-  assert.ok(((after['employee_fields'] as Record<string, string[]>)['hr'] ?? []).includes('work_email'));
-  assert.deepEqual(after['roles'], before['roles']);
+  // Another role keeps the field, and every cell is untouched.
+  assert.ok((resourcesOf(after)['employee']?.fields['hr'] ?? []).includes('work_email'));
+  assert.deepEqual(resourcesOf(after)['task']?.actions, resourcesOf(before)['task']?.actions);
+  assert.deepEqual(resourcesOf(after)['employee']?.actions, resourcesOf(before)['employee']?.actions);
 
   const history = readFileSync(join(fixture.dataDir, 'rules-history', 'v8.json'), 'utf8');
   assert.deepEqual(JSON.parse(history) as unknown, after);
@@ -133,9 +159,30 @@ test('permissions: a valid save writes the next version and keeps a history copy
   const reloaded = await (await fetch(`${fixture.url}/permissions?saved=8`)).text();
   assert.match(reloaded, /Đã lưu phiên bản 8/);
   assert.match(reloaded, /Đang áp <strong>phiên bản 8<\/strong>/);
-  assert.ok(checkbox(reloaded, 'staff', 'work_email') !== null);
-  assert.equal(checkbox(reloaded, 'staff', 'work_email')?.[1], undefined, 'the save is on the page');
-  assert.match(reloaded, /name="fields\.hr" value="work_email" checked/);
+  assert.ok(checkbox(reloaded, 'employee', 'staff', 'work_email') !== null);
+  assert.equal(checkbox(reloaded, 'employee', 'staff', 'work_email')?.[1], undefined, 'the save is on the page');
+  assert.match(reloaded, /name="fields\.employee\.hr" value="work_email" checked/);
+});
+
+test('permissions: a save changes task fields and a cell, and leaves everything else alone', async (t) => {
+  const fixture = await startFixture();
+  t.after(() => fixture.close());
+
+  const page = await (await fetch(`${fixture.url}/permissions`)).text();
+  const hidden = hiddenFields(page);
+  const before = readRules(fixture.rulesPath);
+  const params = saveFields(before, hidden, catalogOf(page), (fields) => {
+    removeField(fields, 'fields.task.staff', 'description');
+    setField(fields, 'cell.task.change_task_status.staff.bulk', 'allow');
+  });
+
+  const response = await postForm(fixture, params);
+  assert.equal(response.status, 303);
+
+  const after = readRules(fixture.rulesPath);
+  assert.equal(resourcesOf(after)['task']?.fields['staff']?.includes('description'), false);
+  assert.equal(resourcesOf(after)['task']?.actions['change_task_status']?.['staff']?.bulk, 'allow');
+  assert.equal(resourcesOf(after)['task']?.fields['lead']?.includes('description'), true);
 });
 
 test('permissions: a broken form never reaches the file', async (t) => {
@@ -151,15 +198,25 @@ test('permissions: a broken form never reaches the file', async (t) => {
   const cases: { name: string; edit: (fields: Map<string, string[]>) => void }[] = [
     {
       name: 'effect outside the three choices',
-      edit: (fields) => setField(fields, 'cell.staff.change_task_status', 'maybe'),
+      edit: (fields) => setField(fields, 'cell.task.change_task_status.staff.effect', 'maybe'),
     },
     {
       name: 'threshold below one',
-      edit: (fields) => setField(fields, 'bulk_threshold', '0'),
+      edit: (fields) => setField(fields, 'bulk_threshold.task', '0'),
     },
     {
       name: 'field outside the page catalog',
-      edit: (fields) => addField(fields, 'fields.staff', 'not_a_field'),
+      edit: (fields) => addField(fields, 'fields.employee.staff', 'not_a_field'),
+    },
+    {
+      name: 'task field outside the adapter catalog',
+      edit: (fields) => addField(fields, 'fields.task.staff', 'not_a_task_field'),
+    },
+    {
+      name: 'no approver role',
+      edit: (fields) => {
+        fields.delete('approver_roles');
+      },
     },
   ];
 
@@ -186,15 +243,15 @@ test('permissions: two saves from one page, the second is refused and names both
 
   const first = await postForm(
     fixture,
-    saveFields(before, hidden, catalog, (fields) => removeField(fields, 'fields.staff', 'work_email')),
+    saveFields(before, hidden, catalog, (fields) => removeField(fields, 'fields.employee.staff', 'work_email')),
   );
   assert.equal(first.status, 303);
 
   const second = await postForm(
     fixture,
     saveFields(before, hidden, catalog, (fields) => {
-      setField(fields, 'bulk_threshold', '9');
-      removeField(fields, 'fields.hr', 'work_email');
+      setField(fields, 'bulk_threshold.task', '9');
+      removeField(fields, 'fields.employee.hr', 'work_email');
     }),
   );
   assert.equal(second.status, 409);
@@ -204,10 +261,10 @@ test('permissions: two saves from one page, the second is refused and names both
 
   const after = readRules(fixture.rulesPath);
   assert.equal(after['version'], 8);
-  assert.equal(after['bulk_threshold'], 5);
-  const staff = (after['employee_fields'] as Record<string, string[]>)['staff'] ?? [];
+  assert.equal(resourcesOf(after)['task']?.bulk_threshold, 5);
+  const staff = resourcesOf(after)['employee']?.fields['staff'] ?? [];
   assert.equal(staff.includes('work_email'), false);
-  const hr = (after['employee_fields'] as Record<string, string[]>)['hr'] ?? [];
+  const hr = resourcesOf(after)['employee']?.fields['hr'] ?? [];
   assert.ok(hr.includes('work_email'), 'the refused save changed nothing');
 });
 
@@ -221,8 +278,8 @@ test('permissions: restore writes the base content above every version on disk',
 
   // Make the live file differ from the base copy, so the restore has something visible to undo.
   const changed = readRules(fixture.rulesPath);
-  const staff = (changed['employee_fields'] as Record<string, string[]>)['staff'] ?? [];
-  (changed['employee_fields'] as Record<string, string[]>)['staff'] = staff.filter((field) => field !== 'work_email');
+  const staff = resourcesOf(changed)['employee']?.fields['staff'] ?? [];
+  resourcesOf(changed)['employee']!.fields['staff'] = staff.filter((field) => field !== 'work_email');
   writeFileSync(fixture.rulesPath, JSON.stringify(changed, null, 2));
 
   const page = await (await fetch(`${fixture.url}/permissions`)).text();
@@ -285,7 +342,7 @@ test('permissions: the decision box uses the gateway engine without calling a to
   const allowed = await (await fetch(`${fixture.url}/permissions?${query.toString()}`)).text();
   assert.match(allowed, /<span class="badge ok">Được<\/span>/);
   assert.match(allowed, /<code>ALLOWED<\/code>/);
-  assert.match(allowed, /<code>employee_fields\.staff<\/code>/);
+  assert.match(allowed, /<code>employee\.fields\.staff<\/code>/);
   assert.match(allowed, /phiên bản 7/);
 
   query.set('field', 'personal_phone');
@@ -298,44 +355,85 @@ test('permissions: the decision box uses the gateway engine without calling a to
   query.set('department', 'Kinh doanh');
   query.set('field', 'work_email');
   const otherDepartment = await (await fetch(`${fixture.url}/permissions?${query.toString()}`)).text();
-  assert.match(otherDepartment, /<code>staff\.edit_other_department_task<\/code>/);
+  assert.match(otherDepartment, /<code>task\.change_task_assignee_or_due\.staff\.scope<\/code>/);
   assert.match(otherDepartment, /<span class="badge bad">Không được<\/span>/);
 
-  query.set('action', 'bulk_change');
-  query.set('department', 'Vận hành');
-  query.set('task_count', '1');
-  const staffBulk = await (await fetch(`${fixture.url}/permissions?${query.toString()}`)).text();
-  assert.match(staffBulk, /<span class="badge warn">Cần duyệt<\/span>/);
-  assert.match(staffBulk, /<code>NEEDS_APPROVAL<\/code>/);
-  assert.match(staffBulk, /<code>staff\.bulk_change<\/code>/);
-
-  // The number in the form feeds the bulk threshold: four tasks pass, five need approval.
+  // The number in the form feeds the bulk threshold: four records pass, five need approval.
   query.set('action', 'change_task_status');
+  query.set('department', 'Vận hành');
   query.set('task_count', '4');
   const belowThreshold = await (await fetch(`${fixture.url}/permissions?${query.toString()}`)).text();
   assert.match(belowThreshold, /<span class="badge ok">Được<\/span>/);
   query.set('task_count', '5');
   const atThreshold = await (await fetch(`${fixture.url}/permissions?${query.toString()}`)).text();
   assert.match(atThreshold, /<span class="badge warn">Cần duyệt<\/span>/);
-  assert.match(atThreshold, /<code>staff\.bulk_change<\/code>/);
+  assert.match(atThreshold, /<code>task\.change_task_status\.staff\.bulk<\/code>/);
 
-  query.set('action', 'bulk_change');
-  query.set('task_count', '1');
   query.set('persona', 'NV-01');
   const leadBulk = await (await fetch(`${fixture.url}/permissions?${query.toString()}`)).text();
   assert.match(leadBulk, /<span class="badge ok">Được<\/span>/);
-  assert.match(leadBulk, /<code>lead\.bulk_change<\/code>/);
+  assert.match(leadBulk, /<code>task\.change_task_status\.lead<\/code>/);
 
   // A query the engine cannot accept is explained, never a 500.
-  query.set('action', 'no_such_action');
+  query.set('action', 'bulk_change');
   const bad = await fetch(`${fixture.url}/permissions?${query.toString()}`);
   assert.equal(bad.status, 200);
   assert.match(await bad.text(), /Không hỏi được bộ luật/);
 
-  for (const response of [allowed, refused, otherDepartment, staffBulk, leadBulk]) {
+  for (const response of [allowed, refused, otherDepartment, atThreshold, leadBulk]) {
     assert.equal(response.includes(SERVICE_KEY), false);
     assert.equal(response.includes('<script>'), false);
   }
+});
+
+test('permissions: a cell missing from the file shows as "chưa khai" and a save can declare it', async (t) => {
+  const rules = JSON.parse(rulesWithVersion(7)) as {
+    resources: Record<string, { actions: Record<string, Record<string, unknown>> }>;
+  };
+  const taskCells = rules.resources['task']?.actions['change_task_status'] ?? {};
+  delete taskCells['staff'];
+
+  const fixture = await startFixture({ rulesText: JSON.stringify(rules) });
+  t.after(() => fixture.close());
+
+  const page = await (await fetch(`${fixture.url}/permissions`)).text();
+  assert.match(page, /chưa khai/);
+  const effectSelect = new RegExp(
+    '<select name="cell\\.task\\.change_task_status\\.staff\\.effect"[^>]*>(.*?)</select>',
+    's',
+  ).exec(page)?.[1];
+  assert.ok(effectSelect !== undefined);
+  assert.match(effectSelect, /<option value="" selected>chưa khai<\/option>/);
+
+  // An untouched save keeps the cell undeclared.
+  const hidden = hiddenFields(page);
+  const unchanged = await postForm(fixture, saveFields(readRules(fixture.rulesPath), hidden, catalogOf(page)));
+  assert.equal(unchanged.status, 303);
+  const afterUnchanged = readRules(fixture.rulesPath);
+  assert.equal(afterUnchanged['version'], 8);
+  assert.equal(
+    (afterUnchanged['resources'] as Record<string, { actions: Record<string, Record<string, unknown>> }>)['task']?.actions[
+      'change_task_status'
+    ]?.['staff'],
+    undefined,
+  );
+
+  // Setting the missing cell declares it in the next version.
+  const declared = await postForm(
+    fixture,
+    saveFields(readRules(fixture.rulesPath), hiddenFields(await (await fetch(`${fixture.url}/permissions`)).text()), catalogOf(page), (fields) => {
+      setField(fields, 'cell.task.change_task_status.staff.effect', 'allow');
+      setField(fields, 'cell.task.change_task_status.staff.scope', 'own_department');
+      setField(fields, 'cell.task.change_task_status.staff.bulk', 'needs_approval');
+    }),
+  );
+  assert.equal(declared.status, 303);
+  const afterDeclared = readRules(fixture.rulesPath);
+  assert.equal(
+    (afterDeclared['resources'] as Record<string, { actions: Record<string, Record<string, { effect: string }>> }>)['task']
+      ?.actions['change_task_status']?.['staff']?.effect,
+    'allow',
+  );
 });
 
 test('permissions: a save works while the directory is off and keeps the rule fields', async (t) => {
@@ -346,19 +444,19 @@ test('permissions: a save works while the directory is off and keeps the rule fi
   const hidden = hiddenFields(page);
   const before = readRules(fixture.rulesPath);
   const params = saveFields(before, hidden, catalogOf(page), (fields) => {
-    removeField(fields, 'fields.staff', 'work_email');
+    removeField(fields, 'fields.employee.staff', 'work_email');
   });
 
   const response = await postForm(fixture, params);
   assert.equal(response.status, 303);
   const after = readRules(fixture.rulesPath);
   assert.equal(after['version'], 8);
-  const staff = (after['employee_fields'] as Record<string, string[]>)['staff'] ?? [];
+  const staff = resourcesOf(after)['employee']?.fields['staff'] ?? [];
   assert.equal(staff.includes('work_email'), false);
-  assert.ok(((after['employee_fields'] as Record<string, string[]>)['hr'] ?? []).includes('personal_phone'));
+  assert.ok((resourcesOf(after)['employee']?.fields['hr'] ?? []).includes('personal_phone'));
 });
 
-test('permissions: a broken live rule file is reported and no form is offered', async (t) => {
+test('permissions: a broken live rule file is reported and can be restored from the page', async (t) => {
   const fixture = await startFixture({ rulesText: '{' });
   t.after(() => fixture.close());
 
@@ -366,9 +464,38 @@ test('permissions: a broken live rule file is reported and no form is offered', 
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /File luật không đọc được/);
-  assert.match(html, /Tải lại trang|Về tổng quan/);
-  assert.equal(html.includes('name="csrf"'), false);
+  assert.match(html, /value="restore"/);
+  assert.match(html, /name="csrf" value="[^"]+"/);
   assert.equal(html.includes('Bảng vai và hành động'), false);
+
+  const csrf = /name="csrf" value="([^"]+)"/.exec(html)?.[1] ?? '';
+  const restored = await postForm(fixture, { csrf, action: 'restore', version: '0' });
+  assert.equal(restored.status, 303, await restored.text());
+  assert.equal(restored.headers.get('location'), '/permissions?restored=1');
+  const base = JSON.parse(readFileSync(DEFAULT_RULES_PATH, 'utf8')) as Record<string, unknown>;
+  assert.deepEqual(readRules(fixture.rulesPath), base);
+
+  const reloaded = await (await fetch(`${fixture.url}/permissions`)).text();
+  assert.match(reloaded, /Bảng vai và hành động|Quyền/);
+  assert.match(reloaded, /name="cell\.task\.change_task_status\.staff\.effect"/);
+});
+
+test('permissions: an old rule file without schema 2 is reported and can be restored', async (t) => {
+  const old = JSON.parse(rulesWithVersion(7)) as Record<string, unknown>;
+  delete old['schema'];
+  const fixture = await startFixture({ rulesText: JSON.stringify(old) });
+  t.after(() => fixture.close());
+
+  const response = await fetch(`${fixture.url}/permissions`);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /File luật không đọc được/);
+  assert.match(html, /value="restore"/);
+
+  const csrf = /name="csrf" value="([^"]+)"/.exec(html)?.[1] ?? '';
+  const restored = await postForm(fixture, { csrf, action: 'restore', version: '0' });
+  assert.equal(restored.status, 303, await restored.text());
+  assert.equal(readRules(fixture.rulesPath)['schema'], 2);
 });
 
 test('permissions: the screen still opens when the directory is off and keeps the rule fields', async (t) => {
@@ -380,9 +507,9 @@ test('permissions: the screen still opens when the directory is off and keeps th
   const html = await response.text();
   assert.match(html, /Không đọc được danh bạ/);
   assert.match(html, /vẫn sửa được/);
-  // The seven fields in the rule file are still rendered, so a save cannot drop them.
+  // The seven employee fields in the rule file are still rendered, so a save cannot drop them.
   for (const field of ['id', 'name', 'department', 'role', 'work_email', 'personal_phone', 'home_address']) {
-    assert.match(html, new RegExp(`name="catalog" value="${field}"`));
+    assert.match(html, new RegExp(`name="catalog\\.employee" value="${field}"`));
   }
   assert.match(html, /<button type="submit" name="action" value="save">Lưu phiên bản 8<\/button>/);
   assert.match(html, /Thử quyết định/);
@@ -391,12 +518,27 @@ test('permissions: the screen still opens when the directory is off and keeps th
 
 test('permissions: a role name from the file is escaped like every other value', async (t) => {
   const rules = JSON.parse(rulesWithVersion(7)) as {
-    roles: Record<string, unknown>;
-    employee_fields: Record<string, unknown>;
+    approval: { approver_roles: string[] };
+    resources: Record<
+      string,
+      {
+        read: Record<string, string>;
+        fields: Record<string, string[]>;
+        actions: Record<string, Record<string, unknown>>;
+      }
+    >;
   };
-  const cells = rules.roles['staff'];
-  rules.roles = { 'staff<script>alert(1)</script>': cells };
-  rules.employee_fields = { 'staff<script>alert(1)</script>': ['id', 'name'] };
+  const evil = 'staff<script>alert(1)</script>';
+  for (const resource of Object.values(rules.resources)) {
+    resource.read = { [evil]: 'own_department' };
+    resource.fields = { [evil]: ['id', 'name'] };
+    for (const cells of Object.values(resource.actions)) {
+      const first = Object.values(cells)[0] ?? { effect: 'deny' };
+      for (const role of Object.keys(cells)) delete cells[role];
+      cells[evil] = first;
+    }
+  }
+  rules.approval.approver_roles = [evil];
 
   const fixture = await startFixture({ rulesText: JSON.stringify(rules) });
   t.after(() => fixture.close());

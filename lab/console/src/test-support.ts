@@ -182,7 +182,7 @@ export function line(traceId: string, seed: Omit<TraceSeed, 'traceId'> = {}): Tr
     outcome: seed.outcome ?? 'ok',
     reasonCode: seed.reasonCode ?? null,
     outOfScope: false,
-    ruleId: seed.ruleId === undefined ? 'READ_SCOPE.own_department' : seed.ruleId,
+    ruleId: seed.ruleId === undefined ? 'task.read.staff' : seed.ruleId,
     policyVersion: seed.policyVersion === undefined ? 7 : seed.policyVersion,
     hostUser: null,
     proposalId: seed.proposalId ?? null,
@@ -557,11 +557,17 @@ export function hiddenFields(html: string): { csrf: string; version: string } {
   return { csrf, version };
 }
 
+/** The field codes the save form carries as hidden catalogs, one catalog per record type. */
+export interface FieldCatalog {
+  readonly employee: readonly string[];
+  readonly task: readonly string[];
+}
+
 /** Turn the rule file on disk into the fields a browser would submit, with the given edits. */
 export function saveFields(
   rules: Record<string, unknown>,
   hidden: { csrf: string; version: string },
-  catalog: readonly string[],
+  catalog: FieldCatalog,
   edit: (fields: Map<string, string[]>) => void = () => undefined,
 ): URLSearchParams {
   const fields = new Map<string, string[]>();
@@ -574,18 +580,40 @@ export function saveFields(
   add('csrf', hidden.csrf);
   add('action', 'save');
   add('version', hidden.version);
-  add('bulk_threshold', String(rules['bulk_threshold']));
 
-  const roles = rules['roles'] as Record<string, Record<string, string>>;
-  for (const [role, cells] of Object.entries(roles)) {
-    for (const [action, effect] of Object.entries(cells)) add(`cell.${role}.${action}`, effect);
+  const resources = rules['resources'] as Record<
+    string,
+    {
+      bulk_threshold: number;
+      read: Record<string, string>;
+      fields: Record<string, string[]>;
+      actions: Record<string, Record<string, { effect: string; scope?: string; bulk?: string }>>;
+    }
+  >;
+  for (const [type, resource] of Object.entries(resources)) {
+    add(`bulk_threshold.${type}`, String(resource.bulk_threshold));
+    for (const [role, scope] of Object.entries(resource.read)) add(`read.${type}.${role}`, scope);
+    for (const [role, list] of Object.entries(resource.fields)) {
+      for (const field of list) add(`fields.${type}.${role}`, field);
+    }
+    for (const [action, cells] of Object.entries(resource.actions)) {
+      for (const [role, cell] of Object.entries(cells)) {
+        const prefix = `cell.${type}.${action}.${role}`;
+        add(`${prefix}.effect`, cell.effect);
+        add(`${prefix}.scope`, cell.scope ?? 'own_department');
+        add(`${prefix}.bulk`, cell.bulk ?? '');
+      }
+    }
   }
 
-  const employeeFields = rules['employee_fields'] as Record<string, string[]>;
-  for (const field of catalog) add('catalog', field);
-  for (const [role, list] of Object.entries(employeeFields)) {
-    for (const field of list) add(`fields.${role}`, field);
-  }
+  const approval = rules['approval'] as { approver_roles: string[]; same_department: boolean; wait_minutes: number };
+  for (const role of approval.approver_roles) add('approver_roles', role);
+  if (approval.same_department) add('approval_same_department', 'true');
+  add('approval_wait_minutes', String(approval.wait_minutes));
+  add('cumulative_window_minutes', String(rules['cumulative_window_minutes']));
+
+  for (const field of catalog.employee) add('catalog.employee', field);
+  for (const field of catalog.task) add('catalog.task', field);
 
   edit(fields);
 
@@ -594,9 +622,12 @@ export function saveFields(
   return params;
 }
 
-/** The field codes the save form carries as a hidden catalog. */
-export function catalogOf(html: string): readonly string[] {
-  return [...html.matchAll(/name="catalog" value="([^"]*)"/g)].map((match) => match[1] ?? '');
+/** The field codes the save form carries as hidden catalogs. */
+export function catalogOf(html: string): FieldCatalog {
+  const read = (name: string): readonly string[] => [
+    ...html.matchAll(new RegExp(`name="catalog\\.${name}" value="([^"]*)"`, 'g')),
+  ].map((match) => match[1] ?? '');
+  return { employee: read('employee'), task: read('task') };
 }
 
 export function readRules(rulesPath: string): Record<string, unknown> {

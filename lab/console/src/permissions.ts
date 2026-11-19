@@ -3,16 +3,18 @@ import {
   ACTIONS,
   DIRECTORY_KEY,
   EMPLOYEE_FIELD_LABELS,
-  TABLE_ACTIONS,
+  RESOURCE_ACTIONS,
   rulesSchema,
+  TASK_FIELDS,
+  type ActionCell,
   type PolicyAction,
   type PolicyDecision,
   type PolicyEffect,
   type PolicyInput,
+  type ReadScope,
+  type ResourceType,
   type Rules,
   type TableAction,
-  type TaskField,
-  TASK_FIELDS,
 } from '@lab/gateway';
 import { roleLabel, type PersonaChoice } from './data.js';
 import type { Employee } from './upstream.js';
@@ -26,13 +28,27 @@ export const EFFECT_LABEL: Readonly<Record<PolicyEffect, string>> = {
   needs_approval: 'Cần duyệt',
 };
 
+/** How far a role may read a record type, in the order the console offers it. */
+export const SCOPES = ['own_department', 'any'] as const;
+
+export const SCOPE_LABEL: Readonly<Record<ReadScope, string>> = {
+  own_department: 'Cùng phòng',
+  any: 'Mọi phòng',
+};
+
+/** The record types the console draws, in the order it draws them. */
+export const RESOURCE_ORDER = ['task', 'employee'] as const;
+
+export const RESOURCE_LABEL: Readonly<Record<string, string>> = {
+  task: 'Task',
+  employee: 'Nhân viên',
+};
+
 export const ACTION_LABEL: Readonly<Record<PolicyAction, string>> = {
   read_employee_field: 'Xem một trường của nhân viên',
   edit_task_description: 'Sửa mô tả task',
   change_task_status: 'Đổi trạng thái task',
   change_task_assignee_or_due: 'Đổi người phụ trách hoặc hạn',
-  bulk_change: 'Đổi hàng loạt task',
-  edit_other_department_task: 'Sửa task của phòng khác',
   edit_directory: 'Sửa danh bạ',
 };
 
@@ -40,6 +56,9 @@ export const ACTION_LABEL: Readonly<Record<PolicyAction, string>> = {
 const RULE_FIELD: Readonly<Record<string, string>> = Object.fromEntries(
   Object.entries(DIRECTORY_KEY).map(([ruleName, directoryKey]) => [directoryKey, ruleName]),
 );
+
+/** The task fields a rule file may declare; the record version is not one of them. */
+const TASK_RULE_FIELDS: readonly string[] = TASK_FIELDS.filter((field) => field.name !== 'version').map((field) => field.name);
 
 function orderFields(fields: Iterable<string>): readonly string[] {
   const known = Object.keys(EMPLOYEE_FIELD_LABELS);
@@ -49,6 +68,33 @@ function orderFields(fields: Iterable<string>): readonly string[] {
   return [...ordered, ...extras];
 }
 
+/** Every role the file declares, with the four known roles first and any other role after them. */
+export function ruleRoles(rules: Rules): readonly string[] {
+  const roles = new Set<string>();
+  for (const resource of Object.values(rules.resources)) {
+    for (const role of Object.keys(resource.read)) roles.add(role);
+  }
+  const known: readonly string[] = ROLES;
+  return [
+    ...known.filter((role) => roles.has(role)),
+    ...[...roles].filter((role) => !known.includes(role)).sort((left, right) => left.localeCompare(right)),
+  ];
+}
+
+/** The record types the file declares, in a stable order. */
+export function resourceTypes(rules: Rules): readonly string[] {
+  const types = Object.keys(rules.resources);
+  return [
+    ...RESOURCE_ORDER.filter((type) => types.includes(type)),
+    ...types.filter((type) => !(RESOURCE_ORDER as readonly string[]).includes(type)).sort((left, right) => left.localeCompare(right)),
+  ];
+}
+
+/** The actions the adapters declare for one record type; a typo in the file never reaches here. */
+export function actionsOf(type: string): readonly TableAction[] {
+  return Object.hasOwn(RESOURCE_ACTIONS, type) ? RESOURCE_ACTIONS[type as ResourceType] : [];
+}
+
 /**
  * Rule field names the directory currently has, plus the ones the rule file
  * already uses. A rule field absent from the directory still has to render,
@@ -56,8 +102,8 @@ function orderFields(fields: Iterable<string>): readonly string[] {
  */
 export function knownRuleFields(rules: Rules, employees: readonly Employee[] | undefined): readonly string[] {
   const fields = new Set<string>();
-  for (const role of Object.keys(rules.employee_fields)) {
-    for (const field of rules.employee_fields[role] ?? []) fields.add(field);
+  for (const list of Object.values(rules.resources['employee']?.fields ?? {})) {
+    for (const field of list) fields.add(field);
   }
   for (const employee of employees ?? []) {
     // `Employee.fields` leaves out the code, which has its own column on the data screen, so it is added here.
@@ -78,16 +124,32 @@ export interface FieldChoice {
   readonly declared: boolean;
 }
 
-export function fieldChoices(
-  rules: Rules,
-  fields: readonly string[],
-): readonly FieldChoice[] {
-  const roles = Object.keys(rules.employee_fields);
+function declaredFields(rules: Rules, type: string): ReadonlySet<string> {
+  const declared = new Set<string>();
+  for (const list of Object.values(rules.resources[type]?.fields ?? {})) {
+    for (const field of list) declared.add(field);
+  }
+  return declared;
+}
+
+export function fieldChoices(rules: Rules, fields: readonly string[]): readonly FieldChoice[] {
+  const declared = declaredFields(rules, 'employee');
   return fields.map((field) => ({
     field,
     label: EMPLOYEE_FIELD_LABELS[field] ?? field,
     directoryKey: DIRECTORY_KEY[field] ?? field,
-    declared: roles.some((role) => (rules.employee_fields[role] ?? []).includes(field)),
+    declared: declared.has(field),
+  }));
+}
+
+/** The task fields the screen offers, including the ones no role sees yet. */
+export function taskFieldChoices(rules: Rules): readonly FieldChoice[] {
+  const declared = declaredFields(rules, 'task');
+  return TASK_FIELDS.filter((field) => field.name !== 'version').map((field) => ({
+    field: field.name,
+    label: field.label,
+    directoryKey: field.name,
+    declared: declared.has(field.name),
   }));
 }
 
@@ -97,23 +159,32 @@ export interface RoleColumn {
 }
 
 export function roleColumns(rules: Rules): readonly RoleColumn[] {
-  const known: readonly string[] = ROLES;
-  const roles = Object.keys(rules.roles);
-  const ordered = [
-    ...known.filter((role) => roles.includes(role)),
-    ...roles.filter((role) => !known.includes(role)).sort((left, right) => left.localeCompare(right)),
-  ];
-  return ordered.map((role) => ({ role, label: roleLabel(role) }));
+  return ruleRoles(rules).map((role) => ({ role, label: roleLabel(role) }));
+}
+
+export interface ResourceView {
+  readonly type: string;
+  readonly label: string;
+  readonly bulkThreshold: number;
+  readonly actions: readonly TableAction[];
+}
+
+export interface ApprovalView {
+  readonly approverRoles: readonly string[];
+  readonly sameDepartment: boolean;
+  readonly waitMinutes: number;
 }
 
 export interface PermissionsView {
   readonly version: number;
   readonly file: string;
-  readonly bulkThreshold: number;
+  readonly approval: ApprovalView;
+  readonly cumulativeWindowMinutes: number;
   readonly roles: readonly RoleColumn[];
   readonly rules: Rules;
   readonly fields: readonly FieldChoice[];
-  readonly taskFields: readonly TaskField[];
+  readonly taskFields: readonly FieldChoice[];
+  readonly resources: readonly ResourceView[];
 }
 
 export function permissionsView(
@@ -124,11 +195,22 @@ export function permissionsView(
   return {
     version: rules.version,
     file,
-    bulkThreshold: rules.bulk_threshold,
+    approval: {
+      approverRoles: rules.approval.approver_roles,
+      sameDepartment: rules.approval.same_department,
+      waitMinutes: rules.approval.wait_minutes,
+    },
+    cumulativeWindowMinutes: rules.cumulative_window_minutes,
     roles: roleColumns(rules),
     rules,
     fields,
-    taskFields: TASK_FIELDS,
+    taskFields: taskFieldChoices(rules),
+    resources: resourceTypes(rules).map((type) => ({
+      type,
+      label: RESOURCE_LABEL[type] ?? type,
+      bulkThreshold: rules.resources[type]?.bulk_threshold ?? 0,
+      actions: actionsOf(type),
+    })),
   };
 }
 
@@ -140,48 +222,132 @@ function effectOf(value: string | null): PolicyEffect | undefined {
   return value !== null && (EFFECTS as readonly string[]).includes(value) ? (value as PolicyEffect) : undefined;
 }
 
+function scopeOf(value: string | null): ReadScope | undefined {
+  return value !== null && (SCOPES as readonly string[]).includes(value) ? (value as ReadScope) : undefined;
+}
+
+function positiveNumber(form: URLSearchParams, name: string): number {
+  const text = (form.get(name) ?? '').trim();
+  return /^[0-9]+$/.test(text) ? Number(text) : Number.NaN;
+}
+
 /**
- * Turn one submitted form into the next rule file. The role and action lists
- * come from the file that is on disk, never from the form, so a tampered form
- * cannot add a role or an action. Every value is checked again by the gateway's
- * schema before the file is written.
+ * Turn one submitted form into the next rule file. The role, record type and
+ * action lists come from the file and from the adapters, never from the form,
+ * so a tampered form cannot add a role or an action. Every value is checked
+ * again by the gateway's schema before the file is written.
  */
 export function rulesFromForm(
   current: Rules,
   form: URLSearchParams,
   fields: readonly string[],
 ): BuiltRules {
-  const thresholdText = (form.get('bulk_threshold') ?? '').trim();
-  const threshold = /^[0-9]+$/.test(thresholdText) ? Number(thresholdText) : Number.NaN;
-
-  const roles: Record<string, Record<TableAction, PolicyEffect>> = {};
-  const employeeFields: Record<string, string[]> = {};
-
-  for (const role of Object.keys(current.roles)) {
-    const cells = {} as Record<TableAction, PolicyEffect>;
-    for (const action of TABLE_ACTIONS) {
-      const effect = effectOf(form.get(`cell.${role}.${action}`));
-      if (effect === undefined) {
-        return { ok: false, detail: `Thiếu hoặc sai lựa chọn cho ${role}.${action}.` };
-      }
-      cells[action] = effect;
+  const roles = ruleRoles(current);
+  const resources: Record<
+    string,
+    {
+      bulk_threshold: number;
+      read: Record<string, ReadScope>;
+      fields: Record<string, string[]>;
+      actions: Record<string, Record<string, ActionCell>>;
     }
-    roles[role] = cells;
+  > = {};
 
-    const submitted = form.getAll(`fields.${role}`);
-    for (const field of submitted) {
-      if (!fields.includes(field)) {
-        return { ok: false, detail: `Trường ${field} không có trong danh sách trường đang hiện.` };
+  for (const [type] of Object.entries(current.resources)) {
+    const threshold = positiveNumber(form, `bulk_threshold.${type}`);
+    if (!Number.isInteger(threshold) || threshold < 1) {
+      return { ok: false, detail: `Ngưỡng hàng loạt của ${RESOURCE_LABEL[type] ?? type} phải là số nguyên từ 1.` };
+    }
+
+    const read: Record<string, ReadScope> = {};
+    for (const role of roles) {
+      const scope = scopeOf(form.get(`read.${type}.${role}`));
+      if (scope === undefined) {
+        return { ok: false, detail: `Thiếu hoặc sai phạm vi đọc cho ${type}.${role}.` };
+      }
+      read[role] = scope;
+    }
+
+    const catalog = type === 'employee' ? fields : type === 'task' ? TASK_RULE_FIELDS : undefined;
+    const fieldLists: Record<string, string[]> = {};
+    for (const role of roles) {
+      const submitted = form.getAll(`fields.${type}.${role}`);
+      if (catalog !== undefined) {
+        for (const field of submitted) {
+          if (!catalog.includes(field)) {
+            return { ok: false, detail: `Trường ${field} không có trong danh sách trường của ${RESOURCE_LABEL[type] ?? type}.` };
+          }
+        }
+        fieldLists[role] = catalog.filter((field) => submitted.includes(field));
+      } else {
+        fieldLists[role] = submitted;
       }
     }
-    employeeFields[role] = fields.filter((field) => submitted.includes(field));
+
+    const actions: Record<string, Record<string, ActionCell>> = {};
+    for (const action of actionsOf(type)) {
+      const cells: Record<string, ActionCell> = {};
+      for (const role of roles) {
+        const prefix = `cell.${type}.${action}.${role}`;
+        const effectRaw = form.get(`${prefix}.effect`) ?? '';
+        if (effectRaw === '') continue;
+        const effect = effectOf(effectRaw);
+        if (effect === undefined) {
+          return { ok: false, detail: `Thiếu hoặc sai lựa chọn cho ${type}.${action}.${role}.` };
+        }
+
+        let cell: ActionCell;
+        const scope = scopeOf(form.get(`${prefix}.scope`));
+        if (effect === 'deny') {
+          cell = scope === undefined ? { effect } : { effect, scope };
+        } else {
+          if (scope === undefined) {
+            return { ok: false, detail: `Thiếu hoặc sai phạm vi cho ${type}.${action}.${role}.` };
+          }
+          cell = { effect, scope };
+        }
+
+        const bulkRaw = form.get(`${prefix}.bulk`) ?? '';
+        if (bulkRaw !== '') {
+          const bulk = effectOf(bulkRaw);
+          if (bulk === undefined) {
+            return { ok: false, detail: `Thiếu hoặc sai hiệu lực hàng loạt cho ${type}.${action}.${role}.` };
+          }
+          cell = { ...cell, bulk };
+        }
+        cells[role] = cell;
+      }
+      actions[action] = cells;
+    }
+
+    resources[type] = { bulk_threshold: threshold, read, fields: fieldLists, actions };
+  }
+
+  const wantedApprovers = form.getAll('approver_roles');
+  const approverRoles = roles.filter((role) => wantedApprovers.includes(role));
+  if (approverRoles.length === 0) {
+    return { ok: false, detail: 'Cần chọn ít nhất một vai được duyệt.' };
+  }
+
+  const waitMinutes = positiveNumber(form, 'approval_wait_minutes');
+  if (!Number.isInteger(waitMinutes) || waitMinutes < 1) {
+    return { ok: false, detail: 'Số phút chờ duyệt phải là số nguyên từ 1.' };
+  }
+  const windowMinutes = positiveNumber(form, 'cumulative_window_minutes');
+  if (!Number.isInteger(windowMinutes) || windowMinutes < 1) {
+    return { ok: false, detail: 'Cửa sổ đếm tách nhỏ phải là số nguyên từ 1.' };
   }
 
   const parsed = rulesSchema.safeParse({
+    schema: 2,
     version: current.version + 1,
-    bulk_threshold: threshold,
-    roles,
-    employee_fields: employeeFields,
+    approval: {
+      approver_roles: approverRoles,
+      same_department: form.get('approval_same_department') === 'true',
+      wait_minutes: waitMinutes,
+    },
+    cumulative_window_minutes: windowMinutes,
+    resources,
   });
   if (!parsed.success) {
     const where = parsed.error.issues.map((issue) => issue.path.join('.') || '(file)').join(', ');

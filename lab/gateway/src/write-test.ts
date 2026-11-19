@@ -220,7 +220,7 @@ test('write: a role lowered after the draft is refused at Gửi with NOT_PERMITT
     const line = f.gateway.trace.list().find((entry) => entry.tool === 'proposal_send');
     assert.equal(line?.outcome, 'refused');
     assert.equal(line?.reasonCode, 'NOT_PERMITTED');
-    assert.equal(line?.ruleId, 'intern.change_task_assignee_or_due');
+    assert.equal(line?.ruleId, 'task.change_task_assignee_or_due.intern');
   });
 });
 

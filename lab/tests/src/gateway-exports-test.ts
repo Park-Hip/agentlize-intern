@@ -27,7 +27,8 @@ test('gateway package: the rule file, its schema, the key store, the escape func
   const rules = JSON.parse(readFileSync(DEFAULT_RULES_PATH, 'utf8')) as unknown;
   const parsed = rulesSchema.parse(rules);
   assert.equal(parsed.version, 1);
-  assert.ok(Object.keys(parsed.roles).includes('staff'));
+  assert.ok(Object.keys(parsed.resources).includes('task'));
+  assert.ok(Object.keys(parsed.resources['task']?.read ?? {}).includes('staff'));
 
   const engine = createPolicyEngine();
   assert.equal(engine.decide(null).ruleId, 'INPUT_INVALID');
@@ -58,7 +59,7 @@ test('gateway package: the key store and the trace reader run on a database the 
       outcome: 'ok',
       reasonCode: null,
       outOfScope: false,
-      ruleId: 'READ_SCOPE.own_department',
+      ruleId: 'task.read.staff',
       policyVersion: 1,
       hostUser: null,
       durationMs: 1,

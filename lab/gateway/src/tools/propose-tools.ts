@@ -3,7 +3,15 @@ import { z } from 'zod';
 import { adapterOf, recordValue, SystemUnavailableError, type RecordData, type ResourceAdapter } from '../adapters/index.js';
 import { TASK_STATUSES } from '../adapters/tasks.js';
 import { badRequest, refuse } from '../call.js';
-import { ACTION_PHRASE, RULE_IDS, strictestOf, type PolicyDecision, type TableAction } from '../policy/index.js';
+import {
+  ACTION_PHRASE,
+  readRuleId,
+  RULE_IDS,
+  strictestOf,
+  type PersonRef,
+  type PolicyDecision,
+  type TableAction,
+} from '../policy/index.js';
 import { cardRows, formatClock } from '../proposals/card.js';
 import {
   CHANGE_FIELDS,
@@ -13,7 +21,7 @@ import {
   type Proposal,
 } from '../proposals/index.js';
 import { wrapSystemData } from './block.js';
-import { defineTool, notFoundTask, TASK_READ_RULE_ID } from './read-tools.js';
+import { defineTool, notFoundTask } from './read-tools.js';
 import type { RegisteredTool, ToolContext, ToolResult } from './types.js';
 
 const PROPOSE_TOOL = 'propose_task_change';
@@ -51,14 +59,29 @@ function fold(text: string): string {
     .toLowerCase();
 }
 
-/** Names of the leads of a department, read from the directory. Empty when nobody is a lead or the directory does not answer. */
-async function leadNames(adapters: readonly ResourceAdapter[], department: string): Promise<string[]> {
+/**
+ * The people the rule file lets approve this request, read from the directory.
+ * The rule decides which roles count and whether they must share the
+ * requester's department; the directory only supplies the people.
+ */
+async function approverNames(context: ToolContext): Promise<readonly PersonRef[]> {
+  const { actor, adapters, policy } = context;
+  const directory = adapterOf(adapters, 'employee');
   try {
-    const directory = adapterOf(adapters, 'employee');
-    const people = await directory.list({ department });
-    return people
-      .filter((person) => person['role'] === 'lead')
-      .map((person) => String(recordValue(person, directory.fields, 'name')));
+    const people = await directory.list({});
+    const refs: PersonRef[] = [];
+    for (const person of people) {
+      const id = recordValue(person, directory.fields, 'id');
+      const name = recordValue(person, directory.fields, 'name');
+      if (id === undefined || name === undefined) continue;
+      refs.push({
+        id: String(id),
+        name: String(name),
+        role: String(person['role'] ?? ''),
+        department: String(person['department'] ?? ''),
+      });
+    }
+    return policy.approversFor({ department: actor.department }, refs).approvers;
   } catch (error) {
     if (error instanceof SystemUnavailableError) return [];
     throw error;
@@ -71,7 +94,7 @@ async function refusalForDecision(
   context: ToolContext,
   taskId: string,
 ): Promise<ToolResult> {
-  const { actor, adapters } = context;
+  const { actor } = context;
   const extra = { objectId: taskId, policyVersion: decision.policyVersion } as const;
 
   if (decision.reasonCode === 'POLICY_UNAVAILABLE') {
@@ -88,11 +111,17 @@ async function refusalForDecision(
     };
   }
 
-  const leads = await leadNames(adapters, actor.department);
+  const leads = (await approverNames(context)).map((person) => person.name);
   const whom =
     leads.length > 0 ? `Hãy hỏi ${leads.join(' hoặc ')}, trưởng nhóm ${actor.department}.` : `Hãy hỏi trưởng nhóm ${actor.department}.`;
   const what = [...new Set(actions.map((action) => ACTION_PHRASE[action]))].join(' và ');
 
+  if (decision.ruleId.endsWith('.undeclared')) {
+    return {
+      ...refuse('NOT_PERMITTED', decision.ruleId, `Bộ luật quyền chưa khai việc ${what} cho vai của bạn. ${whom}`),
+      ...extra,
+    };
+  }
   if (decision.effect === 'needs_approval') {
     // Single-task changes cannot reach this with the current rule file; the approval flow is a later milestone.
     return {
@@ -168,13 +197,25 @@ const proposeTaskChange = defineTool(
     const taskId = args.task_id;
     const objectId = tasks.idPattern.test(taskId) ? taskId : null;
 
+    // The rule file decides how far this role reads tasks, not a constant in the tool.
+    const read = policy.readScope(actor.role, tasks.type);
+    if (read.effect !== 'allow') {
+      if (read.reasonCode === 'POLICY_UNAVAILABLE') return refuse('POLICY_UNAVAILABLE', read.ruleId);
+      return notFoundTask(taskId, read.ruleId);
+    }
+
     // A code that cannot be a task code is answered without asking the task list.
     const task = objectId === null ? undefined : await tasks.get(objectId);
-    if (task === undefined) return notFoundTask(taskId);
+    if (task === undefined) return notFoundTask(taskId, read.ruleId, { objectId, policyVersion: read.policyVersion });
     const taskObjectId = String(task['id']);
     const department = String(task[tasks.ownerField]);
-    if (department !== actor.department) {
-      return notFoundTask(taskId, { objectId, outOfScope: true, traceReasonCode: 'NOT_PERMITTED' });
+    if (read.scope === 'own_department' && department !== actor.department) {
+      return notFoundTask(taskId, read.ruleId, {
+        objectId,
+        outOfScope: true,
+        traceReasonCode: 'NOT_PERMITTED',
+        policyVersion: read.policyVersion,
+      });
     }
 
     // The rule is asked about every field the request names; the strictest answer wins (spec section 4.3).
@@ -349,7 +390,7 @@ const getRequestStatus = defineTool(
       outcome: 'ok',
       objectId: proposal.taskId,
       proposalId: proposal.proposalId,
-      ruleId: TASK_READ_RULE_ID,
+      ruleId: readRuleId('task', context.actor.role),
       policyVersion: proposal.policyVersion,
     });
   },

@@ -159,7 +159,7 @@ for (const door of DOORS) {
       const trace = runCli('trace-main.js', ['--task', 'T-100'], env);
       assert.match(trace, new RegExp(String.raw`NV-05\s+tho-than-desktop\s+${door.traceEntry}\s+get_task\s+T-100\s+not_found\s+NOT_PERMITTED\s+out_of_scope`));
       const missingTrace = runCli('trace-main.js', ['--task', 'T-9999'], env);
-      assert.match(missingTrace, /not_found\s+-\s+-\s+READ_SCOPE/);
+      assert.match(missingTrace, /not_found\s+-\s+-\s+task\.read\./);
     });
 
     await t.test('list_tasks shows only the own department and cuts at 50 lines', async () => {
@@ -296,7 +296,7 @@ for (const door of DOORS) {
       const trace = traceTable(env, ['--employee', 'NV-02']);
       assert.match(trace, /^time\s+trace\s+requester/m);
       assert.ok(trace.includes('find_employee'));
-      assert.ok(trace.includes('employee_fields.staff'));
+      assert.ok(trace.includes('employee.fields.staff'));
       assert.ok(!trace.includes('NV-05'));
 
       // The whole table, not only one person: no key, no phone, no address, no name and no email.

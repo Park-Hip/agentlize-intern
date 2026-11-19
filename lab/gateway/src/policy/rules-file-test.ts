@@ -86,7 +86,8 @@ test('rules path: an edited rule file applies to the next call, and a broken one
     // The operator removes work_email from the staff role and saves the file while the gateway keeps running.
     const edited = shippedRules();
     edited['version'] = 2;
-    const fields = edited['employee_fields'] as Record<string, string[]>;
+    const resources = edited['resources'] as Record<string, { fields: Record<string, string[]> }>;
+    const fields = resources['employee']?.fields ?? {};
     fields['staff'] = (fields['staff'] ?? []).filter((field) => field !== 'work_email');
     writeFileSync(path, JSON.stringify(edited, null, 2));
 
@@ -122,7 +123,8 @@ test('rules path: a rule file already in the data folder is used and never overw
   const path = rulesPathIn(dir);
   const mine = shippedRules();
   mine['version'] = 7;
-  const fields = mine['employee_fields'] as Record<string, string[]>;
+  const resources = mine['resources'] as Record<string, { fields: Record<string, string[]> }>;
+  const fields = resources['employee']?.fields ?? {};
   fields['staff'] = ['id', 'name', 'department', 'role'];
   const saved = JSON.stringify(mine, null, 2);
   writeFileSync(path, saved);

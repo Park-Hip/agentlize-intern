@@ -6,8 +6,6 @@ export const ACTION_PHRASE: Readonly<Record<TableAction, string>> = {
   edit_task_description: 'sửa mô tả task',
   change_task_status: 'đổi trạng thái task',
   change_task_assignee_or_due: 'đổi người phụ trách hoặc hạn của task',
-  bulk_change: 'đổi hàng loạt task',
-  edit_other_department_task: 'sửa task của phòng khác',
   edit_directory: 'sửa danh bạ',
 };
 
