@@ -33,4 +33,5 @@ export type {
   PolicyEffect,
   PolicyReason,
   ReadDecision,
+  WindowDecision,
 } from './types.js';

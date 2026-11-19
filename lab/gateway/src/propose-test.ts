@@ -638,8 +638,8 @@ test('propose: a task already at the new value is left out of the proposal and n
   });
 });
 
-test('propose: thirty codes at the bulk threshold are drafted with a note that a lead must approve, three are not', async () => {
-  await withGateway(async (f) => {
+test('propose: thirty codes at the bulk threshold are drafted with a note that a lead must approve, three in a fresh window are not', async () => {
+  await withGateway(async (f, h) => {
     const thirty = Array.from({ length: 30 }, (_, index) => `T-${100 + index}`);
     const batch = await f.call(
       'propose_task_change',
@@ -660,6 +660,9 @@ test('propose: thirty codes at the bulk threshold are drafted with a note that a
     assert.match(stored?.approvalReason ?? '', /30 mục/);
     assert.equal(f.systems.writeCount('T-100'), 0);
 
+    // The thirty items are still waiting for the press, and inside the window
+    // they would count. A fresh window leaves only the three items of this call.
+    h.clock.at += 61 * MINUTE;
     const three = await f.call(
       'propose_task_change',
       { task_ids: thirty.slice(0, 3), changes: { assignee: 'NV-04' } },

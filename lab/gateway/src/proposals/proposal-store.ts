@@ -114,10 +114,46 @@ export type DecideFailure =
   | 'NOT_FOUND'
   | 'NOT_REQUESTER'
   | 'NOT_PERMITTED'
+  | 'POLICY_UNAVAILABLE'
   | 'SELF_APPROVAL'
   | 'APPROVAL_EXPIRED'
   | 'APPROVAL_USED'
   | 'CONTENT_CHANGED';
+
+/**
+ * What a press of Gửi does, decided inside the transaction that moves the
+ * proposal. A wait is not a refusal: the proposal goes to the lead's inbox
+ * (ADR-0007 section 3.4).
+ */
+export type ConfirmRoute =
+  | { readonly kind: 'write'; readonly ruleId: string; readonly policyVersion: number | null }
+  | {
+      readonly kind: 'wait';
+      readonly approvalExpiresAt: Date;
+      readonly approvalReason: string;
+      readonly ruleId: string;
+      readonly policyVersion: number | null;
+    }
+  | { readonly kind: 'refuse'; readonly reason: 'NOT_PERMITTED' | 'POLICY_UNAVAILABLE' };
+
+/** What the cumulative count looks for: one person, one record type, one set of actions, one window. */
+export interface BulkCountQuery {
+  readonly requester: string;
+  readonly recordType: string;
+  /** Action name to the fields that carry it, as `actionFields` returns them. */
+  readonly actions: Readonly<Record<string, readonly ChangeField[]>>;
+  /** Start of the window; a proposal drafted before it does not count. */
+  readonly since: Date;
+  /**
+   * Count proposals still waiting for their own press. The draft counts them,
+   * so its answer warns early. The press does not: those items have not
+   * committed to a write yet, and counting them would make two presses that
+   * race both wait instead of one, so the second press counts the first.
+   */
+  readonly includeAwaitingPress: boolean;
+  /** The proposal being pressed now, which must not count itself. */
+  readonly excludeProposalId?: string;
+}
 
 export type DecideResult =
   | { readonly ok: true; readonly proposal: Proposal }
@@ -233,6 +269,29 @@ export function effectiveStatus(proposal: Proposal, now: Date): ProposalStatus {
     return 'expired';
   }
   return proposal.status;
+}
+
+/**
+ * For each action a change group asks for, every field of the adapter that
+ * carries that action. The group names only the fields at least one item
+ * changes, while the count must also recognise an earlier proposal that
+ * changed a sibling field of the same action, for example `due` for an
+ * assignee change (ADR-0007 section 3.4).
+ */
+export function actionFields(
+  changes: Changes,
+  changeable: Readonly<Record<string, string>>,
+): Record<string, ChangeField[]> {
+  const asked = new Set<string>();
+  for (const field of CHANGE_FIELDS) {
+    const action = changeable[field];
+    if (action !== undefined && changes[field] !== undefined) asked.add(action);
+  }
+  const groups: Record<string, ChangeField[]> = {};
+  for (const action of asked) {
+    groups[action] = CHANGE_FIELDS.filter((field) => changeable[field] === action);
+  }
+  return groups;
 }
 
 /**
@@ -404,53 +463,53 @@ export class ProposalStore {
   }
 
   /**
-   * The requester presses Gửi on a proposal the rule file says needs a lead.
-   * It either moves whole or not at all, and only from `awaiting_confirmation`
-   * inside the 30-minute draft window. The approval window starts now, and its
-   * deadline is passed in from `approval.wait_minutes`.
-   * `record` runs inside the same transaction once the change is made.
+   * The items this person already has in flight for the same actions: proposals
+   * drafted inside the window that wait for a lead or were confirmed without a
+   * lead's approval, plus, when `includeAwaitingPress` is set, proposals still
+   * waiting for their own press. Items a lead approved are never counted again,
+   * and a proposal past the deadline of its stage no longer counts
+   * (ADR-0007 section 3.4).
    */
-  sendForApproval(
-    proposalId: string,
-    actor: string,
-    approvalExpiresAt: Date,
-    record: (proposal: Proposal) => void,
-  ): DecideResult {
-    return this.db
-      .transaction((): DecideResult => {
-        const row = this.db.prepare('SELECT * FROM proposals WHERE proposal_id = ?').get(proposalId) as Row | undefined;
-        if (row === undefined) return { ok: false, reason: 'NOT_FOUND' };
-        const proposal = toProposal(row, this.itemsOf(proposalId));
-        if (proposal.requester !== actor) return { ok: false, reason: 'NOT_REQUESTER' };
+  countTowardBulk(query: BulkCountQuery): Record<string, number> {
+    const rows = this.db
+      .prepare(
+        `SELECT p.changes AS changes,
+                (SELECT COUNT(*) FROM proposal_items i WHERE i.proposal_id = p.proposal_id) AS item_count
+         FROM proposals p
+         WHERE p.requester = @requester
+           AND p.record_type = @recordType
+           AND p.created_at >= @since
+           AND (
+             p.status = 'confirmed'
+             OR (p.status = 'awaiting_approval' AND p.approval_expires_at IS NOT NULL AND p.approval_expires_at > @now)
+             OR (@includeAwaitingPress = 1 AND p.status = 'awaiting_confirmation' AND p.expires_at > @now)
+           )
+           AND (@excludeProposalId = '' OR p.proposal_id <> @excludeProposalId)
+           AND NOT EXISTS (
+             SELECT 1 FROM confirmations c
+             WHERE c.proposal_id = p.proposal_id AND c.decision = 'approve'
+           )`,
+      )
+      .all({
+        requester: query.requester,
+        recordType: query.recordType,
+        since: query.since.toISOString(),
+        now: this.now().toISOString(),
+        includeAwaitingPress: query.includeAwaitingPress ? 1 : 0,
+        excludeProposalId: query.excludeProposalId ?? '',
+      }) as { changes: string; item_count: number }[];
 
-        const now = this.now();
-        if (proposal.status !== 'awaiting_confirmation') {
-          return {
-            ok: false,
-            reason: proposal.status === 'expired' ? 'APPROVAL_EXPIRED' : 'APPROVAL_USED',
-            proposal,
-          };
+    const totals: Record<string, number> = {};
+    for (const action of Object.keys(query.actions)) totals[action] = 0;
+    for (const row of rows) {
+      const changes = parseChanges(row.changes);
+      for (const [action, fields] of Object.entries(query.actions)) {
+        if (fields.some((field) => changes[field] !== undefined)) {
+          totals[action] = (totals[action] ?? 0) + row.item_count;
         }
-        if (now.getTime() >= Date.parse(proposal.expiresAt)) {
-          this.db.prepare("UPDATE proposals SET status = 'expired' WHERE proposal_id = ?").run(proposalId);
-          return { ok: false, reason: 'APPROVAL_EXPIRED', proposal: { ...proposal, status: 'expired' } };
-        }
-
-        const print = fingerprintOf(proposal.items);
-        if (print !== proposal.fingerprint) return { ok: false, reason: 'CONTENT_CHANGED', proposal };
-
-        const changed = this.db
-          .prepare(
-            "UPDATE proposals SET status = 'awaiting_approval', approval_expires_at = ? WHERE proposal_id = ? AND status = 'awaiting_confirmation'",
-          )
-          .run(approvalExpiresAt.toISOString(), proposalId);
-        if (changed.changes !== 1) return { ok: false, reason: 'APPROVAL_USED', proposal };
-        this.recordConfirmation(proposalId, actor, 'confirm', print, now);
-        const sent = { ...proposal, status: 'awaiting_approval' as const, approvalExpiresAt: approvalExpiresAt.toISOString() };
-        record(sent);
-        return { ok: true, proposal: sent };
-      })
-      .immediate();
+      }
+    }
+    return totals;
   }
 
   /**
@@ -540,10 +599,19 @@ export class ProposalStore {
    * press after the time, and a press by someone else all leave the proposal
    * as it was. The print is worked out again from the stored items: a row
    * changed by hand no longer matches and is refused.
+   * `route` runs inside the same transaction, so the cumulative count it reads
+   * and the status it decides cannot be split by a second press: of two
+   * presses that race, the first changes the rows the second would count.
    * `record` runs inside the same transaction once the change is made: if it
    * throws, the change is rolled back, so no step happens without its trace line.
    */
-  decide(proposalId: string, actor: string, decision: Decision, record: (proposal: Proposal) => void): DecideResult {
+  decide(
+    proposalId: string,
+    actor: string,
+    decision: Decision,
+    record: (proposal: Proposal) => void,
+    route?: (proposal: Proposal) => ConfirmRoute,
+  ): DecideResult {
     return this.db
       .transaction((): DecideResult => {
         const row = this.db.prepare('SELECT * FROM proposals WHERE proposal_id = ?').get(proposalId) as Row | undefined;
@@ -564,14 +632,22 @@ export class ProposalStore {
         const print = fingerprintOf(proposal.items);
         if (print !== proposal.fingerprint) return { ok: false, reason: 'CONTENT_CHANGED', proposal };
 
-        const status: ProposalStatus = decision === 'confirm' ? 'confirmed' : 'cancelled';
+        const plan = decision === 'confirm' ? route?.(proposal) : undefined;
+        if (plan?.kind === 'refuse') return { ok: false, reason: plan.reason, proposal };
+
+        const status: ProposalStatus =
+          decision === 'cancel' ? 'cancelled' : plan?.kind === 'wait' ? 'awaiting_approval' : 'confirmed';
+        const approvalExpiresAt = plan?.kind === 'wait' ? plan.approvalExpiresAt.toISOString() : null;
+        const approvalReason = plan?.kind === 'wait' ? plan.approvalReason : proposal.approvalReason;
         // Conditional on the status: a second press (or a press racing the first) changes no row and loses.
         const changed = this.db
-          .prepare("UPDATE proposals SET status = ? WHERE proposal_id = ? AND status = 'awaiting_confirmation'")
-          .run(status, proposalId);
+          .prepare(
+            "UPDATE proposals SET status = ?, approval_expires_at = ?, approval_reason = ? WHERE proposal_id = ? AND status = 'awaiting_confirmation'",
+          )
+          .run(status, approvalExpiresAt, approvalReason, proposalId);
         if (changed.changes !== 1) return { ok: false, reason: 'APPROVAL_USED', proposal };
         this.recordConfirmation(proposalId, actor, decision, print, now);
-        const decided = { ...proposal, status };
+        const decided = { ...proposal, status, approvalExpiresAt, approvalReason };
         record(decided);
         return { ok: true, proposal: decided };
       })

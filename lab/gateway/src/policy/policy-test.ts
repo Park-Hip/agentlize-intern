@@ -161,6 +161,52 @@ for (const action of Object.keys(TASK_MATRIX) as TaskAction[]) {
   }
 }
 
+// 4 roles x 3 task actions, with four items already counted in the window.
+// The one item of this call only reaches the threshold through that carry.
+for (const action of Object.keys(TASK_MATRIX) as TaskAction[]) {
+  for (const role of ROLES) {
+    const expected = TASK_MATRIX[action][role];
+
+    test(`policy table: task ${action} / ${role} with four carried items -> ${expected.bulk}`, () => {
+      const decision = shipped.decide(
+        inputOf(role, action, { kind: 'task', department: OWN_DEPARTMENT, taskCount: 1, carriedItems: 4 }),
+      );
+      assert.equal(decision.effect, expected.bulk);
+      assert.equal(decision.reasonCode, REASON_OF[expected.bulk]);
+      assert.equal(
+        decision.ruleId,
+        expected.bulk === expected.effect ? `task.${action}.${role}` : `task.${action}.${role}.cumulative`,
+      );
+    });
+  }
+}
+
+test('policy table: a carry that stays below the threshold leaves the plain cell in charge', () => {
+  const decision = shipped.decide(
+    inputOf('staff', 'change_task_assignee_or_due', {
+      kind: 'task',
+      department: OWN_DEPARTMENT,
+      taskCount: 1,
+      carriedItems: 3,
+    }),
+  );
+  assert.equal(decision.effect, 'allow');
+  assert.equal(decision.ruleId, 'task.change_task_assignee_or_due.staff');
+});
+
+test('policy table: five items of this call alone still report .bulk, not .cumulative', () => {
+  const decision = shipped.decide(
+    inputOf('staff', 'change_task_assignee_or_due', {
+      kind: 'task',
+      department: OWN_DEPARTMENT,
+      taskCount: 5,
+      carriedItems: 4,
+    }),
+  );
+  assert.equal(decision.effect, 'needs_approval');
+  assert.equal(decision.ruleId, 'task.change_task_assignee_or_due.staff.bulk');
+});
+
 // 4 roles x 1 employee action: the cell itself, the bulk threshold and a record of another department.
 for (const role of ROLES) {
   const expected = EMPLOYEE_MATRIX.edit_work_email[role];
@@ -286,6 +332,20 @@ test('policy fields: the list handed out cannot be used to change the rules', ()
   assert.equal(shipped.allowedFields('intern').fields.includes('personal_phone'), false);
 });
 
+test('policy window: the file names the 60-minute look-back, and a missing file gives no window', () => {
+  const window = shipped.cumulativeWindow();
+  assert.equal(window.effect, 'allow');
+  assert.equal(window.reasonCode, 'ALLOWED');
+  assert.equal(window.minutes, 60);
+  assert.equal(window.ruleId, 'cumulative_window_minutes');
+  assert.equal(window.policyVersion, 1);
+
+  const missing = createPolicyEngine({ rulesPath: join(tmpdir(), 'lab-policy-no-window', 'rules.json') });
+  const unavailable = missing.cumulativeWindow();
+  assert.equal(unavailable.reasonCode, 'POLICY_UNAVAILABLE');
+  assert.equal(unavailable.minutes, 0);
+});
+
 test('policy approval: the file lists the roles, the department rule and the wait time, and returns eligible people', () => {
   const people: readonly PersonRef[] = [
     { id: 'NV-01', name: 'Quang', role: 'lead', department: OWN_DEPARTMENT },
@@ -349,6 +409,8 @@ test('policy default: a malformed question is refused, not guessed', () => {
     { ...valid, context: { caller: 'x' } },
     { ...valid, object: ownTask(-1) },
     { ...valid, object: ownTask(1.5) },
+    { ...valid, object: { ...ownTask(1), carriedItems: -1 } },
+    { ...valid, object: { ...ownTask(1), carriedItems: 1.5 } },
     { ...valid, object: { kind: 'task', taskCount: 1 } },
     { ...valid, object: { kind: 'employee' } },
     { ...valid, extra: true },

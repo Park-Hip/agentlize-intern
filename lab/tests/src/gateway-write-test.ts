@@ -88,6 +88,16 @@ function press(base: string, proposalId: string, browser: Browser): Promise<Resp
   });
 }
 
+/** Sửa: cancel a draft that a later subtest would otherwise count toward the threshold. */
+function cancel(base: string, proposalId: string, browser: Browser): Promise<Response> {
+  return fetch(`${base}/xac-nhan/${proposalId}/huy`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: { cookie: browser.cookie, 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: browser.csrf }).toString(),
+  });
+}
+
 function pressApproval(
   base: string,
   proposalId: string,
@@ -301,6 +311,12 @@ for (const door of DOORS) {
 
       await setRole(HOA, 'staff');
 
+      // Sửa the refused draft, so it does not count toward a later bulk check.
+      const cancelled = await cancel(base, proposal.id, browser);
+      assert.equal(cancelled.status, 303, await cancelled.text());
+      const cancelledStatus = await call('get_request_status', { request_id: proposal.id }, hoa);
+      assert.match(cancelledStatus.text, /đã bấm Sửa/);
+
       refusalsByDoor.set(door.name, { ...(refusalsByDoor.get(door.name) ?? { sr1: '' }), sr2: sales.text });
     });
 
@@ -360,11 +376,13 @@ for (const door of DOORS) {
       const proposal = proposalOf(answer.text);
       assert.equal((answer.text.match(/^T-\d+: /gm) ?? []).length, 30, 'the card text lists every item');
 
+      // Thirty items are already drafted and waiting for the press, so three
+      // more reach the threshold by the cumulative count, not by their own size.
       const three = await call('propose_task_change', { task_ids: lanTasks.slice(0, 3), changes: { assignee: 'NV-04' } }, hoa);
       assert.equal(three.status, 200, three.text);
-      assert.equal(three.reasonCode, null, 'three items are below the threshold');
-      assert.doesNotMatch(three.text, /cần trưởng nhóm .* duyệt/);
-      proposalOf(three.text);
+      assert.equal(three.reasonCode, 'NEEDS_APPROVAL', 'three more items while thirty wait still need the lead');
+      assert.match(three.text, /60 phút qua đã có các mục cùng việc này/);
+      const threeProposal = proposalOf(three.text);
 
       assert.equal(await writeCount('T-5'), 0, 'a draft writes nothing');
       assert.equal(await writeCount('T-34'), 0, 'a draft writes nothing');
@@ -411,6 +429,11 @@ for (const door of DOORS) {
       const again = await pressApproval(base, proposal.id, 'duyet', lead);
       assert.equal(again.status, 409);
       assert.match(await again.text(), /\[APPROVAL_USED\]/);
+
+      // Sửa the three-item draft too, so a later subtest starts from a clear count.
+      const threeBrowser = await signIn(base, hoaPagePassword, threeProposal.id);
+      const threeCancelled = await cancel(base, threeProposal.id, threeBrowser);
+      assert.equal(threeCancelled.status, 303, await threeCancelled.text());
 
       // Later subtests start from the seeded task list again; this run changed thirty of its tasks.
       const reset = await fetch(`${tasksUrl}/admin/reset`, { method: 'POST', headers: serviceHeaders });
@@ -491,6 +514,10 @@ for (const door of DOORS) {
         'the press is refused before a command is created',
       );
 
+      // Sửa the draft the broken rule file blocked, so the next draft starts from the same count.
+      const blockedCancelled = await cancel(base, waiting.id, browser);
+      assert.equal(blockedCancelled.status, 303, await blockedCancelled.text());
+
       await copyFile(DEFAULT_RULES, rulesPath);
 
       const waitingForTarget = await draft('T-12', { assignee: 'NV-04' });
@@ -529,7 +556,7 @@ for (const door of DOORS) {
     });
 
     await t.test('SR6: a lost answer is one write, and a retry reads the old result', async () => {
-      const proposal = await draft('T-19', { assignee: 'NV-04' });
+      const proposal = await draft('T-19', { status: 'done' });
       const browser = await signIn(base, hoaPagePassword, proposal.id);
 
       // The next committed write is answered by closing the connection: the gateway cannot know it landed.
@@ -544,7 +571,7 @@ for (const door of DOORS) {
       });
       assert.equal(await writeCount('T-19'), 1, 'exactly one committed write, replays excluded');
       const task = await taskOf('T-19');
-      assert.equal(task.assignee, 'NV-04');
+      assert.equal(task.status, 'done');
       assert.equal(task.version, 2, 'one write bumps the version one step');
 
       const status = await call('get_request_status', { request_id: proposal.id }, hoa);
@@ -589,7 +616,7 @@ for (const door of DOORS) {
     });
 
     await t.test('SR6: a gateway stopped after sending resumes once and writes once', async () => {
-      const proposal = await draft('T-21', { assignee: 'NV-04' });
+      const proposal = await draft('T-21', { status: 'done' });
       const browser = await signIn(base, hoaPagePassword, proposal.id);
 
       // The write commits, then its answer is held open so the gateway can be killed before reading it.
@@ -616,7 +643,7 @@ for (const door of DOORS) {
 
       assert.equal(await writeCount('T-21'), 1, 'the restart sent the old key again and the fake task replayed');
       const task = await taskOf('T-21');
-      assert.equal(task.assignee, 'NV-04');
+      assert.equal(task.status, 'done');
       assert.equal(task.version, 2);
 
       const trace = traceTable(env, ['--task', 'T-21']);

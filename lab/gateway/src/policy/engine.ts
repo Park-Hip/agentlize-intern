@@ -15,6 +15,7 @@ import type {
   PolicyDecision,
   PolicyEffect,
   ReadDecision,
+  WindowDecision,
 } from './types.js';
 
 /** `lab/gateway/policy/rules.json`, found from the compiled file at `dist/policy/engine.js`. */
@@ -61,6 +62,8 @@ export interface PolicyEngine {
   readScope(role: string, type: string): ReadDecision;
   /** The fields one role may receive from one record type. Empty whenever the engine is unsure. */
   allowedFields(role: string, type?: string): FieldsDecision;
+  /** How far back the bulk count looks, from `cumulative_window_minutes`. */
+  cumulativeWindow(): WindowDecision;
   /** The people who may approve a request under the `approval` block. */
   approversFor(requester: Requester, people: readonly PersonRef[]): ApproversDecision;
 }
@@ -182,8 +185,14 @@ function evaluate(rules: Rules, input: PolicyInput): PolicyDecision {
 
   const candidates: Candidate[] = [{ effect: cell.effect, ruleId: baseRule }];
   const bulkThreshold = resource?.bulk_threshold ?? 1;
-  if (cell.bulk !== undefined && (object.taskCount ?? 0) >= bulkThreshold) {
-    candidates.push({ effect: cell.bulk, ruleId: `${baseRule}.bulk` });
+  const ownItems = object.taskCount ?? 0;
+  const carriedItems = object.carriedItems ?? 0;
+  if (cell.bulk !== undefined && ownItems > 0 && ownItems + carriedItems >= bulkThreshold) {
+    // Only this call's items make a batch. When the items already counted in
+    // the window are what reaches the threshold, the rule says `.cumulative`
+    // (ADR-0007 section 3.4).
+    const suffix = ownItems >= bulkThreshold ? 'bulk' : 'cumulative';
+    candidates.push({ effect: cell.bulk, ruleId: `${baseRule}.${suffix}` });
   }
   return decisionOf(strictest(candidates), version);
 }
@@ -249,6 +258,18 @@ export function createPolicyEngine(options: PolicyEngineOptions = {}): PolicyEng
         };
       } catch {
         return { ...unavailable(), fields: [] };
+      }
+    },
+
+    cumulativeWindow(): WindowDecision {
+      try {
+        const rules = loadRules();
+        return {
+          ...decisionOf({ effect: 'allow', ruleId: 'cumulative_window_minutes' }, rules.version),
+          minutes: rules.cumulative_window_minutes,
+        };
+      } catch {
+        return { ...unavailable(), minutes: 0 };
       }
     },
 
