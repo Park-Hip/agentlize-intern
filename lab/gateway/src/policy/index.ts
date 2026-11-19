@@ -1,4 +1,4 @@
-export { ACTION_PHRASE, strictestOf } from './actions.js';
+export { strictestOf } from './actions.js';
 export {
   actionRuleId,
   createPolicyEngine,
@@ -11,6 +11,7 @@ export type { PolicyEngine, PolicyEngineOptions, Requester } from './engine.js';
 export { RULES_FILE, resolveRulesPath, seedRulesFile } from './rules-file.js';
 export {
   ACTIONS,
+  createRulesSchema,
   READ_EMPLOYEE_FIELD,
   RESOURCE_ACTIONS,
   rulesSchema,
@@ -21,7 +22,6 @@ export type {
   PolicyAction,
   PolicyInput,
   ReadScope,
-  ResourceType,
   Rules,
   TableAction,
 } from './schema.js';

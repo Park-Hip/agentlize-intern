@@ -7,6 +7,7 @@ import { createPolicyEngine, resolveRulesPath, seedRulesFile } from './policy/in
 import { ProposalStore, type ProposalExecutor } from './proposals/index.js';
 import { PROPOSE_TOOLS } from './tools/propose-tools.js';
 import { READ_TOOLS } from './tools/read-tools.js';
+import type { RegisteredTool } from './tools/types.js';
 import { TraceStore } from './trace/index.js';
 import { SessionStore } from './web/session-store.js';
 import { CommandStore, Outbox } from './writes/index.js';
@@ -17,6 +18,8 @@ export interface GatewayOptions {
   readonly env?: NodeJS.ProcessEnv;
   /** Replaces the registered system adapters. Tests use it to inject a failure. */
   readonly adapters?: readonly ResourceAdapter[];
+  /** Extra tools a test registers beside the shipped ones; production passes none. */
+  readonly extraTools?: readonly RegisteredTool[];
   /** Path of the rule file, overriding `LAB_RULES_PATH` and the file in the data folder. Tests use it. */
   readonly rulesPath?: string;
   /** Replaces the clock. Tests use it to pass the 30 minutes of a proposal and the 15 minutes of a login. */
@@ -82,10 +85,10 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
       ...(options.port === undefined ? {} : { port: options.port }),
       handler: createGatewayHandler({
         identity: new ApiKeyIdentity(keys),
-        policy: createPolicyEngine({ rulesPath }),
+        policy: createPolicyEngine({ rulesPath, declarations: adapters }),
         adapters,
         trace,
-        tools: [...READ_TOOLS, ...PROPOSE_TOOLS],
+        tools: [...READ_TOOLS, ...PROPOSE_TOOLS, ...(options.extraTools ?? [])],
         keys,
         pagePasswords,
         proposals,

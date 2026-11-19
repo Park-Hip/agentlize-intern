@@ -79,7 +79,7 @@ function actionRow(view: PermissionsPageView, resource: ResourceView, action: Re
     .map((role) => {
       const cell = view.rules.resources[resource.type]?.actions[action]?.[role.role];
       const name = `cell.${resource.type}.${action}.${role.role}`;
-      const label = ACTION_LABEL[action];
+      const label = ACTION_LABEL[action] ?? action;
       const badge = cell === undefined ? ' <span class="badge warn">chưa khai</span>' : '';
       return `<td data-label="${esc(role.label)}">
 <span class="code">Hiệu lực</span>
@@ -93,7 +93,7 @@ ${badge}
     })
     .join('');
   return `<tr>
-<th scope="row">${esc(ACTION_LABEL[action])}<span class="code">${esc(action)}</span></th>
+<th scope="row">${esc(ACTION_LABEL[action] ?? action)}<span class="code">${esc(action)}</span></th>
 ${cells}
 </tr>`;
 }

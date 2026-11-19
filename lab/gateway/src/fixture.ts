@@ -3,19 +3,19 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DATA_DIR_ENV, EMPLOYEE_ID_PATTERN, SERVICE_KEY_ENV, type ToolResponse } from '@lab/shared';
 import {
-  EMPLOYEE_CHANGEABLE,
-  EMPLOYEE_FIELDS,
+  changeableFields,
+  EMPLOYEE_DECLARATION,
   SystemUnavailableError,
-  TASK_CHANGEABLE,
-  TASK_FIELDS,
+  TASK_DECLARATION,
   TASK_ID_PATTERN,
   type AdapterWrite,
   type ApplyResult,
   type EmployeeRecord,
+  type RecordDeclaration,
   type ResourceAdapter,
   type TaskRecord,
 } from './adapters/index.js';
-import type { ChangeField, Changes } from './proposals/index.js';
+import type { Changes } from './proposals/index.js';
 import { startGateway, type GatewayOptions, type RunningGateway } from './server.js';
 import { BLOCK_END } from './tools/block.js';
 
@@ -109,7 +109,7 @@ export interface TaskSearch {
   readonly status?: string | undefined;
 }
 
-/** One write as the stub task list takes it: the four changeable fields, the version seen and one fixed key. */
+/** One write as the stub task list takes it: the adapter's changeable fields, the version seen and one fixed key. */
 export interface TaskPatch {
   readonly taskId: string;
   readonly idempotencyKey: string;
@@ -123,6 +123,14 @@ export type TaskPatchResult =
   | { readonly kind: 'not_found' }
   | { readonly kind: 'rejected'; readonly status: number; readonly error: string }
   | { readonly kind: 'unavailable'; readonly detail: string };
+
+export interface StubSystemOptions {
+  /**
+   * Replaces part of the employee declaration. A test uses it to add a field
+   * and an action that no file in the gateway names (ADR-0007 section 3.6).
+   */
+  readonly employee?: Partial<RecordDeclaration>;
+}
 
 /** An in-memory stand-in for the two fake systems. Tests change `employees` and `tasks` between calls. */
 export class StubSystems {
@@ -145,33 +153,32 @@ export class StubSystems {
   private readonly saved = new Map<string, { fingerprint: string; task: TaskRecord }>();
 
   /** The adapters the gateway reads: the same data, reached the way a real system is. */
-  readonly adapters: readonly ResourceAdapter[] = [
-    {
-      type: 'task',
-      idPattern: TASK_ID_PATTERN,
-      fields: TASK_FIELDS,
-      ownerField: 'department',
-      changeable: TASK_CHANGEABLE,
-      get: (id) => this.getTask(id),
-      list: (filter) =>
-        this.listTasks({
-          assignee: filter['assignee'],
-          department: filter['department'],
-          status: filter['status'],
-        }),
-      apply: (write) => this.applyTask(write),
-    },
-    {
-      type: 'employee',
-      idPattern: EMPLOYEE_ID_PATTERN,
-      fields: EMPLOYEE_FIELDS,
-      ownerField: 'department',
-      changeable: EMPLOYEE_CHANGEABLE,
-      get: (id) => this.getEmployee(id),
-      list: (filter) => this.findEmployees({ name: filter['name'], department: filter['department'] }),
-      apply: (write) => this.applyEmployee(write),
-    },
-  ];
+  readonly adapters: readonly ResourceAdapter[];
+
+  constructor(options: StubSystemOptions = {}) {
+    this.adapters = [
+      {
+        ...TASK_DECLARATION,
+        idPattern: TASK_ID_PATTERN,
+        get: (id) => this.getTask(id),
+        list: (filter) =>
+          this.listTasks({
+            assignee: filter['assignee'],
+            department: filter['department'],
+            status: filter['status'],
+          }),
+        apply: (write) => this.applyTask(write),
+      },
+      {
+        ...EMPLOYEE_DECLARATION,
+        ...options.employee,
+        idPattern: EMPLOYEE_ID_PATTERN,
+        get: (id) => this.getEmployee(id),
+        list: (filter) => this.findEmployees({ name: filter['name'], department: filter['department'] }),
+        apply: (write) => this.applyEmployee(write),
+      },
+    ];
+  }
 
   getEmployee(employeeId: string): Promise<EmployeeRecord | undefined> {
     this.directoryReads += 1;
@@ -254,8 +261,8 @@ export class StubSystems {
   }
 
   private async applyTask(write: AdapterWrite): Promise<ApplyResult> {
-    const changes: Partial<Record<ChangeField, string>> = {};
-    for (const field of ['assignee', 'due', 'description', 'status'] as const) {
+    const changes: Record<string, string> = {};
+    for (const field of changeableFields(TASK_DECLARATION.actions)) {
       const value = write.changes[field];
       if (value !== undefined) changes[field] = value;
     }
@@ -312,7 +319,7 @@ export interface GatewayFixture {
   close(): Promise<void>;
 }
 
-export interface FixtureOptions extends Pick<GatewayOptions, 'rulesPath' | 'now' | 'executor'> {
+export interface FixtureOptions extends Pick<GatewayOptions, 'rulesPath' | 'now' | 'executor' | 'extraTools'> {
   /** Reuse an existing data dir; used by the restart test. Without it the fixture makes a temp dir and removes it on close. */
   readonly dir?: string;
   /** Reuse the same fake systems across a restart. */
@@ -335,6 +342,7 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Gatewa
     ...(options.rulesPath === undefined ? {} : { rulesPath: options.rulesPath }),
     ...(options.now === undefined ? {} : { now: options.now }),
     ...(options.executor === undefined ? {} : { executor: options.executor }),
+    ...(options.extraTools === undefined ? {} : { extraTools: options.extraTools }),
   });
 
   return {

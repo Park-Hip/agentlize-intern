@@ -228,7 +228,9 @@ Cổng nghe ở `127.0.0.1:8790` và mở ba tool đọc: `find_employee`, `get_
 `GET /v1/tools` trả danh mục (tên, mô tả tiếng Việt, lược đồ tham số, nhãn `read` hay `propose`) và không cần khoá, vì danh mục không chứa dữ liệu của hệ thống nào.
 `POST /v1/tools/<tên>` cần `Authorization: Bearer <khoá của một người>` và trả `{ "text", "reason_code", "trace_id" }`.
 
-Mỗi hệ thống đi qua một bộ tiếp hợp trong `src/adapters/`: bộ tiếp hợp khai loại bản ghi, trường và nhãn, trường phòng, và trường sửa được.
+Mỗi hệ thống đi qua một bộ tiếp hợp trong `src/adapters/`: bộ tiếp hợp khai loại bản ghi, nhãn tiếng Việt, trường và nhãn, trường phòng, và từng hành động sửa được (tên trong luật, nhãn, câu từ chối, các trường hành động sửa).
+Bộ luật kiểm tra tên hành động theo danh sách đăng ký bộ tiếp hợp mà cổng đang chạy, còn thẻ xác nhận, `get_request_status` và console đọc nhãn từ đó.
+Nhờ vậy thêm một trường hay một hành động chỉ sửa bộ tiếp hợp, file luật và tool, không sửa `proposals/`, `policy/schema.ts`, `web/` hay `console/`.
 Tool đọc, tool soạn đề xuất, trang xác nhận và bộ thực thi lấy bộ tiếp hợp từ danh sách đăng ký, nên thêm một hệ thống là thêm một tệp và một dòng trong danh sách.
 
 Mỗi lần gọi, cổng làm lần lượt:

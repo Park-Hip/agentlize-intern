@@ -4,6 +4,7 @@ import type { ReasonCode } from '@lab/shared';
 import {
   adapterOf,
   recordValue,
+  recordWordOf,
   SystemUnavailableError,
   type RecordData,
   type ResourceAdapter,
@@ -16,7 +17,6 @@ import {
   MAX_APPROVAL_REASON,
   PROPOSAL_ID_PATTERN,
   waitText,
-  type ChangeField,
   type Proposal,
 } from '../proposals/index.js';
 import { checkWrite } from '../writes/index.js';
@@ -84,24 +84,15 @@ function policyUnavailable(deps: GatewayDeps, refs: readonly PersonRef[], depart
   return deps.policy.approversFor({ department }, refs).reasonCode === 'POLICY_UNAVAILABLE';
 }
 
-const FIELD_PHRASE: Readonly<Record<string, string>> = {
-  assignee: 'người phụ trách',
-  due: 'hạn',
-  description: 'mô tả',
-  status: 'trạng thái',
-  work_email: 'email công việc',
-};
-
-/** `task`, `nhân viên` or `bản ghi`, so the summary reads the same way for every record type. */
-function recordWord(recordType: string): string {
-  if (recordType === 'task') return 'task';
-  if (recordType === 'employee') return 'nhân viên';
-  return 'bản ghi';
+/** How the summary says one field: its adapter label, lower case first, so a new field needs no edit here. */
+function fieldPhrase(adapter: ResourceAdapter, field: string): string {
+  const label = adapter.fields.find((candidate) => candidate.name === field)?.label ?? field;
+  return label.charAt(0).toLowerCase() + label.slice(1);
 }
 
 /** `task T-12` or `30 task`, the object the sentence is about. */
-function targetOf(proposal: Proposal): string {
-  const word = recordWord(proposal.recordType);
+function targetOf(proposal: Proposal, adapters: readonly ResourceAdapter[]): string {
+  const word = recordWordOf(adapters, proposal.recordType);
   return proposal.items.length === 1 ? `${word} ${proposal.items[0]?.recordId ?? ''}` : `${proposal.items.length} ${word}`;
 }
 
@@ -124,33 +115,33 @@ async function valueOf(deps: GatewayDeps, field: string, value: string): Promise
  * generic line when the items do not all carry the same change.
  */
 async function summaryOf(deps: GatewayDeps, proposal: Proposal): Promise<string> {
-  const fields = Object.keys(proposal.changes).filter(
-    (field): field is ChangeField => FIELD_PHRASE[field] !== undefined,
-  );
-  if (fields.length === 0) return `Đổi ${targetOf(proposal)}`;
-  const phrases = fields.map((field) => FIELD_PHRASE[field]);
+  const adapter = adapterOf(deps.adapters, proposal.recordType);
+  const fields = Object.keys(proposal.changes);
+  if (fields.length === 0) return `Đổi ${targetOf(proposal, deps.adapters)}`;
+  const phrases = fields.map((field) => fieldPhrase(adapter, field));
   if (!sameChanges(proposal)) {
-    return `Đổi ${phrases.join(' và ')} cho ${targetOf(proposal)}`;
+    return `Đổi ${phrases.join(' và ')} cho ${targetOf(proposal, deps.adapters)}`;
   }
 
   const item = proposal.items[0];
   if (fields.length === 1) {
     const field = fields[0];
-    if (field === undefined) return `Đổi ${targetOf(proposal)}`;
+    if (field === undefined) return `Đổi ${targetOf(proposal, deps.adapters)}`;
     const value = item?.changes[field];
     const label = value === undefined ? null : await valueOf(deps, field, value);
     return label === null
-      ? `Đổi ${phrases[0] ?? ''} ${targetOf(proposal)}`
-      : `Đổi ${phrases[0] ?? ''} ${targetOf(proposal)} sang ${label}`;
+      ? `Đổi ${phrases[0] ?? ''} ${targetOf(proposal, deps.adapters)}`
+      : `Đổi ${phrases[0] ?? ''} ${targetOf(proposal, deps.adapters)} sang ${label}`;
   }
 
   const details: string[] = [];
   for (const field of fields) {
     const value = item?.changes[field];
     const label = value === undefined ? null : await valueOf(deps, field, value);
-    details.push(label === null ? (FIELD_PHRASE[field] ?? field) : `${FIELD_PHRASE[field] ?? field} sang ${label}`);
+    const phrase = fieldPhrase(adapter, field);
+    details.push(label === null ? phrase : `${phrase} sang ${label}`);
   }
-  return `Đổi ${phrases.join(' và ')} của ${targetOf(proposal)} (${details.join(', ')})`;
+  return `Đổi ${phrases.join(' và ')} của ${targetOf(proposal, deps.adapters)} (${details.join(', ')})`;
 }
 
 function deadlineOf(proposal: Proposal, now: Date): string {

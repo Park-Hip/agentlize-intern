@@ -1,13 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { ADAPTER_DECLARATIONS } from '../adapters/registry.js';
+import type { RecordDeclaration } from '../adapters/types.js';
 import {
-  ACTIONS,
+  createRulesSchema,
   policyInputSchema,
   READ_EMPLOYEE_FIELD,
-  RESOURCE_ACTIONS,
-  rulesSchema,
 } from './schema.js';
-import type { PolicyAction, PolicyInput, ResourceType, Rules } from './schema.js';
+import type { PolicyInput, Rules } from './schema.js';
 import type {
   ApproversDecision,
   FieldsDecision,
@@ -43,9 +43,32 @@ interface Candidate {
   readonly ruleId: string;
 }
 
+/** The actions the adapters of a running gateway declare, by record type. */
+interface Vocabulary {
+  readonly all: ReadonlySet<string>;
+  readonly byType: ReadonlyMap<string, ReadonlySet<string>>;
+}
+
+function vocabularyOf(declarations: readonly RecordDeclaration[]): Vocabulary {
+  const byType = new Map<string, ReadonlySet<string>>();
+  const all = new Set<string>([READ_EMPLOYEE_FIELD]);
+  for (const declaration of declarations) {
+    const names = declaration.actions.map((action) => action.name);
+    byType.set(declaration.type, new Set(names));
+    for (const name of names) all.add(name);
+  }
+  return { all, byType };
+}
+
 export interface PolicyEngineOptions {
   /** Path of the rule file. The file is read again at every decision. */
   readonly rulesPath?: string;
+  /**
+   * The adapter registry the gateway runs with. A test that registers an
+   * adapter with a new action passes it here, so the rule file may name that
+   * action without editing the schema (ADR-0007 section 3.2).
+   */
+  readonly declarations?: readonly RecordDeclaration[];
   /** Replaceable so a test can make the read fail. */
   readonly readFile?: (path: string) => string;
 }
@@ -116,21 +139,17 @@ function strictest(candidates: readonly Candidate[]): Candidate {
   return winner;
 }
 
-function isAction(value: string): value is PolicyAction {
-  return (ACTIONS as readonly string[]).includes(value);
-}
-
 function rolesOf(rules: Rules): readonly string[] {
   const first = Object.keys(rules.resources)[0];
   const resource = first === undefined ? undefined : rules.resources[first];
   return resource === undefined ? [] : Object.keys(resource.read);
 }
 
-function evaluate(rules: Rules, input: PolicyInput): PolicyDecision {
+function evaluate(rules: Rules, input: PolicyInput, vocabulary: Vocabulary): PolicyDecision {
   const version = rules.version;
   const { actor, object, context } = input;
 
-  if (!isAction(input.action)) {
+  if (!vocabulary.all.has(input.action)) {
     return deny(RULE_IDS.actionUnknown, version);
   }
   const action = input.action;
@@ -154,10 +173,8 @@ function evaluate(rules: Rules, input: PolicyInput): PolicyDecision {
   }
 
   const type = object.kind;
-  if (!Object.hasOwn(RESOURCE_ACTIONS, type)) {
-    return deny(RULE_IDS.objectInvalid, version);
-  }
-  if (!(RESOURCE_ACTIONS[type as ResourceType] as readonly string[]).includes(action)) {
+  const known = vocabulary.byType.get(type);
+  if (known === undefined || !known.has(action)) {
     return deny(RULE_IDS.objectInvalid, version);
   }
 
@@ -200,11 +217,14 @@ function evaluate(rules: Rules, input: PolicyInput): PolicyDecision {
 export function createPolicyEngine(options: PolicyEngineOptions = {}): PolicyEngine {
   const rulesPath = options.rulesPath ?? DEFAULT_RULES_PATH;
   const readFile = options.readFile ?? ((path: string): string => readFileSync(path, 'utf8'));
+  const declarations = options.declarations ?? ADAPTER_DECLARATIONS;
+  const schema = createRulesSchema(declarations);
+  const vocabulary = vocabularyOf(declarations);
 
   /** Read, parse and check the file. Called once per decision so a broken file takes effect at once. */
   function loadRules(): Rules {
     const text = readFile(rulesPath).replace(/^﻿/, '');
-    return rulesSchema.parse(JSON.parse(text));
+    return schema.parse(JSON.parse(text));
   }
 
   return {
@@ -215,7 +235,7 @@ export function createPolicyEngine(options: PolicyEngineOptions = {}): PolicyEng
         if (!parsed.success) {
           return deny(RULE_IDS.inputInvalid, rules.version);
         }
-        return evaluate(rules, parsed.data);
+        return evaluate(rules, parsed.data, vocabulary);
       } catch {
         return unavailable();
       }

@@ -213,7 +213,7 @@ function carriedFor(deps: GatewayDeps, proposal: Proposal, since: Date): Record<
   return deps.proposals.countTowardBulk({
     requester: proposal.requester,
     recordType: proposal.recordType,
-    actions: actionFields(proposal.changes, adapter.changeable),
+    actions: actionFields(proposal.changes, adapter.actions),
     since,
     includeAwaitingPress: false,
     excludeProposalId: proposal.proposalId,

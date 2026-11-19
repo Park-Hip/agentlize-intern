@@ -1,10 +1,17 @@
 import { EMPLOYEE_ID_PATTERN, refusalMessage, type ReasonCode } from '@lab/shared';
 import { z } from 'zod';
-import { adapterOf, recordValue, type RecordData, type ResourceAdapter } from '../adapters/index.js';
+import {
+  actionOfField,
+  actionPhrase,
+  adapterOf,
+  recordValue,
+  recordWordOf,
+  type RecordData,
+  type ResourceAdapter,
+} from '../adapters/index.js';
 import { TASK_STATUSES } from '../adapters/tasks.js';
 import { badRequest, refuse } from '../call.js';
 import {
-  ACTION_PHRASE,
   readRuleId,
   RULE_IDS,
   strictestOf,
@@ -16,11 +23,9 @@ import {
   actionFields,
   approvalRoster,
   approverSentence,
-  CHANGE_FIELDS,
   effectiveStatus,
   PROPOSAL_ID_PATTERN,
   waitText,
-  type ChangeField,
   type Proposal,
   type ProposalItem,
 } from '../proposals/index.js';
@@ -85,6 +90,7 @@ async function refusalForDecision(
   actions: readonly TableAction[],
   context: ToolContext,
   objectId: string,
+  adapter: ResourceAdapter,
 ): Promise<ToolResult> {
   const { actor } = context;
   const extra = { objectId, policyVersion: decision.policyVersion } as const;
@@ -108,7 +114,7 @@ async function refusalForDecision(
     roster.approvers.length > 0
       ? `Hãy hỏi ${roster.approvers.map((person) => person.name).join(' hoặc ')}, trưởng nhóm ${actor.department}.`
       : `Hãy hỏi trưởng nhóm ${actor.department}.`;
-  const what = [...new Set(actions.map((action) => ACTION_PHRASE[action]))].join(' và ');
+  const what = [...new Set(actions.map((action) => actionPhrase(adapter, action)))].join(' và ');
 
   if (decision.ruleId.endsWith('.undeclared')) {
     return {
@@ -167,8 +173,8 @@ interface DraftItem {
   readonly recordId: string;
   readonly department: string;
   readonly baseVersion: number;
-  readonly previous: Partial<Record<ChangeField, string>>;
-  readonly changes: Partial<Record<ChangeField, string>>;
+  readonly previous: Partial<Record<string, string>>;
+  readonly changes: Partial<Record<string, string>>;
 }
 
 export function confirmationLink(baseUrl: string, proposalId: string): string {
@@ -239,7 +245,7 @@ const proposeTaskChange = defineTool(
 
     const readBase = { objectId: found[0]?.id ?? null, ruleId: read.ruleId, policyVersion: read.policyVersion } as const;
 
-    const wanted: Partial<Record<ChangeField, string>> = {};
+    const wanted: Partial<Record<string, string>> = {};
     if (args.changes.assignee !== undefined) {
       const resolved = await resolveAssignee(args.changes.assignee, adapters, readBase);
       if (!resolved.ok) return resolved.result;
@@ -253,9 +259,9 @@ const proposeTaskChange = defineTool(
     const built: DraftItem[] = [];
     const skipped: string[] = [];
     for (const { id, task } of found) {
-      const changes: Partial<Record<ChangeField, string>> = {};
-      const previous: Partial<Record<ChangeField, string>> = {};
-      for (const field of CHANGE_FIELDS) {
+      const changes: Partial<Record<string, string>> = {};
+      const previous: Partial<Record<string, string>> = {};
+      for (const field of Object.keys(wanted)) {
         const next = wanted[field];
         const current = task[field];
         if (next !== undefined && next !== current) {
@@ -287,8 +293,8 @@ const proposeTaskChange = defineTool(
       };
     }
 
-    const group: Partial<Record<ChangeField, string>> = {};
-    for (const field of CHANGE_FIELDS) {
+    const group: Partial<Record<string, string>> = {};
+    for (const field of Object.keys(wanted)) {
       const value = wanted[field];
       if (value !== undefined && built.some((item) => item.changes[field] !== undefined)) group[field] = value;
     }
@@ -296,16 +302,16 @@ const proposeTaskChange = defineTool(
     // The rule is asked with the real item count plus the items of the same
     // actions this person already has in flight, so splitting a batch across
     // calls cannot stay under the threshold (ADR-0007 section 3.4).
-    const groupFields = CHANGE_FIELDS.filter((field) => group[field] !== undefined);
+    const groupFields = Object.keys(group);
     const actions = [...new Set(groupFields.flatMap((field) => {
-      const action = tasks.changeable[field];
+      const action = actionOfField(tasks.actions, field);
       return action === undefined ? [] : [action];
     }))];
     const windowMinutes = policy.cumulativeWindow().minutes;
     const carried = proposals.countTowardBulk({
       requester: actor.employeeId,
       recordType: tasks.type,
-      actions: actionFields(group, tasks.changeable),
+      actions: actionFields(group, tasks.actions),
       since: new Date(context.now().getTime() - windowMinutes * 60_000),
       includeAwaitingPress: true,
     });
@@ -332,7 +338,7 @@ const proposeTaskChange = defineTool(
         ruleId: RULE_IDS.inputInvalid,
         policyVersion: null,
       };
-      return refusalForDecision(refused, actions, context, built[0]?.recordId ?? '');
+      return refusalForDecision(refused, actions, context, built[0]?.recordId ?? '', tasks);
     }
 
     const requiresApproval = decision.effect === 'needs_approval';
@@ -425,24 +431,17 @@ const COMMAND_FAILURE_SENTENCE: Readonly<Partial<Record<ReasonCode, string>>> = 
   GATEWAY_UNAVAILABLE: 'Hệ thống đích từ chối lệnh hoặc trả lời không đọc được nên cổng không ghi. Hãy báo người vận hành Lab.',
 };
 
-/** `task`, `nhân viên` or `bản ghi`, so a status answer reads the same way for every record type. */
-function recordWord(recordType: string): string {
-  if (recordType === 'task') return 'task';
-  if (recordType === 'employee') return 'nhân viên';
-  return 'bản ghi';
+/** `cho task T-12` or `cho 30 task`, with the record type the adapter declares. */
+function proposalHead(proposal: Proposal, adapters: readonly ResourceAdapter[]): string {
+  const word = recordWordOf(adapters, proposal.recordType);
+  return proposal.items.length === 1
+    ? `Đề xuất ${proposal.proposalId} cho ${word} ${proposal.items[0]?.recordId ?? ''}:`
+    : `Đề xuất ${proposal.proposalId} cho ${proposal.items.length} ${word}:`;
 }
 
 interface StatusAnswer {
   readonly text: string;
   readonly reasonCode: ReasonCode | null;
-}
-
-/** `cho task T-12` or `cho 30 task`, with the record type the proposal changes. */
-function proposalHead(proposal: Proposal): string {
-  const word = recordWord(proposal.recordType);
-  return proposal.items.length === 1
-    ? `Đề xuất ${proposal.proposalId} cho ${word} ${proposal.items[0]?.recordId ?? ''}:`
-    : `Đề xuất ${proposal.proposalId} cho ${proposal.items.length} ${word}:`;
 }
 
 function commandSentence(item: ProposalItem, command: WriteCommand | undefined): string {
@@ -460,7 +459,7 @@ function commandSentence(item: ProposalItem, command: WriteCommand | undefined):
 
 async function describeStatus(proposal: Proposal, context: ToolContext): Promise<StatusAnswer> {
   const status = effectiveStatus(proposal, context.now());
-  const head = proposalHead(proposal);
+  const head = proposalHead(proposal, context.adapters);
   if (status === 'awaiting_confirmation') {
     const waiting = `${head} đang chờ người yêu cầu bấm Gửi, hết hạn lúc ${formatMoment(new Date(proposal.expiresAt), context.now())}.`;
     if (proposal.requiresApproval) {
@@ -550,7 +549,7 @@ async function describeStatus(proposal: Proposal, context: ToolContext): Promise
     }
     if (command.status === 'done') {
       return {
-        text: `${head} đã ghi thay đổi vào ${recordWord(proposal.recordType)} ${command.recordId} ở lần gửi thứ ${command.attempts}.`,
+        text: `${head} đã ghi thay đổi vào ${recordWordOf(context.adapters, proposal.recordType)} ${command.recordId} ở lần gửi thứ ${command.attempts}.`,
         reasonCode: null,
       };
     }
