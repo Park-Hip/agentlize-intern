@@ -11,7 +11,7 @@ import {
   type PolicyDecision,
   type TableAction,
 } from '../policy/index.js';
-import { formatClock, itemRows } from '../proposals/card.js';
+import { formatMoment, itemRows } from '../proposals/card.js';
 import {
   approvalRoster,
   approverSentence,
@@ -369,7 +369,7 @@ const proposeTaskChange = defineTool(
       );
     }
     lines.push(
-      `Đề xuất hết hạn lúc ${formatClock(new Date(proposal.expiresAt))} (30 phút). Người yêu cầu cần mở link dưới đây, đăng nhập giả lập, kiểm tra thẻ rồi bấm Gửi.`,
+      `Đề xuất hết hạn lúc ${formatMoment(new Date(proposal.expiresAt), context.now())} (30 phút). Người yêu cầu cần mở link dưới đây, đăng nhập giả lập, kiểm tra thẻ rồi bấm Gửi.`,
       wrapSystemData(rows.join('\n')),
     );
     if (skipped.length > 0) lines.push(`Đã bỏ qua vì đã có đúng giá trị mới: ${skipped.join(', ')}.`);
@@ -440,7 +440,7 @@ async function describeStatus(proposal: Proposal, context: ToolContext): Promise
   const status = effectiveStatus(proposal, context.now());
   const head = proposalHead(proposal);
   if (status === 'awaiting_confirmation') {
-    const waiting = `${head} đang chờ người yêu cầu bấm Gửi, hết hạn lúc ${formatClock(new Date(proposal.expiresAt))}.`;
+    const waiting = `${head} đang chờ người yêu cầu bấm Gửi, hết hạn lúc ${formatMoment(new Date(proposal.expiresAt), context.now())}.`;
     if (proposal.requiresApproval) {
       const roster = await rosterFor(context);
       return {
@@ -470,7 +470,7 @@ async function describeStatus(proposal: Proposal, context: ToolContext): Promise
     const deadline =
       proposal.approvalExpiresAt === null
         ? ''
-        : `, hạn ${formatClock(new Date(proposal.approvalExpiresAt))} (${waitText(roster.waitMinutes)} tính từ lúc bạn bấm Gửi)`;
+        : `, hạn ${formatMoment(new Date(proposal.approvalExpiresAt), context.now())} (${waitText(roster.waitMinutes)} tính từ lúc bạn bấm Gửi)`;
     const lines = [`${head} đang chờ ${who} duyệt${deadline}.`, 'Chưa có gì được ghi vào hệ thống.'];
     if (proposal.items.length > 1) {
       lines.push('Các mục:', proposal.items.map((item) => `${item.recordId}: ${Object.keys(item.changes).join(', ')}`).join('\n'));

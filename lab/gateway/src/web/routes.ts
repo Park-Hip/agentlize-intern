@@ -4,7 +4,7 @@ import { EMPLOYEE_ID_PATTERN, type ReasonCode } from '@lab/shared';
 import { adapterOf, SystemUnavailableError, type RecordData } from '../adapters/index.js';
 import { TraceUnavailableError, type GatewayDeps } from '../call.js';
 import type { KeyRecord } from '../identity/index.js';
-import { formatClock, itemRows, personLabel } from '../proposals/card.js';
+import { formatMoment, itemRows, personLabel } from '../proposals/card.js';
 import {
   approvalRoster,
   effectiveStatus,
@@ -106,7 +106,8 @@ async function approvalView(deps: GatewayDeps, proposal: Proposal): Promise<{
   return {
     waitLabel: roster.waitMinutes > 0 ? waitText(roster.waitMinutes) : 'theo file luật',
     approvers: roster.approvers.map((person) => person.name),
-    approvalExpiresAtLabel: proposal.approvalExpiresAt === null ? null : formatClock(new Date(proposal.approvalExpiresAt)),
+    approvalExpiresAtLabel:
+      proposal.approvalExpiresAt === null ? null : formatMoment(new Date(proposal.approvalExpiresAt), deps.now()),
     approval:
       approval === null
         ? null
@@ -145,8 +146,8 @@ async function handleCard(deps: GatewayDeps, req: IncomingMessage, res: ServerRe
   const approval = await approvalView(deps, proposal);
   const deadline =
     proposal.approvalExpiresAt === null
-      ? formatClock(new Date(proposal.expiresAt))
-      : (approval.approvalExpiresAtLabel ?? formatClock(new Date(proposal.approvalExpiresAt)));
+      ? formatMoment(new Date(proposal.expiresAt), deps.now())
+      : (approval.approvalExpiresAtLabel ?? formatMoment(new Date(proposal.approvalExpiresAt), deps.now()));
   sendHtml(
     res,
     200,

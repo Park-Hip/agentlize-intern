@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { adapterOf, recordValue, type RecordData } from '../adapters/index.js';
 import { refuse } from '../call.js';
 import { ACTION_PHRASE, RULE_IDS, type PolicyDecision, type TableAction } from '../policy/index.js';
-import { formatClock, itemRows } from '../proposals/card.js';
+import { formatMoment, itemRows } from '../proposals/card.js';
 import { approvalRoster, approverSentence, waitText } from '../proposals/index.js';
 import { wrapSystemData } from './block.js';
 import { defineTool } from './read-tools.js';
@@ -198,7 +198,7 @@ const proposeEmployeeChange = defineTool(
       );
     }
     lines.push(
-      `Đề xuất hết hạn lúc ${formatClock(new Date(proposal.expiresAt))} (30 phút). Người yêu cầu cần mở link dưới đây, đăng nhập giả lập, kiểm tra thẻ rồi bấm Gửi.`,
+      `Đề xuất hết hạn lúc ${formatMoment(new Date(proposal.expiresAt), context.now())} (30 phút). Người yêu cầu cần mở link dưới đây, đăng nhập giả lập, kiểm tra thẻ rồi bấm Gửi.`,
       wrapSystemData(rows.join('\n')),
       'Link xác nhận:',
       `${context.publicBaseUrl}/xac-nhan/${proposal.proposalId}`,

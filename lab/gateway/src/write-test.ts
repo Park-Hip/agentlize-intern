@@ -212,6 +212,8 @@ test('write: Gửi answers at once, then writes once, and the command keeps its 
     const { html } = await openCard(f, id, await loginFor(f, HOA, id));
     assert.match(html, /Đã ghi thay đổi vào T-12 ở lần gửi thứ 1/);
     assert.doesNotMatch(html, /<button/);
+    assert.doesNotMatch(html, /Lần gửi lại kế tiếp/, 'a finished proposal has no retry column');
+    assert.doesNotMatch(html, /Hạn duyệt lúc|Hết hạn lúc/, 'a finished proposal has no deadline line left');
 
     const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
     assert.match(status.body.text, /đã ghi thay đổi vào task T-12 ở lần gửi thứ 1/);

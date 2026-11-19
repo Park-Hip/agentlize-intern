@@ -37,6 +37,9 @@ const STYLE = `
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 main{max-width:44rem;margin:0 auto;padding:1.5rem 1rem 3rem}
+main.wide{max-width:60rem}
+a{color:var(--accent);text-decoration:none;text-underline-offset:.15em}
+a:hover,a:focus-visible{text-decoration:underline}
 h1{font-size:1.4rem;line-height:1.25;margin:0 0 .25rem}
 h2{font-size:1.05rem;line-height:1.3;margin:0 0 .5rem}
 .sub{color:var(--muted);margin:0 0 1.25rem}
@@ -74,7 +77,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 footer{color:var(--muted);font-size:.85rem;margin-top:1.5rem}
 `;
 
-export function layout(title: string, body: string, refreshSeconds?: number): string {
+export function layout(title: string, body: string, refreshSeconds?: number, wide = false): string {
   const refresh = refreshSeconds === undefined ? '' : `<meta http-equiv="refresh" content="${refreshSeconds}">\n`;
   return `<!doctype html>
 <html lang="vi">
@@ -85,7 +88,7 @@ ${refresh}<title>${esc(title)} - Lab kết nối</title>
 <style>${STYLE}</style>
 </head>
 <body>
-<main>
+<main${wide ? ' class="wide"' : ''}>
 ${body}
 <footer>Lab kết nối AI: dữ liệu giả, chỉ chạy thử.</footer>
 </main>
@@ -273,22 +276,25 @@ ${rows}
 </table>`;
   }
 
+  // The retry column is only useful while a command is waiting for its next send.
+  const showRetry = items.some((item) => item.command?.status === 'sent_unknown');
   const rows = items
     .flatMap((item) => {
       // The retry column belongs to the item, so it spans the item's field rows.
       const itemRows = item.rows.length === 0 ? [{ label: '-', before: '', after: '' }] : item.rows;
       return itemRows.map((row, index) => {
         const retry =
-          index === 0
+          showRetry && index === 0
             ? `<td class="v" rowspan="${itemRows.length}" data-label="Lần gửi lại kế tiếp">${esc(retryOf(item))}</td>`
             : '';
         return `<tr><td class="code" data-label="Mục">${esc(item.recordId)}</td><th scope="row">${esc(row.label)}</th><td class="v" data-label="Hiện tại">${esc(row.before === '' ? '(trống)' : row.before)}</td><td class="v" data-label="Đề xuất">${esc(row.after)}</td><td class="v" data-label="Kết quả">${esc(resultOf(item))}</td>${retry}</tr>`;
       });
     })
     .join('\n');
+  const retryHead = showRetry ? '<th scope="col">Lần gửi lại kế tiếp</th>' : '';
 
   return `<table>
-<thead><tr><th scope="col">Mục</th><th scope="col">Trường</th><th scope="col">Hiện tại</th><th scope="col">Đề xuất</th><th scope="col">Kết quả</th><th scope="col">Lần gửi lại kế tiếp</th></tr></thead>
+<thead><tr><th scope="col">Mục</th><th scope="col">Trường</th><th scope="col">Hiện tại</th><th scope="col">Đề xuất</th><th scope="col">Kết quả</th>${retryHead}</tr></thead>
 <tbody>
 ${rows}
 </tbody>
@@ -345,6 +351,11 @@ export function cardPage(view: CardView): string {
   const inProgress =
     view.status === 'confirmed' &&
     view.items.some((item) => item.command === undefined || item.command.status === 'not_sent' || item.command.status === 'sent_unknown');
+  // A settled proposal no longer has a deadline to watch; the line would only repeat an old time.
+  const settled = view.status === 'confirmed' || view.status === 'rejected' || view.status === 'cancelled';
+  const deadline = settled
+    ? ''
+    : ` ${view.approvalExpiresAtLabel === null ? 'Hết hạn' : 'Hạn duyệt'} lúc ${view.expiresAtLabel}.`;
 
   return layout(
     title,
@@ -353,10 +364,11 @@ export function cardPage(view: CardView): string {
 ${requirement}${result}
 <div class="panel">
 ${itemsTable(view.items, view.status === 'confirmed')}
-<p class="meta">Mã đề xuất <code>${esc(view.proposalId)}</code>. ${esc(view.approvalExpiresAtLabel === null ? 'Hết hạn' : 'Hạn duyệt')} lúc ${esc(view.expiresAtLabel)}.</p>
+<p class="meta">Mã đề xuất <code>${esc(view.proposalId)}</code>.${esc(deadline)}</p>
 </div>
 ${actions}`,
     inProgress ? 2 : undefined,
+    true,
   );
 }
 
@@ -470,10 +482,13 @@ export function approvalPage(view: ApprovalPageView): string {
   const inProgress =
     view.status === 'confirmed' &&
     view.items.some((item) => item.command === undefined || item.command.status === 'not_sent' || item.command.status === 'sent_unknown');
+  const settled = view.status === 'confirmed' || view.status === 'rejected' || view.status === 'cancelled';
   const deadline =
-    view.expiresAtLabel === null
-      ? 'Đề xuất chưa vào bước duyệt.'
-      : `${view.status === 'awaiting_approval' ? 'Hạn duyệt' : 'Hạn duyệt đã ghi'} lúc ${view.expiresAtLabel} (${view.waitLabel} tính từ lúc người yêu cầu bấm Gửi).`;
+    settled
+      ? null
+      : view.expiresAtLabel === null
+        ? 'Đề xuất chưa vào bước duyệt.'
+        : `${view.status === 'awaiting_approval' ? 'Hạn duyệt' : 'Hạn duyệt đã ghi'} lúc ${view.expiresAtLabel} (${view.waitLabel} tính từ lúc người yêu cầu bấm Gửi).`;
 
   return layout(
     title,
@@ -483,8 +498,9 @@ export function approvalPage(view: ApprovalPageView): string {
 ${state}
 <div class="panel">
 ${itemsTable(view.items, view.status === 'confirmed')}
-<p class="meta">Mã đề xuất <code>${esc(view.proposalId)}</code>. ${esc(deadline)}</p>
+<p class="meta">Mã đề xuất <code>${esc(view.proposalId)}</code>.${deadline === null ? '' : ` ${esc(deadline)}`}</p>
 </div>`,
     inProgress ? 2 : undefined,
+    true,
   );
 }

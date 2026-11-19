@@ -10,12 +10,13 @@ import {
 } from '../adapters/index.js';
 import type { GatewayDeps } from '../call.js';
 import type { PersonRef } from '../policy/index.js';
-import { formatClock, itemRows, personLabel } from '../proposals/card.js';
+import { formatMoment, itemRows, personLabel } from '../proposals/card.js';
 import {
   effectiveStatus,
   MAX_APPROVAL_REASON,
   PROPOSAL_ID_PATTERN,
   waitText,
+  type ChangeField,
   type Proposal,
 } from '../proposals/index.js';
 import { checkWrite } from '../writes/index.js';
@@ -83,23 +84,77 @@ function policyUnavailable(deps: GatewayDeps, refs: readonly PersonRef[], depart
   return deps.policy.approversFor({ department }, refs).reasonCode === 'POLICY_UNAVAILABLE';
 }
 
-/** `30 mục: Người phụ trách`, short enough for one table cell. */
-function summaryOf(deps: GatewayDeps, proposal: Proposal): string {
-  let labels: string[] = [];
-  try {
-    const adapter = adapterOf(deps.adapters, proposal.recordType);
-    labels = Object.keys(proposal.changes).map(
-      (field) => adapter.fields.find((spec) => spec.name === field)?.label ?? field,
-    );
-  } catch {
-    labels = Object.keys(proposal.changes);
-  }
-  const what = labels.length > 0 ? labels.join(', ') : 'thay đổi';
-  return proposal.items.length === 1 ? `1 mục: ${what}` : `${proposal.items.length} mục: ${what}`;
+const FIELD_PHRASE: Readonly<Record<string, string>> = {
+  assignee: 'người phụ trách',
+  due: 'hạn',
+  description: 'mô tả',
+  status: 'trạng thái',
+  work_email: 'email công việc',
+};
+
+/** `task`, `nhân viên` or `bản ghi`, so the summary reads the same way for every record type. */
+function recordWord(recordType: string): string {
+  if (recordType === 'task') return 'task';
+  if (recordType === 'employee') return 'nhân viên';
+  return 'bản ghi';
 }
 
-function deadlineOf(proposal: Proposal): string {
-  return proposal.approvalExpiresAt === null ? 'chưa bắt đầu' : formatClock(new Date(proposal.approvalExpiresAt));
+/** `task T-12` or `30 task`, the object the sentence is about. */
+function targetOf(proposal: Proposal): string {
+  const word = recordWord(proposal.recordType);
+  return proposal.items.length === 1 ? `${word} ${proposal.items[0]?.recordId ?? ''}` : `${proposal.items.length} ${word}`;
+}
+
+/** True when every item changes exactly the same fields to the same values. */
+function sameChanges(proposal: Proposal): boolean {
+  const first = JSON.stringify(proposal.items[0]?.changes ?? {});
+  return proposal.items.every((item) => JSON.stringify(item.changes) === first);
+}
+
+/** The new value as a person reads it; a long description is left out of the short line. */
+async function valueOf(deps: GatewayDeps, field: string, value: string): Promise<string | null> {
+  if (field === 'description') return null;
+  if (field === 'assignee') return personLabel(deps.adapters, value);
+  return value;
+}
+
+/**
+ * One line that says what the proposal changes, for the lead's inbox:
+ * `Đổi người phụ trách 30 task sang NV-04 Vũ Quốc Minh`, or a shorter
+ * generic line when the items do not all carry the same change.
+ */
+async function summaryOf(deps: GatewayDeps, proposal: Proposal): Promise<string> {
+  const fields = Object.keys(proposal.changes).filter(
+    (field): field is ChangeField => FIELD_PHRASE[field] !== undefined,
+  );
+  if (fields.length === 0) return `Đổi ${targetOf(proposal)}`;
+  const phrases = fields.map((field) => FIELD_PHRASE[field]);
+  if (!sameChanges(proposal)) {
+    return `Đổi ${phrases.join(' và ')} cho ${targetOf(proposal)}`;
+  }
+
+  const item = proposal.items[0];
+  if (fields.length === 1) {
+    const field = fields[0];
+    if (field === undefined) return `Đổi ${targetOf(proposal)}`;
+    const value = item?.changes[field];
+    const label = value === undefined ? null : await valueOf(deps, field, value);
+    return label === null
+      ? `Đổi ${phrases[0] ?? ''} ${targetOf(proposal)}`
+      : `Đổi ${phrases[0] ?? ''} ${targetOf(proposal)} sang ${label}`;
+  }
+
+  const details: string[] = [];
+  for (const field of fields) {
+    const value = item?.changes[field];
+    const label = value === undefined ? null : await valueOf(deps, field, value);
+    details.push(label === null ? (FIELD_PHRASE[field] ?? field) : `${FIELD_PHRASE[field] ?? field} sang ${label}`);
+  }
+  return `Đổi ${phrases.join(' và ')} của ${targetOf(proposal)} (${details.join(', ')})`;
+}
+
+function deadlineOf(proposal: Proposal, now: Date): string {
+  return proposal.approvalExpiresAt === null ? 'chưa bắt đầu' : formatMoment(new Date(proposal.approvalExpiresAt), now);
 }
 
 function callerOf(deps: GatewayDeps, proposal: Proposal): string {
@@ -166,8 +221,8 @@ async function handleInbox(deps: GatewayDeps, req: IncomingMessage, res: ServerR
     items.push({
       proposalId: proposal.proposalId,
       requesterLabel: `${requester.id} ${requester.name}`,
-      summary: summaryOf(deps, proposal),
-      expiresAtLabel: deadlineOf(proposal),
+      summary: await summaryOf(deps, proposal),
+      expiresAtLabel: deadlineOf(proposal, deps.now()),
       expired: effectiveStatus(proposal, deps.now()) === 'expired',
     });
   }
@@ -242,7 +297,8 @@ async function handleApprovalPage(deps: GatewayDeps, req: IncomingMessage, res: 
       proposalId: proposal.proposalId,
       requesterLabel: `${requester.id} ${requester.name}`,
       reason: proposal.approvalReason ?? 'Đề xuất này cần trưởng nhóm duyệt trước khi ghi.',
-      expiresAtLabel: proposal.approvalExpiresAt === null ? null : formatClock(new Date(proposal.approvalExpiresAt)),
+      expiresAtLabel:
+        proposal.approvalExpiresAt === null ? null : formatMoment(new Date(proposal.approvalExpiresAt), deps.now()),
       waitLabel: waitText(waitMinutes),
       status: effectiveStatus(proposal, deps.now()),
       self,

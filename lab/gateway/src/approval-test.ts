@@ -7,6 +7,7 @@ import Database from 'better-sqlite3';
 import { GATEWAY_DB_FILE } from './database.js';
 import { startFixture, type GatewayFixture } from './fixture.js';
 import { DEFAULT_RULES_PATH } from './policy/index.js';
+import { formatMoment } from './proposals/card.js';
 import type { Proposal, ProposalExecutor } from './proposals/index.js';
 
 const HOA = 'NV-02';
@@ -171,7 +172,7 @@ test('approval inbox: only a lead of the requester department sees the waiting p
     const html = await quangInbox.text();
     assert.ok(html.includes(id), 'the lead sees the proposal code');
     assert.ok(html.includes('NV-02 Nguyễn Thị Hoa'), 'and who asked');
-    assert.match(html, /30 mục: Người phụ trách/);
+    assert.match(html, /Đổi người phụ trách 30 task sang NV-04 Vũ Quốc Minh/);
     assert.match(html, /Đang chờ/);
     assert.match(html, /href="\/duyet\/dx-[0-9a-f]{16}"/);
 
@@ -247,7 +248,10 @@ test('approval: a lead sees every item and reason, approves once, and the comman
 
     const after = await fetch(`${f.gateway.url}/duyet/${id}`, { headers: { cookie: quang.cookie } });
     const afterHtml = await after.text();
+    assert.match(afterHtml, /<main class="wide">/);
     assert.match(afterHtml, /Trần Văn Quang đã duyệt\./);
+    assert.doesNotMatch(afterHtml, /Hạn duyệt lúc/, 'a settled proposal has no deadline line left');
+    assert.doesNotMatch(afterHtml, /Lần gửi lại kế tiếp/, 'no retry column while no item waits for a resend');
     assert.doesNotMatch(afterHtml, /<button/);
   });
 });
@@ -387,4 +391,10 @@ test('approval: a lead who is the requester cannot approve their own proposal', 
     await f.close();
     rmSync(rulesDir, { recursive: true, force: true });
   }
+});
+
+test('clock: the pages show Vietnam time, with the date when the moment is not today', () => {
+  const now = new Date('2026-11-17T10:00:00.000Z'); // 17:00 in Vietnam
+  assert.equal(formatMoment(new Date('2026-11-17T11:15:00.000Z'), now), '18:15');
+  assert.equal(formatMoment(new Date('2026-11-18T01:00:00.000Z'), now), '08:00 18/11/2026');
 });

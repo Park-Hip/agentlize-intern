@@ -360,7 +360,7 @@ Một đề xuất chứa từ một tới 50 mục, mỗi mục một task; đ�
 - Khi khởi động, vòng chạy nền nhận mọi lệnh `not_sent` hoặc `sent_unknown`; không còn hàm `resume()` riêng cho lần khởi động.
   Cột `next_attempt_at` nằm trong bảng nên thời gian chờ còn lại vẫn đúng sau khi sập.
   Danh sách task kiểm mã trước số phiên bản, nên lần gửi lại sau khi đã ghi nhận đúng phản hồi cũ chứ không nhận 409.
-- Trang xác nhận hiện tiến độ, ví dụ "đang chạy nền: đã chuyển 17 trên 30 mục", tự làm mới mỗi 2 giây khi còn mục đang chạy, và có cột "Lần gửi lại kế tiếp".
+- Trang xác nhận hiện tiến độ, ví dụ "đang chạy nền: đã chuyển 17 trên 30 mục", tự làm mới mỗi 2 giây khi còn mục đang chạy, và chỉ hiện cột "Lần gửi lại kế tiếp" khi có mục đang chờ gửi lại.
   Đề xuất kết thúc ở một trong ba trạng thái: xong hết, xong một phần (có mục `TARGET_CHANGED`), hoặc không ghi được mục nào.
   `get_request_status` liệt kê từng mục và kết quả từng mục: đã ghi ở lần gửi thứ mấy, đang gửi lại, hay `CHƯA THỰC HIỆN [<mã>]` kèm câu nói vì sao.
   Với `TARGET_CHANGED`, trang và tool nhắc nhờ AI soạn lại với dữ liệu mới.
