@@ -1,17 +1,19 @@
 import type { ReasonCode } from '@lab/shared';
+import type { RecordData, ResourceAdapter } from '../adapters/index.js';
 import type { KeyRecord } from '../identity/index.js';
-import { FIELD_ACTION, RULE_IDS, strictestOf, type PolicyDecision, type PolicyEngine } from '../policy/index.js';
+import { RULE_IDS, strictestOf, type PolicyDecision, type PolicyEngine } from '../policy/index.js';
 import { CHANGE_FIELDS, type Proposal } from '../proposals/index.js';
-import type { EmployeeRecord, TaskRecord } from '../systems.js';
 
 /** The checks that must pass again at the moment a person presses Gửi (ADR-0002 section 3 point 4). */
 export interface WriteCheckInput {
   readonly proposal: Proposal;
   readonly key: KeyRecord | undefined;
   /** The key's person, read from the directory now, never kept from the draft. */
-  readonly employee: EmployeeRecord | undefined;
-  /** The task as it is now; its department is part of the policy question. */
-  readonly task: TaskRecord | undefined;
+  readonly employee: RecordData | undefined;
+  /** The adapter of the record the proposal changes, taken from the registry. */
+  readonly adapter: ResourceAdapter;
+  /** The record as it is now; its department is part of the policy question. */
+  readonly record: RecordData | undefined;
   readonly policy: PolicyEngine;
 }
 
@@ -41,12 +43,12 @@ function denied(
 
 /**
  * The permission part of the second check: the key still belongs to the same
- * person, that person is still in the directory, the task list still holds the
- * task, and the rule file still allows every field the proposal changes.
+ * person, that person is still in the directory, the target system still holds
+ * the record, and the rule file still allows every field the proposal changes.
  * Time and content are checked by the proposal store in the same transaction.
  */
 export function checkWrite(input: WriteCheckInput): WriteCheck {
-  const { proposal, key, employee, task, policy } = input;
+  const { proposal, key, employee, adapter, record, policy } = input;
 
   if (key === undefined) {
     return denied('KEY_INVALID', 401, 'WRITE.KEY_INVALID', 'Khoá của phiên không còn trong danh sách cấp khoá nên cổng không ghi. Hãy đăng nhập lại bằng khoá hợp lệ.');
@@ -67,7 +69,7 @@ export function checkWrite(input: WriteCheckInput): WriteCheck {
     return denied('NOT_PERMITTED', 403, RULE_IDS.roleUnknown, 'Danh bạ không cho biết vai và phòng của bạn nên cổng không ghi. Hãy báo người quản lý danh bạ.');
   }
 
-  if (task === undefined) {
+  if (record === undefined) {
     return denied(
       'TARGET_CHANGED',
       409,
@@ -76,12 +78,20 @@ export function checkWrite(input: WriteCheckInput): WriteCheck {
     );
   }
 
-  const actions = [...new Set(CHANGE_FIELDS.filter((field) => proposal.changes[field] !== undefined).map((field) => FIELD_ACTION[field]))];
+  const actions = [
+    ...new Set(
+      CHANGE_FIELDS.flatMap((field) => {
+        if (proposal.changes[field] === undefined) return [];
+        const action = adapter.changeable[field];
+        return action === undefined ? [] : [action];
+      }),
+    ),
+  ];
   const decisions = actions.map((action) =>
     policy.decide({
       actor: { id: key.employeeId, role, department },
       action,
-      object: { kind: 'task', department: task.department, taskCount: 1 },
+      object: { kind: adapter.type, department: String(record[adapter.ownerField]), taskCount: 1 },
       context: { scope: key.scope === 'read_only' ? 'read_only' : 'read_write', caller: key.caller },
     }),
   );

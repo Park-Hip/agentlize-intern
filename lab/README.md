@@ -8,7 +8,7 @@ Danh sách task giả, danh bạ giả, đường đọc của cổng, cửa `/m
 | Gói | Vai trò |
 | --- | --- |
 | `shared` | Cổng mạng, mã lý do, câu từ chối, kiểu danh mục tool và phản hồi tool, sáu nhân vật cố định, kiểm khoá dịch vụ, che khoá trong log |
-| `gateway` | Cổng kiểm soát: `GET /health`, cửa `/mcp` (`src/mcp.ts`), module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`), bộ luật quyền (`src/policy/`), ba tool đọc (`src/tools/`), đường soạn đề xuất và đường ghi (`src/proposals/`, `src/writes/`), bảng vết (`src/trace/`, lệnh `npm run trace`) |
+| `gateway` | Cổng kiểm soát: `GET /health`, cửa `/mcp` (`src/mcp.ts`), module danh tính theo khoá (`src/identity/`, lệnh `npm run keys`, `npm run seed-keys`), bộ tiếp hợp theo hệ thống (`src/adapters/`), bộ luật quyền (`src/policy/`), ba tool đọc (`src/tools/`), đường soạn đề xuất và đường ghi (`src/proposals/`, `src/writes/`), bảng vết (`src/trace/`, lệnh `npm run trace`) |
 | `fake-directory` | Danh bạ giả 20 nhân viên, xem mục Danh bạ giả |
 | `fake-tasks` | Danh sách task giả: 100 task nạp cố định, đọc, ghi có mã chống ghi trùng và số phiên bản |
 | `console` | Trang điều khiển chỉ nghe `127.0.0.1`: tổng quan ba dịch vụ, luật đang áp, bảy danh tính, màn hình tool, màn hình quyền và trường (sửa luật, thử quyết định), sân chơi gọi thử qua cổng, dữ liệu gốc của hai hệ thống giả và bảng vết |
@@ -204,6 +204,9 @@ Chạy riêng phép thử của gói này: `npm test -w fake-tasks`.
 Cổng nghe ở `127.0.0.1:8790` và mở ba tool đọc: `find_employee`, `get_task`, `list_tasks`.
 `GET /v1/tools` trả danh mục (tên, mô tả tiếng Việt, lược đồ tham số, nhãn `read` hay `propose`) và không cần khoá, vì danh mục không chứa dữ liệu của hệ thống nào.
 `POST /v1/tools/<tên>` cần `Authorization: Bearer <khoá của một người>` và trả `{ "text", "reason_code", "trace_id" }`.
+
+Mỗi hệ thống đi qua một bộ tiếp hợp trong `src/adapters/`: bộ tiếp hợp khai loại bản ghi, trường và nhãn, trường phòng, và trường sửa được.
+Tool đọc, tool soạn đề xuất, trang xác nhận và bộ thực thi lấy bộ tiếp hợp từ danh sách đăng ký, nên thêm một hệ thống là thêm một tệp và một dòng trong danh sách.
 
 Mỗi lần gọi, cổng làm lần lượt:
 

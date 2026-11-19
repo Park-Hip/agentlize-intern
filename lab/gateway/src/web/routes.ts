@@ -2,10 +2,10 @@ import { performance } from 'node:perf_hooks';
 import { timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { EMPLOYEE_ID_PATTERN, type ReasonCode } from '@lab/shared';
+import { adapterOf, SystemUnavailableError, type RecordData } from '../adapters/index.js';
 import { newTrail, TraceUnavailableError, writeTrace, type GatewayDeps } from '../call.js';
 import { cardRows, formatClock, personLabel } from '../proposals/card.js';
 import { effectiveStatus, PROPOSAL_ID_PATTERN, type Decision, type Proposal } from '../proposals/index.js';
-import { SystemUnavailableError, type EmployeeRecord, type TaskRecord } from '../systems.js';
 import type { KeyRecord } from '../identity/index.js';
 import type { ToolResult } from '../tools/types.js';
 import { checkWrite, type WriteRefusal } from '../writes/index.js';
@@ -167,14 +167,14 @@ async function handleCard(deps: GatewayDeps, req: IncomingMessage, res: ServerRe
     return refusalPage(res, 403, 'NOT_PERMITTED', 'Đề xuất này của người khác nên bạn không xem được. Hãy đăng nhập đúng nhân vật đã nhờ AI soạn.');
   }
 
-  const rows = await cardRows(proposal, deps.systems);
+  const rows = await cardRows(proposal, deps.adapters);
   sendHtml(
     res,
     200,
     cardPage({
       proposalId: proposal.proposalId,
       taskId: proposal.taskId,
-      requesterLabel: await personLabel(deps.systems, proposal.requester),
+      requesterLabel: await personLabel(deps.adapters, proposal.requester),
       rows,
       expiresAtLabel: formatClock(new Date(proposal.expiresAt)),
       status: effectiveStatus(proposal, deps.now()),
@@ -212,11 +212,13 @@ async function writeChecks(
   proposal: Proposal,
   key: KeyRecord,
 ): Promise<{ ok: true } | { ok: false; check: WriteRefusal }> {
-  let employee: EmployeeRecord | undefined;
-  let task: TaskRecord | undefined;
+  const directory = adapterOf(deps.adapters, 'employee');
+  const writes = adapterOf(deps.adapters, 'task');
+  let employee: RecordData | undefined;
+  let task: RecordData | undefined;
   try {
-    employee = await deps.systems.getEmployee(proposal.requester);
-    task = await deps.systems.getTask(proposal.taskId);
+    employee = await directory.get(proposal.requester);
+    task = await writes.get(proposal.taskId);
   } catch (error) {
     if (!(error instanceof SystemUnavailableError)) throw error;
     return {
@@ -232,7 +234,7 @@ async function writeChecks(
     };
   }
 
-  const check = checkWrite({ proposal, key, employee, task, policy: deps.policy });
+  const check = checkWrite({ proposal, key, employee, adapter: writes, record: task, policy: deps.policy });
   return check.ok ? { ok: true } : { ok: false, check };
 }
 

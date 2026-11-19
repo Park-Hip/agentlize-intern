@@ -1,7 +1,7 @@
 import type { ReasonCode, ToolDefinition } from '@lab/shared';
+import type { ResourceAdapter } from '../adapters/index.js';
 import type { FieldsDecision, PolicyEngine } from '../policy/index.js';
 import type { ProposalStore } from '../proposals/index.js';
-import type { Systems } from '../systems.js';
 import type { TraceOutcome } from '../trace/index.js';
 import type { Identity } from '../identity/index.js';
 import type { CommandStore } from '../writes/command-store.js';
@@ -16,7 +16,8 @@ export interface Actor {
 
 export interface ToolContext {
   readonly actor: Actor;
-  readonly systems: Systems;
+  /** The registered system adapters; every call to a system goes through one. */
+  readonly adapters: readonly ResourceAdapter[];
   readonly policy: PolicyEngine;
   readonly proposals: ProposalStore;
   /** Write commands, so `get_request_status` can say what happened after Gửi. */
