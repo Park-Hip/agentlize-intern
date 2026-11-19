@@ -1,7 +1,7 @@
 import { performance } from 'node:perf_hooks';
 import type { ReasonCode } from '@lab/shared';
+import { adapterOf, type ResourceAdapter } from '../adapters/index.js';
 import type { Proposal, ProposalExecutor, ProposalStore, ExecutionReceipt } from '../proposals/index.js';
-import type { Systems } from '../systems.js';
 import { newTraceId, type TraceOutcome, type TraceStore } from '../trace/index.js';
 import type { CommandStore, WriteCommand } from './command-store.js';
 
@@ -11,7 +11,8 @@ export const MAX_RETRIES = 3;
 export interface TaskListExecutorOptions {
   readonly commands: CommandStore;
   readonly proposals: ProposalStore;
-  readonly systems: Systems;
+  /** The registered system adapters; the command's record type picks the one that carries the write. */
+  readonly adapters: readonly ResourceAdapter[];
   readonly trace: TraceStore;
   /** Tests lower it to keep a failed system cheap to simulate. */
   readonly maxRetries?: number;
@@ -126,8 +127,9 @@ export class TaskListExecutor implements ProposalExecutor {
         return receiptOf(current);
       }
 
-      const result = await this.options.systems.patchTask({
-        taskId: current.taskId,
+      const write = adapterOf(this.options.adapters, 'task');
+      const result = await write.apply({
+        id: current.taskId,
         idempotencyKey: current.idempotencyKey,
         expectedVersion: current.expectedVersion,
         changes: proposal.changes,
@@ -135,7 +137,7 @@ export class TaskListExecutor implements ProposalExecutor {
 
       switch (result.kind) {
         case 'written':
-          return this.settle(current, { kind: 'written', status: 200, replayed: result.replayed, version: result.task.version }, ruleId, started);
+          return this.settle(current, { kind: 'written', status: 200, replayed: result.replayed, version: result.version }, ruleId, started);
         case 'conflict':
           return this.settle(current, { kind: 'target_changed', status: 409, currentVersion: result.currentVersion }, ruleId, started);
         case 'not_found':

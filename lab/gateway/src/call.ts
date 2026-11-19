@@ -1,11 +1,11 @@
 import { performance } from 'node:perf_hooks';
 import { BodyError, maskKey, refusalMessage, type ReasonCode, type ToolKind } from '@lab/shared';
 import { z } from 'zod';
+import { adapterOf, SystemUnavailableError, type ResourceAdapter } from './adapters/index.js';
 import type { IdentityHeaders, IdentityProvider, IdentityResult, KeyStore } from './identity/index.js';
 import { RULE_IDS, type PolicyEngine } from './policy/index.js';
 import type { ProposalExecutor, ProposalStore } from './proposals/index.js';
 import type { CommandStore } from './writes/index.js';
-import { SystemUnavailableError, type Systems } from './systems.js';
 import type { RegisteredTool, ToolResult } from './tools/types.js';
 import type { SessionStore } from './web/session-store.js';
 import { newTraceId, type TraceEntry, type TraceStore } from './trace/index.js';
@@ -24,7 +24,8 @@ export const HOST_USER_HEADER = 'x-user-id';
 export interface GatewayDeps {
   readonly identity: IdentityProvider;
   readonly policy: PolicyEngine;
-  readonly systems: Systems;
+  /** The registered system adapters: one per record type, the only way a call reaches a system. */
+  readonly adapters: readonly ResourceAdapter[];
   readonly trace: TraceStore;
   readonly tools: readonly RegisteredTool[];
   /** Read by the pages to check that the key behind a login is still valid. */
@@ -130,7 +131,8 @@ async function answerCall(
   }
 
   // Role and department are read from the directory on every call, never kept: a transfer applies at once.
-  const employee = await deps.systems.getEmployee(identity.employeeId);
+  const directory = adapterOf(deps.adapters, 'employee');
+  const employee = await directory.get(identity.employeeId);
   if (employee === undefined) {
     return refuse('KEY_INVALID', 'IDENTITY.NOT_IN_DIRECTORY');
   }
@@ -150,7 +152,7 @@ async function answerCall(
   return tool.run(
     {
       actor: { identity, employeeId: identity.employeeId, role, department },
-      systems: deps.systems,
+      adapters: deps.adapters,
       policy: deps.policy,
       proposals: deps.proposals,
       commands: deps.commands,

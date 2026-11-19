@@ -1,7 +1,9 @@
 import { EMPLOYEE_ID_PATTERN, refusalMessage, type ReasonCode } from '@lab/shared';
 import { z } from 'zod';
+import { adapterOf, recordValue, SystemUnavailableError, type RecordData, type ResourceAdapter } from '../adapters/index.js';
+import { TASK_STATUSES } from '../adapters/tasks.js';
 import { badRequest, refuse } from '../call.js';
-import { ACTION_PHRASE, FIELD_ACTION, RULE_IDS, strictestOf, type PolicyDecision, type TableAction } from '../policy/index.js';
+import { ACTION_PHRASE, RULE_IDS, strictestOf, type PolicyDecision, type TableAction } from '../policy/index.js';
 import { cardRows, formatClock } from '../proposals/card.js';
 import {
   CHANGE_FIELDS,
@@ -10,9 +12,8 @@ import {
   type ChangeField,
   type Proposal,
 } from '../proposals/index.js';
-import { SystemUnavailableError, type EmployeeRecord, type Systems } from '../systems.js';
 import { wrapSystemData } from './block.js';
-import { defineTool, notFoundTask, TASK_ID_PATTERN, TASK_READ_RULE_ID, TASK_STATUSES } from './read-tools.js';
+import { defineTool, notFoundTask, TASK_READ_RULE_ID } from './read-tools.js';
 import type { RegisteredTool, ToolContext, ToolResult } from './types.js';
 
 const PROPOSE_TOOL = 'propose_task_change';
@@ -51,10 +52,13 @@ function fold(text: string): string {
 }
 
 /** Names of the leads of a department, read from the directory. Empty when nobody is a lead or the directory does not answer. */
-async function leadNames(systems: Systems, department: string): Promise<string[]> {
+async function leadNames(adapters: readonly ResourceAdapter[], department: string): Promise<string[]> {
   try {
-    const people = await systems.findEmployees({ department });
-    return people.filter((person) => person['role'] === 'lead').map((person) => String(person['full_name']));
+    const directory = adapterOf(adapters, 'employee');
+    const people = await directory.list({ department });
+    return people
+      .filter((person) => person['role'] === 'lead')
+      .map((person) => String(recordValue(person, directory.fields, 'name')));
   } catch (error) {
     if (error instanceof SystemUnavailableError) return [];
     throw error;
@@ -67,7 +71,7 @@ async function refusalForDecision(
   context: ToolContext,
   taskId: string,
 ): Promise<ToolResult> {
-  const { actor, systems } = context;
+  const { actor, adapters } = context;
   const extra = { objectId: taskId, policyVersion: decision.policyVersion } as const;
 
   if (decision.reasonCode === 'POLICY_UNAVAILABLE') {
@@ -84,7 +88,7 @@ async function refusalForDecision(
     };
   }
 
-  const leads = await leadNames(systems, actor.department);
+  const leads = await leadNames(adapters, actor.department);
   const whom =
     leads.length > 0 ? `Hãy hỏi ${leads.join(' hoặc ')}, trưởng nhóm ${actor.department}.` : `Hãy hỏi trưởng nhóm ${actor.department}.`;
   const what = [...new Set(actions.map((action) => ACTION_PHRASE[action]))].join(' và ');
@@ -109,7 +113,12 @@ async function refusalForDecision(
 type Resolved = { readonly ok: true; readonly employeeId: string } | { readonly ok: false; readonly result: ToolResult };
 
 /** An employee code is checked against the directory; a name must match exactly one person. */
-async function resolveAssignee(value: string, systems: Systems, base: Partial<ToolResult>): Promise<Resolved> {
+async function resolveAssignee(
+  value: string,
+  adapters: readonly ResourceAdapter[],
+  base: Partial<ToolResult>,
+): Promise<Resolved> {
+  const directory = adapterOf(adapters, 'employee');
   const notFound: ToolResult = {
     status: 200,
     text: `Không tìm thấy nhân viên nào khớp "${value}". Hãy dùng find_employee để lấy mã nhân viên.`,
@@ -119,18 +128,18 @@ async function resolveAssignee(value: string, systems: Systems, base: Partial<To
   };
 
   if (EMPLOYEE_ID_PATTERN.test(value)) {
-    const employee = await systems.getEmployee(value);
+    const employee = await directory.get(value);
     return employee === undefined ? { ok: false, result: notFound } : { ok: true, employeeId: value };
   }
 
-  const found = await systems.findEmployees({ name: value });
-  const exact = found.filter((employee) => fold(String(employee['full_name'])) === fold(value));
+  const found = await directory.list({ name: value });
+  const exact = found.filter((employee) => fold(String(recordValue(employee, directory.fields, 'name'))) === fold(value));
   const matches = exact.length > 0 ? exact : found;
   const only = matches.length === 1 ? matches[0] : undefined;
-  if (only !== undefined) return { ok: true, employeeId: String(only['employee_id']) };
+  if (only !== undefined) return { ok: true, employeeId: String(recordValue(only, directory.fields, 'id')) };
   if (matches.length === 0) return { ok: false, result: notFound };
 
-  const list = matches.map((employee: EmployeeRecord) => `${String(employee['employee_id'])} ${String(employee['full_name'])}`);
+  const list = matches.map((employee: RecordData) => `${String(recordValue(employee, directory.fields, 'id'))} ${String(recordValue(employee, directory.fields, 'name'))}`);
   return {
     ok: false,
     result: {
@@ -154,25 +163,31 @@ const proposeTaskChange = defineTool(
   'propose',
   proposeInput,
   async (context, args) => {
-    const { actor, systems, policy, proposals } = context;
+    const { actor, adapters, policy, proposals } = context;
+    const tasks = adapterOf(adapters, 'task');
     const taskId = args.task_id;
-    const objectId = TASK_ID_PATTERN.test(taskId) ? taskId : null;
+    const objectId = tasks.idPattern.test(taskId) ? taskId : null;
 
     // A code that cannot be a task code is answered without asking the task list.
-    const task = objectId === null ? undefined : await systems.getTask(objectId);
+    const task = objectId === null ? undefined : await tasks.get(objectId);
     if (task === undefined) return notFoundTask(taskId);
-    if (task.department !== actor.department) {
+    const taskObjectId = String(task['id']);
+    const department = String(task[tasks.ownerField]);
+    if (department !== actor.department) {
       return notFoundTask(taskId, { objectId, outOfScope: true, traceReasonCode: 'NOT_PERMITTED' });
     }
 
     // The rule is asked about every field the request names; the strictest answer wins (spec section 4.3).
     const requested = CHANGE_FIELDS.filter((field) => args.changes[field] !== undefined);
-    const actions = [...new Set(requested.map((field) => FIELD_ACTION[field]))];
+    const actions = [...new Set(requested.flatMap((field) => {
+      const action = tasks.changeable[field];
+      return action === undefined ? [] : [action];
+    }))];
     const decisions = actions.map((action) =>
       policy.decide({
         actor: { id: actor.employeeId, role: actor.role, department: actor.department },
         action,
-        object: { kind: 'task', department: task.department, taskCount: 1 },
+        object: { kind: tasks.type, department, taskCount: 1 },
         context: { scope: actor.identity.scope === 'read_only' ? 'read_only' : 'read_write', caller: actor.identity.caller },
       }),
     );
@@ -184,14 +199,14 @@ const proposeTaskChange = defineTool(
         ruleId: RULE_IDS.inputInvalid,
         policyVersion: null,
       };
-      return refusalForDecision(refused, actions, context, task.id);
+      return refusalForDecision(refused, actions, context, taskObjectId);
     }
 
-    const base = { objectId: task.id, ruleId: decision.ruleId, policyVersion: decision.policyVersion } as const;
+    const base = { objectId: taskObjectId, ruleId: decision.ruleId, policyVersion: decision.policyVersion } as const;
 
     const wanted: Partial<Record<ChangeField, string>> = {};
     if (args.changes.assignee !== undefined) {
-      const resolved = await resolveAssignee(args.changes.assignee, systems, base);
+      const resolved = await resolveAssignee(args.changes.assignee, adapters, base);
       if (!resolved.ok) return resolved.result;
       wanted.assignee = resolved.employeeId;
     }
@@ -204,15 +219,16 @@ const proposeTaskChange = defineTool(
     const previous: Partial<Record<ChangeField, string>> = {};
     for (const field of CHANGE_FIELDS) {
       const next = wanted[field];
-      if (next !== undefined && next !== task[field]) {
+      const current = task[field];
+      if (next !== undefined && next !== current) {
         changes[field] = next;
-        previous[field] = task[field];
+        previous[field] = current === undefined ? '' : String(current);
       }
     }
     if (Object.keys(changes).length === 0) {
       return {
         status: 200,
-        text: `Task ${task.id} đã có đúng các giá trị này nên không cần soạn đề xuất.`,
+        text: `Task ${taskObjectId} đã có đúng các giá trị này nên không cần soạn đề xuất.`,
         reasonCode: null,
         outcome: 'ok',
         ...base,
@@ -223,17 +239,17 @@ const proposeTaskChange = defineTool(
       requester: actor.employeeId,
       caller: actor.identity.caller,
       tool: PROPOSE_TOOL,
-      taskId: task.id,
+      taskId: taskObjectId,
       changes,
       previous,
-      baseVersion: task.version,
+      baseVersion: Number(task['version']),
       policyVersion: decision.policyVersion ?? 0,
     });
 
-    const rows = (await cardRows(proposal, systems)).map((row) => `${row.label}: ${row.before} -> ${row.after}`);
+    const rows = (await cardRows(proposal, adapters)).map((row) => `${row.label}: ${row.before} -> ${row.after}`);
     const link = confirmationLink(context.publicBaseUrl, proposal.proposalId);
     const text = [
-      `Đã soạn đề xuất ${proposal.proposalId} cho task ${task.id}. Chưa có gì được ghi vào task.`,
+      `Đã soạn đề xuất ${proposal.proposalId} cho task ${taskObjectId}. Chưa có gì được ghi vào task.`,
       `Đề xuất hết hạn lúc ${formatClock(new Date(proposal.expiresAt))} (30 phút). Người yêu cầu cần mở link dưới đây, đăng nhập giả lập, kiểm tra thẻ rồi bấm Gửi.`,
       wrapSystemData(rows.join('\n')),
       'Link xác nhận:',

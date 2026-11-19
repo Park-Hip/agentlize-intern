@@ -1,4 +1,4 @@
-import { SystemUnavailableError, type Systems } from '../systems.js';
+import { adapterOf, recordValue, SystemUnavailableError, type ResourceAdapter } from '../adapters/index.js';
 import type { ChangeField } from './fingerprint.js';
 import { CHANGE_FIELDS } from './fingerprint.js';
 import type { Proposal } from './proposal-store.js';
@@ -10,18 +10,12 @@ export interface CardRow {
   readonly after: string;
 }
 
-const LABELS: Readonly<Record<ChangeField, string>> = {
-  assignee: 'Người phụ trách',
-  due: 'Hạn',
-  description: 'Mô tả',
-  status: 'Trạng thái',
-};
-
 /** `NV-04 Vũ Quốc Minh`, the name read from the directory now; just the code when the directory does not answer. */
-export async function personLabel(systems: Systems, employeeId: string): Promise<string> {
+export async function personLabel(adapters: readonly ResourceAdapter[], employeeId: string): Promise<string> {
   try {
-    const employee = await systems.getEmployee(employeeId);
-    const name = employee?.['full_name'];
+    const directory = adapterOf(adapters, 'employee');
+    const employee = await directory.get(employeeId);
+    const name = employee === undefined ? undefined : recordValue(employee, directory.fields, 'name');
     return typeof name === 'string' ? `${employeeId} ${name}` : employeeId;
   } catch (error) {
     if (error instanceof SystemUnavailableError) return employeeId;
@@ -34,19 +28,24 @@ export async function personLabel(systems: Systems, employeeId: string): Promise
  * drafting and names read from the directory. Nothing here comes from words the
  * agent wrote about the proposal.
  */
-export async function cardRows(proposal: Proposal, systems: Systems): Promise<CardRow[]> {
+export async function cardRows(proposal: Proposal, adapters: readonly ResourceAdapter[]): Promise<CardRow[]> {
+  const tasks = adapterOf(adapters, 'task');
   const rows: CardRow[] = [];
   for (const field of CHANGE_FIELDS) {
     const after = proposal.changes[field];
     if (after === undefined) continue;
     const before = proposal.previous[field] ?? '';
     rows.push({
-      label: LABELS[field],
-      before: field === 'assignee' && before !== '' ? await personLabel(systems, before) : before,
-      after: field === 'assignee' ? await personLabel(systems, after) : after,
+      label: labelOf(tasks, field),
+      before: field === 'assignee' && before !== '' ? await personLabel(adapters, before) : before,
+      after: field === 'assignee' ? await personLabel(adapters, after) : after,
     });
   }
   return rows;
+}
+
+function labelOf(adapter: ResourceAdapter, field: ChangeField): string {
+  return adapter.fields.find((candidate) => candidate.name === field)?.label ?? field;
 }
 
 /** `HH:mm` in Vietnam time, so the person reads the deadline as the wall clock shows it. */

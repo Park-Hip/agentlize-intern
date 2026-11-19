@@ -1,10 +1,10 @@
 import { readPublicBaseUrl, readServiceKey, startService, type RunningService } from '@lab/shared';
+import { createHttpAdapters, systemUrl, type ResourceAdapter } from './adapters/index.js';
 import { createGatewayHandler } from './app.js';
 import { openGatewayDatabase, resolveDataDir } from './database.js';
 import { ApiKeyIdentity, KeyStore } from './identity/index.js';
 import { createPolicyEngine, resolveRulesPath, seedRulesFile } from './policy/index.js';
 import { ProposalStore, type ProposalExecutor } from './proposals/index.js';
-import { HttpSystems, systemUrl, type Systems } from './systems.js';
 import { PROPOSE_TOOLS } from './tools/propose-tools.js';
 import { READ_TOOLS } from './tools/read-tools.js';
 import { TraceStore } from './trace/index.js';
@@ -15,8 +15,8 @@ export interface GatewayOptions {
   /** Explicit port, used by tests with 0. Defaults to `LAB_GATEWAY_PORT`. */
   readonly port?: number;
   readonly env?: NodeJS.ProcessEnv;
-  /** Replaces the HTTP clients of the two fake systems. Tests use it to inject a failure. */
-  readonly systems?: Systems;
+  /** Replaces the registered system adapters. Tests use it to inject a failure. */
+  readonly adapters?: readonly ResourceAdapter[];
   /** Path of the rule file, overriding `LAB_RULES_PATH` and the file in the data folder. Tests use it. */
   readonly rulesPath?: string;
   /** Replaces the clock. Tests use it to pass the 30 minutes of a proposal and the 15 minutes of a login. */
@@ -57,16 +57,16 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
     const publicBaseUrl = readPublicBaseUrl(env);
     // Without `LAB_PUBLIC_BASE_URL` the links use the address the gateway listens on, known once it is listening.
     let listeningUrl = '';
-    const systems =
-      options.systems ??
-      new HttpSystems({
+    const adapters =
+      options.adapters ??
+      createHttpAdapters({
         directoryUrl: systemUrl('directory', env),
         tasksUrl: systemUrl('tasks', env),
         serviceKey,
       });
 
     const executor: ProposalExecutor =
-      options.executor ?? new TaskListExecutor({ commands, proposals, systems, trace });
+      options.executor ?? new TaskListExecutor({ commands, proposals, adapters, trace });
 
     const running = await startService({
       service: 'gateway',
@@ -75,7 +75,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
       handler: createGatewayHandler({
         identity: new ApiKeyIdentity(keys),
         policy: createPolicyEngine({ rulesPath }),
-        systems,
+        adapters,
         trace,
         tools: [...READ_TOOLS, ...PROPOSE_TOOLS],
         keys,

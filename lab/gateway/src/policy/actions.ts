@@ -1,14 +1,5 @@
 import type { PolicyDecision, PolicyEffect } from './types.js';
 import type { TableAction } from './schema.js';
-import type { ChangeField } from '../proposals/fingerprint.js';
-
-/** Which table action each changeable task field needs. */
-export const FIELD_ACTION: Readonly<Record<ChangeField, TableAction>> = {
-  description: 'edit_task_description',
-  status: 'change_task_status',
-  assignee: 'change_task_assignee_or_due',
-  due: 'change_task_assignee_or_due',
-};
 
 /** How an action is said in a refusal sentence. */
 export const ACTION_PHRASE: Readonly<Record<TableAction, string>> = {

@@ -1,18 +1,22 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DATA_DIR_ENV, SERVICE_KEY_ENV, type ToolResponse } from '@lab/shared';
-import { startGateway, type GatewayOptions, type RunningGateway } from './server.js';
+import { DATA_DIR_ENV, EMPLOYEE_ID_PATTERN, SERVICE_KEY_ENV, type ToolResponse } from '@lab/shared';
 import {
+  EMPLOYEE_CHANGEABLE,
+  EMPLOYEE_FIELDS,
   SystemUnavailableError,
+  TASK_CHANGEABLE,
+  TASK_FIELDS,
+  TASK_ID_PATTERN,
+  type AdapterWrite,
+  type ApplyResult,
   type EmployeeRecord,
-  type EmployeeSearch,
-  type Systems,
-  type TaskPatch,
-  type TaskPatchResult,
+  type ResourceAdapter,
   type TaskRecord,
-  type TaskSearch,
-} from './systems.js';
+} from './adapters/index.js';
+import type { ChangeField, Changes } from './proposals/index.js';
+import { startGateway, type GatewayOptions, type RunningGateway } from './server.js';
 import { BLOCK_END } from './tools/block.js';
 
 /** The same words in lower case, no accents, as the real directory compares them. */
@@ -94,8 +98,34 @@ export function seedTasks(): TaskRecord[] {
   ];
 }
 
+export interface EmployeeSearch {
+  readonly name?: string | undefined;
+  readonly department?: string | undefined;
+}
+
+export interface TaskSearch {
+  readonly assignee?: string | undefined;
+  readonly department?: string | undefined;
+  readonly status?: string | undefined;
+}
+
+/** One write as the stub task list takes it: the four changeable fields, the version seen and one fixed key. */
+export interface TaskPatch {
+  readonly taskId: string;
+  readonly idempotencyKey: string;
+  readonly expectedVersion: number;
+  readonly changes: Changes;
+}
+
+export type TaskPatchResult =
+  | { readonly kind: 'written'; readonly task: TaskRecord; readonly replayed: boolean }
+  | { readonly kind: 'conflict'; readonly currentVersion: number | null }
+  | { readonly kind: 'not_found' }
+  | { readonly kind: 'rejected'; readonly status: number; readonly error: string }
+  | { readonly kind: 'unavailable'; readonly detail: string };
+
 /** An in-memory stand-in for the two fake systems. Tests change `employees` and `tasks` between calls. */
-export class StubSystems implements Systems {
+export class StubSystems {
   employees: EmployeeRecord[] = seedEmployees();
   tasks: TaskRecord[] = seedTasks();
   /** When set, every call throws as if the system did not answer. */
@@ -113,6 +143,35 @@ export class StubSystems implements Systems {
   /** The next N PATCHes answer as if the network died before anything was written. */
   failBeforeCommit = 0;
   private readonly saved = new Map<string, { fingerprint: string; task: TaskRecord }>();
+
+  /** The adapters the gateway reads: the same data, reached the way a real system is. */
+  readonly adapters: readonly ResourceAdapter[] = [
+    {
+      type: 'task',
+      idPattern: TASK_ID_PATTERN,
+      fields: TASK_FIELDS,
+      ownerField: 'department',
+      changeable: TASK_CHANGEABLE,
+      get: (id) => this.getTask(id),
+      list: (filter) =>
+        this.listTasks({
+          assignee: filter['assignee'],
+          department: filter['department'],
+          status: filter['status'],
+        }),
+      apply: (write) => this.applyTask(write),
+    },
+    {
+      type: 'employee',
+      idPattern: EMPLOYEE_ID_PATTERN,
+      fields: EMPLOYEE_FIELDS,
+      ownerField: 'department',
+      changeable: EMPLOYEE_CHANGEABLE,
+      get: (id) => this.getEmployee(id),
+      list: (filter) => this.findEmployees({ name: filter['name'], department: filter['department'] }),
+      apply: (write) => this.applyEmployee(write),
+    },
+  ];
 
   getEmployee(employeeId: string): Promise<EmployeeRecord | undefined> {
     this.directoryReads += 1;
@@ -194,6 +253,48 @@ export class StubSystems implements Systems {
     return this.writes.get(taskId) ?? 0;
   }
 
+  private async applyTask(write: AdapterWrite): Promise<ApplyResult> {
+    const changes: Partial<Record<ChangeField, string>> = {};
+    for (const field of ['assignee', 'due', 'description', 'status'] as const) {
+      const value = write.changes[field];
+      if (value !== undefined) changes[field] = value;
+    }
+    const result = await this.patchTask({
+      taskId: write.id,
+      idempotencyKey: write.idempotencyKey,
+      expectedVersion: write.expectedVersion,
+      changes,
+    });
+    switch (result.kind) {
+      case 'written':
+        return { kind: 'written', record: result.task, version: result.task.version, replayed: result.replayed };
+      case 'conflict':
+      case 'not_found':
+      case 'rejected':
+      case 'unavailable':
+        return result;
+    }
+  }
+
+  private applyEmployee(write: AdapterWrite): Promise<ApplyResult> {
+    this.failIfDown('directory');
+    const employee = this.employees.find((candidate) => candidate['employee_id'] === write.id);
+    if (employee === undefined) return Promise.resolve({ kind: 'not_found' });
+
+    const version = employee['version'];
+    if (typeof version !== 'number') return Promise.resolve({ kind: 'unavailable', detail: 'record has no version (test)' });
+    if (version !== write.expectedVersion) return Promise.resolve({ kind: 'conflict', currentVersion: version });
+
+    const next: Record<string, string | number> = { ...employee, version: version + 1 };
+    for (const [field, value] of Object.entries(write.changes)) {
+      if (value !== undefined) next[field] = value;
+    }
+    this.employees = this.employees.map((candidate) =>
+      candidate['employee_id'] === next['employee_id'] ? next : candidate,
+    );
+    return Promise.resolve({ kind: 'written', record: next, version: version + 1, replayed: false });
+  }
+
   private failIfDown(system: 'directory' | 'tasks'): void {
     if (this.down === system) throw new SystemUnavailableError(system, 'stopped for the test');
   }
@@ -228,7 +329,7 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Gatewa
   const gateway = await startGateway({
     port: 0,
     env,
-    systems,
+    adapters: systems.adapters,
     ...(options.rulesPath === undefined ? {} : { rulesPath: options.rulesPath }),
     ...(options.now === undefined ? {} : { now: options.now }),
     ...(options.executor === undefined ? {} : { executor: options.executor }),
