@@ -96,7 +96,7 @@ test('console playground: scenario A drafts a proposal through the real gateway 
 
   // Both calls went through the gateway's own door, under the console caller.
   const trace = traceTable(env);
-  assert.match(trace, /NV-02\s+lab-console\s+http\s+propose_task_change\s+T-12\s+ok\s+-\s+-\s+(staff|intern)\./);
+  assert.match(trace, /NV-02\s+lab-console\s+http\s+propose_task_change\s+T-12\s+ok\s+-\s+-\s+task\.change_task_assignee_or_due\.(staff|intern)/);
   assert.match(trace, /NV-05\s+lab-console\s+http\s+propose_task_change\s+T-12\s+refused\s+NOT_PERMITTED/);
 
   // One key per persona plus the guest is active while the console runs, and no raw key reaches the log.

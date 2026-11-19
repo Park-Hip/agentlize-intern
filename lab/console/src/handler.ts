@@ -40,7 +40,7 @@ import {
   type DecisionOutcome,
   type FieldChoice,
 } from './permissions.js';
-import { permissionsPage } from './permissions-page.js';
+import { brokenPermissionsPage, permissionsPage } from './permissions-page.js';
 import { argsToFormValues, formFields, formValues, readArgs } from './schema-form.js';
 import { scenarioByKey } from './scenarios.js';
 import { historyVersions, loadRules, writeRules } from './rules.js';
@@ -306,23 +306,13 @@ async function sendData(deps: ConsoleDeps, res: ServerResponse, url: URL, csrf: 
 
 function submittedVersion(form: URLSearchParams): number | undefined {
   const raw = form.get('version') ?? '';
-  return /^[1-9][0-9]*$/.test(raw) ? Number(raw) : undefined;
+  return /^[0-9]+$/.test(raw) ? Number(raw) : undefined;
 }
 
 async function sendPermissions(deps: ConsoleContext, csrf: CsrfTokens, url: URL, res: ServerResponse): Promise<void> {
   const loaded = loadRules(deps.rulesPath);
   if (!loaded.ok) {
-    sendHtml(
-      res,
-      200,
-      errorPage(
-        {
-          text: `${loaded.detail}. Chưa sửa được từ trang này. Sửa file bằng tay, hoặc chuyển nó đi rồi khởi động lại cổng để cổng chép bản gốc.`,
-          link: { href: '/', label: 'Về tổng quan' },
-        },
-        'permissions',
-      ),
-    );
+    sendHtml(res, 200, brokenPermissionsPage(loaded.detail, csrf.issue()));
     return;
   }
 
@@ -422,72 +412,94 @@ async function handlePermissionsPost(
   }
 
   const current = loadRules(deps.rulesPath);
-  if (!current.ok) {
-    sendHtml(
-      res,
-      409,
-      errorPage(
-        {
-          text: `${current.detail} nên chưa lưu. Không ghi đè một file không đọc được.`,
-          link: { href: '/permissions', label: 'Tải lại trang' },
-        },
-        'permissions',
-      ),
-    );
-    return;
-  }
-  if (current.rules.version !== version) {
-    sendHtml(
-      res,
-      409,
-      errorPage(
-        {
-          text: `Luật trên đĩa đã đổi: form mở ở phiên bản ${version}, trên đĩa là ${current.rules.version}. Chưa lưu gì. Tải lại trang rồi sửa lại.`,
-          link: { href: '/permissions', label: 'Tải lại trang' },
-        },
-        'permissions',
-      ),
-    );
-    return;
-  }
 
-  try {
-    if (action === 'save') {
-      const catalog = form.getAll('catalog');
-      if (catalog.length === 0) {
-        sendHtml(
-          res,
-          400,
-          errorPage({ text: 'Form thiếu danh sách trường. Tải lại trang rồi thử lại.' }, 'permissions'),
-        );
-        return;
-      }
-      const built = rulesFromForm(current.rules, form, catalog);
-      if (!built.ok) {
-        // A broken form never reaches the file: the message names the field, the file keeps its bytes.
-        sendHtml(
-          res,
-          400,
-          errorPage(
-            { text: `Chưa lưu: ${built.detail}`, link: { href: '/permissions', label: 'Tải lại trang' } },
-            'permissions',
-          ),
-        );
-        return;
-      }
+  if (action === 'save') {
+    if (!current.ok) {
+      sendHtml(
+        res,
+        409,
+        errorPage(
+          {
+            text: `${current.detail} nên chưa lưu. Bấm "Về bản gốc" để chép lại bản gốc, hoặc sửa file bằng tay.`,
+            link: { href: '/permissions', label: 'Tải lại trang' },
+          },
+          'permissions',
+        ),
+      );
+      return;
+    }
+    if (current.rules.version !== version) {
+      sendHtml(
+        res,
+        409,
+        errorPage(
+          {
+            text: `Luật trên đĩa đã đổi: form mở ở phiên bản ${version}, trên đĩa là ${current.rules.version}. Chưa lưu gì. Tải lại trang rồi sửa lại.`,
+            link: { href: '/permissions', label: 'Tải lại trang' },
+          },
+          'permissions',
+        ),
+      );
+      return;
+    }
+
+    const catalog = form.getAll('catalog.employee');
+    if (catalog.length === 0) {
+      sendHtml(res, 400, errorPage({ text: 'Form thiếu danh sách trường. Tải lại trang rồi thử lại.' }, 'permissions'));
+      return;
+    }
+    const built = rulesFromForm(current.rules, form, catalog);
+    if (!built.ok) {
+      // A broken form never reaches the file: the message names the field, the file keeps its bytes.
+      sendHtml(
+        res,
+        400,
+        errorPage(
+          { text: `Chưa lưu: ${built.detail}`, link: { href: '/permissions', label: 'Tải lại trang' } },
+          'permissions',
+        ),
+      );
+      return;
+    }
+    try {
       writeRules(deps.rulesPath, built.rules);
       res.writeHead(303, { location: `/permissions?saved=${built.rules.version}`, 'cache-control': 'no-store' });
       res.end();
-      return;
+    } catch (error) {
+      console.error(`[console] rule save failed: ${error instanceof Error ? error.message : String(error)}`);
+      sendHtml(
+        res,
+        500,
+        errorPage({ text: 'Không ghi được file luật. Chưa đổi gì. Hãy báo người vận hành Lab.' }, 'permissions'),
+      );
     }
+    return;
+  }
 
-    const base = loadRules(DEFAULT_RULES_PATH);
-    if (!base.ok) {
-      sendHtml(res, 500, errorPage({ text: 'Bản gốc trong mã không đọc được. Hãy báo người vận hành Lab.' }, 'permissions'));
-      return;
-    }
-    const highest = Math.max(current.rules.version, ...historyVersions(deps.rulesPath));
-    const restored = { ...base.rules, version: highest + 1 };
+  // Restore also works when the live file is broken, which is the case that needs it most.
+  if (current.ok && current.rules.version !== version) {
+    sendHtml(
+      res,
+      409,
+      errorPage(
+        {
+          text: `Luật trên đĩa đã đổi: form mở ở phiên bản ${version}, trên đĩa là ${current.rules.version}. Chưa ghi gì. Tải lại trang rồi thử lại.`,
+          link: { href: '/permissions', label: 'Tải lại trang' },
+        },
+        'permissions',
+      ),
+    );
+    return;
+  }
+
+  const base = loadRules(DEFAULT_RULES_PATH);
+  if (!base.ok) {
+    sendHtml(res, 500, errorPage({ text: 'Bản gốc trong mã không đọc được. Hãy báo người vận hành Lab.' }, 'permissions'));
+    return;
+  }
+  const highest = Math.max(current.ok ? current.rules.version : 0, ...historyVersions(deps.rulesPath));
+  const restored = { ...base.rules, version: highest + 1 };
+  try {
     writeRules(deps.rulesPath, restored);
     res.writeHead(303, { location: `/permissions?restored=${restored.version}`, 'cache-control': 'no-store' });
     res.end();

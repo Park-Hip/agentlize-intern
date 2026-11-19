@@ -50,6 +50,13 @@ Mọi dịch vụ chỉ nghe ở `127.0.0.1`.
 File luật gốc là `lab/gateway/policy/rules.json`, chỉ đổi qua PR.
 Lần khởi động đầu, cổng chép bản gốc sang đường dẫn ở trên khi file đó chưa có, và không đụng vào file đã có.
 Bộ luật đọc lại file ở mỗi lần quyết định, nên sửa file đó áp dụng ngay ở lời gọi sau mà không cần khởi động lại; file hỏng thì mọi lời gọi bị từ chối với `POLICY_UNAVAILABLE`.
+File luật dùng `schema: 2` (ADR-0007 mục 3.2) và khai theo từng loại bản ghi trong `resources`.
+Mỗi loại bản ghi có `bulk_threshold`, `read` (phạm vi đọc theo vai), `fields` (trường mỗi vai được xem) và `actions` (ô quyền theo vai).
+Mỗi ô gồm `effect` (`allow`, `deny`, `needs_approval`), `scope` (`own_department` hoặc `any`) và `bulk` (hiệu lực khi số mục chạm ngưỡng).
+Khối `approval` khai vai được duyệt, người duyệt có phải cùng phòng không và số phút chờ; `cumulative_window_minutes` là cửa sổ đếm tách nhỏ.
+Ô chưa khai bị từ chối với mã luật `<loại>.<hành động>.<vai>.undeclared`.
+Khoá lạ trong file, ví dụ gõ nhầm `tsak` hay `chang_task_status`, làm cả file hỏng và mọi lệnh trả `POLICY_UNAVAILABLE`.
+File không có `schema: 2` cũng bị coi là hỏng; bấm "Về bản gốc" trên console để chép lại bản gốc.
 Trang điều khiển sửa chính file đó; mỗi lần lưu tăng `version` thêm 1, ghi ra file tạm rồi đổi tên, và giữ bản cũ ở `rules-history/v<n>.json` cạnh file luật.
 Phép thử nghiệm thu trỏ `LAB_RULES_PATH` vào bản sao trong thư mục tạm, nên file luật hỏng không chạm vào repo.
 Cơ sở dữ liệu `gateway.sqlite` bật chế độ ghi nhật ký trước (WAL) và chờ khoá 5 giây, để tiến trình khác đọc được trong lúc cổng đang ghi.
@@ -65,7 +72,7 @@ Sáu màn hình:
 
 - Tổng quan: `/health` của ba dịch vụ, `version` của file luật, bảng sáu nhân vật cộng khách đọc từ danh bạ.
 - Tool: danh mục từ `GET /v1/tools`, kèm mô tả, tham số (tên, kiểu, bắt buộc) và nhãn "Chỉ đọc" hay "Soạn đề xuất".
-- Quyền và trường: bảng bốn vai nhân với sáu hành động, mỗi ô chọn "Được", "Không được" hoặc "Cần duyệt"; ngưỡng hàng loạt; các trường nhân viên mỗi vai được xem; ô "thử quyết định".
+- Quyền và trường: bảng riêng cho từng loại bản ghi, mỗi ô chọn hiệu lực, phạm vi và hiệu lực khi hàng loạt; ngưỡng hàng loạt theo từng loại; trường của task và trường nhân viên mỗi vai được xem; khối duyệt và cửa sổ đếm tách nhỏ; ô "thử quyết định".
 - Sân chơi: chọn nhân vật và tool, điền form rồi gọi qua cổng; xem nguyên văn câu trả lời, mã HTTP, mã lý do, thời gian, dòng vết và link xác nhận.
 - Dữ liệu gốc: bảng nhân viên và bảng task đúng như hai hệ thống giả đang lưu, đọc bằng khoá dịch vụ; lọc theo phòng, 20 task mỗi trang, và một dòng nhắc "Góc nhìn người vận hành, AI không thấy thế này".
   Không có nút sửa bản ghi, vì mọi thay đổi nghiệp vụ đi qua cổng.
@@ -84,9 +91,11 @@ Bảng lấy đúng file mà cổng đang đọc (`LAB_RULES_PATH`), nên lưu x
 - Form mang số phiên bản lúc mở.
   Nếu file trên đĩa đã đổi, lần lưu bị từ chối và trang yêu cầu tải lại, nên hai lần lưu từ cùng một trang chỉ lần đầu thắng.
 - "Về bản gốc" chép nội dung `lab/gateway/policy/rules.json` và đặt phiên bản lớn hơn mọi bản đã có, kể cả các bản trong `rules-history/`.
+  Nút này vẫn dùng được khi file đang hỏng hoặc thiếu `schema: 2`, vì đó là lúc cần nhất; các ô quyền không hiện trong lúc file hỏng.
 - Danh sách trường lấy từ bản ghi danh bạ giả, đổi tên theo cách cổng đặt: `employee_id` thành `id`, `full_name` thành `name`.
   Trường mới thêm qua `/admin/add-field` tự hiện với nhãn "chưa khai"; `version` không hiện vì là số phiên bản của bản ghi.
-- Trường của task chỉ để xem, ghi rõ "cố định trong mã": `taskLine` và `taskDetail` quyết định trường nào AI thấy, đưa chúng vào file luật là một thay đổi schema riêng.
+- Trường của task nằm trong file luật như trường nhân viên; bảng có checkbox cho từng vai, và `get_task` chỉ in các trường đã khai.
+  Bỏ một trường khỏi vai nào thì lời gọi tiếp theo của vai đó không thấy trường ấy nữa.
 - Ô "thử quyết định" hỏi chính bộ luật của cổng bằng mã dùng chung, đọc đúng file luật đó; nó không gọi tool và không đọc dữ liệu.
   Đây là truy vấn chỉ đọc nên dùng `GET`, để link kết quả chia sẻ được.
 - Mọi `POST` cần mã chống giả mạo do console cấp cho trang (dùng chung cơ chế với ba nút thử, hết hạn sau 30 phút) và header `Origin` đúng địa chỉ console; thiếu một trong hai thì trả 403 trước khi đọc file.
@@ -221,9 +230,11 @@ Mỗi lần gọi, cổng làm lần lượt:
 `find_employee` tìm thấy ít nhất một nhân viên thì câu trả lời có thêm một dòng `Không hiện theo quyền của bạn: <các nhãn>`, đặt ngoài khối dữ liệu.
 Dòng đó chỉ nêu tên các trường có nhãn mà vai của người hỏi không được xem, không kèm giá trị; vai xem được mọi trường có nhãn thì không có dòng này.
 
-Phạm vi đọc task là phòng của người hỏi.
-Task của phòng khác và task không có đều trả đúng một câu "Không tìm thấy task <mã>."; chỉ vết phân biệt được hai trường hợp (`out_of_scope` và mã `NOT_PERMITTED`).
-Bộ luật chưa có ô riêng cho việc đọc task, nên mã luật ghi trong vết là `READ_SCOPE.own_department`.
+Phạm vi đọc task và nhân viên nằm trong file luật, mục `read` của từng loại bản ghi.
+Mặc định task là `own_department`, nhân viên là `any`; đổi file là đổi phạm vi ở lời gọi sau.
+Task ngoài phạm vi và task không có đều trả đúng một câu "Không tìm thấy task <mã>."; chỉ vết phân biệt được hai trường hợp (`out_of_scope` và mã `NOT_PERMITTED`).
+Mã luật ghi trong vết là `<loại>.read.<vai>`, ví dụ `task.read.staff`; trường được xem ghi `<loại>.fields.<vai>`.
+Trường của task cũng nằm trong luật: `get_task` chỉ in các trường mà vai của người hỏi được xem.
 Không đọc được một hệ thống giả thì cổng trả `GATEWAY_UNAVAILABLE` (HTTP 502).
 
 Thử tay sau `npm start` và `npm run seed-keys`:

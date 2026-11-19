@@ -207,7 +207,7 @@ for (const door of DOORS) {
       assert.match(
         trace,
         new RegExp(
-          String.raw`NV-05\s+tho-than-desktop\s+${door.traceEntry}\s+propose_task_change\s+T-12\s+refused\s+NOT_PERMITTED\s+-\s+intern\.change_task_assignee_or_due`,
+          String.raw`NV-05\s+tho-than-desktop\s+${door.traceEntry}\s+propose_task_change\s+T-12\s+refused\s+NOT_PERMITTED\s+-\s+task\.change_task_assignee_or_due\.intern`,
         ),
         'the trace names Nam and the rule the policy engine applied',
       );
@@ -225,7 +225,7 @@ for (const door of DOORS) {
       assert.match(
         salesTrace,
         new RegExp(
-          String.raw`NV-02\s+tho-than-desktop\s+${door.traceEntry}\s+propose_task_change\s+T-100\s+not_found\s+NOT_PERMITTED\s+out_of_scope\s+READ_SCOPE\.own_department`,
+          String.raw`NV-02\s+tho-than-desktop\s+${door.traceEntry}\s+propose_task_change\s+T-100\s+not_found\s+NOT_PERMITTED\s+out_of_scope\s+task\.read\.staff`,
         ),
         'only the trace can tell a foreign task from a missing one',
       );
@@ -247,7 +247,7 @@ for (const door of DOORS) {
       assert.match(
         trace,
         new RegExp(
-          String.raw`NV-02\s+tho-than-desktop\s+web\s+proposal_send\s+T-12\s+refused\s+NOT_PERMITTED\s+-\s+intern\.change_task_assignee_or_due`,
+          String.raw`NV-02\s+tho-than-desktop\s+web\s+proposal_send\s+T-12\s+refused\s+NOT_PERMITTED\s+-\s+task\.change_task_assignee_or_due\.intern`,
         ),
         'the press is checked again against the role the directory holds now',
       );
@@ -291,7 +291,7 @@ for (const door of DOORS) {
       const trace = traceTable(env, ['--employee', 'NV-06']);
       assert.match(
         trace,
-        /propose_task_change\s+T-13\s+ok\s+-\s+-\s+hr\.change_task_assignee_or_due/,
+        /propose_task_change\s+T-13\s+ok\s+-\s+-\s+task\.change_task_assignee_or_due\.hr/,
         'the full key drafts',
       );
       assert.match(

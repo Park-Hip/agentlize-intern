@@ -75,7 +75,7 @@ ${entrySelect(query.typed.entry)}
 
 /**
  * A rule or tool code with a break chance after each dot and underscore, so a
- * long code such as intern.change_task_assignee_or_due wraps inside its cell
+ * long code such as task.change_task_assignee_or_due.intern wraps inside its cell
  * instead of pushing the table wider than a laptop screen.
  */
 function breakable(code: string): string {

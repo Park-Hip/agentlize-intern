@@ -149,7 +149,7 @@ test('trace: after real calls every call has one line and no line holds personal
 
     const byTool = (tool: string) => f.gateway.trace.list().filter((row) => row.tool === tool);
     assert.equal(byTool('find_employee').length, 3);
-    assert.equal(byTool('find_employee')[0]?.ruleId, 'employee_fields.hr');
+    assert.equal(byTool('find_employee')[0]?.ruleId, 'employee.fields.hr');
     assert.equal(byTool('find_employee')[0]?.policyVersion, 1);
     assert.equal(byTool('find_employee')[0]?.requester, 'NV-06');
     assert.equal(byTool('find_employee')[0]?.caller, 'test');

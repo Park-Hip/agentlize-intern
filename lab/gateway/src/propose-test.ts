@@ -151,7 +151,7 @@ test('propose: the same words from Nam are refused with the reason and the lead 
     const line = f.gateway.trace.list({ employee: NAM })[0];
     assert.equal(line?.outcome, 'refused');
     assert.equal(line?.reasonCode, 'NOT_PERMITTED');
-    assert.equal(line?.ruleId, 'intern.change_task_assignee_or_due');
+    assert.equal(line?.ruleId, 'task.change_task_assignee_or_due.intern');
     assert.equal(line?.proposalId, null);
   });
 });

@@ -1,44 +1,70 @@
 {
+  "schema": 2,
   "version": 1,
-  "bulk_threshold": 5,
-  "roles": {
-    "intern": {
-      "edit_task_description": "allow",
-      "change_task_status": "allow",
-      "change_task_assignee_or_due": "deny",
-      "bulk_change": "deny",
-      "edit_other_department_task": "deny",
-      "edit_directory": "deny"
-    },
-    "staff": {
-      "edit_task_description": "allow",
-      "change_task_status": "allow",
-      "change_task_assignee_or_due": "allow",
-      "bulk_change": "needs_approval",
-      "edit_other_department_task": "deny",
-      "edit_directory": "deny"
-    },
-    "lead": {
-      "edit_task_description": "allow",
-      "change_task_status": "allow",
-      "change_task_assignee_or_due": "allow",
-      "bulk_change": "allow",
-      "edit_other_department_task": "deny",
-      "edit_directory": "deny"
-    },
-    "hr": {
-      "edit_task_description": "allow",
-      "change_task_status": "allow",
-      "change_task_assignee_or_due": "allow",
-      "bulk_change": "needs_approval",
-      "edit_other_department_task": "deny",
-      "edit_directory": "allow"
-    }
+  "approval": {
+    "approver_roles": ["lead"],
+    "same_department": true,
+    "wait_minutes": 120
   },
-  "employee_fields": {
-    "intern": ["id", "name", "department", "role", "work_email"],
-    "staff": ["id", "name", "department", "role", "work_email"],
-    "lead": ["id", "name", "department", "role", "work_email"],
-    "hr": ["id", "name", "department", "role", "work_email", "personal_phone", "home_address"]
+  "cumulative_window_minutes": 60,
+  "resources": {
+    "task": {
+      "bulk_threshold": 5,
+      "read": {
+        "intern": "own_department",
+        "staff": "own_department",
+        "lead": "own_department",
+        "hr": "own_department"
+      },
+      "fields": {
+        "intern": ["id", "title", "description", "department", "assignee", "status", "due"],
+        "staff": ["id", "title", "description", "department", "assignee", "status", "due"],
+        "lead": ["id", "title", "description", "department", "assignee", "status", "due"],
+        "hr": ["id", "title", "description", "department", "assignee", "status", "due"]
+      },
+      "actions": {
+        "edit_task_description": {
+          "intern": { "effect": "allow", "scope": "own_department", "bulk": "deny" },
+          "staff": { "effect": "allow", "scope": "own_department", "bulk": "needs_approval" },
+          "lead": { "effect": "allow", "scope": "own_department", "bulk": "allow" },
+          "hr": { "effect": "allow", "scope": "own_department", "bulk": "needs_approval" }
+        },
+        "change_task_status": {
+          "intern": { "effect": "allow", "scope": "own_department", "bulk": "deny" },
+          "staff": { "effect": "allow", "scope": "own_department", "bulk": "needs_approval" },
+          "lead": { "effect": "allow", "scope": "own_department", "bulk": "allow" },
+          "hr": { "effect": "allow", "scope": "own_department", "bulk": "needs_approval" }
+        },
+        "change_task_assignee_or_due": {
+          "intern": { "effect": "deny", "scope": "own_department", "bulk": "deny" },
+          "staff": { "effect": "allow", "scope": "own_department", "bulk": "needs_approval" },
+          "lead": { "effect": "allow", "scope": "own_department", "bulk": "allow" },
+          "hr": { "effect": "allow", "scope": "own_department", "bulk": "needs_approval" }
+        }
+      }
+    },
+    "employee": {
+      "bulk_threshold": 5,
+      "read": {
+        "intern": "any",
+        "staff": "any",
+        "lead": "any",
+        "hr": "any"
+      },
+      "fields": {
+        "intern": ["id", "name", "department", "role", "work_email"],
+        "staff": ["id", "name", "department", "role", "work_email"],
+        "lead": ["id", "name", "department", "role", "work_email"],
+        "hr": ["id", "name", "department", "role", "work_email", "personal_phone", "home_address"]
+      },
+      "actions": {
+        "edit_directory": {
+          "intern": { "effect": "deny", "scope": "any" },
+          "staff": { "effect": "deny", "scope": "any" },
+          "lead": { "effect": "deny", "scope": "any" },
+          "hr": { "effect": "allow", "scope": "any" }
+        }
+      }
+    }
   }
 }

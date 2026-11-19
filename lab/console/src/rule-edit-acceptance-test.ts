@@ -147,10 +147,15 @@ test('acceptance: removing work_email from staff in the console changes the next
   const hidden = hiddenFields(page);
   const rules = readRules(join(dataDir, 'rules.json'));
   const fields = saveFields(rules, hidden, catalogOf(page), (form) => {
-    const staff = form.get('fields.staff') ?? [];
+    const staff = form.get('fields.employee.staff') ?? [];
     form.set(
-      'fields.staff',
+      'fields.employee.staff',
       staff.filter((field) => field !== 'work_email'),
+    );
+    const taskStaff = form.get('fields.task.staff') ?? [];
+    form.set(
+      'fields.task.staff',
+      taskStaff.filter((field) => field !== 'description'),
     );
   });
 
@@ -161,8 +166,11 @@ test('acceptance: removing work_email from staff in the console changes the next
 
   const after = readRules(join(dataDir, 'rules.json'));
   assert.equal(after['version'], 2);
-  const staff = (after['employee_fields'] as Record<string, string[]>)['staff'] ?? [];
+  const resources = after['resources'] as Record<string, { fields: Record<string, string[]> }>;
+  const staff = resources['employee']?.fields['staff'] ?? [];
   assert.equal(staff.includes('work_email'), false);
+  const taskStaff = resources['task']?.fields['staff'] ?? [];
+  assert.equal(taskStaff.includes('description'), false);
   assert.ok(existsSync(join(dataDir, 'rules-history', 'v2.json')));
 
   const call = async (persona: string): Promise<string> => {
@@ -186,6 +194,19 @@ test('acceptance: removing work_email from staff in the console changes the next
   const asNhung = await call('nhung');
   assert.match(asNhung, /Email công việc: \S+@lab\.example/);
 
+  // The task field removal reaches the next get_task of the same person: no description, title still there.
+  const taskAnswer = await fetch(`http://${LOOPBACK_HOST}:${gatewayPort}/v1/tools/get_task`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${seededKey(keys.stdout, 'hoa')}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ task_id: 'T-12' }),
+  });
+  assert.equal(taskAnswer.status, 200);
+  const taskBody = (await taskAnswer.json()) as { text: string };
+  assert.match(taskBody.text, /^Task T-12\./);
+  assert.match(taskBody.text, /Tiêu đề: Gọi lại khách hàng X/);
+  assert.equal(taskBody.text.includes('Mô tả: '), false);
+  assert.equal(taskBody.text.includes('Khách hàng X hỏi về đơn giao trễ'), false);
+
   // The trace of the call carries the new rule version and the field rule that decided it.
   const trace = spawnSync(
     process.execPath,
@@ -195,14 +216,14 @@ test('acceptance: removing work_email from staff in the console changes the next
   assert.equal(trace.status, 0, trace.stderr);
   const line = trace.stdout
     .split('\n')
-    .find((candidate) => candidate.includes('find_employee') && candidate.includes('employee_fields.staff'));
+    .find((candidate) => candidate.includes('find_employee') && candidate.includes('employee.fields.staff'));
   assert.ok(line !== undefined, trace.stdout);
   assert.match(line, /\bv2\b/);
 
   // The reloaded screen shows the new version and the unchecked box.
   const reloaded = await (await fetch(`http://${LOOPBACK_HOST}:${consolePort}/permissions`)).text();
   assert.match(reloaded, /Đang áp <strong>phiên bản 2<\/strong>/);
-  const staffEmail = /<input type="checkbox" name="fields\.staff" value="work_email"( checked)?>/.exec(reloaded);
+  const staffEmail = /<input type="checkbox" name="fields\.employee\.staff" value="work_email"( checked)?>/.exec(reloaded);
   assert.ok(staffEmail !== null);
   assert.equal(staffEmail[1], undefined);
 

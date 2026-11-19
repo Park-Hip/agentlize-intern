@@ -109,7 +109,7 @@ test('read: removing work_email from staff changes the hidden line on the next c
   const rulesPath = join(dir, 'rules.json');
   const base = JSON.parse(readFileSync(new URL('../policy/rules.json', import.meta.url), 'utf8')) as {
     version: number;
-    employee_fields: Record<string, string[]>;
+    resources: { employee: { fields: Record<string, string[]> } };
   };
   writeFileSync(rulesPath, JSON.stringify(base, null, 2));
   const f = await startFixture({ rulesPath });
@@ -120,7 +120,7 @@ test('read: removing work_email from staff changes the hidden line on the next c
     assert.match(before.body.text, /Email công việc: nv-04@lab\.example/);
 
     base.version = 2;
-    base.employee_fields['staff'] = (base.employee_fields['staff'] ?? []).filter((field) => field !== 'work_email');
+    base.resources.employee.fields['staff'] = (base.resources.employee.fields['staff'] ?? []).filter((field) => field !== 'work_email');
     writeFileSync(rulesPath, JSON.stringify(base, null, 2));
 
     const after = await f.call('find_employee', { name: 'Minh' }, key);
@@ -199,6 +199,64 @@ test('read: get_task shows a task of the own department, wrapped as system data'
     assert.equal(lines.at(-1), BLOCK_END, 'nothing follows the closing mark');
     assert.ok(lines.indexOf(BLOCK_START) < lines.findIndex((line) => line.startsWith('Mã: T-12')));
   });
+});
+
+test('read: removing a task field from staff changes the next get_task answer, without a restart', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lab-task-fields-'));
+  const rulesPath = join(dir, 'rules.json');
+  const base = JSON.parse(readFileSync(new URL('../policy/rules.json', import.meta.url), 'utf8')) as {
+    version: number;
+    resources: { task: { fields: Record<string, string[]> } };
+  };
+  writeFileSync(rulesPath, JSON.stringify(base, null, 2));
+  const f = await startFixture({ rulesPath });
+  try {
+    const key = f.keyFor(HOA);
+    const before = await f.call('get_task', { task_id: 'T-12' }, key);
+    assert.match(before.body.text, /Mô tả: Mô tả việc số 12/);
+
+    base.version = 2;
+    base.resources.task.fields['staff'] = (base.resources.task.fields['staff'] ?? []).filter((field) => field !== 'description');
+    writeFileSync(rulesPath, JSON.stringify(base, null, 2));
+
+    const after = await f.call('get_task', { task_id: 'T-12' }, key);
+    assert.match(after.body.text, /^Task T-12\./);
+    assert.match(after.body.text, /Tiêu đề: Gọi lại khách hàng X/);
+    assert.doesNotMatch(after.body.text, /Mô tả: /, 'the hidden field label is gone');
+    assert.ok(!after.body.text.includes('Mô tả việc số 12'), 'the hidden value does not leak');
+    assert.equal(f.gateway.trace.list({ employee: HOA })[0]?.policyVersion, 2, 'the new rule applied at once');
+  } finally {
+    await f.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('read: task read scope comes from the rule file, so any lets staff read another department', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lab-task-scope-'));
+  const rulesPath = join(dir, 'rules.json');
+  const base = JSON.parse(readFileSync(new URL('../policy/rules.json', import.meta.url), 'utf8')) as {
+    version: number;
+    resources: { task: { read: Record<string, string> } };
+  };
+  writeFileSync(rulesPath, JSON.stringify(base, null, 2));
+  const f = await startFixture({ rulesPath });
+  try {
+    const key = f.keyFor(HOA);
+    assert.equal((await f.call('get_task', { task_id: 'T-70' }, key)).body.text, 'Không tìm thấy task T-70.');
+
+    base.version = 2;
+    base.resources.task.read['staff'] = 'any';
+    writeFileSync(rulesPath, JSON.stringify(base, null, 2));
+
+    const answer = await f.call('get_task', { task_id: 'T-70' }, key);
+    assert.match(answer.body.text, /^Task T-70\./);
+    const row = f.gateway.trace.list({ employee: HOA })[0];
+    assert.equal(row?.ruleId, 'task.read.staff');
+    assert.equal(row?.policyVersion, 2);
+  } finally {
+    await f.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('read: a task of another department and a missing task get the same answer, and the trace tells them apart', async () => {
@@ -398,6 +456,36 @@ test('read: a rule file that cannot be read stops every tool, and the next call 
     const good = readFileSync(new URL('../policy/rules.json', import.meta.url), 'utf8');
     writeFileSync(rulesPath, good);
     assert.match((await f.call('get_task', { task_id: 'T-12' }, key)).body.text, /^Task T-12/);
+  } finally {
+    await f.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('read: a typo in a record type stops every tool with POLICY_UNAVAILABLE', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lab-rules-typo-'));
+  const rulesPath = join(dir, 'rules.json');
+  const rules = JSON.parse(readFileSync(new URL('../policy/rules.json', import.meta.url), 'utf8')) as {
+    resources: Record<string, unknown>;
+  };
+  rules.resources['tsak'] = rules.resources['task'];
+  writeFileSync(rulesPath, JSON.stringify(rules, null, 2));
+  const f = await startFixture({ rulesPath });
+  try {
+    const key = f.keyFor(HOA);
+    for (const [tool, args] of [
+      ['find_employee', { name: 'Minh' }],
+      ['get_task', { task_id: 'T-12' }],
+      ['list_tasks', {}],
+    ] as const) {
+      const answer = await f.call(tool, args, key);
+      assert.equal(answer.status, 503, tool);
+      assert.equal(answer.body.reason_code, 'POLICY_UNAVAILABLE', tool);
+      assert.equal(f.gateway.trace.list()[0]?.policyVersion, null, tool);
+    }
+    const propose = await f.call('propose_task_change', { task_id: 'T-12', changes: { status: 'done' } }, key);
+    assert.equal(propose.status, 503);
+    assert.equal(propose.body.reason_code, 'POLICY_UNAVAILABLE');
   } finally {
     await f.close();
     rmSync(dir, { recursive: true, force: true });

@@ -1,15 +1,29 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { ACTIONS, policyInputSchema, rulesSchema } from './schema.js';
-import type { PolicyAction, PolicyInput, Rules, TableAction } from './schema.js';
-import type { FieldsDecision, PolicyDecision, PolicyEffect } from './types.js';
+import {
+  ACTIONS,
+  policyInputSchema,
+  READ_EMPLOYEE_FIELD,
+  RESOURCE_ACTIONS,
+  rulesSchema,
+} from './schema.js';
+import type { PolicyAction, PolicyInput, ResourceType, Rules } from './schema.js';
+import type {
+  ApproversDecision,
+  FieldsDecision,
+  PersonRef,
+  PolicyDecision,
+  PolicyEffect,
+  ReadDecision,
+} from './types.js';
 
 /** `lab/gateway/policy/rules.json`, found from the compiled file at `dist/policy/engine.js`. */
 export const DEFAULT_RULES_PATH = fileURLToPath(new URL('../../policy/rules.json', import.meta.url));
 
 /**
- * Rule ids that are not cells of the table. A cell is named `<role>.<action>`
- * and the field lists `employee_fields.<role>`.
+ * Rule ids that are not cells of the file. A cell is named
+ * `<type>.<action>.<role>`, with `.bulk`, `.scope` or `.undeclared` appended
+ * when that condition decided instead of the bare cell.
  */
 export const RULE_IDS = {
   unavailable: 'POLICY_UNAVAILABLE',
@@ -19,24 +33,6 @@ export const RULE_IDS = {
   scopeReadOnly: 'SCOPE_READ_ONLY',
   objectInvalid: 'OBJECT_INVALID',
 } as const;
-
-/** A key that declared `read_only` makes every one of these a refusal, whatever the role says. */
-const WRITE_ACTIONS: ReadonlySet<PolicyAction> = new Set<PolicyAction>([
-  'edit_task_description',
-  'change_task_status',
-  'change_task_assignee_or_due',
-  'bulk_change',
-  'edit_other_department_task',
-  'edit_directory',
-]);
-
-/** Actions on a task that also depend on the department that owns the task and on how many tasks change. */
-const TASK_ACTIONS: ReadonlySet<PolicyAction> = new Set<PolicyAction>([
-  'edit_task_description',
-  'change_task_status',
-  'change_task_assignee_or_due',
-  'bulk_change',
-]);
 
 /** Higher is stricter: "no" beats "needs approval", "needs approval" beats "yes". */
 const STRICTNESS: Record<PolicyEffect, number> = { allow: 0, needs_approval: 1, deny: 2 };
@@ -53,11 +49,35 @@ export interface PolicyEngineOptions {
   readonly readFile?: (path: string) => string;
 }
 
+/** One person as the approval question sees them; only these four values are used. */
+export interface Requester {
+  readonly department: string;
+}
+
 export interface PolicyEngine {
-  /** Answer one question. Never throws: any failure becomes `POLICY_UNAVAILABLE`. */
+  /** Answer one write action. Never throws: any failure becomes `POLICY_UNAVAILABLE`. */
   decide(input: unknown): PolicyDecision;
-  /** The employee fields one role may receive. Empty whenever the engine is unsure. */
-  allowedFields(role: string): FieldsDecision;
+  /** How far a role may read one record type, and the rule that says so. */
+  readScope(role: string, type: string): ReadDecision;
+  /** The fields one role may receive from one record type. Empty whenever the engine is unsure. */
+  allowedFields(role: string, type?: string): FieldsDecision;
+  /** The people who may approve a request under the `approval` block. */
+  approversFor(requester: Requester, people: readonly PersonRef[]): ApproversDecision;
+}
+
+/** The id of one cell of the table: `<type>.<action>.<role>`. */
+export function actionRuleId(type: string, action: string, role: string): string {
+  return `${type}.${action}.${role}`;
+}
+
+/** The rule that says how far one role reads one record type. */
+export function readRuleId(type: string, role: string): string {
+  return `${type}.read.${role}`;
+}
+
+/** The rule that lists the fields one role sees of one record type. */
+export function fieldsRuleId(type: string, role: string): string {
+  return `${type}.fields.${role}`;
 }
 
 function unavailable(): PolicyDecision {
@@ -97,6 +117,12 @@ function isAction(value: string): value is PolicyAction {
   return (ACTIONS as readonly string[]).includes(value);
 }
 
+function rolesOf(rules: Rules): readonly string[] {
+  const first = Object.keys(rules.resources)[0];
+  const resource = first === undefined ? undefined : rules.resources[first];
+  return resource === undefined ? [] : Object.keys(resource.read);
+}
+
 function evaluate(rules: Rules, input: PolicyInput): PolicyDecision {
   const version = rules.version;
   const { actor, object, context } = input;
@@ -106,52 +132,59 @@ function evaluate(rules: Rules, input: PolicyInput): PolicyDecision {
   }
   const action = input.action;
 
-  const cells = Object.hasOwn(rules.roles, actor.role) ? rules.roles[actor.role] : undefined;
-  const fields = Object.hasOwn(rules.employee_fields, actor.role) ? rules.employee_fields[actor.role] : undefined;
-  if (cells === undefined || fields === undefined) {
+  const roles = rolesOf(rules);
+  if (!roles.includes(actor.role)) {
     return deny(RULE_IDS.roleUnknown, version);
   }
 
-  if (action === 'read_employee_field') {
+  if (action === READ_EMPLOYEE_FIELD) {
     if (object.kind !== 'employee' || object.field === undefined) {
       return deny(RULE_IDS.objectInvalid, version);
     }
+    const resource = Object.hasOwn(rules.resources, 'employee') ? rules.resources['employee'] : undefined;
+    const fields = resource?.fields[actor.role];
+    if (fields === undefined) {
+      return deny(`${fieldsRuleId('employee', actor.role)}.undeclared`, version);
+    }
     const effect: PolicyEffect = fields.includes(object.field) ? 'allow' : 'deny';
-    return decisionOf({ effect, ruleId: `employee_fields.${actor.role}` }, version);
+    return decisionOf({ effect, ruleId: fieldsRuleId('employee', actor.role) }, version);
   }
 
-  if (WRITE_ACTIONS.has(action) && context.scope === 'read_only') {
+  const type = object.kind;
+  if (!Object.hasOwn(RESOURCE_ACTIONS, type)) {
+    return deny(RULE_IDS.objectInvalid, version);
+  }
+  if (!(RESOURCE_ACTIONS[type as ResourceType] as readonly string[]).includes(action)) {
+    return deny(RULE_IDS.objectInvalid, version);
+  }
+
+  if (context.scope === 'read_only') {
     return deny(RULE_IDS.scopeReadOnly, version);
   }
 
-  const tableAction: TableAction = action;
-  const candidates: Candidate[] = [{ effect: cells[tableAction], ruleId: `${actor.role}.${tableAction}` }];
+  const resource = Object.hasOwn(rules.resources, type) ? rules.resources[type] : undefined;
+  const cell = resource?.actions[action]?.[actor.role];
+  if (cell === undefined) {
+    return deny(`${actionRuleId(type, action, actor.role)}.undeclared`, version);
+  }
 
-  if (tableAction === 'edit_directory') {
-    if (object.kind !== 'employee') {
+  const baseRule = actionRuleId(type, action, actor.role);
+
+  // Scope is a condition of the cell, not an action of its own (ADR-0007 section 3.2).
+  if (cell.scope === 'own_department') {
+    if (object.department === undefined) {
       return deny(RULE_IDS.objectInvalid, version);
     }
-  } else {
-    if (object.kind !== 'task') {
-      return deny(RULE_IDS.objectInvalid, version);
-    }
-    if (TASK_ACTIONS.has(tableAction)) {
-      // A task whose department is unknown cannot be shown to be the actor's own.
-      if (object.department === undefined) {
-        return deny(RULE_IDS.objectInvalid, version);
-      }
-      if (object.department !== actor.department) {
-        candidates.push({
-          effect: cells.edit_other_department_task,
-          ruleId: `${actor.role}.edit_other_department_task`,
-        });
-      }
-      if (tableAction !== 'bulk_change' && (object.taskCount ?? 0) >= rules.bulk_threshold) {
-        candidates.push({ effect: cells.bulk_change, ruleId: `${actor.role}.bulk_change` });
-      }
+    if (object.department !== actor.department) {
+      return deny(`${baseRule}.scope`, version);
     }
   }
 
+  const candidates: Candidate[] = [{ effect: cell.effect, ruleId: baseRule }];
+  const bulkThreshold = resource?.bulk_threshold ?? 1;
+  if (cell.bulk !== undefined && (object.taskCount ?? 0) >= bulkThreshold) {
+    candidates.push({ effect: cell.bulk, ruleId: `${baseRule}.bulk` });
+  }
   return decisionOf(strictest(candidates), version);
 }
 
@@ -179,19 +212,68 @@ export function createPolicyEngine(options: PolicyEngineOptions = {}): PolicyEng
       }
     },
 
-    allowedFields(role: string): FieldsDecision {
+    readScope(role: string, type: string): ReadDecision {
       try {
         const rules = loadRules();
-        const fields = Object.hasOwn(rules.employee_fields, role) ? rules.employee_fields[role] : undefined;
-        if (fields === undefined) {
-          return { ...deny(RULE_IDS.roleUnknown, rules.version), fields: [] };
+        if (!rolesOf(rules).includes(role)) {
+          return { ...deny(RULE_IDS.roleUnknown, rules.version), scope: null };
+        }
+        const resource = Object.hasOwn(rules.resources, type) ? rules.resources[type] : undefined;
+        const scope = resource?.read[role];
+        if (scope === undefined) {
+          return { ...deny(`${readRuleId(type, role)}.undeclared`, rules.version), scope: null };
         }
         return {
-          ...decisionOf({ effect: 'allow', ruleId: `employee_fields.${role}` }, rules.version),
+          ...decisionOf({ effect: 'allow', ruleId: readRuleId(type, role) }, rules.version),
+          scope,
+        };
+      } catch {
+        return { ...unavailable(), scope: null };
+      }
+    },
+
+    allowedFields(role: string, type = 'employee'): FieldsDecision {
+      try {
+        const rules = loadRules();
+        if (!rolesOf(rules).includes(role)) {
+          return { ...deny(RULE_IDS.roleUnknown, rules.version), fields: [] };
+        }
+        const resource = Object.hasOwn(rules.resources, type) ? rules.resources[type] : undefined;
+        const fields = resource?.fields[role];
+        if (fields === undefined) {
+          return { ...deny(`${fieldsRuleId(type, role)}.undeclared`, rules.version), fields: [] };
+        }
+        return {
+          ...decisionOf({ effect: 'allow', ruleId: fieldsRuleId(type, role) }, rules.version),
           fields: [...fields],
         };
       } catch {
         return { ...unavailable(), fields: [] };
+      }
+    },
+
+    approversFor(requester: Requester, people: readonly PersonRef[]): ApproversDecision {
+      try {
+        const rules = loadRules();
+        const { approver_roles: approverRoles, same_department: sameDepartment, wait_minutes: waitMinutes } = rules.approval;
+        const approvers = people.filter(
+          (person) => approverRoles.includes(person.role) && (!sameDepartment || person.department === requester.department),
+        );
+        return {
+          ...decisionOf({ effect: 'allow', ruleId: 'approval' }, rules.version),
+          approverRoles: [...approverRoles],
+          sameDepartment,
+          waitMinutes,
+          approvers,
+        };
+      } catch {
+        return {
+          ...unavailable(),
+          approverRoles: [],
+          sameDepartment: true,
+          waitMinutes: 0,
+          approvers: [],
+        };
       }
     },
   };
