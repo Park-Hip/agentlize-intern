@@ -1,6 +1,6 @@
 # Lệnh đo
 
-Gói `@lab/measure` chạy một phép đo trên một cụm dịch vụ riêng, rồi ghi kết quả thành một file JSON để báo cáo đánh giá trỏ tới.
+Gói `@lab/measure` chạy một phép đo trên một cụm dịch vụ riêng, rồi ghi kết quả thành hai file: một bản tóm tắt nhỏ và một file mẫu nén, để báo cáo đánh giá trỏ tới.
 Mỗi lần chạy dựng cổng, danh bạ giả và danh sách task giả trên cổng mạng trống, dùng thư mục dữ liệu tạm, và không đọc `lab/.data`.
 Cụm dịch vụ bị dừng và thư mục tạm bị xoá khi phép đo xong.
 
@@ -22,13 +22,19 @@ Sau `npm install`, `npm run measure` dựng mã trước khi chạy, nên một 
 
 ## File kết quả
 
-Tên file là `<YYYY-MM-DD>-<phép đo>-<commit 7 ký tự>.json`.
+Mỗi lần đo ghi hai file cạnh nhau trong thư mục kết quả, cùng tiền tố `<YYYY-MM-DD>-<phép đo>-<commit 7 ký tự>`:
+
+| File | Nội dung |
+| --- | --- |
+| `<tiền tố>.json` | File tóm tắt nhỏ, thụt lề, đọc được trên GitHub. Giữ mọi trường của kết quả, trừ `samples`. |
+| `<tiền tố>.samples.ndjson.gz` | Toàn bộ mẫu thô, nén gzip, mỗi dòng một mẫu JSON không thụt lề (NDJSON), đúng thứ tự đã đo. |
+
 Đây là ngoại lệ về tên file trong `AGENTS.md` mục 8, vì ngày đo và commit là một phần của bằng chứng.
-File được commit cùng thay đổi mà nó đo, để mọi con số trong báo cáo có một đường dẫn cụ thể.
+Hai file được commit cùng thay đổi mà phép đo đo, để mọi con số trong báo cáo có một đường dẫn cụ thể.
 
 | Khoá | Nội dung |
 | --- | --- |
-| `schema` | Phiên bản định dạng, hiện là `1` |
+| `schema` | Phiên bản định dạng, hiện là `2` |
 | `scenario` | Tên và mô tả phép đo |
 | `generated_at` | Thời điểm ghi file, theo ISO 8601 |
 | `command` | Lệnh đo có thể chạy lại |
@@ -36,11 +42,26 @@ File được commit cùng thay đổi mà nó đo, để mọi con số trong b
 | `elapsed_seconds` | Thời gian chạy phép đo, không tính bước dựng mã |
 | `parameters` | Cửa vào, tool, nhân vật, tham số gọi, cách đo và số vòng khởi động |
 | `environment` | Commit, cờ có thay đổi chưa commit, hệ điều hành, CPU, RAM, bản Node, múi giờ |
-| `samples` | Từng lần gọi: cửa vào, tool, số thứ tự, thời gian client, thời gian cổng, mã vết, trạng thái, mã lý do |
+| `samples_file` | Trỏ tới file mẫu: `name` là tên file cạnh bản tóm tắt, `count` là số mẫu, `sha256` là mã băm của file nén |
 | `summary` | p50, p95, lớn nhất, nhỏ nhất, trung bình và số mẫu, theo tổng, theo cửa vào, theo tool, theo cặp cửa vào và tool |
 | `targets` | Mục tiêu ban đầu kèm số quan sát và cờ đạt; `enforced: false` nghĩa là chỉ báo |
 | `safety` | Năm bộ đếm an toàn, cờ đạt, và ghi chú |
 | `notes` | Điều cần biết khi đọc số, ví dụ đề xuất trả `NEEDS_APPROVAL` sau ngưỡng hàng loạt |
+
+Mỗi dòng trong file mẫu là một lần gọi: cửa vào, tool, số thứ tự, thời gian client, thời gian cổng, mã vết, trạng thái, mã lý do.
+`sha256` là mã băm SHA-256 của đúng các byte trong file nén.
+Ai tải cả hai file về cũng kiểm được file mẫu không bị sửa: băm file nén rồi so với `sha256` trong bản tóm tắt.
+
+Gói `@lab/measure` xuất hàm `readMeasurement` để mở lại một kết quả:
+
+```ts
+import { readMeasurement } from '@lab/measure';
+
+const { summary, samples } = await readMeasurement('rd/evaluation/results/2026-11-20-m1-gateway-f4dbfe7.json');
+```
+
+Hàm kiểm `sha256`, kiểm số mẫu, rồi trả bản tóm tắt và mảng mẫu đúng thứ tự đã đo.
+Phép thử khói dùng hàm này để tính lại p50 và p95 từ mẫu và so với bản tóm tắt.
 
 `client` là thời gian đo quanh một lời gọi ở phía client, gồm cả mở phiên giả lập của Thổ Thần ở cửa `tho-than-host`.
 `gateway` lấy đúng cột `duration_ms` của bảng vết, nên phép đo không sửa gì trong phần vết.
@@ -49,7 +70,7 @@ Câu trả lời của tool không được ghi vào file, vì nó có thể ch�
 Khoá tool và khoá dịch vụ cũng không bao giờ được ghi vào file.
 
 p50 và p95 dùng hạng gần nhất (nearest rank): sắp xếp mẫu tăng dần, p50 là mẫu thứ 50 trong 100 mẫu, p95 là mẫu thứ 95.
-Nhờ vậy ai đọc mẫu thô cũng tính lại được đúng con số trong tóm tắt.
+Nhờ vậy ai đọc file mẫu cũng tính lại được đúng con số trong bản tóm tắt.
 
 Thời gian cổng được làm tròn về mili giây trong bảng vết, nên p50 có thể là 0 ms.
 Con số đó là độ phân giải của bằng chứng hiện có, không phải thời gian cổng bằng không.

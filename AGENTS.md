@@ -131,7 +131,7 @@ npm run trace -- --task T-12
 The page password opens the gateway pages only, never a tool, and `page-password` replaces the previous one of that person.
 
 Measure one scenario against a private stack on free ports and a temporary data folder.
-The command writes one JSON result with raw samples, environment and the safety counters; `--runs` defaults to 100 and `--out` defaults to `rd/evaluation/results/`.
+The command writes a small summary and a gzipped sample file with the environment and the safety counters; `--runs` defaults to 100 and `--out` defaults to `rd/evaluation/results/`.
 Scenarios are files in `lab/measure/src/scenarios/`; adding one does not edit a registry.
 `lab/measure/README.md` covers the result format, the five safety counters and how to add a scenario.
 
@@ -218,7 +218,7 @@ Rules:
 - New findings that change the direction go into `rd/findings.md`, and the detailed document links back to it.
 - File names are lowercase ASCII kebab-case with a short English slug, for example `option-comparison.md`. Content stays Vietnamese.
 - Files whose name GitHub fixes (`.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/`) keep that name.
-- Three exceptions allow a number or date: `adr-0001-<slug>.md` (never renumbered), `YYYY-MM-DD-<slug>.pdf` in `submitted/` (the submission date), and `rd/evaluation/results/<YYYY-MM-DD>-<scenario>-<commit 7>.json` (the measurement date and the commit measured, written by `npm run measure`).
+- Three exceptions allow a number or date: `adr-0001-<slug>.md` (never renumbered), `YYYY-MM-DD-<slug>.pdf` in `submitted/` (the submission date), and `rd/evaluation/results/<YYYY-MM-DD>-<scenario>-<commit 7>.json` with its matching `<YYYY-MM-DD>-<scenario>-<commit 7>.samples.ndjson.gz` (the measurement date and the commit measured, written by `npm run measure`).
   A weekly report or weekly plan keeps its Markdown source next to its PDF, both named `YYYY-MM-DD-week-<n>` after the Monday of its week.
 - No version or draft markers in file names (`v2`, `final`, `old`). Version history is git. A document that is replaced is deleted, not kept beside the new one.
 - A summary page for a document sits next to it with the same slug (`appota-cases.md` and `appota-cases.html`).

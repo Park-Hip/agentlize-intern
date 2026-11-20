@@ -153,6 +153,18 @@ export interface MeasurementTarget {
   readonly enforced: boolean;
 }
 
+/**
+ * Where the raw samples live. The summary stays small enough to read on
+ * GitHub; the gzip file holds every sample so anyone can recompute the summary.
+ */
+export interface SamplesFile {
+  /** File name only, next to the summary file. */
+  readonly name: string;
+  readonly count: number;
+  /** Lowercase hex sha256 of the gzip file, so a changed sample file is caught. */
+  readonly sha256: string;
+}
+
 export interface MeasurementEnvironment {
   readonly commit: string;
   readonly commit_short: string;
@@ -175,7 +187,7 @@ export interface MeasurementEnvironment {
 }
 
 export interface MeasurementResult {
-  readonly schema: 1;
+  readonly schema: 2;
   readonly scenario: {
     readonly name: string;
     readonly description: string;
@@ -186,7 +198,7 @@ export interface MeasurementResult {
   readonly elapsed_seconds: number;
   readonly parameters: Readonly<Record<string, unknown>>;
   readonly environment: MeasurementEnvironment;
-  readonly samples: readonly Sample[];
+  readonly samples_file: SamplesFile;
   readonly summary: MeasurementSummary;
   readonly targets: readonly MeasurementTarget[];
   readonly safety: {

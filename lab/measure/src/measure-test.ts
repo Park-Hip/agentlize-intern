@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFile, readdir, mkdtemp, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readFile, readdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 import { discoverScenarios } from './discovery.js';
+import { readMeasurement } from './result.js';
 import { percentile, summarize } from './stats.js';
-import { SAFETY_COUNTER_IDS, type MeasurementResult } from './types.js';
+import { SAFETY_COUNTER_IDS } from './types.js';
 
 const MEASURE_DIR = fileURLToPath(new URL('..', import.meta.url));
 
@@ -50,20 +53,35 @@ test('measure: m1-gateway writes a result for 2 runs of every tool and door', as
     assert.equal(run.status, 0, `measure failed:\n${run.stdout}\n${run.stderr}\n${String(run.error)}`);
 
     const files = await readdir(outDir);
-    assert.equal(files.length, 1, `expected one result, got ${files.join(', ')}`);
-    const file = files[0] ?? '';
-    assert.match(file, /^\d{4}-\d{2}-\d{2}-m1-gateway-[0-9a-f]{7}\.json$/);
+    assert.equal(files.length, 2, `expected a summary and a sample file, got ${files.join(', ')}`);
+    const summaryName = files.find((file) => file.endsWith('.json')) ?? '';
+    const samplesName = files.find((file) => file.endsWith('.samples.ndjson.gz')) ?? '';
+    assert.match(summaryName, /^\d{4}-\d{2}-\d{2}-m1-gateway-[0-9a-f]{7}\.json$/);
+    assert.match(samplesName, /^\d{4}-\d{2}-\d{2}-m1-gateway-[0-9a-f]{7}\.samples\.ndjson\.gz$/);
+    assert.equal(
+      samplesName.slice(0, -'.samples.ndjson.gz'.length),
+      summaryName.slice(0, -'.json'.length),
+    );
 
-    const result = JSON.parse(await readFile(join(outDir, file), 'utf8')) as MeasurementResult;
-    assert.equal(result.schema, 1);
+    const loaded = await readMeasurement(join(outDir, summaryName));
+    const result = loaded.summary;
+    const samples = loaded.samples;
+    assert.equal(result.schema, 2);
+    assert.equal('samples' in result, false);
+    assert.equal(result.samples_file.name, samplesName);
+    assert.equal(result.samples_file.count, 2 * 6 * 3);
+    assert.equal(
+      result.samples_file.sha256,
+      createHash('sha256').update(await readFile(join(outDir, samplesName))).digest('hex'),
+    );
     assert.equal(result.scenario.name, 'm1-gateway');
     assert.equal(result.runs, 2);
     assert.match(result.command, /^npm run measure -- m1-gateway --runs 2 --out /);
     assert.ok(result.elapsed_seconds > 0);
 
-    assert.equal(result.samples.length, 2 * 6 * 3);
+    assert.equal(samples.length, 2 * 6 * 3);
     const groups = new Map<string, number>();
-    for (const sample of result.samples) {
+    for (const sample of samples) {
       groups.set(`${sample.door}/${sample.tool}`, (groups.get(`${sample.door}/${sample.tool}`) ?? 0) + 1);
       assert.ok(sample.client_ms >= 0);
       assert.equal(typeof sample.gateway_duration_ms, 'number');
@@ -74,6 +92,16 @@ test('measure: m1-gateway writes a result for 2 runs of every tool and door', as
     assert.equal(groups.size, 18);
     assert.ok([...groups.values()].every((count) => count === 2));
 
+    const client = summarize(samples.map((sample) => sample.client_ms));
+    const gateway = summarize(
+      samples
+        .map((sample) => sample.gateway_duration_ms)
+        .filter((value): value is number => value !== null),
+    );
+    assert.deepEqual(result.summary.overall.client_ms, client);
+    assert.deepEqual(result.summary.overall.gateway_duration_ms, gateway);
+    assert.equal(result.summary.overall.client_ms?.p50_ms, client?.p50_ms);
+    assert.equal(result.summary.overall.client_ms?.p95_ms, client?.p95_ms);
     assert.equal(result.summary.overall.client_ms?.count, 36);
     assert.equal(result.summary.overall.gateway_duration_ms?.count, 36);
     assert.equal(result.summary.by_door_tool.length, 18);
@@ -100,6 +128,9 @@ test('measure: m1-gateway writes a result for 2 runs of every tool and door', as
     assert.equal(result.targets[0]?.id, 'm1-gateway-p95-50ms');
     assert.equal(result.targets[0]?.enforced, false);
     assert.equal(typeof result.targets[0]?.observed_ms, 'number');
+
+    await writeFile(join(outDir, samplesName), gzipSync('[]\n'));
+    await assert.rejects(readMeasurement(join(outDir, summaryName)), /sha256/);
   } finally {
     await rm(outDir, { recursive: true, force: true });
   }
