@@ -1,6 +1,6 @@
 # Nghiệm thu mốc 3 trong Thổ Thần
 
-Ngày: 2026-11-19. Trạng thái: bản nháp; phần chạy máy đã xong, phiên kịch bản C trong Thổ Thần desktop chưa chạy.
+Ngày: 2026-11-20. Trạng thái: bản nháp; phần chạy máy đã xong, phiên kịch bản C trong Thổ Thần desktop chưa chạy.
 
 ## Đọc nhanh
 
@@ -257,7 +257,7 @@ Câu trả lời đạt khi có đủ các ý sau:
 - Trợ lý gọi `list_tasks` để lấy task của chị Lan, rồi gọi `propose_task_change` với 30 mã.
   Trợ lý có thể gọi thêm `find_employee` để tìm anh Minh.
 - Câu trả lời nêu mã đề xuất `dx-...`, nói rõ có 30 task, và nói "Chưa có gì được ghi vào task".
-- Câu trả lời nói việc này cần trưởng nhóm Vận hành duyệt, vì 30 mục chạm ngưỡng duyệt hàng loạt.
+- Câu trả lời nói việc này cần trưởng nhóm Vận hành duyệt, vì số mục chạm ngưỡng duyệt hàng loạt hoặc vì bộ đếm tách nhỏ.
 - Câu trả lời nói đề xuất chờ duyệt tối đa 2 giờ sau khi bấm Gửi, và đề xuất hết hạn sau 30 phút nếu chưa bấm.
 - Link xác nhận nằm trên một dòng riêng, dạng `<địa chỉ in ở mục 5>/xac-nhan/dx-...`.
 
@@ -277,14 +277,13 @@ Phần cần ghi lại, không được đoán:
 Bộ đếm tách nhỏ (cumulative) là phép cộng các mục cùng loại việc, cùng người yêu cầu, trong 60 phút, để AI chia nhỏ thành nhiều lần gọi thì từ lần chạm ngưỡng vẫn phải chờ duyệt ([ADR-0007, mục 3.4](../../docs/adr/adr-0007-system-adapters-and-change-sets.md#34-chặn-tách-nhỏ-để-né-duyệt)).
 Nếu trợ lý gọi một lần với 30 mã, mã luật trong vết là `task.change_task_assignee_or_due.staff.bulk`.
 Nếu trợ lý gọi nhiều lần, lần sau có thể mang mã `task.change_task_assignee_or_due.staff.cumulative`.
-Kịch bản C đạt khi trợ lý gọi một lần với 30 mã: cả 30 mục nằm trong một đề xuất và dừng ở bước duyệt, nên không task nào bị ghi trước khi anh Quang duyệt.
-Nếu trợ lý chia nhỏ, bốn đề xuất một mục đầu tiên vẫn dưới ngưỡng 5 và có thể được ghi nếu chị Hoa bấm Gửi; bộ đếm tách nhỏ chỉ chặn từ lần gọi làm tổng số mục chạm 5.
-Vì vậy chia nhỏ là sai lệch cần ghi lại, không phải một biến thể đạt của kịch bản C.
-Nếu trợ lý chia nhỏ, dừng trước khi bấm Gửi bất kỳ đề xuất nào, ghi lại số lần gọi và mã luật, rồi coi phiên là chưa đạt kịch bản C.
+Kịch bản C đạt khi cả 30 mục dừng ở bước duyệt, dù trợ lý gọi một lần với 30 mã hay chia thành nhiều lần gọi.
+Nếu trợ lý gọi nhiều lần, bộ đếm tách nhỏ cộng các mục cùng việc trong 60 phút, nên các lần chạm ngưỡng vẫn phải chờ duyệt.
+Số lần gọi và mã luật của từng lần được ghi ở mục 13.
 
 Chụp toàn bộ khung trả lời, che email thật của tài khoản ở góc trên và che mọi khoá nếu tình cờ lọt vào khung.
 
-**Kết luận:** kịch bản C chỉ đạt khi trợ lý gọi một lần với 30 mã, để cả 30 mục dừng trước khi ghi; câu trả lời phải để link xác nhận trên một dòng riêng.
+**Kết luận:** dù trợ lý gọi một lần hay chia nhỏ, cả 30 mục phải dừng ở bước duyệt trước khi ghi; câu trả lời phải để link xác nhận trên một dòng riêng, và số lần gọi được ghi lại ở mục 13.
 
 ## 8. Kịch bản C, bước 2: chị Hoa bấm Gửi
 
@@ -446,7 +445,7 @@ Kiểm tra lại từng ảnh trước khi `git add`: không có khoá, không c
 - [x] M5 của lõi `outbox.ts` là 267 dòng mã trên 319 dòng vật lý, đã ghi cách đếm.
 - [x] Q1 giữ phương án 1A, với phạm vi chỉ là hàng đợi lệnh ghi trên hệ thống giả.
 - [ ] Kịch bản C chạy trong Thổ Thần desktop: chị Hoa nhận đề xuất 30 mục và link xác nhận.
-- [ ] Đề xuất 30 mục trong một lần gọi dừng chờ duyệt, và chưa có task nào bị ghi trước khi anh Quang bấm Duyệt.
+- [ ] Đề xuất 30 mục dừng chờ duyệt, dù trợ lý gọi một lần hay chia nhỏ, và chưa có task nào bị ghi trước khi anh Quang bấm Duyệt.
 - [ ] Anh Quang thấy đề xuất trong hộp "Chờ tôi duyệt" và bấm Duyệt được.
 - [ ] Tiến độ kết thúc ở 30 trên 30; 30 task T-5 tới T-34 có `NV-04`, phiên bản 2, mỗi task một lần ghi.
 - [ ] Vết theo `--proposal` có đủ 33 dòng: soạn, gửi, duyệt và 30 lệnh ghi.
@@ -464,7 +463,7 @@ Sau khi đủ, cập nhật dòng mốc 3 ở [tổng hợp, mục 8](../finding
 
 | Hiện tượng | Nguyên nhân thường gặp | Việc làm |
 | --- | --- | --- |
-| Trợ lý gọi `propose_task_change` 30 lần, mỗi lần một task | Mô hình không gộp, hoặc câu trả lời của `list_tasks` quá dài | Ghi lại số lần gọi và mã luật; bộ đếm tách nhỏ phải bật từ lần gọi làm tổng số mục chạm 5. Không sửa mã trong phiên |
+| Trợ lý gọi `propose_task_change` 30 lần, mỗi lần một task | Mô hình không gộp, hoặc câu trả lời của `list_tasks` quá dài | Ghi lại số lần gọi và mã luật; cả hai trường hợp đều phải dừng ở bước duyệt. Không sửa mã trong phiên |
 | Trợ lý nói task đã được chuyển | Mô hình viết lại câu của cổng | Mở trang xác nhận; trang của cổng là nguồn sự thật |
 | Link xác nhận báo lỗi 1033 hoặc 530 | Đường hầm đã tắt hoặc cổng đã dừng | Mở phiên mới bằng `npm run tunnel`, rồi nhờ AI soạn lại |
 | Trang đăng nhập từ chối mật khẩu | Dán khoá `lab_` thay vì mật khẩu trang `trang_`, hoặc mật khẩu đã bị thu hồi | Dùng mật khẩu trang mà `seed-keys` đã in; mất thì chạy `npm run keys -- page-password --employee <mã>` |
