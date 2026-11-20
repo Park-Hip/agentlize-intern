@@ -1,6 +1,6 @@
 # Tổng hợp phát hiện - AI Operations Connector Lab
 
-Ngày: 2026-11-19. Trạng thái: bản thử của Lab đã chạy trong Thổ Thần desktop cho tra cứu có lọc và ghi một task; hàng đợi ghi chạy nền đã đạt phép thử sập và ngắt 20 giây, phiên kịch bản C trong Thổ Thần desktop còn chờ; bản web tạm hoãn vì không bật được skill.
+Ngày: 2026-11-20. Trạng thái: bản thử của Lab đã chạy trong Thổ Thần desktop cho tra cứu có lọc và ghi một task; hàng đợi ghi tự viết và bản đối chứng Temporal cùng đạt 300/300 lần, nên Q1 giữ 1A; phiên kịch bản C trong Thổ Thần desktop còn chờ; bản web tạm hoãn vì không bật được skill.
 
 Đây là điểm vào của phần nghiên cứu.
 Mỗi mục tóm tắt một nhóm tài liệu và trỏ về bản chi tiết.
@@ -17,7 +17,7 @@ Mọi người và dữ liệu trong ví dụ đều là giả lập.
   Lời gọi trong chat đi qua máy chủ Thổ Thần, cả trên web lẫn desktop; máy chủ gắn thêm mã người dùng, nhưng khoá do người thêm skill đặt nên chưa biết có riêng từng người không.
 - Bản thử đã chạy trong Thổ Thần bản cài trên máy: chị Hoa tra cứu chỉ thấy đúng phần được xem, và chuyển được một việc sau khi bấm duyệt; Nam bị từ chối.
 - Đọc lại mã cho thấy cổng mới chỉ biết sửa từng việc một; Lab dựng lại phần lõi để nối thêm hệ thống không phải sửa lõi, và để chuyển nhiều việc dùng chung một công cụ.
-- Phần lõi đã dựng lại; hàng đợi ghi tự chạy tiếp đã đạt phép thử tắt cổng ba lần và ngắt 20 giây, nên Q1 giữ phương án 1A.
+- Phần lõi đã dựng lại; hàng đợi ghi tự chạy tiếp và bản đối chứng Temporal cùng đạt 300/300 lần, không ghi trùng, không mất lệnh, nên Q1 giữ phương án 1A; engine chỉ đáng dùng khi quy trình nhiều bước.
 - Tiếp theo: chạy kịch bản C trong Thổ Thần desktop để xác nhận trên host thật, rồi mới đóng mốc 3.
 
 ## 1. Vấn đề
@@ -154,7 +154,7 @@ Chuyển 30 task cần anh Quang duyệt là kịch bản thứ tư, làm khi ba
 | Khoá là riêng từng người hay cả tổ chức dùng chung? | Chưa biết, vì phép đo chỉ dùng một tài khoản và một skill | Hỏi Kevin; thử hai tài khoản cùng một skill | Tuần 2, không chặn mốc 1 |
 | Máy chủ Thổ Thần có ký header danh tính và gọi ra từ dải IP cố định không? | Chưa biết; header `x-user-id` hiện có thể do người gọi tự đặt | Hỏi Kevin; thử gửi header giả và so IP gọi ra | Tuần 2, quyết định cách dùng `x-user-id` |
 | Hai tài khoản có trông giống nhau ở phía server không? | Giống nhau | Chạy lại `whoami` bằng tài khoản thứ hai | Khi có tài khoản thứ hai |
-| Q1. Sập giữa lúc chuyển 30 task: chạy lại có đủ, không trùng? | Cổng tự viết làm được, nếu mỗi task có mã riêng và tiến độ lưu sau mỗi task | Đã đạt trên phép thử tự động: tắt cổng ba lần và ngắt danh sách task 20 giây; xem [kết quả](evaluation/milestone-3-tho-than.md#2-phần-đã-chạy-bằng-máy) | Phiên kịch bản C trong Thổ Thần desktop còn chờ |
+| Q1. Sập giữa lúc chuyển 30 task: chạy lại có đủ, không trùng? | Cổng tự viết làm được, nếu mỗi task có mã riêng và tiến độ lưu sau mỗi task | Đã đạt trên phép thử tự động và bản đối chứng Temporal: mỗi bản 300/300 lần, 0 ghi trùng, 0 lệnh mất; xem [Q1 tự viết](evaluation/results/2026-11-20-q1-outbox-7b7ae94.json) và [Q1 Temporal](evaluation/results/2026-11-20-q1-outbox-87d50f9.json) | Xong phần máy 2026-11-20; phiên kịch bản C trong Thổ Thần desktop còn chờ |
 | Q2. MCP tiết kiệm bao nhiêu công so với gọi hàm? | Gần bằng nhau khi Lab viết cả hai nơi gọi | Thêm trợ lý AI thứ hai cho từng cách, đếm giờ công | Bước đánh giá |
 | Nhân viên thật dùng Thổ Thần trên điện thoại, web hay desktop? | Điện thoại hoặc web, vì PRD Skill Studio thiết kế cho điện thoại trước; khi đó stdio không tới được người dùng thật | Hỏi Kevin; mở thử app điện thoại | Tuần 2, quyết định cách nối từ mốc 2 |
 | Hook của AgentLize chạy ở đâu, và danh tính người dùng đi tiếp tới cổng thế nào? | Chưa ai dựng; nếu có, Hook chạy trong Thổ Thần vì chỉ ở đó có phiên đăng nhập. Mã LobeHub 2.1.56 không gắn danh tính vào lời gọi MCP, nhưng Thổ Thần có gắn header ở đường HTTPS | Hỏi Kevin; mã LobeHub đã đọc ([mục 6.2](appota/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt)), phần còn lại là H9 | Tuần 2, không chặn mốc 1 |
@@ -163,9 +163,11 @@ Chuyển 30 task cần anh Quang duyệt là kịch bản thứ tư, làm khi ba
 | H11 (`execAgent` mặc định không hỏi duyệt): gọi `execAgent` không kèm cấu hình duyệt có chạy công cụ ghi mà không hỏi không? | Có, vì mã mặc định `headless`; mới đọc mã, chưa đo | Gọi API với công cụ ghi giả lập, xem có bản ghi chờ duyệt không | Khi đo kênh duyệt của Thổ Thần, cần Kevin |
 | H12 (bản dựng mới giữ hành vi MCP): bản Thổ Thần ra ngày 2026-11-18 có còn gắn header danh tính, còn chạy không hỏi và còn cắt ở 60 giây không? | Còn, vì nền vẫn là LobeHub 2.1.56; chỗ chọn chế độ duyệt đã không còn hiện trên bản web | Cắm probe qua đường hầm vào Thổ Thần desktop, gọi `whoami` và `fake_write` | Phiên đường hầm tiếp theo, trước mọi lần nghiệm thu mới |
 
-Q1 đã có bằng chứng tự động trong [nghiệm thu mốc 3, mục 2](evaluation/milestone-3-tho-than.md#2-phần-đã-chạy-bằng-máy).
-Ba lần tắt cổng ở ba thời điểm và một lần ngắt danh sách task 20 giây đều cho đủ 30 task, mỗi task đúng một lần ghi, nên giữ 1A (cổng tự lưu tiến độ và chạy tiếp).
-Kết luận này chỉ nói về hàng đợi lệnh ghi của cổng trên hệ thống giả; phiên kịch bản C trong Thổ Thần desktop chưa chạy, nên chưa nói gì về host thật.
+Q1 đã có bằng chứng tự động trong [nghiệm thu mốc 3, mục 2](evaluation/milestone-3-tho-than.md#2-phần-đã-chạy-bằng-máy) và [bản đối chứng Temporal](evaluation/results/2026-11-20-q1-outbox-87d50f9.json).
+Hai bản cùng đạt 300/300 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất.
+Bản tự viết có 2 file và 3 dịch vụ cần cho đường ghi, 1 bước sau khi sập; bản Temporal có 4 file, 5 dịch vụ và 2 bước sau khi sập ([M5 tự viết](evaluation/results/2026-11-20-m5-complexity-62e309e.json), [M5 Temporal](evaluation/results/2026-11-20-m5-complexity-87d50f9.json)).
+Vì vậy giữ 1A cho lệnh hàng loạt một bước; engine chỉ đáng dùng khi quy trình có nhiều bước nối nhau, chờ duyệt nhiều ngày, nhiều hệ thống hoặc cần hoàn tác.
+Kết luận này chỉ nói về hàng đợi lệnh ghi trên hệ thống giả, một máy; phiên kịch bản C trong Thổ Thần desktop chưa chạy, nên chưa nói gì về host thật.
 
 Q1 và Q2 chi tiết ở [spec bản thử, mục 2.1](design/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không).
 Bốn câu H9 tới H12 chi tiết ở [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được).
@@ -173,7 +175,7 @@ Hai câu về thiết bị và Hook, cùng mọi mối nối giữa Appota, Agen
 
 Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã có lời đáp ở mục 4; câu khoá riêng hay dùng chung vẫn mở.
 
-**Kết luận:** Q1 tạm giữ phương án 1A trên hệ thống giả, kết luận cuối chờ bản đối chứng #110 và phiên host thật; không câu nào còn chặn việc viết ADR; câu chia sẻ khoá quyết định mô hình khoá có dùng được trong thực tế không, còn câu nguồn header quyết định có bật lớp kiểm thứ hai không.
+**Kết luận:** Q1 giữ phương án 1A trên hệ thống giả sau khi so với bản Temporal: cả hai đều 0 sót, 0 trùng, còn bản tự viết ít dịch vụ và ít bước vận hành hơn; kết luận cuối vẫn chờ phiên host thật, và không câu nào còn chặn việc viết ADR; câu chia sẻ khoá quyết định mô hình khoá có dùng được trong thực tế không, còn câu nguồn header quyết định có bật lớp kiểm thứ hai không.
 
 ## 7. Đo thế nào là thành công
 

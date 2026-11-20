@@ -1,0 +1,555 @@
+{
+  "schema": 3,
+  "scenario": {
+    "name": "m5-complexity",
+    "description": "M5: đếm dòng phần chạy tiếp, số dịch vụ, số file cấu hình, số bước cài và bước xử lý khi sập của đích, rồi đổi một ô luật xem cổng có áp ngay không; đích chọn bằng --target, mặc định gateway."
+  },
+  "generated_at": "2026-11-20T10:05:06.210Z",
+  "command": "npm run measure -- m5-complexity --target temporal --runs 100",
+  "runs": 100,
+  "elapsed_seconds": 4.9,
+  "write_target": "temporal",
+  "parameters": {
+    "target": "temporal",
+    "declaration_file": "lab/measure/src/targets/temporal-declaration.ts",
+    "runs_requested": 100,
+    "runs_used": 1,
+    "line_counts": {
+      "files": [
+        {
+          "path": "lab/baselines/temporal/src/workflows.js",
+          "role": "workflow writeProposal: giữ vị trí 30 lệnh và gọi một activity cho mỗi lệnh",
+          "physical": 25,
+          "code": 17,
+          "comment": 6,
+          "blank": 2
+        },
+        {
+          "path": "lab/baselines/temporal/src/worker.js",
+          "role": "worker Temporal và activity runCommand: gọi host, để Temporal lo lần thử lại",
+          "physical": 49,
+          "code": 38,
+          "comment": 6,
+          "blank": 5
+        },
+        {
+          "path": "lab/baselines/temporal/src/host.js",
+          "role": "nối đề xuất đã duyệt sang workflow và mở cổng điều khiển cho activity",
+          "physical": 122,
+          "code": 105,
+          "comment": 2,
+          "blank": 15
+        },
+        {
+          "path": "lab/baselines/temporal/src/command-runner.js",
+          "role": "chạy một lệnh ghi qua bảng write_commands, mã chống ghi trùng và bộ tiếp hợp task",
+          "physical": 188,
+          "code": 170,
+          "comment": 8,
+          "blank": 10
+        }
+      ],
+      "total": {
+        "physical": 384,
+        "code": 330,
+        "comment": 22,
+        "blank": 32
+      }
+    },
+    "services": {
+      "count": 5,
+      "write_path_count": 5,
+      "items": [
+        {
+          "name": "temporal",
+          "purpose": "Temporal dev server giữ workflow và vị trí từng bước",
+          "required_for_writes": true,
+          "source": {
+            "path": "lab/baselines/temporal/README.md",
+            "line": 106,
+            "link": "lab/baselines/temporal/README.md#L106"
+          }
+        },
+        {
+          "name": "worker",
+          "purpose": "chạy activity, mỗi activity một lệnh ghi",
+          "required_for_writes": true,
+          "source": {
+            "path": "lab/baselines/temporal/README.md",
+            "line": 107,
+            "link": "lab/baselines/temporal/README.md#L107"
+          }
+        },
+        {
+          "name": "gateway",
+          "purpose": "đề xuất, bấm Gửi, duyệt, bảng lệnh ghi và bảng vết",
+          "required_for_writes": true,
+          "source": {
+            "path": "lab/baselines/temporal/README.md",
+            "line": 108,
+            "link": "lab/baselines/temporal/README.md#L108"
+          }
+        },
+        {
+          "name": "directory",
+          "purpose": "danh bạ giả, nơi cổng đọc vai và phòng của người yêu cầu",
+          "required_for_writes": true,
+          "source": {
+            "path": "lab/baselines/temporal/README.md",
+            "line": 109,
+            "link": "lab/baselines/temporal/README.md#L109"
+          }
+        },
+        {
+          "name": "tasks",
+          "purpose": "danh sách task giả, nơi lệnh ghi đáp xuống",
+          "required_for_writes": true,
+          "source": {
+            "path": "lab/baselines/temporal/README.md",
+            "line": 110,
+            "link": "lab/baselines/temporal/README.md#L110"
+          }
+        }
+      ]
+    },
+    "config_files": {
+      "count": 1,
+      "items": [
+        {
+          "path": "lab/gateway/policy/rules.json",
+          "purpose": "luật quyền theo vai, ngưỡng hàng loạt và người duyệt; Temporal dev server chỉ nhận cờ dòng lệnh, không có file cấu hình",
+          "source": {
+            "path": "lab/gateway/README.md",
+            "line": 73,
+            "link": "lab/gateway/README.md#L73"
+          }
+        }
+      ]
+    },
+    "install_steps": {
+      "count": 4,
+      "items": [
+        {
+          "step": "Cài Node 22 trở lên",
+          "source": {
+            "path": "lab/baselines/temporal/README.md",
+            "line": 18,
+            "link": "lab/baselines/temporal/README.md#L18"
+          }
+        },
+        {
+          "step": "Chạy npm install và npm run build trong lab/",
+          "source": {
+            "path": "lab/baselines/temporal/README.md",
+            "line": 23,
+            "link": "lab/baselines/temporal/README.md#L23"
+          }
+        },
+        {
+          "step": "Chạy npm install trong lab/baselines/temporal/",
+          "source": {
+            "path": "lab/baselines/temporal/README.md",
+            "line": 31,
+            "link": "lab/baselines/temporal/README.md#L31"
+          }
+        },
+        {
+          "step": "Lấy Temporal CLI: dùng temporal trên PATH hoặc tải bản phát hành vào scratch/temporal/",
+          "source": {
+            "path": "lab/baselines/temporal/README.md",
+            "line": 36,
+            "link": "lab/baselines/temporal/README.md#L36"
+          }
+        }
+      ]
+    },
+    "crash_steps": {
+      "count": 2,
+      "items": [
+        {
+          "step": "Khởi động lại worker trên cùng Temporal dev server; workflow chạy tiếp từ activity đang dở",
+          "source": {
+            "path": "lab/baselines/temporal/README.md",
+            "line": 99,
+            "link": "lab/baselines/temporal/README.md#L99"
+          }
+        },
+        {
+          "step": "Nếu dev server cũng tắt, mở lại trên cùng --db-filename rồi khởi động worker",
+          "source": {
+            "path": "lab/baselines/temporal/README.md",
+            "line": 100,
+            "link": "lab/baselines/temporal/README.md#L100"
+          }
+        }
+      ]
+    },
+    "excluded_files": [
+      {
+        "path": "lab/baselines/temporal/package.json",
+        "reason": "khai phụ thuộc và lệnh chạy, không có logic chạy tiếp"
+      }
+    ],
+    "sources_checked": {
+      "count": 13,
+      "items": [
+        {
+          "path": "lab/baselines/temporal/README.md",
+          "line": 106,
+          "link": "lab/baselines/temporal/README.md#L106"
+        },
+        {
+          "path": "lab/baselines/temporal/README.md",
+          "line": 107,
+          "link": "lab/baselines/temporal/README.md#L107"
+        },
+        {
+          "path": "lab/baselines/temporal/README.md",
+          "line": 108,
+          "link": "lab/baselines/temporal/README.md#L108"
+        },
+        {
+          "path": "lab/baselines/temporal/README.md",
+          "line": 109,
+          "link": "lab/baselines/temporal/README.md#L109"
+        },
+        {
+          "path": "lab/baselines/temporal/README.md",
+          "line": 110,
+          "link": "lab/baselines/temporal/README.md#L110"
+        },
+        {
+          "path": "lab/gateway/README.md",
+          "line": 73,
+          "link": "lab/gateway/README.md#L73"
+        },
+        {
+          "path": "lab/baselines/temporal/README.md",
+          "line": 18,
+          "link": "lab/baselines/temporal/README.md#L18"
+        },
+        {
+          "path": "lab/baselines/temporal/README.md",
+          "line": 23,
+          "link": "lab/baselines/temporal/README.md#L23"
+        },
+        {
+          "path": "lab/baselines/temporal/README.md",
+          "line": 31,
+          "link": "lab/baselines/temporal/README.md#L31"
+        },
+        {
+          "path": "lab/baselines/temporal/README.md",
+          "line": 36,
+          "link": "lab/baselines/temporal/README.md#L36"
+        },
+        {
+          "path": "lab/baselines/temporal/README.md",
+          "line": 99,
+          "link": "lab/baselines/temporal/README.md#L99"
+        },
+        {
+          "path": "lab/baselines/temporal/README.md",
+          "line": 100,
+          "link": "lab/baselines/temporal/README.md#L100"
+        },
+        {
+          "path": "lab/gateway/README.md",
+          "line": 75,
+          "link": "lab/gateway/README.md#L75"
+        }
+      ]
+    },
+    "rule_change": {
+      "file": "lab/gateway/policy/rules.json",
+      "cell": "resources.task.actions.change_task_assignee_or_due.staff.effect",
+      "source": {
+        "path": "lab/gateway/README.md",
+        "line": 75,
+        "link": "lab/gateway/README.md#L75"
+      },
+      "before": "allow",
+      "after": "deny",
+      "applied": true,
+      "rule_id": "task.change_task_assignee_or_due.staff",
+      "before_answer": {
+        "status": 200,
+        "reason_code": null
+      },
+      "after_answer": {
+        "status": 403,
+        "reason_code": "NOT_PERMITTED"
+      },
+      "changed_files": [
+        "rules.json"
+      ],
+      "source_tree": {
+        "files": 120,
+        "changes": []
+      },
+      "places_changed": 1,
+      "target_places": 1,
+      "met": true
+    }
+  },
+  "environment": {
+    "commit": "87d50f95a71a54294f246623f37eda3f738313b7",
+    "commit_short": "87d50f9",
+    "dirty": false,
+    "node": "v22.21.0",
+    "os": {
+      "platform": "win32",
+      "release": "10.0.26200",
+      "version": "Windows 11 Home",
+      "arch": "x64"
+    },
+    "cpu": {
+      "model": "Intel(R) Core(TM) Ultra 5 225H",
+      "count": 14,
+      "speed_mhz": 3686
+    },
+    "memory_total_bytes": 33752997888,
+    "timezone": "Asia/Bangkok"
+  },
+  "samples_file": {
+    "name": "2026-11-20-m5-complexity-87d50f9.samples.ndjson.gz",
+    "count": 6,
+    "sha256": "dc8fb9203163562f767086f0bcb972a4c1df3bd73d4b8d14ede627d1f09e5c63"
+  },
+  "summary": {
+    "overall": {
+      "client_ms": {
+        "count": 6,
+        "p50_ms": 0.169,
+        "p95_ms": 4873.518,
+        "max_ms": 4873.518,
+        "min_ms": 0.131,
+        "mean_ms": 813.895
+      },
+      "gateway_duration_ms": null
+    },
+    "by_door": {
+      "m5-lines": {
+        "client_ms": {
+          "count": 4,
+          "p50_ms": 0.137,
+          "p95_ms": 0.441,
+          "max_ms": 0.441,
+          "min_ms": 0.131,
+          "mean_ms": 0.22
+        },
+        "gateway_duration_ms": null
+      },
+      "m5-declaration": {
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 8.976,
+          "p95_ms": 8.976,
+          "max_ms": 8.976,
+          "min_ms": 8.976,
+          "mean_ms": 8.976
+        },
+        "gateway_duration_ms": null
+      },
+      "m5-rule": {
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 4873.518,
+          "p95_ms": 4873.518,
+          "max_ms": 4873.518,
+          "min_ms": 4873.518,
+          "mean_ms": 4873.518
+        },
+        "gateway_duration_ms": null
+      }
+    },
+    "by_tool": {
+      "lab/baselines/temporal/src/workflows.js": {
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 0.441,
+          "p95_ms": 0.441,
+          "max_ms": 0.441,
+          "min_ms": 0.441,
+          "mean_ms": 0.441
+        },
+        "gateway_duration_ms": null
+      },
+      "lab/baselines/temporal/src/worker.js": {
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 0.169,
+          "p95_ms": 0.169,
+          "max_ms": 0.169,
+          "min_ms": 0.169,
+          "mean_ms": 0.169
+        },
+        "gateway_duration_ms": null
+      },
+      "lab/baselines/temporal/src/host.js": {
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 0.131,
+          "p95_ms": 0.131,
+          "max_ms": 0.131,
+          "min_ms": 0.131,
+          "mean_ms": 0.131
+        },
+        "gateway_duration_ms": null
+      },
+      "lab/baselines/temporal/src/command-runner.js": {
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 0.137,
+          "p95_ms": 0.137,
+          "max_ms": 0.137,
+          "min_ms": 0.137,
+          "mean_ms": 0.137
+        },
+        "gateway_duration_ms": null
+      },
+      "temporal": {
+        "client_ms": {
+          "count": 2,
+          "p50_ms": 8.976,
+          "p95_ms": 4873.518,
+          "max_ms": 4873.518,
+          "min_ms": 8.976,
+          "mean_ms": 2441.247
+        },
+        "gateway_duration_ms": null
+      }
+    },
+    "by_door_tool": [
+      {
+        "door": "m5-lines",
+        "tool": "lab/baselines/temporal/src/workflows.js",
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 0.441,
+          "p95_ms": 0.441,
+          "max_ms": 0.441,
+          "min_ms": 0.441,
+          "mean_ms": 0.441
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "m5-lines",
+        "tool": "lab/baselines/temporal/src/worker.js",
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 0.169,
+          "p95_ms": 0.169,
+          "max_ms": 0.169,
+          "min_ms": 0.169,
+          "mean_ms": 0.169
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "m5-lines",
+        "tool": "lab/baselines/temporal/src/host.js",
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 0.131,
+          "p95_ms": 0.131,
+          "max_ms": 0.131,
+          "min_ms": 0.131,
+          "mean_ms": 0.131
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "m5-lines",
+        "tool": "lab/baselines/temporal/src/command-runner.js",
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 0.137,
+          "p95_ms": 0.137,
+          "max_ms": 0.137,
+          "min_ms": 0.137,
+          "mean_ms": 0.137
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "m5-declaration",
+        "tool": "temporal",
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 8.976,
+          "p95_ms": 8.976,
+          "max_ms": 8.976,
+          "min_ms": 8.976,
+          "mean_ms": 8.976
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "m5-rule",
+        "tool": "temporal",
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 4873.518,
+          "p95_ms": 4873.518,
+          "max_ms": 4873.518,
+          "min_ms": 4873.518,
+          "mean_ms": 4873.518
+        },
+        "gateway_duration_ms": null
+      }
+    ]
+  },
+  "targets": [],
+  "safety": {
+    "counters": [
+      {
+        "id": "duplicate_writes",
+        "label": "Ghi trùng",
+        "applicable": false,
+        "value": null,
+        "detail": "Phép đo chỉ soạn đề xuất để hỏi luật, không bấm Gửi nên không có lệnh ghi nào để ghi trùng."
+      },
+      {
+        "id": "lost_commands",
+        "label": "Lệnh mất",
+        "applicable": false,
+        "value": null,
+        "detail": "Phép đo không bấm Gửi nên không tạo lệnh ghi; không có lệnh nào có thể mất."
+      },
+      {
+        "id": "unauthorized_writes",
+        "label": "Ghi vượt quyền",
+        "applicable": true,
+        "value": 0,
+        "detail": "Đếm lệnh ghi trong bảng write_commands sau hai lần soạn đề xuất; phải bằng 0 vì không lần nào bấm Gửi, thấy 0."
+      },
+      {
+        "id": "out_of_scope_fields",
+        "label": "Trường ngoài quyền",
+        "applicable": false,
+        "value": null,
+        "detail": "Phép đo không gọi tool đọc bản ghi nhân viên hay task; chỉ đọc mã trạng thái của đề xuất."
+      },
+      {
+        "id": "personal_data_in_trace",
+        "label": "Dữ liệu cá nhân trong vết",
+        "applicable": true,
+        "value": 0,
+        "detail": "Đã quét 2 dòng vết cho tên, email, số điện thoại, địa chỉ và khoá; 0 dòng chứa."
+      }
+    ],
+    "all_applicable_zero": true
+  },
+  "notes": [
+    "M5 đếm phần chạy tiếp của đích temporal, không đếm cả cổng: 4 file, 384 dòng vật lý và 330 dòng mã.",
+    "Khai báo không có outbox.ts, nên không đối chiếu được với số 319 dòng vật lý và 267 dòng mã đã công bố ngày 2026-11-19.",
+    "Lệnh npm start mở 5 dịch vụ; 5 dịch vụ cần cho đường ghi, còn lại là trang điều khiển.",
+    "Có 1 file cấu hình theo định nghĩa: file người vận hành sửa để đổi hành vi lúc chạy. package.json và tsconfig.json là file dựng mã, không tính.",
+    "Cài trên máy mới: 4 bước; sau khi sập: 2 bước, vì vòng chạy nền tự nhặt lệnh còn mở.",
+    "Đổi một ô luật resources.task.actions.change_task_assignee_or_due.staff.effect từ allow sang deny: 1 chỗ đổi, mục tiêu 1 chỗ, đạt; cổng áp luật mới.",
+    "M5 là phép đếm tĩnh: --runs 100 không lặp phép đếm, một lần chạy là đủ và runs_used bằng 1. Thời gian trong mẫu là thời gian đọc file và kiểm luật, không phải độ trễ dịch vụ.",
+    "Kết quả chỉ đo đường ghi cục bộ, không gồm bước cắm skill vào Thổ Thần hay mở đường hầm."
+  ]
+}

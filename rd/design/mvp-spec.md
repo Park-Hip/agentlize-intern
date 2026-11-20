@@ -1,6 +1,6 @@
 # Spec bản thử: thí nghiệm cổng kiểm soát cho AI trong Thổ Thần
 
-Ngày: 2026-11-20. Trạng thái: bản gốc của spec nằm trong repo; Q1 tạm giữ phương án 1A, bản đối chứng Temporal và câu trả lời Q2 còn chờ.
+Ngày: 2026-11-20. Trạng thái: bản gốc của spec nằm trong repo; Q1 đã có bản đối chứng Temporal và giữ phương án 1A, câu trả lời Q2 còn chờ.
 
 ## Đọc nhanh
 
@@ -115,8 +115,30 @@ Bộ kết quả đo ngày 2026-11-20 nằm trong `rd/evaluation/results/`:
 - [M5](../evaluation/results/2026-11-20-m5-complexity-62e309e.json): 587 dòng vật lý và 476 dòng mã cho hai file chạy tiếp, trong đó `outbox.ts` là 319/267.
 - [M1](../evaluation/results/2026-11-20-m1-gateway-f4dbfe7.json) và [M4](../evaluation/results/2026-11-20-m4-load-6bd898d.json): số đo thời gian, không phải bằng chứng cho Q1.
 
-Chưa có bản đối chứng bằng Temporal, và chưa chạy kịch bản này trong Thổ Thần.
-Kết quả trên chỉ đúng cho một tiến trình cổng, hệ thống đích nhận mã chống ghi trùng và các loại lỗi Lab cố ý gây.
+**Bản đối chứng Temporal ngày 2026-11-20.**
+Bản đối chứng dựng trong nửa ngày, dùng cùng 30 task, cùng danh sách lệnh mà cổng tạo sau khi anh Quang duyệt, cùng bộ tiếp hợp task và cùng mã chống ghi trùng.
+Temporal giữ vị trí từng bước; mỗi task là một activity.
+
+- [Q1 Temporal](../evaluation/results/2026-11-20-q1-outbox-87d50f9.json): 300/300 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất.
+  Bước 1 chia 100 lần cho ba thời điểm tắt và đạt 100/100; bước 2 ngắt danh sách task 20 giây và bước 3 làm rơi phản hồi cũng đạt 100/100 mỗi bước.
+- [M5 Temporal](../evaluation/results/2026-11-20-m5-complexity-87d50f9.json): 4 file, 384 dòng vật lý và 330 dòng mã; 5 dịch vụ cần cho đường ghi, 1 file cấu hình, 4 bước cài, 2 bước sau khi sập; đổi một ô luật vẫn sửa đúng 1 chỗ.
+- [M5 bản tự viết](../evaluation/results/2026-11-20-m5-complexity-62e309e.json): 2 file, 587 dòng vật lý và 476 dòng mã; 3 dịch vụ cần cho đường ghi, 1 file cấu hình, 4 bước cài, 1 bước sau khi sập; đổi một ô luật sửa đúng 1 chỗ.
+
+| Việc | Bản tự viết | Bản Temporal |
+|-|-|-|
+| Đúng kết quả cuối | 300/300 | 300/300 |
+| Ghi trùng / lệnh mất | 0 / 0 | 0 / 0 |
+| Phần chạy tiếp | 2 file, 476 dòng mã | 4 file, 330 dòng mã |
+| Dịch vụ cần cho đường ghi | 3 | 5 |
+| Bước sau khi sập | 1 | 2 |
+| Đổi một ô luật | 1 chỗ | 1 chỗ |
+
+**Kết luận.** Cả hai bản đều 0 sót và 0 trùng, nên phần khó là mã chống ghi trùng ở hệ đích, không phải việc nhớ tiến độ.
+Bản Temporal viết ít dòng mã hơn nhưng thêm hai dịch vụ và một bước vận hành sau khi sập.
+Vì vậy giữ 1A cho lệnh hàng loạt một bước như chuyển task; chỉ dùng engine khi quy trình có nhiều bước nối nhau, chờ duyệt nhiều ngày, nhiều hệ thống hoặc cần hoàn tác.
+
+Kết quả này chỉ đúng cho một tiến trình cổng, một máy, hệ thống đích nhận mã chống ghi trùng và các loại lỗi Lab cố ý gây.
+Phiên kịch bản C trong Thổ Thần desktop vẫn còn chờ.
 
 ### 2.2. Q2. Thêm một trợ lý thứ hai thì MCP tiết kiệm bao nhiêu công so với gọi hàm, và phải trả giá gì?
 
@@ -480,7 +502,7 @@ Các bước đang giả lập, và kết luận nào bị giới hạn theo:
 | Lớp có mô hình chạy 20 lần mỗi việc vì ngân sách | Hàng nghìn lần mỗi ngày | Q2 chỉ thấy được chênh lệch lớn giữa trợ lý A và B; tỉ lệ lỗi hiếm của AI không đo được | Báo số lần cạnh mọi tỉ lệ; tỉ lệ lỗi của cổng lấy từ lớp tự động |
 | Một mô hình AI | Mô hình khác | M1 và M3 không áp được cho mô hình khác | Ghi tên mô hình cạnh mọi số |
 | Thổ Thần gọi qua đường hầm tạm, ít lần vì credit | Máy chủ cố định, nhiều phiên | Số trên host thật có sai số lớn và cộng thêm độ trễ của đường hầm | Chạy nhiều lần ở hai lớp đầu; Thổ Thần chỉ để đối chiếu |
-| Bản đối chứng Temporal dựng trong nửa ngày | Engine chạy thật cần cụm máy, nâng cấp, giám sát | Độ phức tạp vận hành của engine bị đánh giá thấp hơn thực tế, còn độ khó dựng có thể bị đánh giá cao hơn vì chưa quen | Ghi rõ người dựng chưa dùng engine đó trước |
+| Bản đối chứng Temporal dựng trong nửa ngày | Engine chạy thật cần cụm máy, nâng cấp, giám sát | Độ phức tạp vận hành của engine bị đánh giá thấp hơn thực tế, còn độ khó dựng có thể bị đánh giá cao hơn vì chưa quen | Ghi rõ một coding agent dựng dưới giám sát của intern; kinh nghiệm Temporal trước đó của intern là câu hỏi để intern trả lời khi review |
 
 **Kết luận:** mọi kết luận của báo cáo đánh giá phải ghi loại của nó và giả định tương ứng trong bảng này; chỉ kết luận loại cấu trúc được dùng làm cơ sở cho bản vận hành.
 

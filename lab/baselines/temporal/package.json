@@ -1,0 +1,21 @@
+{
+  "name": "@lab/baseline-temporal",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Temporal baseline for the Lab write outbox: one workflow, one activity per task",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "check": "node --check src/workflows.js && node --check src/worker.js && node --check src/command-runner.js && node --check src/host.js",
+    "worker": "node src/worker.js",
+    "host": "node src/host.js"
+  },
+  "dependencies": {
+    "@temporalio/activity": "1.26.0",
+    "@temporalio/client": "1.26.0",
+    "@temporalio/worker": "1.26.0",
+    "@temporalio/workflow": "1.26.0"
+  }
+}

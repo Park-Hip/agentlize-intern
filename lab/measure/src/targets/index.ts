@@ -1,14 +1,16 @@
 import { GatewayTarget } from './gateway.js';
+import { TemporalTarget } from './temporal.js';
 import type { WriteTarget } from './types.js';
 
 /** The targets a scenario may name. A new target adds one name and one factory. */
-export const TARGET_NAMES = ['gateway'] as const;
+export const TARGET_NAMES = ['gateway', 'temporal'] as const;
 export type TargetName = (typeof TARGET_NAMES)[number];
 
 export const DEFAULT_TARGET: TargetName = 'gateway';
 
 const FACTORIES: Readonly<Record<TargetName, () => WriteTarget>> = {
   gateway: () => new GatewayTarget(),
+  temporal: () => new TemporalTarget(),
 };
 
 /** Read and check the name the user passed to `--target`. An unknown name lists the valid ones. */
