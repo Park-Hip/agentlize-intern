@@ -1,0 +1,1051 @@
+{
+  "schema": 2,
+  "scenario": {
+    "name": "m2-scenarios",
+    "description": "M2: kịch bản A một task và C ba mươi task qua ba cửa vào, mỗi cặp kịch bản và cửa lặp theo --runs, có lỗi mạng cố ý và cắt 60 giây của client giả Thổ Thần; đích chọn bằng LAB_MEASURE_TARGET, mặc định gateway."
+  },
+  "generated_at": "2026-11-20T06:02:22.782Z",
+  "command": "npm run measure -- m2-scenarios --runs 100",
+  "runs": 100,
+  "elapsed_seconds": 1084.8,
+  "parameters": {
+    "target": "gateway",
+    "target_selection": "LAB_MEASURE_TARGET; mặc định gateway",
+    "runs_per_group": 100,
+    "scenario_task_ids": {
+      "a-one-task": [
+        "T-12"
+      ],
+      "c-thirty-tasks": [
+        "T-5",
+        "T-6",
+        "T-7",
+        "T-8",
+        "T-9",
+        "T-10",
+        "T-11",
+        "T-12",
+        "T-13",
+        "T-14",
+        "T-15",
+        "T-16",
+        "T-17",
+        "T-18",
+        "T-19",
+        "T-20",
+        "T-21",
+        "T-22",
+        "T-23",
+        "T-24",
+        "T-25",
+        "T-26",
+        "T-27",
+        "T-28",
+        "T-29",
+        "T-30",
+        "T-31",
+        "T-32",
+        "T-33",
+        "T-34"
+      ]
+    },
+    "changes": {
+      "assignee": "NV-04"
+    },
+    "doors": [
+      "http",
+      "mcp-http",
+      "tho-than-host"
+    ],
+    "groups": [
+      {
+        "scenario": "a-one-task",
+        "door": "http",
+        "counts": {
+          "runs": 100,
+          "correct": 100,
+          "incorrect": 0,
+          "errors": 15,
+          "timeouts": 0,
+          "draft_retries": 15,
+          "write_retries": 20,
+          "duplicates": 0,
+          "lost": 0,
+          "wrong_content": 0,
+          "point_missed": 0,
+          "unauthorized": 0,
+          "restarts": 0,
+          "trace_runs": 100,
+          "trace_rows": 755,
+          "trace_leaks": 0
+        },
+        "by_run_kind": {
+          "draft-network": {
+            "runs": 15,
+            "correct": 15,
+            "incorrect": 0,
+            "errors": 15,
+            "timeouts": 0,
+            "draft_retries": 15,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 15,
+            "trace_rows": 75,
+            "trace_leaks": 0
+          },
+          "write-drop": {
+            "runs": 10,
+            "correct": 10,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 10,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 10,
+            "trace_rows": 226,
+            "trace_leaks": 0
+          },
+          "write-outage": {
+            "runs": 5,
+            "correct": 5,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 10,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 5,
+            "trace_rows": 104,
+            "trace_leaks": 0
+          },
+          "clean": {
+            "runs": 70,
+            "correct": 70,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 70,
+            "trace_rows": 350,
+            "trace_leaks": 0
+          }
+        }
+      },
+      {
+        "scenario": "a-one-task",
+        "door": "mcp-http",
+        "counts": {
+          "runs": 100,
+          "correct": 100,
+          "incorrect": 0,
+          "errors": 15,
+          "timeouts": 0,
+          "draft_retries": 15,
+          "write_retries": 20,
+          "duplicates": 0,
+          "lost": 0,
+          "wrong_content": 0,
+          "point_missed": 0,
+          "unauthorized": 0,
+          "restarts": 0,
+          "trace_runs": 100,
+          "trace_rows": 755,
+          "trace_leaks": 0
+        },
+        "by_run_kind": {
+          "draft-network": {
+            "runs": 15,
+            "correct": 15,
+            "incorrect": 0,
+            "errors": 15,
+            "timeouts": 0,
+            "draft_retries": 15,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 15,
+            "trace_rows": 75,
+            "trace_leaks": 0
+          },
+          "write-drop": {
+            "runs": 10,
+            "correct": 10,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 10,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 10,
+            "trace_rows": 227,
+            "trace_leaks": 0
+          },
+          "write-outage": {
+            "runs": 5,
+            "correct": 5,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 10,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 5,
+            "trace_rows": 103,
+            "trace_leaks": 0
+          },
+          "clean": {
+            "runs": 70,
+            "correct": 70,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 70,
+            "trace_rows": 350,
+            "trace_leaks": 0
+          }
+        }
+      },
+      {
+        "scenario": "a-one-task",
+        "door": "tho-than-host",
+        "counts": {
+          "runs": 100,
+          "correct": 100,
+          "incorrect": 0,
+          "errors": 15,
+          "timeouts": 1,
+          "draft_retries": 15,
+          "write_retries": 20,
+          "duplicates": 0,
+          "lost": 0,
+          "wrong_content": 0,
+          "point_missed": 0,
+          "unauthorized": 0,
+          "restarts": 0,
+          "trace_runs": 100,
+          "trace_rows": 751,
+          "trace_leaks": 0
+        },
+        "by_run_kind": {
+          "draft-network": {
+            "runs": 14,
+            "correct": 14,
+            "incorrect": 0,
+            "errors": 14,
+            "timeouts": 0,
+            "draft_retries": 14,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 14,
+            "trace_rows": 70,
+            "trace_leaks": 0
+          },
+          "draft-timeout": {
+            "runs": 1,
+            "correct": 1,
+            "incorrect": 0,
+            "errors": 1,
+            "timeouts": 1,
+            "draft_retries": 1,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 1,
+            "trace_rows": 5,
+            "trace_leaks": 0
+          },
+          "write-drop": {
+            "runs": 10,
+            "correct": 10,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 10,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 10,
+            "trace_rows": 223,
+            "trace_leaks": 0
+          },
+          "write-outage": {
+            "runs": 5,
+            "correct": 5,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 10,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 5,
+            "trace_rows": 103,
+            "trace_leaks": 0
+          },
+          "clean": {
+            "runs": 70,
+            "correct": 70,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 70,
+            "trace_rows": 350,
+            "trace_leaks": 0
+          }
+        }
+      },
+      {
+        "scenario": "c-thirty-tasks",
+        "door": "http",
+        "counts": {
+          "runs": 100,
+          "correct": 100,
+          "incorrect": 0,
+          "errors": 15,
+          "timeouts": 0,
+          "draft_retries": 15,
+          "write_retries": 20,
+          "duplicates": 0,
+          "lost": 0,
+          "wrong_content": 0,
+          "point_missed": 0,
+          "unauthorized": 0,
+          "restarts": 0,
+          "trace_runs": 100,
+          "trace_rows": 3806,
+          "trace_leaks": 0
+        },
+        "by_run_kind": {
+          "draft-network": {
+            "runs": 15,
+            "correct": 15,
+            "incorrect": 0,
+            "errors": 15,
+            "timeouts": 0,
+            "draft_retries": 15,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 15,
+            "trace_rows": 537,
+            "trace_leaks": 0
+          },
+          "write-drop": {
+            "runs": 10,
+            "correct": 10,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 10,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 10,
+            "trace_rows": 520,
+            "trace_leaks": 0
+          },
+          "write-outage": {
+            "runs": 5,
+            "correct": 5,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 10,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 5,
+            "trace_rows": 245,
+            "trace_leaks": 0
+          },
+          "clean": {
+            "runs": 70,
+            "correct": 70,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 70,
+            "trace_rows": 2504,
+            "trace_leaks": 0
+          }
+        }
+      },
+      {
+        "scenario": "c-thirty-tasks",
+        "door": "mcp-http",
+        "counts": {
+          "runs": 100,
+          "correct": 100,
+          "incorrect": 0,
+          "errors": 15,
+          "timeouts": 0,
+          "draft_retries": 15,
+          "write_retries": 20,
+          "duplicates": 0,
+          "lost": 0,
+          "wrong_content": 0,
+          "point_missed": 0,
+          "unauthorized": 0,
+          "restarts": 0,
+          "trace_runs": 100,
+          "trace_rows": 3805,
+          "trace_leaks": 0
+        },
+        "by_run_kind": {
+          "draft-network": {
+            "runs": 15,
+            "correct": 15,
+            "incorrect": 0,
+            "errors": 15,
+            "timeouts": 0,
+            "draft_retries": 15,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 15,
+            "trace_rows": 536,
+            "trace_leaks": 0
+          },
+          "write-drop": {
+            "runs": 10,
+            "correct": 10,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 10,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 10,
+            "trace_rows": 520,
+            "trace_leaks": 0
+          },
+          "write-outage": {
+            "runs": 5,
+            "correct": 5,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 10,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 5,
+            "trace_rows": 245,
+            "trace_leaks": 0
+          },
+          "clean": {
+            "runs": 70,
+            "correct": 70,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 70,
+            "trace_rows": 2504,
+            "trace_leaks": 0
+          }
+        }
+      },
+      {
+        "scenario": "c-thirty-tasks",
+        "door": "tho-than-host",
+        "counts": {
+          "runs": 100,
+          "correct": 100,
+          "incorrect": 0,
+          "errors": 15,
+          "timeouts": 1,
+          "draft_retries": 15,
+          "write_retries": 20,
+          "duplicates": 0,
+          "lost": 0,
+          "wrong_content": 0,
+          "point_missed": 0,
+          "unauthorized": 0,
+          "restarts": 0,
+          "trace_runs": 100,
+          "trace_rows": 3816,
+          "trace_leaks": 0
+        },
+        "by_run_kind": {
+          "draft-network": {
+            "runs": 14,
+            "correct": 14,
+            "incorrect": 0,
+            "errors": 14,
+            "timeouts": 0,
+            "draft_retries": 14,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 14,
+            "trace_rows": 500,
+            "trace_leaks": 0
+          },
+          "draft-timeout": {
+            "runs": 1,
+            "correct": 1,
+            "incorrect": 0,
+            "errors": 1,
+            "timeouts": 1,
+            "draft_retries": 1,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 1,
+            "trace_rows": 36,
+            "trace_leaks": 0
+          },
+          "write-drop": {
+            "runs": 10,
+            "correct": 10,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 10,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 10,
+            "trace_rows": 519,
+            "trace_leaks": 0
+          },
+          "write-outage": {
+            "runs": 5,
+            "correct": 5,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 10,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 5,
+            "trace_rows": 255,
+            "trace_leaks": 0
+          },
+          "clean": {
+            "runs": 70,
+            "correct": 70,
+            "incorrect": 0,
+            "errors": 0,
+            "timeouts": 0,
+            "draft_retries": 0,
+            "write_retries": 0,
+            "duplicates": 0,
+            "lost": 0,
+            "wrong_content": 0,
+            "point_missed": 0,
+            "unauthorized": 0,
+            "restarts": 0,
+            "trace_runs": 70,
+            "trace_rows": 2506,
+            "trace_leaks": 0
+          }
+        }
+      }
+    ],
+    "fault_plan": {
+      "network_error_runs": "1-10 and 12-15: call a port that resets the connection, then send again",
+      "host_timeout_run": "11 on tho-than-host when the timeout run is on: a silent port, so the fake host gives up after 60000 ms",
+      "drop_answer_runs": "16-25: the task list commits the first answer and closes the connection",
+      "outage_runs": "26-30: the task list stops for 2000 ms in the middle of the run",
+      "clean_runs": "31 onward: no fault"
+    },
+    "host_timeout_ms": 60000,
+    "timeout_runs_per_group": 1,
+    "outage_ms": 2000,
+    "wait_timeouts_ms": {
+      "write": 30000,
+      "settle": 60000,
+      "outage_settle": 60000
+    },
+    "counts": {
+      "total": {
+        "runs": 600,
+        "correct": 600,
+        "incorrect": 0,
+        "errors": 90,
+        "timeouts": 2,
+        "draft_retries": 90,
+        "write_retries": 120,
+        "duplicates": 0,
+        "lost": 0,
+        "wrong_content": 0,
+        "point_missed": 0,
+        "unauthorized": 0,
+        "restarts": 0,
+        "trace_runs": 600,
+        "trace_rows": 13688,
+        "trace_leaks": 0
+      },
+      "by_group": {
+        "a-one-task/http": {
+          "runs": 100,
+          "correct": 100,
+          "incorrect": 0,
+          "errors": 15,
+          "timeouts": 0,
+          "draft_retries": 15,
+          "write_retries": 20,
+          "duplicates": 0,
+          "lost": 0,
+          "wrong_content": 0,
+          "point_missed": 0,
+          "unauthorized": 0,
+          "restarts": 0,
+          "trace_runs": 100,
+          "trace_rows": 755,
+          "trace_leaks": 0
+        },
+        "a-one-task/mcp-http": {
+          "runs": 100,
+          "correct": 100,
+          "incorrect": 0,
+          "errors": 15,
+          "timeouts": 0,
+          "draft_retries": 15,
+          "write_retries": 20,
+          "duplicates": 0,
+          "lost": 0,
+          "wrong_content": 0,
+          "point_missed": 0,
+          "unauthorized": 0,
+          "restarts": 0,
+          "trace_runs": 100,
+          "trace_rows": 755,
+          "trace_leaks": 0
+        },
+        "a-one-task/tho-than-host": {
+          "runs": 100,
+          "correct": 100,
+          "incorrect": 0,
+          "errors": 15,
+          "timeouts": 1,
+          "draft_retries": 15,
+          "write_retries": 20,
+          "duplicates": 0,
+          "lost": 0,
+          "wrong_content": 0,
+          "point_missed": 0,
+          "unauthorized": 0,
+          "restarts": 0,
+          "trace_runs": 100,
+          "trace_rows": 751,
+          "trace_leaks": 0
+        },
+        "c-thirty-tasks/http": {
+          "runs": 100,
+          "correct": 100,
+          "incorrect": 0,
+          "errors": 15,
+          "timeouts": 0,
+          "draft_retries": 15,
+          "write_retries": 20,
+          "duplicates": 0,
+          "lost": 0,
+          "wrong_content": 0,
+          "point_missed": 0,
+          "unauthorized": 0,
+          "restarts": 0,
+          "trace_runs": 100,
+          "trace_rows": 3806,
+          "trace_leaks": 0
+        },
+        "c-thirty-tasks/mcp-http": {
+          "runs": 100,
+          "correct": 100,
+          "incorrect": 0,
+          "errors": 15,
+          "timeouts": 0,
+          "draft_retries": 15,
+          "write_retries": 20,
+          "duplicates": 0,
+          "lost": 0,
+          "wrong_content": 0,
+          "point_missed": 0,
+          "unauthorized": 0,
+          "restarts": 0,
+          "trace_runs": 100,
+          "trace_rows": 3805,
+          "trace_leaks": 0
+        },
+        "c-thirty-tasks/tho-than-host": {
+          "runs": 100,
+          "correct": 100,
+          "incorrect": 0,
+          "errors": 15,
+          "timeouts": 1,
+          "draft_retries": 15,
+          "write_retries": 20,
+          "duplicates": 0,
+          "lost": 0,
+          "wrong_content": 0,
+          "point_missed": 0,
+          "unauthorized": 0,
+          "restarts": 0,
+          "trace_runs": 100,
+          "trace_rows": 3816,
+          "trace_leaks": 0
+        }
+      }
+    },
+    "expected": {
+      "assignee": "NV-04",
+      "writes_per_task": 1,
+      "version_step": 1
+    }
+  },
+  "environment": {
+    "commit": "7b7ae94f4b4acdbac8c0f28549f7507d4aef9c27",
+    "commit_short": "7b7ae94",
+    "dirty": false,
+    "node": "v22.21.0",
+    "os": {
+      "platform": "win32",
+      "release": "10.0.26200",
+      "version": "Windows 11 Home",
+      "arch": "x64"
+    },
+    "cpu": {
+      "model": "Intel(R) Core(TM) Ultra 5 225H",
+      "count": 14,
+      "speed_mhz": 3686
+    },
+    "memory_total_bytes": 33752997888,
+    "timezone": "Asia/Bangkok"
+  },
+  "samples_file": {
+    "name": "2026-11-20-m2-scenarios-7b7ae94.samples.ndjson.gz",
+    "count": 600,
+    "sha256": "40a372693759c122e12a283d975b72acb9bada692c7185efeb87eb87ee4a5d73"
+  },
+  "summary": {
+    "overall": {
+      "client_ms": {
+        "count": 600,
+        "p50_ms": 1317.375,
+        "p95_ms": 4865.239,
+        "max_ms": 61457.135,
+        "min_ms": 1075.975,
+        "mean_ms": 1806.396
+      },
+      "gateway_duration_ms": null
+    },
+    "by_door": {
+      "http": {
+        "client_ms": {
+          "count": 200,
+          "p50_ms": 1302.489,
+          "p95_ms": 3063.058,
+          "max_ms": 4995.785,
+          "min_ms": 1075.975,
+          "mean_ms": 1597.776
+        },
+        "gateway_duration_ms": null
+      },
+      "mcp-http": {
+        "client_ms": {
+          "count": 200,
+          "p50_ms": 1315.795,
+          "p95_ms": 3196.505,
+          "max_ms": 4982.462,
+          "min_ms": 1079.793,
+          "mean_ms": 1607.036
+        },
+        "gateway_duration_ms": null
+      },
+      "tho-than-host": {
+        "client_ms": {
+          "count": 200,
+          "p50_ms": 1321.093,
+          "p95_ms": 4876.505,
+          "max_ms": 61457.135,
+          "min_ms": 1078.241,
+          "mean_ms": 2214.377
+        },
+        "gateway_duration_ms": null
+      }
+    },
+    "by_tool": {
+      "a-one-task": {
+        "client_ms": {
+          "count": 300,
+          "p50_ms": 1097.452,
+          "p95_ms": 4865.019,
+          "max_ms": 61100.306,
+          "min_ms": 1075.975,
+          "mean_ms": 1673.565
+        },
+        "gateway_duration_ms": null
+      },
+      "c-thirty-tasks": {
+        "client_ms": {
+          "count": 300,
+          "p50_ms": 1409.433,
+          "p95_ms": 4948.005,
+          "max_ms": 61457.135,
+          "min_ms": 1281.026,
+          "mean_ms": 1939.227
+        },
+        "gateway_duration_ms": null
+      }
+    },
+    "by_door_tool": [
+      {
+        "door": "http",
+        "tool": "a-one-task",
+        "client_ms": {
+          "count": 100,
+          "p50_ms": 1095.216,
+          "p95_ms": 2970.273,
+          "max_ms": 4995.785,
+          "min_ms": 1075.975,
+          "mean_ms": 1470.73
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "mcp-http",
+        "tool": "a-one-task",
+        "client_ms": {
+          "count": 100,
+          "p50_ms": 1097.305,
+          "p95_ms": 3196.505,
+          "max_ms": 4980.724,
+          "min_ms": 1079.793,
+          "mean_ms": 1475.89
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "tho-than-host",
+        "tool": "a-one-task",
+        "client_ms": {
+          "count": 100,
+          "p50_ms": 1101.243,
+          "p95_ms": 4865.019,
+          "max_ms": 61100.306,
+          "min_ms": 1078.241,
+          "mean_ms": 2074.076
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "http",
+        "tool": "c-thirty-tasks",
+        "client_ms": {
+          "count": 100,
+          "p50_ms": 1401.42,
+          "p95_ms": 3063.058,
+          "max_ms": 4973.936,
+          "min_ms": 1281.026,
+          "mean_ms": 1724.822
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "mcp-http",
+        "tool": "c-thirty-tasks",
+        "client_ms": {
+          "count": 100,
+          "p50_ms": 1412.228,
+          "p95_ms": 3074.646,
+          "max_ms": 4982.462,
+          "min_ms": 1300.665,
+          "mean_ms": 1738.181
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "tho-than-host",
+        "tool": "c-thirty-tasks",
+        "client_ms": {
+          "count": 100,
+          "p50_ms": 1414.661,
+          "p95_ms": 4971.314,
+          "max_ms": 61457.135,
+          "min_ms": 1295.881,
+          "mean_ms": 2354.679
+        },
+        "gateway_duration_ms": null
+      }
+    ]
+  },
+  "targets": [],
+  "safety": {
+    "counters": [
+      {
+        "id": "duplicate_writes",
+        "label": "Ghi trùng",
+        "applicable": true,
+        "value": 0,
+        "detail": "Đếm số lần ghi thật trên 1 cho mỗi task, cộng qua 600 lần chạy; 0 lần ghi thêm."
+      },
+      {
+        "id": "lost_commands",
+        "label": "Lệnh mất",
+        "applicable": true,
+        "value": 0,
+        "detail": "Đếm task không có lần ghi nào sau khi đề xuất đã xong, cộng qua 600 lần chạy; 0 task sót."
+      },
+      {
+        "id": "unauthorized_writes",
+        "label": "Ghi vượt quyền",
+        "applicable": true,
+        "value": 0,
+        "detail": "Đếm lần ghi xảy ra trước khi người yêu cầu bấm Gửi hoặc trước khi trưởng nhóm duyệt; 0 lần."
+      },
+      {
+        "id": "out_of_scope_fields",
+        "label": "Trường ngoài quyền",
+        "applicable": false,
+        "value": null,
+        "detail": "Phép đo chỉ đọc và ghi task; không gọi find_employee hay get_task nên không có trường cá nhân nào để rò."
+      },
+      {
+        "id": "personal_data_in_trace",
+        "label": "Dữ liệu cá nhân trong vết",
+        "applicable": true,
+        "value": 0,
+        "detail": "Đã quét 13688 dòng vết của 600/600 lần chạy cho tên, email, số điện thoại, địa chỉ và khoá; 0 dòng chứa."
+      }
+    ],
+    "all_applicable_zero": true
+  },
+  "notes": [
+    "Mỗi lần chạy dựng một đích mới trên cổng mạng trống và thư mục dữ liệu tạm, nên bảng lệnh ghi và bảng vết chỉ chứa đúng lần chạy đó.",
+    "Kịch bản A đổi người phụ trách T-12; kịch bản C đổi người phụ trách 30 task T-5 đến T-34 và chờ anh Quang duyệt.",
+    "Ba cửa vào là http, mcp-http và tho-than-host; mỗi cặp kịch bản và cửa lặp 100 lần.",
+    "Lỗi mạng cố ý ở các lần 1-10 và 12-15: gọi vào một cổng đóng kết nối ngay, rồi gửi lại. Hết giờ 60000 ms ở lần 11 của cửa tho-than-host: không có phản hồi, client giả bỏ cuộc rồi gửi lại.",
+    "Các lần 16-25 làm rơi phản hồi sau khi danh sách task đã ghi; các lần 26-30 cho danh sách task ngừng 2000 ms giữa chừng.",
+    "Mục tiêu ban đầu 99/100 mỗi nhóm: kết quả 600/600 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất, 0 lần không chạm đúng lỗi cố ý.",
+    "Đã ghi lại 90 lỗi mạng cố ý và 2 lần hết giờ; tổng số lần gửi lại là 210."
+  ]
+}
