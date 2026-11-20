@@ -58,6 +58,11 @@ export interface TraceFilter {
   /** One line, by its code. The console asks for the line of the call it just made. */
   readonly traceId?: string;
   readonly employee?: string;
+  /**
+   * One task. A line matches when it names the task, or when it belongs to a
+   * proposal that contains it, so task 17 of a 30-item proposal still shows
+   * the send, the approval and its own write.
+   */
   readonly task?: string;
   /** The proposal a line is a step of, such as `dx-0123456789abcdef`. */
   readonly proposal?: string;
@@ -176,6 +181,13 @@ export class TraceReader {
     return row.total;
   }
 
+  /** `proposal_items` arrives with change sets; a trace-only database from before them has no such table. */
+  private hasProposalItems(): boolean {
+    return (
+      this.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'proposal_items'").get() !== undefined
+    );
+  }
+
   private where(filter: TraceFilter): { where: string; params: Record<string, string | number> } {
     const clauses: string[] = [];
     const params: Record<string, string | number> = {};
@@ -188,8 +200,19 @@ export class TraceReader {
       params['employee'] = filter.employee;
     }
     if (filter.task !== undefined) {
-      clauses.push('object_id = @task');
       params['task'] = filter.task;
+      // The approval line names only the first item (`items[0]`), so a task
+      // filter has to reach the proposal's other lines through its items.
+      // A table from before change sets has no `proposal_items`; there the
+      // older object-only filter still answers, and `--proposal` reaches the rest.
+      if (this.hasProposalItems()) {
+        clauses.push(
+          '(object_id = @task OR proposal_id IN (SELECT proposal_id FROM proposal_items WHERE record_type = @taskType AND record_id = @task))',
+        );
+        params['taskType'] = 'task';
+      } else {
+        clauses.push('object_id = @task');
+      }
     }
     if (filter.proposal !== undefined) {
       clauses.push('proposal_id = @proposal');

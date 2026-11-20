@@ -205,6 +205,11 @@ npm run trace -- --proposal dx-0123456789abcdef --entry web
 npm run trace -- --limit 20
 ```
 
+`--task` trả hai loại dòng: dòng có đối tượng là task đó, và mọi dòng của đề xuất chứa task đó (`proposal_send`, `proposal_approve`, `proposal_reject`, `write_command`).
+Nhờ vậy tra mục thứ 17 của một đề xuất 30 mục vẫn thấy người yêu cầu, người duyệt, phiên bản luật và lệnh ghi của chính mục đó.
+Dòng duyệt vẫn chỉ có một và gắn với mục đầu tiên, nên bảng không nhân bản dòng duyệt và không đổi cột.
+Trang Vết của trang điều khiển lọc theo task cùng cách.
+
 Lời gọi từ sân chơi của trang điều khiển có cửa vào `http` và nơi gọi `lab-console`; lọc theo cửa vào để tách chúng khỏi lời gọi của Thổ Thần.
 
 ## Mã nguồn

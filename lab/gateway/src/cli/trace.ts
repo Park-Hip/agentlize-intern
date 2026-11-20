@@ -8,7 +8,7 @@ import { UsageError, type CliIo } from './keys.js';
 const USAGE = [
   'Usage:',
   '  npm run trace -- --employee <NV-xx>   calls made by one employee',
-  '  npm run trace -- --task <T-n>         calls that named one task',
+  '  npm run trace -- --task <T-n>         lines about one task, with every line of the proposal that contains it',
   '  npm run trace -- --proposal <dx-...>  steps of one proposal',
   '  npm run trace -- --entry <http|mcp|web>  calls from one door',
   '  npm run trace -- --limit <n>          show at most n lines (default 200)',
