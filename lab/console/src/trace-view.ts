@@ -1,5 +1,13 @@
 import { EMPLOYEE_ID_PATTERN } from '@lab/shared';
-import { ENTRIES, PROPOSAL_ID_PATTERN, type TraceEntry, type TraceFilter, type TraceOutcome, type TraceRow } from '@lab/gateway';
+import {
+  ENTRIES,
+  formatUsd,
+  PROPOSAL_ID_PATTERN,
+  type TraceEntry,
+  type TraceFilter,
+  type TraceOutcome,
+  type TraceRow,
+} from '@lab/gateway';
 
 /** The page shows the newest lines; a filter is how an operator reaches older ones. */
 export const TRACE_LIMIT = 200;
@@ -115,6 +123,18 @@ const OUTCOME_LABEL: Readonly<Record<TraceOutcome, string>> = {
 
 export function outcomeLabel(outcome: TraceOutcome): string {
   return OUTCOME_LABEL[outcome];
+}
+
+/**
+ * The cost of the line's conversation turn, as one plain sentence. The three
+ * cases are distinct: the host gave no turn code, it gave one the assistant has
+ * not reported yet, or the numbers are there. The page escapes this text.
+ */
+export function usageLabel(row: TraceRow): string {
+  if (row.turnId === null) return 'chi phí: host không báo';
+  if (row.usage === null) return 'chi phí: chưa báo';
+  const usage = row.usage;
+  return `chi phí: ${formatUsd(usage.costUsd)} (${usage.inputTokens} vào / ${usage.outputTokens} ra, ${usage.model})`;
 }
 
 /**

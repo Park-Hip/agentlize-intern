@@ -14,7 +14,7 @@ import type { ProposalExecutor, ProposalStore } from './proposals/index.js';
 import type { CommandStore } from './writes/index.js';
 import type { RegisteredTool, ToolResult } from './tools/types.js';
 import type { SessionStore } from './web/session-store.js';
-import { newTraceId, type TraceEntry, type TraceStore } from './trace/index.js';
+import { newTraceId, readTurnId, type TraceEntry, type TraceStore } from './trace/index.js';
 
 /**
  * The part of a tool call that does not depend on the door it came through.
@@ -54,10 +54,12 @@ export interface Trail {
   tool: string;
   requester: string | null;
   caller: string | null;
+  /** The host's `X-Lab-Turn` for this call, or null when it sent none; it groups a turn's cost. */
+  turnId: string | null;
 }
 
 export function newTrail(): Trail {
-  return { tool: UNKNOWN_TOOL, requester: null, caller: null };
+  return { tool: UNKNOWN_TOOL, requester: null, caller: null, turnId: null };
 }
 
 const REFUSAL_STATUS: Readonly<Partial<Record<ReasonCode, number>>> = {
@@ -231,6 +233,7 @@ export function writeTrace(
       ruleId: result.ruleId ?? null,
       policyVersion: result.policyVersion ?? null,
       hostUser,
+      turnId: trail.turnId,
       proposalId: result.proposalId ?? null,
       durationMs: performance.now() - startedAt,
     });
@@ -256,6 +259,8 @@ export async function performCall(
 ): Promise<CallOutcome> {
   const started = performance.now();
   const trail = newTrail();
+  // The header belongs to the turn, not to one door: both `/v1/tools` and `/mcp` pass their raw headers here.
+  trail.turnId = readTurnId(headers);
   const result = await answerSafely(deps, authenticated, toolName, readArgs, trail);
   const traceId = writeTrace(deps, entry, trail, result, maskedHostUser(headers), started);
   return { result, traceId };

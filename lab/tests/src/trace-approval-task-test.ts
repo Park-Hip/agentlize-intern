@@ -198,7 +198,7 @@ test('trace: task 17 of a 30-task proposal shows the requester, the approver, th
   const ownWrites = lines.filter((line) => new RegExp(String.raw`\swrite_command\s+${seventeenth}\s`).test(line));
   assert.equal(ownWrites.length, 1, 'task 17 has exactly one write line');
   assert.match(ownWrites[0] ?? '', new RegExp(String.raw`\swrite_command\s+${seventeenth}\s+ok\s+-\s+-\s+WRITE\.SEND\s+v1\b`));
-  assert.match(ownWrites[0] ?? '', new RegExp(`${proposalId}:17\\s+1\\s+\\d+$`), 'the write keeps its fixed key and one send');
+  assert.match(ownWrites[0] ?? '', new RegExp(`${proposalId}:17\\s+1\\s+\\d+\\s+-\\s+chi phí: host không báo$`), 'the write keeps its fixed key and one send');
 
   const byProposal = traceTable(env, ['--proposal', proposalId]);
   assert.equal((byProposal.match(/\sproposal_approve\s/g) ?? []).length, 1);

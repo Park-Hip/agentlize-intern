@@ -242,6 +242,7 @@ test('trace: the task filter leaves no duplicate approval rows and the table sti
       'rule_id',
       'policy_version',
       'host_user',
+      'turn_id',
       'proposal_id',
       'idempotency_key',
       'attempts',
