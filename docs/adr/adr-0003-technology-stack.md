@@ -2,7 +2,7 @@
 
 Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
-Quyết định 5 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md#11-cần-chốt-trước-khi-dựng).
+Quyết định 5 trong [spec bản thử, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt).
 
 ## Đọc nhanh
 
@@ -16,7 +16,7 @@ Quyết định 5 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md
 
 - Chương trình đo `tools/mcp-probe` viết bằng TypeScript, dùng SDK MCP chính thức `@modelcontextprotocol/sdk` 1.32.2 và máy chủ HTTP có sẵn của Node; giới hạn 60 giây của Thổ Thần đã được đo trên đúng bộ này.
 - Máy của Lab chạy Node 22.21.
-- Spec cần năm bảng dữ liệu cho cổng ([spec, mục 6](../../rd/design/mvp-spec.md#6-dữ-liệu-cổng-giữ)), hai hệ thống giả tách thành dịch vụ riêng ([spec, mục 4.2](../../rd/design/mvp-spec.md#42-thành-phần)), và một bộ luật quyền theo ma trận của [PRD, mục 3.2](../../rd/problem/prd-ai-platform.md#32-ai-được-làm-gì).
+- Cổng giữ dữ liệu trong SQLite ([hướng dẫn cổng](../../lab/gateway/README.md)), hai hệ thống giả tách thành dịch vụ riêng ([spec, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt)), và một bộ luật quyền theo ma trận của [PRD, mục 3.2](../../rd/problem/prd-ai-platform.md#32-ai-được-làm-gì).
 - Phép đo HTTPS ngày 2026-11-17 cho thấy cổng có thể phải chạy ở một máy chủ chung; ADR về nơi chạy và cách nối sẽ chốt sau khi đo xong lời gọi trong chat.
 
 **Kết luận:** dùng lại đúng bộ công cụ đã đo trên Thổ Thần là cách ít rủi ro nhất.
@@ -35,7 +35,7 @@ Quyết định 5 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md
 | Cổng mạng | Cổng 8790, danh bạ giả 8791, task giả 8792, chỉ nghe ở `127.0.0.1` | Không mở ra ngoài khi chưa có ADR về nơi chạy |
 | Khoá | Khoá người dùng dạng `lab_` cộng 32 byte ngẫu nhiên; lưu mã băm SHA-256; so sánh thời gian hằng; log chỉ hiện 6 ký tự đầu. Khoá dịch vụ của cổng sinh lúc khởi tạo, chỉ nằm trong biến môi trường | Khoá đủ dài nên băm một lần là đủ; repo không chứa khoá thô |
 | Phép thử | `node:test` có sẵn, chạy trên mã đã build; một client giả Thổ Thần mở tiến trình mới cho mỗi lần gọi và cắt ở 60 giây | Không thêm công cụ; client giả lấy từ cách probe tự kiểm |
-| Lệnh | Một lệnh khởi động cả ba dịch vụ, một lệnh chạy toàn bộ phép thử; ghi vào [AGENTS.md, mục 6](../../AGENTS.md#6-commands) khi có mã | Đúng điều kiện của [spec, mục 9](../../rd/design/mvp-spec.md#9-bốn-mốc) |
+| Lệnh | Một lệnh khởi động cả ba dịch vụ, một lệnh chạy toàn bộ phép thử; ghi vào [AGENTS.md, mục 6](../../AGENTS.md#6-commands) khi có mã | Đúng điều kiện của [spec, mục 5.2](../../rd/design/mvp-spec.md#52-điểm-dừng) |
 
 Mã truy cập SQLite nằm sau một module lưu trữ nhỏ, để đổi thư viện hay đổi sang Postgres không chạm tới phần còn lại.
 

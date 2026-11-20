@@ -167,13 +167,13 @@ Q1 đã có bằng chứng tự động trong [nghiệm thu mốc 3, mục 2](ev
 Ba lần tắt cổng ở ba thời điểm và một lần ngắt danh sách task 20 giây đều cho đủ 30 task, mỗi task đúng một lần ghi, nên giữ 1A (cổng tự lưu tiến độ và chạy tiếp).
 Kết luận này chỉ nói về hàng đợi lệnh ghi của cổng trên hệ thống giả; phiên kịch bản C trong Thổ Thần desktop chưa chạy, nên chưa nói gì về host thật.
 
-Q1 và Q2 chi tiết ở [câu hỏi kiểm chứng](design/research-questions-and-validation-plan.md).
+Q1 và Q2 chi tiết ở [spec bản thử, mục 2.1](design/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không).
 Bốn câu H9 tới H12 chi tiết ở [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được).
 Hai câu về thiết bị và Hook, cùng mọi mối nối giữa Appota, AgentLize, Thổ Thần, MausBot và Lab ở [bản đồ hệ thống](design/system-map.md).
 
 Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã có lời đáp ở mục 4; câu khoá riêng hay dùng chung vẫn mở.
 
-**Kết luận:** Q1 đã có câu trả lời tạm thời là 1A từ phép thử tự động, còn phiên host thật để xác nhận; không câu nào còn chặn việc viết ADR; câu chia sẻ khoá quyết định mô hình khoá có dùng được trong thực tế không, còn câu nguồn header quyết định có bật lớp kiểm thứ hai không.
+**Kết luận:** Q1 tạm giữ phương án 1A trên hệ thống giả, kết luận cuối chờ bản đối chứng #110 và phiên host thật; không câu nào còn chặn việc viết ADR; câu chia sẻ khoá quyết định mô hình khoá có dùng được trong thực tế không, còn câu nguồn header quyết định có bật lớp kiểm thứ hai không.
 
 ## 7. Đo thế nào là thành công
 
@@ -215,5 +215,5 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 - [Khảo sát Thổ Thần](appota/tho-than-platform.md), [kịch bản đo MCP trong Thổ Thần](appota/tho-than-mcp-probe.md), [tình huống Appota](appota/appota-cases.md), [skill của AppotaPay](appota/appotapay-skills.md).
 - [Spec bản thử đầu](design/mvp-spec.md): bản thử chứng minh gì, kiến trúc, phép thử và bốn mốc.
 - [Bản đồ hệ thống](design/system-map.md) và [bản vẽ](design/system-map.html): năm mảnh ghép nối với nhau thế nào, mối nối nào đã đo, điều gì chưa biết và cách kiểm.
-- [Câu hỏi kiểm chứng](design/research-questions-and-validation-plan.md): Q1 (sập giữa chừng) và Q2 (MCP tiết kiệm bao nhiêu công), cách thử và đối chứng.
+- [Spec bản thử, mục 2](design/mvp-spec.md#2-hai-câu-hỏi-nghiên-cứu): Q1 (sập giữa chừng) và Q2 (MCP tiết kiệm bao nhiêu công), cách thử và đối chứng.
 - [Báo cáo cổng kiểm quyền trong Thổ Thần](evaluation/permission-gateway-tho-than.md), [nghiệm thu mốc 1](evaluation/milestone-1-tho-than.md), [nghiệm thu mốc 2](evaluation/milestone-2-tho-than.md) và [nghiệm thu mốc 3](evaluation/milestone-3-tho-than.md): bản thử chạy trong Thổ Thần desktop, bằng chứng và số đo đầu tiên.

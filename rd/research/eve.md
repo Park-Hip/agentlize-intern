@@ -27,7 +27,7 @@ Nó tách thành sáu câu nhỏ:
 5. Khi làm nơi gọi (host), eve giúp hay cản tám yêu cầu SR1-SR8 của [PRD](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc) tới đâu?
 6. Điều gì phải chạy thử mới biết, và chạy theo thứ tự nào?
 
-Câu hỏi gắn với tiêu chí nghiệm thu "chứng minh Agent khác tái sử dụng được công cụ" ([tài liệu chương trình](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt), dòng 239) và với mốc 4 của [spec bản thử](../design/mvp-spec.md#9-bốn-mốc).
+Câu hỏi gắn với tiêu chí nghiệm thu "chứng minh Agent khác tái sử dụng được công cụ" ([tài liệu chương trình](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt), dòng 239) và với mốc 4 của [spec bản thử, mục 5.2](../design/mvp-spec.md#52-điểm-dừng).
 
 **Kết luận:** tài liệu phải ra một đề xuất về vai trò của eve ở mốc 4 và ở Appota, kèm danh sách phép kiểm để biến đề xuất thành bằng chứng.
 
@@ -111,7 +111,7 @@ E1 cần Appota cấp một ứng dụng Lark và một khoá mô hình, nên Ke
 
 ### 5.1. Nơi gọi thứ hai cho mốc 4
 
-Spec hiện ghi nơi gọi thứ hai là "trợ lý gọi hàm của Lab", một chương trình chat dòng lệnh tự viết ([spec, mục 4](../design/mvp-spec.md#4-kiến-trúc)).
+Spec hiện ghi nơi gọi thứ hai là "trợ lý gọi hàm của Lab", một chương trình chat dòng lệnh tự viết ([spec, mục 6](../design/mvp-spec.md#6-kiến-trúc-tóm-tắt)).
 Một trợ lý eve làm được cùng việc đó, theo hai lối vào của cổng:
 
 - **Lối MCP:** một kết nối MCP trỏ tới `/mcp` của cổng ([cửa `/mcp`](../../lab/gateway/README.md#hai-cửa-vào)).

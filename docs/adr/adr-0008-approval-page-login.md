@@ -14,7 +14,7 @@ Ngày: 2026-11-19. Trạng thái: đã chấp nhận.
 
 Ví dụ: chị Hoa nhờ AI chuyển 30 task của chị Lan; việc này phải chờ anh Quang duyệt.
 
-Theo [spec, mục 5.2](../../rd/design/mvp-spec.md#52-xác-nhận-và-duyệt), trang đăng nhập giả lập hỏi khoá `lab_` của nhân vật, đúng khoá đặt trong skill của Thổ Thần.
+Trước ADR này, trang đăng nhập giả lập hỏi khoá `lab_` của nhân vật, đúng khoá đặt trong skill của Thổ Thần.
 Lời hứa "AI không bấm thay được" ([ADR-0002, mục 3](adr-0002-safe-read-and-write.md#3-quyết-định-về-ghi)) vì thế dựa trên một giả định: AI không bao giờ đọc được khoá đó.
 
 Giả định này yếu đi vì hai điều:
@@ -36,7 +36,7 @@ Bước duyệt của mốc 3 còn thiếu ba điều: người duyệt biết c
 | A. Giữ khoá công cụ làm thông tin đăng nhập trang | Không phải làm gì | Ai đọc được khoá, kể cả agent qua Bridge, tự bấm được; SR4 (điểm dừng rủi ro) chỉ đúng khi giả định trên đúng | Loại |
 | B. Mỗi nhân vật có một mật khẩu trang riêng, khác khoá công cụ | Nơi gọi công cụ không giữ thứ mở được trang; rẻ; vẫn là đăng nhập giả lập, ghi rõ trên trang | Người dùng giữ hai thứ; thêm một bảng và một lệnh cấp | **Chọn** |
 | C. Mã dùng một lần gửi qua kênh khác (Lark, email) | Gần với thực tế hơn | Lab không nối Lark hay email và chỉ dùng dữ liệu giả | Loại |
-| D. Đăng nhập thật (SSO) | Đúng cách cho hệ thống thật | Ngoài phạm vi bản thử ([spec, mục 2.3](../../rd/design/mvp-spec.md#23-không-làm-trong-bản-thử)) | Để sau |
+| D. Đăng nhập thật (SSO) | Đúng cách cho hệ thống thật | Ngoài phạm vi bản thử ([spec, mục 5.3](../../rd/design/mvp-spec.md#53-ngoài-phạm-vi-và-vì-sao)) | Để sau |
 
 Về hạn chờ duyệt:
 

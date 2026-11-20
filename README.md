@@ -14,7 +14,7 @@ Start with [findings](rd/findings.md): what the research found, the lessons, and
 | Problem | [rd/problem](rd/problem) | [PRD - AI Platform](rd/problem/prd-ai-platform.md): problem, users, requirements SR1-SR8; [bảng thuật ngữ](rd/problem/glossary.md); [mental model](rd/problem/track01-mental-model.html) |
 | Outside research | [rd/research](rd/research) | [Market lessons](rd/research/market-lessons.md), [market landscape](rd/research/market-landscape.md), [option comparison](rd/research/option-comparison.md), [comparison framework](rd/research/comparison-framework.md), [five methods](rd/research/five-methods), [real systems](rd/research/real-system-architectures.md), [MCP overview](rd/research/mcp-overview.md) |
 | Appota systems | [rd/appota](rd/appota) | [Thổ Thần platform](rd/appota/tho-than-platform.md), [MCP probe results in Thổ Thần](rd/appota/tho-than-mcp-probe.md), [Appota cases](rd/appota/appota-cases.md), [AppotaPay skills](rd/appota/appotapay-skills.md) |
-| Design | [rd/design](rd/design) | [Prototype spec](rd/design/mvp-spec.md), [system map](rd/design/system-map.md), [research questions and validation plan](rd/design/research-questions-and-validation-plan.md) |
+| Design | [rd/design](rd/design) | [Prototype spec](rd/design/mvp-spec.md), [system map](rd/design/system-map.md) |
 | Source checks | [rd/checks](rd/checks) | One script per document that re-opens the cited URLs |
 | Host probe | [tools/mcp-probe](tools/mcp-probe) | Throwaway MCP server that recorded how Thổ Thần behaves as an MCP host ([README](tools/mcp-probe/README.md)) |
 | Prototype | [lab](lab) | AI Operations Connector Lab: gateway, fake systems, `/mcp`, tests ([README](lab/README.md)) |

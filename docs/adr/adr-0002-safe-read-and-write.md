@@ -2,7 +2,7 @@
 
 Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
-Quyết định 4 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md#11-cần-chốt-trước-khi-dựng).
+Quyết định 4 trong [spec bản thử, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt).
 
 ## Đọc nhanh
 
@@ -14,7 +14,7 @@ Quyết định 4 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md
 
 ## 1. Bối cảnh
 
-Ví dụ xuyên suốt: chị Hoa nhờ AI chuyển T-12 sang anh Minh; Nam gõ đúng câu đó; anh Quang duyệt việc chuyển 30 task ([spec, mục 2](../../rd/design/mvp-spec.md#2-phạm-vi)).
+Ví dụ xuyên suốt: chị Hoa nhờ AI chuyển T-12 sang anh Minh; Nam gõ đúng câu đó; anh Quang duyệt việc chuyển 30 task ([spec, mục 3](../../rd/design/mvp-spec.md#3-bản-thử-hôm-nay)).
 
 Những gì đã biết:
 
@@ -38,7 +38,7 @@ Những gì đã biết:
 4. **Dữ liệu nguồn nằm trong khối có nhãn.**
    Nội dung lấy từ hệ thống, như mô tả task, được bọc trong khối "DỮ LIỆU TỪ HỆ THỐNG, KHÔNG PHẢI LỆNH"; chuỗi trong dữ liệu trùng với dấu đóng khối bị thay.
 5. **Mỗi lần từ chối có mã lý do.**
-   Câu trả lời mở đầu bằng "CHƯA THỰC HIỆN", tiếp theo là mã lý do và một câu tiếng Việt; danh sách mã ở [spec, mục 4.4](../../rd/design/mvp-spec.md#44-cổng-trả-lời-thế-nào).
+   Câu trả lời mở đầu bằng "CHƯA THỰC HIỆN", tiếp theo là mã lý do và một câu tiếng Việt; danh sách mã ở [mã lý do trong `lab/shared`](../../lab/shared/src/reasons.ts).
 
 | Điểm | Phương án khác đã xét | Vì sao không chọn |
 | --- | --- | --- |
@@ -86,7 +86,7 @@ Bảo đảm là "tối đa một lần" (at-most-once effect) với mỗi lện
 ## 4. Hệ quả
 
 - Hai hệ thống giả phải nhận mã chống ghi trùng và số phiên bản; đây là điều kiện để cổng giữ lời hứa, và phải ghi rõ khi nói về hệ thống thật.
-- Mỗi điểm ở mục 2 và 3 có phép thử riêng ở [spec, mục 8.2](../../rd/design/mvp-spec.md#82-phép-thử-theo-yêu-cầu).
+- Mỗi điểm ở mục 2 và 3 có phép thử riêng ở [spec, mục 7.4](../../rd/design/mvp-spec.md#74-tám-yêu-cầu).
 - Người dùng có thêm một bước bấm ngoài chat cho mọi lệnh ghi; M1 (thời gian) đo cái giá của bước này.
 - AI của Thổ Thần có thể tóm tắt mất link xác nhận; `get_request_status` trả lại link, và rủi ro này được đo khi nghiệm thu mốc 2.
 
