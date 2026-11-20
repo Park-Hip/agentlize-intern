@@ -55,6 +55,8 @@ interface Stack {
   readonly gatewayPort: number;
   readonly gatewayUrl: string;
   readonly tasksUrl: string;
+  /** The live rule file the gateway reads, seeded from the committed rule file. */
+  readonly rulesPath: string;
   readonly gatewayEnv: NodeJS.ProcessEnv;
   readonly systemsEnv: NodeJS.ProcessEnv;
   readonly serviceHeaders: Readonly<Record<string, string>>;
@@ -172,6 +174,7 @@ export class GatewayTarget implements WriteTarget {
         gatewayPort,
         gatewayUrl,
         tasksUrl: `http://${LOOPBACK_HOST}:${tasksPort}`,
+        rulesPath: join(gatewayDir, 'rules.json'),
         gatewayEnv,
         systemsEnv,
         serviceHeaders: {
@@ -188,6 +191,26 @@ export class GatewayTarget implements WriteTarget {
       await rm(systemsDir, { recursive: true, force: true });
       throw error;
     }
+  }
+
+  /** The live rule file this target reads, for the M5 "change one rule" check. */
+  liveRulesPath(): string {
+    return this.requireStack().rulesPath;
+  }
+
+  /**
+   * Draft a task change through the HTTP door and stop before Gửi. The M5
+   * rule check needs an answer from the policy engine, not a write, so this
+   * never creates a write command.
+   */
+  async draftTaskChange(
+    taskIds: readonly string[],
+    changes: Readonly<Record<string, string>>,
+  ): Promise<Answer> {
+    const stack = this.requireStack();
+    const door = DOORS.find((candidate) => candidate.name === 'http');
+    if (door === undefined) throw new Error('the http door is missing');
+    return door.call(stack.gatewayUrl, 'propose_task_change', { task_ids: taskIds, changes }, stack.hoaKey);
   }
 
   async sendProposal(input: SendProposalInput): Promise<ProposalRun> {

@@ -1,0 +1,471 @@
+{
+  "schema": 3,
+  "scenario": {
+    "name": "m5-complexity",
+    "description": "M5: đếm dòng phần chạy tiếp, số dịch vụ, số file cấu hình, số bước cài và bước xử lý khi sập của đích, rồi đổi một ô luật xem cổng có áp ngay không; đích chọn bằng --target, mặc định gateway."
+  },
+  "generated_at": "2026-11-20T06:49:33.063Z",
+  "command": "npm run measure -- m5-complexity --target gateway --runs 100",
+  "runs": 100,
+  "elapsed_seconds": 1.3,
+  "write_target": "gateway",
+  "parameters": {
+    "target": "gateway",
+    "declaration_file": "lab/measure/src/targets/gateway-declaration.ts",
+    "runs_requested": 100,
+    "runs_used": 1,
+    "line_counts": {
+      "files": [
+        {
+          "path": "lab/gateway/src/writes/outbox.ts",
+          "role": "vòng chạy nền: nhặt lệnh còn mở, gửi lại bằng đúng mã cũ, ghi kết quả và giờ gửi lại",
+          "physical": 319,
+          "code": 267,
+          "comment": 29,
+          "blank": 23
+        },
+        {
+          "path": "lab/gateway/src/writes/command-store.ts",
+          "role": "bảng write_commands: trạng thái, số lần gửi và giờ gửi lại nằm trong cơ sở dữ liệu",
+          "physical": 268,
+          "code": 209,
+          "comment": 39,
+          "blank": 20
+        }
+      ],
+      "total": {
+        "physical": 587,
+        "code": 476,
+        "comment": 68,
+        "blank": 43
+      }
+    },
+    "services": {
+      "count": 4,
+      "write_path_count": 3,
+      "items": [
+        {
+          "name": "gateway",
+          "purpose": "nhận đề xuất, kiểm luật, tạo lệnh ghi và chạy vòng gửi nền",
+          "required_for_writes": true,
+          "source": {
+            "path": "lab/README.md",
+            "line": 40,
+            "link": "lab/README.md#L40"
+          }
+        },
+        {
+          "name": "directory",
+          "purpose": "danh bạ giả, nơi cổng đọc vai và phòng của người yêu cầu",
+          "required_for_writes": true,
+          "source": {
+            "path": "lab/README.md",
+            "line": 42,
+            "link": "lab/README.md#L42"
+          }
+        },
+        {
+          "name": "tasks",
+          "purpose": "danh sách task giả, nơi lệnh ghi thật sự đáp xuống",
+          "required_for_writes": true,
+          "source": {
+            "path": "lab/README.md",
+            "line": 43,
+            "link": "lab/README.md#L43"
+          }
+        },
+        {
+          "name": "console",
+          "purpose": "trang điều khiển cho người vận hành, npm start mở cùng",
+          "required_for_writes": false,
+          "source": {
+            "path": "lab/README.md",
+            "line": 41,
+            "link": "lab/README.md#L41"
+          }
+        }
+      ]
+    },
+    "config_files": {
+      "count": 1,
+      "items": [
+        {
+          "path": "lab/gateway/policy/rules.json",
+          "purpose": "luật quyền theo vai, ngưỡng hàng loạt và người duyệt",
+          "source": {
+            "path": "lab/gateway/README.md",
+            "line": 73,
+            "link": "lab/gateway/README.md#L73"
+          }
+        }
+      ]
+    },
+    "install_steps": {
+      "count": 4,
+      "items": [
+        {
+          "step": "Cài Node 22 trở lên",
+          "source": {
+            "path": "lab/README.md",
+            "line": 18,
+            "link": "lab/README.md#L18"
+          }
+        },
+        {
+          "step": "Chạy npm install trong lab/",
+          "source": {
+            "path": "lab/README.md",
+            "line": 21,
+            "link": "lab/README.md#L21"
+          }
+        },
+        {
+          "step": "Chạy npm start để mở cổng và hai hệ thống giả",
+          "source": {
+            "path": "lab/README.md",
+            "line": 22,
+            "link": "lab/README.md#L22"
+          }
+        },
+        {
+          "step": "Chạy npm run seed-keys để cấp khoá tool và mật khẩu trang",
+          "source": {
+            "path": "lab/README.md",
+            "line": 29,
+            "link": "lab/README.md#L29"
+          }
+        }
+      ]
+    },
+    "crash_steps": {
+      "count": 1,
+      "items": [
+        {
+          "step": "Chạy lại npm start trên đúng thư mục dữ liệu; vòng chạy nền tự nhặt lệnh còn mở, không phải gửi lại bằng tay",
+          "source": {
+            "path": "lab/gateway/README.md",
+            "line": 194,
+            "link": "lab/gateway/README.md#L194"
+          }
+        }
+      ]
+    },
+    "excluded_files": [
+      {
+        "path": "lab/gateway/src/writes/index.ts",
+        "reason": "chỉ xuất lại các ký hiệu, không có logic chạy tiếp"
+      },
+      {
+        "path": "lab/gateway/src/writes/authorize.ts",
+        "reason": "kiểm quyền lúc bấm Gửi, không giữ tiến độ hay chạy lại"
+      },
+      {
+        "path": "lab/gateway/src/proposals/proposal-store.ts",
+        "reason": "kho đề xuất dùng chung cho mọi thao tác ghi, không riêng phần chạy tiếp"
+      }
+    ],
+    "sources_checked": {
+      "count": 11,
+      "items": [
+        {
+          "path": "lab/README.md",
+          "line": 40,
+          "link": "lab/README.md#L40"
+        },
+        {
+          "path": "lab/README.md",
+          "line": 42,
+          "link": "lab/README.md#L42"
+        },
+        {
+          "path": "lab/README.md",
+          "line": 43,
+          "link": "lab/README.md#L43"
+        },
+        {
+          "path": "lab/README.md",
+          "line": 41,
+          "link": "lab/README.md#L41"
+        },
+        {
+          "path": "lab/gateway/README.md",
+          "line": 73,
+          "link": "lab/gateway/README.md#L73"
+        },
+        {
+          "path": "lab/README.md",
+          "line": 18,
+          "link": "lab/README.md#L18"
+        },
+        {
+          "path": "lab/README.md",
+          "line": 21,
+          "link": "lab/README.md#L21"
+        },
+        {
+          "path": "lab/README.md",
+          "line": 22,
+          "link": "lab/README.md#L22"
+        },
+        {
+          "path": "lab/README.md",
+          "line": 29,
+          "link": "lab/README.md#L29"
+        },
+        {
+          "path": "lab/gateway/README.md",
+          "line": 194,
+          "link": "lab/gateway/README.md#L194"
+        },
+        {
+          "path": "lab/gateway/README.md",
+          "line": 75,
+          "link": "lab/gateway/README.md#L75"
+        }
+      ]
+    },
+    "rule_change": {
+      "file": "lab/gateway/policy/rules.json",
+      "cell": "resources.task.actions.change_task_assignee_or_due.staff.effect",
+      "source": {
+        "path": "lab/gateway/README.md",
+        "line": 75,
+        "link": "lab/gateway/README.md#L75"
+      },
+      "before": "allow",
+      "after": "deny",
+      "applied": true,
+      "rule_id": "task.change_task_assignee_or_due.staff",
+      "before_answer": {
+        "status": 200,
+        "reason_code": null
+      },
+      "after_answer": {
+        "status": 403,
+        "reason_code": "NOT_PERMITTED"
+      },
+      "changed_files": [
+        "rules.json"
+      ],
+      "source_tree": {
+        "files": 113,
+        "changes": []
+      },
+      "places_changed": 1,
+      "target_places": 1,
+      "met": true
+    }
+  },
+  "environment": {
+    "commit": "62e309ef125ae58d7b24a0f5cca9476d56015c3f",
+    "commit_short": "62e309e",
+    "dirty": false,
+    "node": "v22.21.0",
+    "os": {
+      "platform": "win32",
+      "release": "10.0.26200",
+      "version": "Windows 11 Home",
+      "arch": "x64"
+    },
+    "cpu": {
+      "model": "Intel(R) Core(TM) Ultra 5 225H",
+      "count": 14,
+      "speed_mhz": 3686
+    },
+    "memory_total_bytes": 33752997888,
+    "timezone": "Asia/Bangkok"
+  },
+  "samples_file": {
+    "name": "2026-11-20-m5-complexity-62e309e.samples.ndjson.gz",
+    "count": 4,
+    "sha256": "f5acefc226c37dfc6ccf92790c53a12c5da3a7e2de4c17ac950103a6a1e9d86b"
+  },
+  "summary": {
+    "overall": {
+      "client_ms": {
+        "count": 4,
+        "p50_ms": 0.553,
+        "p95_ms": 1227.095,
+        "max_ms": 1227.095,
+        "min_ms": 0.508,
+        "mean_ms": 309.865
+      },
+      "gateway_duration_ms": null
+    },
+    "by_door": {
+      "m5-lines": {
+        "client_ms": {
+          "count": 2,
+          "p50_ms": 0.508,
+          "p95_ms": 0.553,
+          "max_ms": 0.553,
+          "min_ms": 0.508,
+          "mean_ms": 0.531
+        },
+        "gateway_duration_ms": null
+      },
+      "m5-declaration": {
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 11.303,
+          "p95_ms": 11.303,
+          "max_ms": 11.303,
+          "min_ms": 11.303,
+          "mean_ms": 11.303
+        },
+        "gateway_duration_ms": null
+      },
+      "m5-rule": {
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 1227.095,
+          "p95_ms": 1227.095,
+          "max_ms": 1227.095,
+          "min_ms": 1227.095,
+          "mean_ms": 1227.095
+        },
+        "gateway_duration_ms": null
+      }
+    },
+    "by_tool": {
+      "lab/gateway/src/writes/outbox.ts": {
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 0.553,
+          "p95_ms": 0.553,
+          "max_ms": 0.553,
+          "min_ms": 0.553,
+          "mean_ms": 0.553
+        },
+        "gateway_duration_ms": null
+      },
+      "lab/gateway/src/writes/command-store.ts": {
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 0.508,
+          "p95_ms": 0.508,
+          "max_ms": 0.508,
+          "min_ms": 0.508,
+          "mean_ms": 0.508
+        },
+        "gateway_duration_ms": null
+      },
+      "gateway": {
+        "client_ms": {
+          "count": 2,
+          "p50_ms": 11.303,
+          "p95_ms": 1227.095,
+          "max_ms": 1227.095,
+          "min_ms": 11.303,
+          "mean_ms": 619.199
+        },
+        "gateway_duration_ms": null
+      }
+    },
+    "by_door_tool": [
+      {
+        "door": "m5-lines",
+        "tool": "lab/gateway/src/writes/outbox.ts",
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 0.553,
+          "p95_ms": 0.553,
+          "max_ms": 0.553,
+          "min_ms": 0.553,
+          "mean_ms": 0.553
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "m5-lines",
+        "tool": "lab/gateway/src/writes/command-store.ts",
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 0.508,
+          "p95_ms": 0.508,
+          "max_ms": 0.508,
+          "min_ms": 0.508,
+          "mean_ms": 0.508
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "m5-declaration",
+        "tool": "gateway",
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 11.303,
+          "p95_ms": 11.303,
+          "max_ms": 11.303,
+          "min_ms": 11.303,
+          "mean_ms": 11.303
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "m5-rule",
+        "tool": "gateway",
+        "client_ms": {
+          "count": 1,
+          "p50_ms": 1227.095,
+          "p95_ms": 1227.095,
+          "max_ms": 1227.095,
+          "min_ms": 1227.095,
+          "mean_ms": 1227.095
+        },
+        "gateway_duration_ms": null
+      }
+    ]
+  },
+  "targets": [],
+  "safety": {
+    "counters": [
+      {
+        "id": "duplicate_writes",
+        "label": "Ghi trùng",
+        "applicable": false,
+        "value": null,
+        "detail": "Phép đo chỉ soạn đề xuất để hỏi luật, không bấm Gửi nên không có lệnh ghi nào để ghi trùng."
+      },
+      {
+        "id": "lost_commands",
+        "label": "Lệnh mất",
+        "applicable": false,
+        "value": null,
+        "detail": "Phép đo không bấm Gửi nên không tạo lệnh ghi; không có lệnh nào có thể mất."
+      },
+      {
+        "id": "unauthorized_writes",
+        "label": "Ghi vượt quyền",
+        "applicable": true,
+        "value": 0,
+        "detail": "Đếm lệnh ghi trong bảng write_commands sau hai lần soạn đề xuất; phải bằng 0 vì không lần nào bấm Gửi, thấy 0."
+      },
+      {
+        "id": "out_of_scope_fields",
+        "label": "Trường ngoài quyền",
+        "applicable": false,
+        "value": null,
+        "detail": "Phép đo không gọi tool đọc bản ghi nhân viên hay task; chỉ đọc mã trạng thái của đề xuất."
+      },
+      {
+        "id": "personal_data_in_trace",
+        "label": "Dữ liệu cá nhân trong vết",
+        "applicable": true,
+        "value": 0,
+        "detail": "Đã quét 2 dòng vết cho tên, email, số điện thoại, địa chỉ và khoá; 0 dòng chứa."
+      }
+    ],
+    "all_applicable_zero": true
+  },
+  "notes": [
+    "M5 đếm phần chạy tiếp của đích gateway, không đếm cả cổng: 2 file, 587 dòng vật lý và 476 dòng mã.",
+    "outbox.ts ra 319 dòng vật lý, 267 dòng mã, 29 dòng chú thích và 23 dòng trắng; khớp số 319/267 đã công bố ngày 2026-11-19.",
+    "Lệnh npm start mở 4 dịch vụ; 3 dịch vụ cần cho đường ghi, còn lại là trang điều khiển.",
+    "Có 1 file cấu hình theo định nghĩa: file người vận hành sửa để đổi hành vi lúc chạy. package.json và tsconfig.json là file dựng mã, không tính.",
+    "Cài trên máy mới: 4 bước; sau khi sập: 1 bước, vì vòng chạy nền tự nhặt lệnh còn mở.",
+    "Đổi một ô luật resources.task.actions.change_task_assignee_or_due.staff.effect từ allow sang deny: 1 chỗ đổi, mục tiêu 1 chỗ, đạt; cổng áp luật mới.",
+    "M5 là phép đếm tĩnh: --runs 100 không lặp phép đếm, một lần chạy là đủ và runs_used bằng 1. Thời gian trong mẫu là thời gian đọc file và kiểm luật, không phải độ trễ dịch vụ.",
+    "Kết quả chỉ đo đường ghi cục bộ, không gồm bước cắm skill vào Thổ Thần hay mở đường hầm."
+  ]
+}
