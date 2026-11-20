@@ -130,13 +130,15 @@ npm run trace -- --task T-12
 `seed-keys` prints one tool key `lab_` and one page password `trang_` per persona; `--rotate` replaces both.
 The page password opens the gateway pages only, never a tool, and `page-password` replaces the previous one of that person.
 
-Measure one scenario against a private stack on free ports and a temporary data folder.
+Measure one scenario against a private stack on free ports and a temporary data folder, or against a write target chosen with `--target` (default `gateway`).
+Only a scenario that declares the shared stack builds it.
 The command writes a small summary and a gzipped sample file with the environment and the safety counters; `--runs` defaults to 100 and `--out` defaults to `rd/evaluation/results/`.
 Scenarios are files in `lab/measure/src/scenarios/`; adding one does not edit a registry.
 `lab/measure/README.md` covers the result format, the five safety counters and how to add a scenario.
 
 ```
 npm run measure -- m1-gateway --runs 100
+npm run measure -- q1-outbox --target gateway --runs 2
 ```
 
 ### Tunnel for one acceptance session

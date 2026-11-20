@@ -21,7 +21,7 @@ function checksum(bytes: Buffer): string {
  */
 export async function readMeasurement(summaryFile: string): Promise<LoadedMeasurement> {
   const summary = JSON.parse(await readFile(summaryFile, 'utf8')) as MeasurementResult;
-  if (summary.schema !== 2) {
+  if (summary.schema !== 2 && summary.schema !== 3) {
     throw new Error(`${summaryFile}: unsupported result schema ${String(summary.schema)}`);
   }
   const reference = summary.samples_file;

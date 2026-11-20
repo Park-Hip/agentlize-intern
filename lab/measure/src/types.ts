@@ -1,4 +1,5 @@
 import type { TraceRow } from '@lab/gateway';
+import type { TargetName } from './targets/index.js';
 
 /** The five safety counters of spec section 7.5, in the order the report lists them. */
 export const SAFETY_COUNTER_IDS = [
@@ -64,12 +65,27 @@ export interface IssueKeyRequest {
 }
 
 /**
- * What a scenario may use. Everything is scoped to the private stack the
- * runner just built; no path or port points at `lab/.data`.
+ * What a scenario declares it needs before the runner starts anything.
+ * A scenario that needs neither still gets `runs` and `log`.
+ */
+export interface ScenarioNeeds {
+  /** The shared stack: gateway, fake directory, fake tasks, a data folder and a service key. */
+  readonly stack: boolean;
+  /** A write target chosen with `--target`; its name arrives in `context.target`. */
+  readonly target: boolean;
+}
+
+/**
+ * What a scenario may use. The stack fields exist only when the scenario
+ * declares `needs.stack`; reading one otherwise stops the run with a clear
+ * error. Everything is scoped to the private stack the runner built, so no
+ * path or port points at `lab/.data`.
  */
 export interface MeasureContext {
   /** How many measured calls per tool and door the user asked for. */
   readonly runs: number;
+  /** The write target chosen with `--target`, or null when the scenario does not need one. */
+  readonly target: TargetName | null;
   readonly services: {
     readonly gateway: string;
     readonly directory: string;
@@ -118,6 +134,8 @@ export interface ScenarioResult {
 export interface Scenario {
   readonly name: string;
   readonly description: string;
+  /** What the runner must build before `run` is called. */
+  readonly needs: ScenarioNeeds;
   run(context: MeasureContext): Promise<ScenarioResult>;
 }
 
@@ -186,8 +204,13 @@ export interface MeasurementEnvironment {
   readonly timezone: string;
 }
 
+/** Schema 3 adds `write_target`; `readMeasurement` still opens schema 2 files. */
+export type MeasurementSchema = 2 | 3;
+
+export const MEASUREMENT_SCHEMA: MeasurementSchema = 3;
+
 export interface MeasurementResult {
-  readonly schema: 2;
+  readonly schema: MeasurementSchema;
   readonly scenario: {
     readonly name: string;
     readonly description: string;
@@ -196,6 +219,8 @@ export interface MeasurementResult {
   readonly command: string;
   readonly runs: number;
   readonly elapsed_seconds: number;
+  /** The write target, or null when the scenario only needed the shared stack. Absent in schema 2. */
+  readonly write_target?: TargetName | null;
   readonly parameters: Readonly<Record<string, unknown>>;
   readonly environment: MeasurementEnvironment;
   readonly samples_file: SamplesFile;

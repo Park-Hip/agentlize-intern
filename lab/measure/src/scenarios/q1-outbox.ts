@@ -1,14 +1,7 @@
 import { performance } from 'node:perf_hooks';
 import { safetyCounter } from '../safety.js';
 import { roundMs } from '../stats.js';
-import {
-  DEFAULT_TARGET,
-  TARGET_ENV,
-  createTarget,
-  resolveTargetName,
-  type TargetName,
-  type WriteTarget,
-} from '../targets/index.js';
+import { createTarget, type TargetName, type WriteTarget } from '../targets/index.js';
 import { sleep, verifySnapshots, waitForCommand, waitForSettled, waitForWrite } from '../targets/verify.js';
 import type { MeasureContext, SafetyCounter, Sample, Scenario, ScenarioResult } from '../types.js';
 
@@ -384,10 +377,12 @@ async function measureStep(options: {
 const scenario: Scenario = {
   name: 'q1-outbox',
   description:
-    'Q1: ba bước sập giữa chừng của lệnh 30 task, mỗi bước lặp theo --runs, đếm task sót, task ghi hai lần và nội dung cuối; đích chọn bằng LAB_MEASURE_TARGET, mặc định gateway.',
+    'Q1: ba bước sập giữa chừng của lệnh 30 task, mỗi bước lặp theo --runs, đếm task sót, task ghi hai lần và nội dung cuối; đích chọn bằng --target, mặc định gateway.',
+  needs: { stack: false, target: true },
 
   async run(context: MeasureContext): Promise<ScenarioResult> {
-    const targetName = resolveTargetName();
+    const targetName = context.target;
+    if (targetName === null) throw new Error('q1-outbox needs a write target');
     const outage = outageFromEnv();
 
     const step1 = await measureStep({
@@ -458,7 +453,7 @@ const scenario: Scenario = {
       safety: counters,
       parameters: {
         target: targetName,
-        target_selection: `${TARGET_ENV}; mặc định ${DEFAULT_TARGET}`,
+        target_selection: '--target; mặc định gateway',
         runs_per_step: context.runs,
         task_ids: TASK_IDS,
         changes: CHANGES,

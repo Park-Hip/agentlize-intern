@@ -13,23 +13,32 @@ import { readEnvironment } from './environment.js';
 import { allApplicableZero, assertSafetyCounters } from './safety.js';
 import { buildSummary, roundMs } from './stats.js';
 import { startMeasureStack, type MeasureStack } from './stack.js';
-import type {
-  GroupSummary,
-  LabObservation,
-  MeasureContext,
-  MeasurementResult,
-  MeasurementTarget,
-  Scenario,
-  ScenarioResult,
-  TargetRequest,
-  TargetScope,
+import type { TargetName } from './targets/index.js';
+import {
+  MEASUREMENT_SCHEMA,
+  type GroupSummary,
+  type LabObservation,
+  type MeasureContext,
+  type MeasurementResult,
+  type MeasurementTarget,
+  type Scenario,
+  type ScenarioResult,
+  type TargetRequest,
+  type TargetScope,
 } from './types.js';
 
 export interface MeasureOptions {
   readonly runs: number;
+  /** The target chosen with `--target`, or null when the scenario does not use one. */
+  readonly target: TargetName | null;
   readonly outDir: string;
   readonly repoRoot: string;
   readonly command: string;
+  /**
+   * The stack builder. Tests replace it to prove that a scenario without
+   * `needs.stack` starts no process and opens no port.
+   */
+  readonly startStack?: () => Promise<MeasureStack>;
   readonly log?: (line: string) => void;
 }
 
@@ -50,14 +59,36 @@ function localDate(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-function createContext(stack: MeasureStack, runs: number, log: (line: string) => void): MeasureContext {
+function createContext(
+  stack: MeasureStack | null,
+  target: TargetName | null,
+  runs: number,
+  log: (line: string) => void,
+): MeasureContext {
+  const stackOrThrow = (): MeasureStack => {
+    if (stack === null) {
+      throw new Error(
+        'this scenario did not declare that it needs the shared stack, so services, dataDir, serviceKey, issueKey and observe are not available',
+      );
+    }
+    return stack;
+  };
+
   return {
     runs,
-    services: stack.services,
-    dataDir: stack.dataDir,
-    serviceKey: stack.serviceKey,
+    target,
+    get services() {
+      return stackOrThrow().services;
+    },
+    get dataDir() {
+      return stackOrThrow().dataDir;
+    },
+    get serviceKey() {
+      return stackOrThrow().serviceKey;
+    },
     issueKey(input) {
-      const db = openGatewayDatabase(stack.dataDir);
+      const present = stackOrThrow();
+      const db = openGatewayDatabase(present.dataDir);
       try {
         const issued = new KeyStore(db).issue({
           employeeId: input.employeeId,
@@ -70,7 +101,8 @@ function createContext(stack: MeasureStack, runs: number, log: (line: string) =>
       }
     },
     observe(): LabObservation {
-      const db = openGatewayDatabaseReadOnly(stack.dataDir);
+      const present = stackOrThrow();
+      const db = openGatewayDatabaseReadOnly(present.dataDir);
       try {
         const trace = new TraceReader(db).list({ limit: 1_000_000 });
         const table = db
@@ -165,18 +197,23 @@ export async function measureScenario(scenario: Scenario, options: MeasureOption
   const log = options.log ?? ((line: string) => console.log(line));
   const environment = readEnvironment(options.repoRoot, options.outDir);
   const startedAt = performance.now();
-  const stack = await startMeasureStack();
+  const buildStack = options.startStack ?? startMeasureStack;
+  const stack = scenario.needs.stack ? await buildStack() : null;
   let outcome: ScenarioResult;
 
-  log(`[measure] ${scenario.name}: stack on ${stack.services.gateway}, data ${stack.dataDir}`);
+  if (stack !== null) {
+    log(`[measure] ${scenario.name}: stack on ${stack.services.gateway}, data ${stack.dataDir}`);
+  } else {
+    log(`[measure] ${scenario.name}: no shared stack, write target ${options.target ?? 'none'}`);
+  }
 
   try {
-    outcome = await scenario.run(createContext(stack, options.runs, log));
+    outcome = await scenario.run(createContext(stack, options.target, options.runs, log));
   } catch (cause) {
-    const logs = stack.output().slice(-4_000);
+    const logs = stack === null ? '' : stack.output().slice(-4_000);
     throw new Error(`${scenario.name} failed: ${errorMessage(cause)}\n${logs}`, { cause });
   } finally {
-    await stack.stop();
+    if (stack !== null) await stack.stop();
   }
 
   assertSamples(outcome);
@@ -198,12 +235,13 @@ export async function measureScenario(scenario: Scenario, options: MeasureOption
   const sha256 = createHash('sha256').update(compressed).digest('hex');
 
   const result: MeasurementResult = {
-    schema: 2,
+    schema: MEASUREMENT_SCHEMA,
     scenario: { name: scenario.name, description: scenario.description },
     generated_at: new Date().toISOString(),
     command: options.command,
     runs: options.runs,
     elapsed_seconds: elapsedSeconds,
+    write_target: options.target,
     parameters: outcome.parameters ?? {},
     environment,
     samples_file: {
