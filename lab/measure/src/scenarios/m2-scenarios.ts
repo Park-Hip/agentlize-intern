@@ -6,11 +6,8 @@ import { freePorts } from '@lab/tests/process';
 import { safetyCounter } from '../safety.js';
 import { roundMs } from '../stats.js';
 import {
-  DEFAULT_TARGET,
-  TARGET_ENV,
   createTarget,
   proposalDraftOf,
-  resolveTargetName,
   type DraftFunction,
   type TargetName,
   type WriteTarget,
@@ -458,10 +455,12 @@ async function measureGroup(options: {
 const scenario: Scenario = {
   name: 'm2-scenarios',
   description:
-    'M2: kịch bản A một task và C ba mươi task qua ba cửa vào, mỗi cặp kịch bản và cửa lặp theo --runs, có lỗi mạng cố ý và cắt 60 giây của client giả Thổ Thần; đích chọn bằng LAB_MEASURE_TARGET, mặc định gateway.',
+    'M2: kịch bản A một task và C ba mươi task qua ba cửa vào, mỗi cặp kịch bản và cửa lặp theo --runs, có lỗi mạng cố ý và cắt 60 giây của client giả Thổ Thần; đích chọn bằng --target, mặc định gateway.',
+  needs: { stack: false, target: true },
 
   async run(context: MeasureContext): Promise<ScenarioResult> {
-    const targetName = resolveTargetName();
+    const targetName = context.target;
+    if (targetName === null) throw new Error('m2-scenarios needs a write target');
     const timeoutRuns = timeoutRunsFromEnv();
     const groups: GroupOutcome[] = [];
 
@@ -521,7 +520,7 @@ const scenario: Scenario = {
       safety: counters,
       parameters: {
         target: targetName,
-        target_selection: `${TARGET_ENV}; mặc định ${DEFAULT_TARGET}`,
+        target_selection: '--target; mặc định gateway',
         runs_per_group: context.runs,
         scenario_task_ids: Object.fromEntries(SPECS.map((spec) => [spec.name, spec.taskIds])),
         changes: CHANGES,

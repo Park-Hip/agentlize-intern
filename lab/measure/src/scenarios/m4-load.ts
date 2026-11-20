@@ -286,6 +286,7 @@ const scenario: Scenario = {
   name: 'm4-load',
   description:
     'M4: một người gọi rồi mười người gọi cùng lúc trong 60 giây qua API thường, đo p50, p95, lớn nhất, số lời gọi mỗi giây, số lỗi và tỉ lệ p95 gấp 10 so với gấp 1.',
+  needs: { stack: true, target: false },
 
   async run(context: MeasureContext): Promise<ScenarioResult> {
     const durationSeconds = Math.max(1, Math.min(context.runs, MAX_SECONDS_PER_LEVEL));

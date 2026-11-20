@@ -1,22 +1,26 @@
 # Lệnh đo
 
-Gói `@lab/measure` chạy một phép đo trên một cụm dịch vụ riêng, rồi ghi kết quả thành hai file: một bản tóm tắt nhỏ và một file mẫu nén, để báo cáo đánh giá trỏ tới.
-Mỗi lần chạy dựng cổng, danh bạ giả và danh sách task giả trên cổng mạng trống, dùng thư mục dữ liệu tạm, và không đọc `lab/.data`.
-Cụm dịch vụ bị dừng và thư mục tạm bị xoá khi phép đo xong.
+Gói `@lab/measure` chạy một phép đo, rồi ghi kết quả thành hai file: một bản tóm tắt nhỏ và một file mẫu nén, để báo cáo đánh giá trỏ tới.
+Mỗi phép đo khai nó cần gì: cụm dịch vụ chung, hay chỉ tên đích ghi.
+Cụm dịch vụ chung gồm cổng, danh bạ giả và danh sách task giả trên cổng mạng trống, dùng thư mục dữ liệu tạm, và không đọc `lab/.data`.
+Lệnh đo chỉ dựng cụm đó khi phép đo khai cần; cụm bị dừng và thư mục tạm bị xoá khi phép đo xong.
 
 ## Chạy
 
 ```sh
 cd lab
 npm run measure -- m1-gateway
-npm run measure -- m1-gateway --runs 2
+npm run measure -- q1-outbox --target gateway --runs 2
 npm run measure -- m1-gateway --runs 100 --out ../../rd/evaluation/results
 ```
 
+- `--target <đích>` chọn đường ghi cho phép đo có dùng đích; mặc định `gateway`.
+  Tên lạ làm lệnh dừng trước khi dựng gì và liệt kê các đích hợp lệ.
+  Phép đo không dùng đích mà nhận `--target` thì báo lỗi rõ ràng.
 - `--runs N` là số lần đo cho mỗi cặp tool và cửa vào; mặc định 100.
 - `--out <thư mục>` là nơi ghi file kết quả; mặc định `rd/evaluation/results` ở gốc repo.
   Đường dẫn tương đối tính từ thư mục đang đứng.
-- Chạy không có tên phép đo hoặc với `--help` để xem danh sách phép đo đang có.
+- Chạy không có tên phép đo hoặc với `--help` để xem danh sách phép đo và đích đang có.
 
 Sau `npm install`, `npm run measure` dựng mã trước khi chạy, nên một lệnh là đủ.
 
@@ -34,12 +38,13 @@ Hai file được commit cùng thay đổi mà phép đo đo, để mọi con s�
 
 | Khoá | Nội dung |
 | --- | --- |
-| `schema` | Phiên bản định dạng, hiện là `2` |
+| `schema` | Phiên bản định dạng, hiện là `3`; `readMeasurement` vẫn đọc file schema `2` đã commit |
 | `scenario` | Tên và mô tả phép đo |
 | `generated_at` | Thời điểm ghi file, theo ISO 8601 |
 | `command` | Lệnh đo có thể chạy lại |
 | `runs` | Số lần đo mỗi cặp tool và cửa vào |
 | `elapsed_seconds` | Thời gian chạy phép đo, không tính bước dựng mã |
+| `write_target` | Đích ghi của lần đo, `null` khi phép đo chỉ dùng cụm chung; không có trong file schema `2` |
 | `parameters` | Cửa vào, tool, nhân vật, tham số gọi, cách đo và số vòng khởi động |
 | `environment` | Commit, cờ có thay đổi chưa commit, hệ điều hành, CPU, RAM, bản Node, múi giờ |
 | `samples_file` | Trỏ tới file mẫu: `name` là tên file cạnh bản tóm tắt, `count` là số mẫu, `sha256` là mã băm của file nén |
@@ -101,8 +106,9 @@ Bằng chứng của lần đo hỏng được giữ lại, và lỗi không b�
 Mỗi phép đo là một file trong `src/scenarios/`.
 Lệnh đo tự tìm mọi file `.js` đã dựng trong thư mục đó, nên thêm phép đo không sửa file đăng ký nào.
 
-File phải xuất mặc định một đối tượng có `name`, `description` và `run(context)`.
+File phải xuất mặc định một đối tượng có `name`, `description`, `needs` và `run(context)`.
 Tên phải trùng tên file, viết thường và nối bằng dấu gạch ngang.
+`needs` khai phép đo cần gì: `stack` dựng cụm dịch vụ chung, `target` nhận tên đích từ `--target` trong `context.target`.
 
 ```ts
 import { performance } from 'node:perf_hooks';
@@ -112,6 +118,7 @@ import type { MeasureContext, Scenario, ScenarioResult } from '../types.js';
 const scenario: Scenario = {
   name: 'my-measurement',
   description: 'Một câu nói phép đo trả lời câu hỏi gì.',
+  needs: { stack: true, target: false },
 
   async run(context: MeasureContext): Promise<ScenarioResult> {
     const startedAt = performance.now();
@@ -152,12 +159,15 @@ export default scenario;
 | Thành phần | Việc |
 | --- | --- |
 | `runs` | Số lần đo mỗi nhóm mà người chạy yêu cầu |
-| `services` | Địa chỉ `gateway`, `directory` và `tasks` của cụm riêng |
-| `dataDir` | Thư mục dữ liệu tạm của cụm |
-| `serviceKey` | Khoá dịch vụ ngẫu nhiên; không ghi vào kết quả |
-| `issueKey({ employeeId })` | Cấp khoá tool giả sau khi cổng đã tạo cơ sở dữ liệu |
-| `observe()` | Đọc bảng vết và đếm lệnh ghi mà không sửa gì |
+| `target` | Tên đích từ `--target`, hoặc `null` khi phép đo khai `needs.target` là `false` |
+| `services` | Địa chỉ `gateway`, `directory` và `tasks` của cụm riêng; chỉ có khi `needs.stack` là `true` |
+| `dataDir` | Thư mục dữ liệu tạm của cụm; chỉ có khi `needs.stack` là `true` |
+| `serviceKey` | Khoá dịch vụ ngẫu nhiên; không ghi vào kết quả; chỉ có khi `needs.stack` là `true` |
+| `issueKey({ employeeId })` | Cấp khoá tool giả sau khi cổng đã tạo cơ sở dữ liệu; chỉ có khi `needs.stack` là `true` |
+| `observe()` | Đọc bảng vết và đếm lệnh ghi mà không sửa gì; chỉ có khi `needs.stack` là `true` |
 | `log(line)` | In tiến độ ra terminal |
+
+Đọc một thành phần của cụm khi `needs.stack` là `false` sẽ dừng lần chạy với lỗi nói rõ phép đo chưa khai cần cụm.
 
 `ScenarioResult` gồm `samples`, đủ năm `safety`, và tuỳ chọn `parameters`, `targets`, `notes`.
 Mẫu phải có `client_ms` là số không âm.
@@ -185,3 +195,10 @@ Mẫu đó được tính bình thường và mã lý do được ghi lại tron
 
 Mục tiêu `m1-gateway-p95-50ms` báo p95 thời gian cổng trên toàn bộ mẫu.
 Con số này chỉ để báo ở lần đo đầu, không làm lệnh thất bại.
+
+## Phép đo theo đích
+
+`q1-outbox` và `m2-scenarios` khai `needs: { stack: false, target: true }`.
+Mỗi lần chạy tự dựng một đích mới, nên lệnh đo không dựng thêm cụm chung.
+Hai phép đo đọc tên đích từ `context.target`; mặc định là `gateway`, và tên đó được ghi vào `write_target` của file kết quả.
+`m1-gateway` và `m4-load` khai `needs: { stack: true, target: false }`, nên chúng nhận cụm chung và từ chối `--target`.

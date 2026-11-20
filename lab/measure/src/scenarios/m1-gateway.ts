@@ -116,6 +116,7 @@ const scenario: Scenario = {
   name: 'm1-gateway',
   description:
     'M1: sáu tool qua ba cửa vào, mỗi cặp tool và cửa lặp theo --runs, đo thời gian cổng tự xử lý và thời gian phía client.',
+  needs: { stack: true, target: false },
 
   async run(context: MeasureContext): Promise<ScenarioResult> {
     const keys = new Map<string, string>();

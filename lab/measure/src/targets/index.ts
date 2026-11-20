@@ -7,19 +7,15 @@ export type TargetName = (typeof TARGET_NAMES)[number];
 
 export const DEFAULT_TARGET: TargetName = 'gateway';
 
-/** The scenario reads the target from this variable because the measure CLI does not parse `--target` yet. */
-export const TARGET_ENV = 'LAB_MEASURE_TARGET';
-
 const FACTORIES: Readonly<Record<TargetName, () => WriteTarget>> = {
   gateway: () => new GatewayTarget(),
 };
 
-/** Read and check the target name. An unknown name stops the run before it builds anything. */
-export function resolveTargetName(env: NodeJS.ProcessEnv = process.env): TargetName {
-  const configured = env[TARGET_ENV]?.trim();
-  const name = configured === undefined || configured === '' ? DEFAULT_TARGET : configured;
+/** Read and check the name the user passed to `--target`. An unknown name lists the valid ones. */
+export function parseTargetName(value: string): TargetName {
+  const name = value.trim();
   if (!(TARGET_NAMES as readonly string[]).includes(name)) {
-    throw new Error(`${TARGET_ENV} must be one of ${TARGET_NAMES.join(', ')}, got "${name}"`);
+    throw new Error(`--target must be one of ${TARGET_NAMES.join(', ')}, got "${value}"`);
   }
   return name as TargetName;
 }

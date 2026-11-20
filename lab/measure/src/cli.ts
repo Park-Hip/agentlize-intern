@@ -2,12 +2,15 @@ import { dirname, join, resolve } from 'node:path';
 import { labRoot } from '@lab/tests/process';
 import { discoverScenarios, findScenario } from './discovery.js';
 import { measureScenario } from './runner.js';
+import { DEFAULT_TARGET, TARGET_NAMES, parseTargetName } from './targets/index.js';
 
 const DEFAULT_RUNS = 100;
 const MAX_RUNS = 100_000;
 
 export interface ParsedArguments {
   readonly scenario: string | null;
+  /** The raw `--target` value; undefined means the user did not pass it. */
+  readonly target: string | undefined;
   readonly runs: number;
   readonly out: string | undefined;
   readonly help: boolean;
@@ -23,6 +26,7 @@ function readValue(argv: readonly string[], index: number, option: string): stri
 
 export function parseArguments(argv: readonly string[]): ParsedArguments {
   let scenario: string | null = null;
+  let target: string | undefined;
   let runs = DEFAULT_RUNS;
   let out: string | undefined;
   let help = false;
@@ -35,6 +39,12 @@ export function parseArguments(argv: readonly string[]): ParsedArguments {
     }
 
     const [option, inline] = argument.startsWith('--') ? argument.split('=', 2) : [argument, undefined];
+    if (option === '--target') {
+      target = inline ?? readValue(argv, index, '--target');
+      if (inline === undefined) index += 1;
+      if (target.trim() === '') throw new Error('--target must not be empty');
+      continue;
+    }
     if (option === '--runs') {
       const value = inline ?? readValue(argv, index, '--runs');
       if (inline === undefined) index += 1;
@@ -56,7 +66,7 @@ export function parseArguments(argv: readonly string[]): ParsedArguments {
     scenario = argument;
   }
 
-  return { scenario, runs, out, help };
+  return { scenario, target, runs, out, help };
 }
 
 function shellArgument(value: string): string {
@@ -66,10 +76,13 @@ function shellArgument(value: string): string {
 async function usage(): Promise<string> {
   const scenarios = await discoverScenarios();
   const lines = [
-    'Usage: npm run measure -- <scenario> [--runs N] [--out <folder>]',
+    'Usage: npm run measure -- <scenario> [--target <target>] [--runs N] [--out <folder>]',
     '',
-    'Runs one measurement against a private stack on free ports and a temporary data folder,',
-    'then writes one JSON result. --runs defaults to 100; --out defaults to rd/evaluation/results/.',
+    'Runs one measurement. --target picks the write target for a scenario that uses one;',
+    'the default is gateway. Only a scenario that declares the shared stack builds it.',
+    '--runs defaults to 100; --out defaults to rd/evaluation/results/.',
+    '',
+    `Targets: ${TARGET_NAMES.join(', ')}`,
     '',
     'Scenarios:',
     ...(scenarios.length === 0 ? ['  (none)'] : scenarios.map((scenario) => `  ${scenario.name}  ${scenario.description}`)),
@@ -84,12 +97,21 @@ export async function main(argv: readonly string[]): Promise<number> {
     return args.help ? 0 : 1;
   }
 
+  // Check the target name before a scenario is loaded and before any process starts.
+  const explicitTarget = args.target === undefined ? undefined : parseTargetName(args.target);
   const scenario = await findScenario(args.scenario);
+  if (!scenario.needs.target && explicitTarget !== undefined) {
+    throw new Error(
+      `${scenario.name} does not run against a write target, so --target ${explicitTarget} is not allowed`,
+    );
+  }
+  const target = scenario.needs.target ? (explicitTarget ?? DEFAULT_TARGET) : null;
   const repoRoot = dirname(labRoot);
   const outDir = args.out === undefined ? join(repoRoot, 'rd', 'evaluation', 'results') : resolve(args.out);
   const command = [
     'npm run measure --',
     scenario.name,
+    ...(args.target === undefined ? [] : ['--target', shellArgument(args.target)]),
     '--runs',
     String(args.runs),
     ...(args.out === undefined ? [] : ['--out', shellArgument(args.out)]),
@@ -97,6 +119,7 @@ export async function main(argv: readonly string[]): Promise<number> {
 
   const outcome = await measureScenario(scenario, {
     runs: args.runs,
+    target,
     outDir,
     repoRoot,
     command,

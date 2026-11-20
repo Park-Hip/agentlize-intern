@@ -30,8 +30,11 @@ Mỗi đích hiện thực `WriteTarget` trong `types.ts`.
 
 ## Chọn đích
 
-Kịch bản đọc biến `LAB_MEASURE_TARGET`, mặc định `gateway`.
-Lệnh đo hiện chỉ nhận `--runs` và `--out`, nên `--target` chưa đi qua được; khi lệnh đo mở thêm tham số đó, chỉ phần đọc tên đích trong `index.ts` phải đổi.
+Lệnh đo nhận `--target <đích>`, mặc định `gateway`, và kiểm tên trước khi dựng bất cứ thứ gì.
+Tên lạ làm lệnh dừng và liệt kê các đích hợp lệ.
+Kịch bản khai `needs: { target: true }` trong file của nó, rồi đọc tên đích từ `context.target`; không kịch bản nào đọc biến môi trường.
+Kịch bản không khai cần đích sẽ báo lỗi nếu người chạy truyền `--target`.
+Tên đích được ghi vào trường `write_target` của file kết quả.
 
 ## Thêm một đích
 

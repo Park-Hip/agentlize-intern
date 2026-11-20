@@ -9,10 +9,21 @@ import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { discoverScenarios } from './discovery.js';
 import { readMeasurement } from './result.js';
+import { measureScenario } from './runner.js';
+import { safetyCounter } from './safety.js';
 import { percentile, summarize } from './stats.js';
-import { SAFETY_COUNTER_IDS } from './types.js';
+import { SAFETY_COUNTER_IDS, type Scenario } from './types.js';
 
 const MEASURE_DIR = fileURLToPath(new URL('..', import.meta.url));
+
+function runCli(args: readonly string[]) {
+  return spawnSync(process.execPath, [join(MEASURE_DIR, 'dist', 'cli.js'), ...args], {
+    cwd: join(MEASURE_DIR, '..'),
+    env: process.env,
+    encoding: 'utf8',
+    timeout: 300_000,
+  });
+}
 
 test('measure: the scenario folder is the registry', async () => {
   const scenarios = await discoverScenarios();
@@ -21,7 +32,117 @@ test('measure: the scenario folder is the registry', async () => {
     assert.match(scenario.name, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
     assert.ok(scenario.description.length > 0);
     assert.equal(typeof scenario.run, 'function');
+    assert.equal(typeof scenario.needs.stack, 'boolean');
+    assert.equal(typeof scenario.needs.target, 'boolean');
   }
+
+  const byName = new Map(scenarios.map((scenario) => [scenario.name, scenario]));
+  assert.deepEqual(byName.get('m1-gateway')?.needs, { stack: true, target: false });
+  assert.deepEqual(byName.get('m4-load')?.needs, { stack: true, target: false });
+  assert.deepEqual(byName.get('q1-outbox')?.needs, { stack: false, target: true });
+  assert.deepEqual(byName.get('m2-scenarios')?.needs, { stack: false, target: true });
+});
+
+test('measure: --target is parsed and an unknown name stops the command before anything starts', () => {
+  const unknown = runCli(['q1-outbox', '--target', 'nosuch']);
+  assert.equal(unknown.status, 1);
+  assert.match(unknown.stderr, /--target must be one of .*gateway.*, got "nosuch"/);
+  assert.equal(unknown.stdout.trim(), '', 'no stack log and no result line');
+
+  const empty = runCli(['q1-outbox', '--target=']);
+  assert.equal(empty.status, 1);
+  assert.match(empty.stderr, /--target must not be empty/);
+
+  const missing = runCli(['q1-outbox', '--target']);
+  assert.equal(missing.status, 1);
+  assert.match(missing.stderr, /--target needs a value/);
+});
+
+test('measure: a scenario without a target rejects --target', () => {
+  const rejected = runCli(['m1-gateway', '--target=gateway']);
+  assert.equal(rejected.status, 1);
+  assert.match(
+    rejected.stderr,
+    /m1-gateway does not run against a write target, so --target gateway is not allowed/,
+  );
+  assert.equal(rejected.stdout.trim(), '', 'the command stopped before it built the stack');
+});
+
+test('measure: a target-only scenario builds no shared stack and records the target', async () => {
+  const outDir = await mkdtemp(join(tmpdir(), 'agentlize-measure-target-only-'));
+  let stackBuilds = 0;
+  try {
+    const scenario: Scenario = {
+      name: 'probe-target-only',
+      description: 'A probe that needs the write target and no shared stack.',
+      needs: { stack: false, target: true },
+
+      async run(context) {
+        assert.equal(context.target, 'gateway');
+        assert.throws(() => context.services, /did not declare that it needs the shared stack/);
+        return {
+          samples: [
+            {
+              door: 'probe',
+              tool: 'probe',
+              run: 1,
+              client_ms: 1,
+              gateway_duration_ms: null,
+              trace_id: null,
+              status: 200,
+              reason_code: null,
+            },
+          ],
+          safety: [
+            safetyCounter('duplicate_writes', false, null, 'The probe writes nothing.'),
+            safetyCounter('lost_commands', false, null, 'The probe writes nothing.'),
+            safetyCounter('unauthorized_writes', false, null, 'The probe writes nothing.'),
+            safetyCounter('out_of_scope_fields', false, null, 'The probe reads no business record.'),
+            safetyCounter('personal_data_in_trace', false, null, 'The probe reads no trace table.'),
+          ],
+          parameters: { probe: true },
+        };
+      },
+    };
+
+    const outcome = await measureScenario(scenario, {
+      runs: 1,
+      target: 'gateway',
+      outDir,
+      repoRoot: join(MEASURE_DIR, '..', '..'),
+      command: 'npm run measure -- probe-target-only --target gateway --runs 1',
+      startStack: async () => {
+        stackBuilds += 1;
+        throw new Error('a target-only scenario must not build the shared stack');
+      },
+      log: () => {},
+    });
+
+    assert.equal(stackBuilds, 0);
+    assert.equal(outcome.result.schema, 3);
+    assert.equal(outcome.result.write_target, 'gateway');
+    assert.deepEqual(outcome.result.parameters, { probe: true });
+    const loaded = await readMeasurement(outcome.file);
+    assert.equal(loaded.summary.write_target, 'gateway');
+  } finally {
+    await rm(outDir, { recursive: true, force: true });
+  }
+});
+
+test('measure: readMeasurement still opens a schema 2 result from the repository', async () => {
+  const file = join(
+    MEASURE_DIR,
+    '..',
+    '..',
+    'rd',
+    'evaluation',
+    'results',
+    '2026-11-20-q1-outbox-7b7ae94.json',
+  );
+  const loaded = await readMeasurement(file);
+  assert.equal(loaded.summary.schema, 2);
+  assert.equal(loaded.summary.write_target, undefined);
+  assert.ok(loaded.samples.length > 0);
 });
 
 test('measure: percentiles use the nearest rank stated in the README', () => {
@@ -40,16 +161,7 @@ test('measure: percentiles use the nearest rank stated in the README', () => {
 test('measure: m1-gateway writes a result for 2 runs of every tool and door', async () => {
   const outDir = await mkdtemp(join(tmpdir(), 'agentlize-measure-smoke-'));
   try {
-    const run = spawnSync(
-      process.execPath,
-      [join(MEASURE_DIR, 'dist', 'cli.js'), 'm1-gateway', '--runs', '2', '--out', outDir],
-      {
-        cwd: join(MEASURE_DIR, '..'),
-        env: process.env,
-        encoding: 'utf8',
-        timeout: 300_000,
-      },
-    );
+    const run = runCli(['m1-gateway', '--runs', '2', '--out', outDir]);
     assert.equal(run.status, 0, `measure failed:\n${run.stdout}\n${run.stderr}\n${String(run.error)}`);
 
     const files = await readdir(outDir);
@@ -66,7 +178,8 @@ test('measure: m1-gateway writes a result for 2 runs of every tool and door', as
     const loaded = await readMeasurement(join(outDir, summaryName));
     const result = loaded.summary;
     const samples = loaded.samples;
-    assert.equal(result.schema, 2);
+    assert.equal(result.schema, 3);
+    assert.equal(result.write_target, null);
     assert.equal('samples' in result, false);
     assert.equal(result.samples_file.name, samplesName);
     assert.equal(result.samples_file.count, 2 * 6 * 3);
