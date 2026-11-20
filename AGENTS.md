@@ -103,7 +103,7 @@ bash rd/checks/eve.sh
 ### Lab POC
 
 The lab is an npm workspace in `lab/` and needs Node 22 or newer.
-`lab/README.md` covers running the lab, the commands and the environment variables; each package's own README (`lab/gateway/README.md`, `lab/console/README.md`, `lab/fake-directory/README.md`, `lab/fake-tasks/README.md`) covers how that service behaves.
+`lab/README.md` covers running the lab, the commands and the environment variables; each package's own README (`lab/gateway/README.md`, `lab/console/README.md`, `lab/fake-directory/README.md`, `lab/fake-tasks/README.md`, `lab/measure/README.md`) covers how that service or command behaves.
 Read them before changing the lab.
 
 ```
@@ -129,6 +129,15 @@ npm run trace -- --task T-12
 
 `seed-keys` prints one tool key `lab_` and one page password `trang_` per persona; `--rotate` replaces both.
 The page password opens the gateway pages only, never a tool, and `page-password` replaces the previous one of that person.
+
+Measure one scenario against a private stack on free ports and a temporary data folder.
+The command writes one JSON result with raw samples, environment and the safety counters; `--runs` defaults to 100 and `--out` defaults to `rd/evaluation/results/`.
+Scenarios are files in `lab/measure/src/scenarios/`; adding one does not edit a registry.
+`lab/measure/README.md` covers the result format, the five safety counters and how to add a scenario.
+
+```
+npm run measure -- m1-gateway --runs 100
+```
 
 ### Tunnel for one acceptance session
 
@@ -205,16 +214,16 @@ scratch/         agent working files and raw captures (git-ignored)
 Rules:
 
 - Put a document in the folder of its topic. File names carry no number or step.
-  Add a new topic folder only when it will hold at least two documents; evaluation reports go in `rd/evaluation/` when that work starts.
+  Add a new topic folder only when it will hold at least two documents; evaluation reports go in `rd/evaluation/` and measurement results in `rd/evaluation/results/`.
 - New findings that change the direction go into `rd/findings.md`, and the detailed document links back to it.
 - File names are lowercase ASCII kebab-case with a short English slug, for example `option-comparison.md`. Content stays Vietnamese.
 - Files whose name GitHub fixes (`.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/`) keep that name.
-- Two exceptions allow a number or date: `adr-0001-<slug>.md` (never renumbered) and `YYYY-MM-DD-<slug>.pdf` in `submitted/` (the submission date).
+- Three exceptions allow a number or date: `adr-0001-<slug>.md` (never renumbered), `YYYY-MM-DD-<slug>.pdf` in `submitted/` (the submission date), and `rd/evaluation/results/<YYYY-MM-DD>-<scenario>-<commit 7>.json` (the measurement date and the commit measured, written by `npm run measure`).
   A weekly report or weekly plan keeps its Markdown source next to its PDF, both named `YYYY-MM-DD-week-<n>` after the Monday of its week.
 - No version or draft markers in file names (`v2`, `final`, `old`). Version history is git. A document that is replaced is deleted, not kept beside the new one.
 - A summary page for a document sits next to it with the same slug (`appota-cases.md` and `appota-cases.html`).
 - Every claim that rests on an external quote has a script in `rd/checks/`, named after its document, that can re-verify it.
-- Generated files are not committed, except a PDF that was handed in: copy it to `submitted/` at that moment.
+- Generated files are not committed, except a PDF that was handed in (copy it to `submitted/` at that moment) and a measurement result in `rd/evaluation/results/` (commit it with the change it measures).
 
 ## 9. Issues and pull requests
 

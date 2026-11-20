@@ -3,6 +3,16 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./doors": {
+      "types": "./dist/doors.d.ts",
+      "default": "./dist/doors.js"
+    },
+    "./process": {
+      "types": "./dist/process.d.ts",
+      "default": "./dist/process.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },
