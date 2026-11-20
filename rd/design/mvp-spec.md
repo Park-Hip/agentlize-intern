@@ -324,7 +324,7 @@ Cột trạng thái ghi ngày 2026-11-20.
 
 | Issue | Việc | Điều kiện dừng | Trạng thái ngày 2026-11-20 |
 |-|-|-|-|
-| #99 | Đưa spec từ Lark thành bản gốc trong repo | Nền cho cả năm điều kiện | PR này |
+| #99 | Đưa spec từ Lark thành bản gốc trong repo | Nền cho cả năm điều kiện | Đã xong |
 | #84 | Chạy bốn kịch bản A-D trong Thổ Thần desktop, gồm kịch bản C có duyệt | Điều kiện 2 | Đang mở |
 | #101 | Thêm lệnh đo và số M1 | Điều kiện 4 | Đã xong |
 | #103 | Đo M2 và ba bước sập của Q1, 100 lần mỗi bước | Điều kiện 4, bằng chứng cho Q1 | Đã xong |
