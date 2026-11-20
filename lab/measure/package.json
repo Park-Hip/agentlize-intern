@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "main": "./dist/result.js",
+  "exports": {
+    ".": "./dist/result.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },

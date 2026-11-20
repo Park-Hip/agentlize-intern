@@ -1,6 +1,8 @@
+import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { join, relative } from 'node:path';
+import { basename, join, relative } from 'node:path';
 import { performance } from 'node:perf_hooks';
+import { gzipSync } from 'node:zlib';
 import {
   KeyStore,
   openGatewayDatabase,
@@ -32,7 +34,10 @@ export interface MeasureOptions {
 }
 
 export interface MeasureOutcome {
+  /** The small summary, the file a report cites. */
   readonly file: string;
+  /** The gzipped NDJSON samples next to the summary. */
+  readonly samplesFile: string;
   readonly result: MeasurementResult;
   /** Applicable counters that came back above zero. Empty means every checked counter is zero. */
   readonly failedCounters: readonly string[];
@@ -185,8 +190,15 @@ export async function measureScenario(scenario: Scenario, options: MeasureOption
   const failedTargets = targets.filter((target) => target.enforced && !target.met).map((target) => target.id);
   const allZero = allApplicableZero(outcome.safety);
 
+  const prefix = `${localDate()}-${scenario.name}-${environment.commit_short}`;
+  const file = join(options.outDir, `${prefix}.json`);
+  const samplesFile = join(options.outDir, `${prefix}.samples.ndjson.gz`);
+  const ndjson = outcome.samples.map((sample) => `${JSON.stringify(sample)}\n`).join('');
+  const compressed = gzipSync(Buffer.from(ndjson, 'utf8'));
+  const sha256 = createHash('sha256').update(compressed).digest('hex');
+
   const result: MeasurementResult = {
-    schema: 1,
+    schema: 2,
     scenario: { name: scenario.name, description: scenario.description },
     generated_at: new Date().toISOString(),
     command: options.command,
@@ -194,7 +206,11 @@ export async function measureScenario(scenario: Scenario, options: MeasureOption
     elapsed_seconds: elapsedSeconds,
     parameters: outcome.parameters ?? {},
     environment,
-    samples: outcome.samples,
+    samples_file: {
+      name: basename(samplesFile),
+      count: outcome.samples.length,
+      sha256,
+    },
     summary,
     targets,
     safety: { counters: outcome.safety, all_applicable_zero: allZero },
@@ -202,10 +218,11 @@ export async function measureScenario(scenario: Scenario, options: MeasureOption
   };
 
   await mkdir(options.outDir, { recursive: true });
-  const file = join(options.outDir, `${localDate()}-${scenario.name}-${environment.commit_short}.json`);
+  await writeFile(samplesFile, compressed);
   await writeFile(file, `${JSON.stringify(result, null, 2)}\n`, 'utf8');
 
   const shownFile = relative(options.repoRoot, file) || file;
+  const shownSamplesFile = relative(options.repoRoot, samplesFile) || samplesFile;
   const gateway = summary.overall.gateway_duration_ms;
   const client = summary.overall.client_ms;
   log(`[measure] ${outcome.samples.length} samples, ${elapsedSeconds} s`);
@@ -229,7 +246,7 @@ export async function measureScenario(scenario: Scenario, options: MeasureOption
   if (failedTargets.length > 0) {
     log(`[measure] enforced targets missed: ${failedTargets.join(', ')}`);
   }
-  log(`[measure] wrote ${shownFile}${environment.dirty ? ' (worktree dirty at measurement time)' : ''}`);
+  log(`[measure] wrote ${shownFile} and ${shownSamplesFile}${environment.dirty ? ' (worktree dirty at measurement time)' : ''}`);
 
-  return { file, result, failedCounters, failedTargets };
+  return { file, samplesFile, result, failedCounters, failedTargets };
 }

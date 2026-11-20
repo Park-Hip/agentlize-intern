@@ -14,6 +14,10 @@ ROOT = Path(__file__).resolve().parent.parent
 SKIP_DIRS = {".git", ".claude", ".lavish", "scratch", "dist", "node_modules", "__pycache__"}
 LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 NAME_OK = re.compile(r"^(?:\d{4}-\d{2}-\d{2}-)?[a-z0-9]+(?:-[a-z0-9]+)*\.[a-z0-9]+$")
+RESULTS_DIR = ROOT / "rd" / "evaluation" / "results"
+RESULTS_NAME_OK = re.compile(
+    r"^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*-[0-9a-f]{7}(?:\.json|\.samples\.ndjson\.gz)$"
+)
 NAME_EXEMPT = {"README.md", "AGENTS.md", "CLAUDE.md", "CHANGELOG.md", "pull_request_template.md"}  # last one: name fixed by GitHub
 NAME_EXEMPT_DIRS = {"program"}  # original program documents keep their official names
 EM_DASH = "—"
@@ -64,7 +68,8 @@ def main() -> int:
     problems = []
     for p in files():
         rel = p.relative_to(ROOT).as_posix()
-        if p.name not in NAME_EXEMPT and not p.name.startswith(".") and not (set(p.relative_to(ROOT).parts) & NAME_EXEMPT_DIRS) and not NAME_OK.match(p.name):
+        name_ok = RESULTS_NAME_OK.match(p.name) if p.parent == RESULTS_DIR else NAME_OK.match(p.name)
+        if p.name not in NAME_EXEMPT and not p.name.startswith(".") and not (set(p.relative_to(ROOT).parts) & NAME_EXEMPT_DIRS) and not name_ok:
             problems.append(f"{rel}: file name must be lowercase ASCII kebab-case (optional YYYY-MM-DD- prefix)")
         if p.suffix != ".md":
             continue
