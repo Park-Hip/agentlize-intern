@@ -2,7 +2,7 @@
 
 Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
-Quyết định 1 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md#11-cần-chốt-trước-khi-dựng).
+Quyết định 1 trong [spec bản thử, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt).
 
 ## Đọc nhanh
 
@@ -67,7 +67,7 @@ Lab tự dựng một cổng kiểm soát mỏng, theo [spec bản thử](../../
 
 | Nếu điều này xảy ra | Thì làm gì |
 | --- | --- |
-| Q1 cho thấy phần chạy tiếp tự viết sót, trùng hoặc quá rối | Viết ADR mới cho công cụ chạy quy trình ([Q1](../../rd/design/research-questions-and-validation-plan.md#21-q1-đang-chuyển-30-task-thì-ứng-dụng-sập-chạy-lại-có-đủ-và-không-trùng-không)) |
+| Q1 cho thấy phần chạy tiếp tự viết sót, trùng hoặc quá rối | Viết ADR mới cho công cụ chạy quy trình ([Q1](../../rd/design/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không)) |
 | Một sản phẩm công bố đủ che trường theo người, duyệt khoá nội dung và chống ghi trùng | Chạy tám phép thử của Lab vào sản phẩm đó với dữ liệu giả |
 | Thổ Thần thêm bước duyệt, hoặc header danh tính qua HTTPS vượt qua H9 (ghi đè `x-user-id`) và H10 (phiên tách theo người dùng) ([khảo sát Thổ Thần, mục 9](../../rd/appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được)) | Dùng header làm lớp kiểm thứ hai hoặc bỏ phần tương ứng của cổng; giữ phép thử |
 | Mục tiêu đổi từ nghiên cứu sang vận hành | Chạy thử sản phẩm theo [bài học từ thị trường, mục 5.3](../../rd/research/market-lessons.md#53-khi-nào-xem-lại-quyết-định-này) |

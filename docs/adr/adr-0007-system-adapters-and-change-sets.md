@@ -13,7 +13,7 @@ Ngày: 2026-11-19. Trạng thái: đã chấp nhận.
 ## 1. Bối cảnh
 
 Ví dụ: chị Hoa gõ "chuyển hết task của chị Lan sang anh Minh".
-Theo [spec, mục 4.3](../../rd/design/mvp-spec.md#43-danh-mục-tool) bản cũ, AI phải chọn đúng một tool riêng là `propose_bulk_reassign`.
+Theo [spec, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt) bản cũ, AI phải chọn đúng một tool riêng là `propose_bulk_reassign`.
 Nếu AI gọi `propose_task_change` 30 lần, mỗi lần một task, thì không lần nào chạm ngưỡng 5 task, và việc chuyển 30 task chạy mà không ai duyệt.
 
 Đọc lại mã cổng ngày 2026-11-19 cho thấy phần khung đã chung, nhưng đường ghi và bộ luật gắn cứng vào task:
@@ -168,7 +168,7 @@ Hàng đợi lệnh ghi (outbox) là bảng lệnh ghi đã có, cộng một v�
 - Vòng chạy nền không kiểm lại luật trước từng mục; luật đã được kiểm lúc bấm Gửi và lúc duyệt, trên đúng nội dung có dấu vân tay.
 - Cổng chạy một tiến trình duy nhất; chạy nhiều bản cổng cùng lúc cần thêm cột giữ chỗ cho lệnh, ghi ở mục 6.
 
-Đây là phương án 1A của Q1 (sập giữa chừng) trong [câu hỏi kiểm chứng](../../rd/design/research-questions-and-validation-plan.md#a1-q1-sập-giữa-chừng); phép thử tắt cổng ở ba thời điểm kiểm nó.
+Đây là phương án 1A của Q1 (sập giữa chừng) trong [spec bản thử, mục 2.1](../../rd/design/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không); phép thử tắt cổng ở ba thời điểm kiểm nó.
 
 ### 3.6. Thêm một hệ thống nghiệp vụ
 
@@ -194,7 +194,7 @@ Phép thử `lab/gateway/src/adapters/declared-fields-test.ts` thêm trường `
 - Console hiện và sửa được trường của task; dòng "trường của task cố định trong mã" ở [ADR-0006, mục 3.4](adr-0006-operator-console.md#34-sửa-quyền-và-trường) đọc theo ADR này.
   Danh sách loại bản ghi, hành động và nhãn của chúng đến từ mã của bộ tiếp hợp, nên console vẫn không thêm được hành động mới.
 - Một trưởng nhóm bị thu hồi khoá sau khi duyệt không chặn được việc đang chạy nền; thu hồi chỉ có hiệu lực với lần bấm sau.
-- Mốc 3 trễ khoảng một tuần, sang đầu tuần 4 ([spec, mục 9](../../rd/design/mvp-spec.md#9-bốn-mốc)).
+- Mốc 3 trễ khoảng một tuần, sang đầu tuần 4 ([spec, mục 5.2](../../rd/design/mvp-spec.md#52-điểm-dừng)).
 - Các issue dựng: bộ tiếp hợp; luật dạng dữ liệu và màn hình luật; đề xuất nhiều mục; hàng đợi lệnh ghi; chặn tách nhỏ; sửa danh bạ qua đường ghi chung; phép thử mốc 3.
 
 **Kết luận:** giá phải trả là một tuần viết lại phần lõi; đổi lại, kịch bản 30 task không có lỗ hổng duyệt và hệ thống thứ ba không chạm vào lõi.

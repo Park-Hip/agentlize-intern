@@ -2,7 +2,7 @@
 
 Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
-Quyết định 3 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md#11-cần-chốt-trước-khi-dựng).
+Quyết định 3 trong [spec bản thử, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt).
 
 ## Đọc nhanh
 
@@ -14,7 +14,7 @@ Quyết định 3 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md
 
 ## 1. Bối cảnh
 
-Ví dụ xuyên suốt: chị Hoa nhờ AI chuyển T-12 sang anh Minh, Nam gõ đúng câu đó, và anh Quang duyệt việc chuyển 30 task ([spec, mục 2](../../rd/design/mvp-spec.md#2-phạm-vi)).
+Ví dụ xuyên suốt: chị Hoa nhờ AI chuyển T-12 sang anh Minh, Nam gõ đúng câu đó, và anh Quang duyệt việc chuyển 30 task ([spec, mục 3](../../rd/design/mvp-spec.md#3-bản-thử-hôm-nay)).
 Cổng phải trả lời đúng một câu: ai đang yêu cầu?
 Nếu trả lời sai, SR1 (danh tính và một cửa ghi) sai theo: một người mượn quyền của người khác, và vết chỉ ghi tên tài khoản dịch vụ ([PRD, mục 6](../../rd/problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc)).
 
@@ -60,14 +60,14 @@ Lớp thứ hai chỉ được bật khi ba điều kiện ở mục 3.3 đều 
 
 - Cổng cấp cho mỗi người một khoá dạng `lab_` cộng 32 byte ngẫu nhiên, mã hoá base64url.
 - Cổng chỉ lưu mã băm SHA-256, so sánh thời gian hằng, và chỉ in 6 ký tự đầu trong log ([ADR-0003, mục 2](adr-0003-technology-stack.md#2-quyết-định)).
-- Bảng khoá giữ mã khoá, mã băm, sáu ký tự đầu, mã nhân viên, nơi gọi, phạm vi, lúc tạo và lúc thu hồi ([spec, mục 6](../../rd/design/mvp-spec.md#6-dữ-liệu-cổng-giữ)).
+- Bảng khoá giữ mã khoá, mã băm, sáu ký tự đầu, mã nhân viên, nơi gọi, phạm vi, lúc tạo và lúc thu hồi ([spec, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt)).
 - Mỗi lần gọi, cổng đổi khoá thành mã nhân viên và kiểm lại khoá; không có nguồn danh tính nào khác.
 - Khoá đi trong `Authorization: Bearer`.
   Chương trình nối stdio đọc `LAB_USER_KEY`; ô "API Key" của Thổ Thần gửi cùng header đó ([kịch bản đo, mục 5.5](../../rd/appota/tho-than-mcp-probe.md#55-khoá-riêng-của-từng-người-h8)).
 - Cổng không nhận mã nhân viên, email hay vai do người gọi tự khai trong body hay header.
   Vai và phòng đọc từ danh bạ ở mỗi lần gọi.
 - Khoá chứng minh "người đang giữ khoá", không phải một lần đăng nhập.
-  Ai dùng máy đó cũng là người sở hữu khoá; đây là giới hạn đã ghi ở [spec, mục 7](../../rd/design/mvp-spec.md#7-cài-vào-thổ-thần).
+  Ai dùng máy đó cũng là người sở hữu khoá; đây là giới hạn đã ghi ở [spec, mục 8](../../rd/design/mvp-spec.md#8-giả-định-và-giá-trị-của-kết-luận).
 - Thu hồi khoá có hiệu lực ở lần gọi sau.
   Mọi khoá của một người bị lộ phải thu hồi được; đây là lý do khoá là cách chính, không phải header.
 
@@ -137,7 +137,7 @@ Khi cả ba điều kiện đạt, lớp thứ hai là một cài đặt `Identi
 5. Khớp: trả danh tính lấy từ khoá, kèm dấu `account_verified` trong vết.
    Không trả mã tài khoản ra kết quả tool.
 
-Bốn mã mới vào bảng mã lý do ở [spec, mục 4.4](../../rd/design/mvp-spec.md#44-cổng-trả-lời-thế-nào) khi lớp này được bật.
+Bốn mã mới vào bảng [mã lý do trong `lab/shared`](../../lab/shared/src/reasons.ts) khi lớp này được bật.
 
 Lớp thứ hai chỉ được **từ chối**, không bao giờ **cấp quyền**.
 Nó không đổi mã nhân viên, vai hay phạm vi; nó chỉ nói "khoá này và tài khoản này có khớp không".

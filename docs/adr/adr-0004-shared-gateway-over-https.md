@@ -2,7 +2,7 @@
 
 Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
-Quyết định 2 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md#11-cần-chốt-trước-khi-dựng).
+Quyết định 2 trong [spec bản thử, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt).
 
 ## Đọc nhanh
 
@@ -18,7 +18,7 @@ Quyết định 2 trong [spec bản thử, mục 11](../../rd/design/mvp-spec.md
 
 ## 1. Bối cảnh
 
-Ví dụ xuyên suốt: chị Hoa nhờ AI chuyển T-12 sang anh Minh; anh Quang duyệt việc chuyển 30 task của chị Lan ([spec, mục 2](../../rd/design/mvp-spec.md#2-phạm-vi)).
+Ví dụ xuyên suốt: chị Hoa nhờ AI chuyển T-12 sang anh Minh; anh Quang duyệt việc chuyển 30 task của chị Lan ([spec, mục 3](../../rd/design/mvp-spec.md#3-bản-thử-hôm-nay)).
 Câu hỏi của ADR này: chị Hoa và anh Quang mở Thổ Thần ở máy của họ, vậy cổng đứng ở máy nào?
 
 Những gì đã đo, ngày 2026-11-17, qua địa chỉ HTTPS công khai ([kịch bản đo, mục 4.8](../../rd/appota/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6)):
@@ -40,7 +40,7 @@ Log gốc của phép đo không nằm trong repo (thư mục `scratch/` bị b�
 Những ràng buộc từ chính thiết kế của Lab:
 
 - Người duyệt phải khác người yêu cầu, và lời duyệt dùng một lần ([ADR-0002, mục 3](adr-0002-safe-read-and-write.md#3-quyết-định-về-ghi), điểm 3).
-- Mọi trạng thái nằm ở cổng, không nằm ở chương trình nối ([spec, mục 3](../../rd/design/mvp-spec.md#3-thổ-thần-buộc-thiết-kế-phải-theo-những-gì)).
+- Mọi trạng thái nằm ở cổng, không nằm ở chương trình nối ([spec, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt)).
 - Khoá riêng từng người, kiểm ở cổng, thu hồi được ([ADR-0005](adr-0005-requester-identity.md)).
 - Cổng chỉ nghe ở `127.0.0.1` cho tới khi có ADR về nơi chạy ([ADR-0003, mục 2](adr-0003-technology-stack.md#2-quyết-định)); ADR này là ADR đó.
 
@@ -61,7 +61,7 @@ Những ràng buộc từ chính thiết kế của Lab:
 | Thổ Thần web dùng được | Không: web gọi từ máy chủ Thổ Thần, không tới `localhost` (S2, S3) | Có (S3) | Có |
 | Thổ Thần desktop dùng được | Có | Có (S4) | Có |
 | Anh Quang thấy đề xuất của chị Hoa | Không, nếu hai người ở hai máy: mỗi máy một cổng, một file dữ liệu, một bảng khoá | Có: một nơi giữ đề xuất, khoá và vết | Chỉ khi cả hai đường trỏ về cùng một cổng |
-| Cài trên mỗi máy | Node 22, mã đã build, đường dẫn repo, khối JSON có khoá ([spec, mục 7](../../rd/design/mvp-spec.md#7-cài-vào-thổ-thần)) | Không cài gì; thêm một skill với địa chỉ và khoá (S1) | Cả hai cách cài |
+| Cài trên mỗi máy | Node 22, mã đã build, đường dẫn repo, khối JSON có khoá ([hướng dẫn chạy Lab](../../lab/README.md)) | Không cài gì; thêm một skill với địa chỉ và khoá (S1) | Cả hai cách cài |
 | Danh tính qua header của Thổ Thần | Không có: stdio không mang header (P2) | Có để dành cho lớp thứ hai của ADR-0005 (S3) | Chỉ ở `/mcp` |
 | Cần địa chỉ công khai | Không | Có; tunnel tạm hoặc máy chủ thật | Có |
 | Cổng ra Internet, khoá lộ nguy hơn | Không | Có | Có |
@@ -90,7 +90,7 @@ Chọn (b): cổng ở một máy chủ chung, Thổ Thần web và desktop gọ
 
 1. **Một cổng, một nơi giữ trạng thái.**
    Một tiến trình cổng, một bảng khoá, một sổ vết, một nơi giữ đề xuất.
-   Hai hệ thống giả vẫn là hai dịch vụ riêng, chỉ nghe ở `127.0.0.1` của máy chạy cổng ([spec, mục 4.2](../../rd/design/mvp-spec.md#42-thành-phần)).
+   Hai hệ thống giả vẫn là hai dịch vụ riêng, chỉ nghe ở `127.0.0.1` của máy chạy cổng ([spec, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt)).
 2. **Người dùng thêm một skill HTTP.**
    Địa chỉ `https://<địa chỉ>/mcp`, kiểu xác thực "API Key", dán khoá `lab_` của nhân vật ([ADR-0005, mục 3.1](adr-0005-requester-identity.md#31-khoá-riêng-từng-người-là-danh-tính-chính)).
    Không cài chương trình nào trên máy người dùng.

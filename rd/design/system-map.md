@@ -25,7 +25,7 @@ Nó ghép các nguồn đã có, và gắn mỗi mối nối với nguồn mạn
 
 | Mức | Nghĩa | Nguồn trong repo |
 | --- | --- | --- |
-| Đã đo | Có log và ảnh, chạy lại được | [Kịch bản đo Thổ Thần](../appota/tho-than-mcp-probe.md), ngày 2026-11-16; thử Thổ Thần web ngày 2026-11-17 ([spec bản thử, mục 3](mvp-spec.md#3-thổ-thần-buộc-thiết-kế-phải-theo-những-gì)) |
+| Đã đo | Có log và ảnh, chạy lại được | [Kịch bản đo Thổ Thần](../appota/tho-than-mcp-probe.md), ngày 2026-11-16; thử Thổ Thần web ngày 2026-11-17 ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)) |
 | Theo tài liệu công khai | Đọc từ mã nguồn hay tài liệu công bố, chưa chạy | [Khảo sát Thổ Thần](../appota/tho-than-platform.md), [MausBot](../research/mausbot.md) |
 | Kế hoạch | Có trong bản nháp nội bộ hay trong spec của Lab, chưa thấy chạy | [Slide hệ sinh thái](../../docs/context/appota-ai-ecosystem.md), [PRD Skill Studio](../../docs/context/prd-agentlize-skill-studio.docx), [spec bản thử](mvp-spec.md) |
 | Chưa biết | Không nguồn nào nói | - |
@@ -176,7 +176,7 @@ Năm câu, xếp theo mức làm đổi thiết kế:
 | U4 (địa chỉ công khai) | Lab có được mở một địa chỉ HTTPS công khai tạm thời để thử Thổ Thần web không? | Có: chạy V2 ở mục 6.2. Không: đường web chỉ kiểm bằng phép thử tự động. | Kevin |
 | U5 (MausBot) | Dùng MausBot làm nơi gọi thứ hai cho bộ công cụ (cách T1) là đủ, hay Kevin muốn hướng khác? | T1: giữ kế hoạch. Hướng khác: mở lại [MausBot, mục 6](../research/mausbot.md#6-những-gì-cần-kiểm-tra). | Kevin |
 
-U1, U3 và U4 đã có trong [spec bản thử, mục 11](mvp-spec.md#11-cần-chốt-trước-khi-dựng); U2 và U5 là mới.
+U1, U3 và U4 đã có trong [spec bản thử, mục 9](mvp-spec.md#9-phụ-thuộc-và-rủi-ro); U2 và U5 là mới.
 Ba câu nhỏ hơn hỏi sau: slide là đích hay hiện trạng, đo giá trị cần trường nào trong vết, Lab có cần đưa lời duyệt lên thẻ Lark không.
 
 ### 6.2. Lab tự kiểm được
@@ -196,7 +196,7 @@ Nếu Coding Agent chạy được, "agent thứ hai dùng lại công cụ" đ�
 
 ### 6.3. Bản thử tự trả lời
 
-- AI của Thổ Thần có giữ link duyệt khi tóm tắt kết quả không (mốc 1 và 2 của [spec](mvp-spec.md#9-bốn-mốc)).
+- AI của Thổ Thần có giữ link duyệt khi tóm tắt kết quả không (mốc 1 và 2 của [spec, mục 5.2](mvp-spec.md#52-điểm-dừng)).
 - Mở tiến trình mới cho mỗi lần gọi làm chậm thêm bao nhiêu (M1, thời gian).
 - Sập giữa lúc chuyển 30 task thì chạy tiếp có đủ và không trùng không (Q1, mốc 3).
 
@@ -211,7 +211,7 @@ Tuần 2 chạy từ 16/11 tới 22/11; hôm nay là thứ Ba 17/11.
 | Ngày | Việc | Xong khi |
 | --- | --- | --- |
 | Thứ Ba 17/11 | Gửi Kevin năm câu ở 6.1 cùng ba giới hạn của Thổ Thần; chạy V1, gồm cả lời gọi mô hình | Tin nhắn đã gửi; kết quả V1 ghi vào [khảo sát Thổ Thần](../appota/tho-than-platform.md) |
-| Thứ Tư 18/11 | Viết năm ADR ở [spec, mục 11](mvp-spec.md#11-cần-chốt-trước-khi-dựng), mỗi ADR có mục "xem lại khi" gắn với U1-U4; chạy V5 và V6 | Có `docs/adr/adr-0001-<slug>.md` tới `adr-0005-<slug>.md` |
+| Thứ Tư 18/11 | Viết năm ADR ở [spec, mục 6](mvp-spec.md#6-kiến-trúc-tóm-tắt), mỗi ADR có mục "xem lại khi" gắn với U1-U4; chạy V5 và V6 | Có `docs/adr/adr-0001-<slug>.md` tới `adr-0005-<slug>.md` |
 | Thứ Năm 19/11 và thứ Sáu 20/11 | Mốc 1: danh bạ giả, cổng đổi khoá thành người, `find_employee` chỉ trả trường đã khai, chương trình nối stdio, vết; chạy kịch bản D (tra cứu có lọc) trong Thổ Thần | Kịch bản D có ảnh và log; phép thử SR3 (phạm vi quyền) đạt bằng một lệnh |
 | Thứ Bảy 21/11 | V3 và V7; còn thời gian thì V4; cập nhật [tổng hợp phát hiện](../findings.md) và viết báo cáo tuần | Báo cáo tuần 2 trong `submitted/weekly-report/` |
 

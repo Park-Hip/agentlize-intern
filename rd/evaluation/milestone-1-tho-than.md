@@ -88,7 +88,7 @@ Mỗi khoá và mỗi mật khẩu trang gắn với một mã nhân viên; cổ
 
 ## 4. Cài skill mới trong Thổ Thần
 
-Skill vừa nhắc ở mục 1 cần một địa chỉ và một khoá ([spec, mục 7](../design/mvp-spec.md#7-cài-vào-thổ-thần)).
+Skill vừa nhắc ở mục 1 cần một địa chỉ và một khoá ([hướng dẫn chạy Lab](../../lab/README.md)).
 
 1. Mở phần cài đặt skill, thêm một skill kiểu Streamable HTTP (MCP qua HTTPS, mỗi lời gọi một request).
 
@@ -277,7 +277,7 @@ Hai dòng ở mục 10 không đánh dấu; intern quyết định đóng issue 
 | Trả skill về như cũ và xoay khoá | Đạt: intern đã xoá skill `lab-gateway`; agent đã thu hồi cả bảy khoá của phiên bằng `npm run keys -- revoke` sau khi đường hầm tắt, và `npm run keys -- list` không còn khoá nào hiệu lực | Phiên sau chạy `npm run seed-keys` để cấp khoá mới |
 
 Câu trả lời của Nam lọc đúng dữ liệu nhưng nói "có thể số điện thoại nằm ngoài phạm vi..., hoặc hệ thống chưa lưu trường này".
-Cổng bỏ trường không được xem mà không nói gì, theo [spec, mục 4.4](../design/mvp-spec.md#44-cổng-trả-lời-thế-nào), nên trợ lý phải tự đoán vì sao thiếu số.
+Cổng bỏ trường không được xem mà không nói gì, theo [spec, mục 7.4](../design/mvp-spec.md#74-tám-yêu-cầu), nên trợ lý phải tự đoán vì sao thiếu số.
 Câu của chị Hoa rõ hơn, nhưng cũng là trợ lý tự suy ra.
 Kịch bản D đòi câu trả lời "nói rõ không được xem số cá nhân", nên cổng cần thêm một câu cố định nêu các trường bị ẩn theo quyền, không kèm giá trị ([#64](https://github.com/Park-Hip/agentlize-intern/issues/64)).
 

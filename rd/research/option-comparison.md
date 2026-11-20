@@ -146,7 +146,7 @@ Quyết định cuối nằm trong bản ghi quyết định kiến trúc (ADR).
 
 Tổ hợp này khớp phạm vi thử ở [PRD, mục 3.3](../problem/prd-ai-platform.md#33-phạm-vi-thử).
 Nếu bản ghi quyết định chọn khác, PRD mục 3.3 phải sửa theo.
-Những điều còn chưa biết thành câu hỏi và phép thử ở [câu hỏi kiểm chứng](../design/research-questions-and-validation-plan.md); quyết định nằm ở [ADR-0001](../../docs/adr/adr-0001-self-built-thin-gateway.md).
+Những điều còn chưa biết thành câu hỏi và phép thử ở [spec bản thử, mục 2](../design/mvp-spec.md#2-hai-câu-hỏi-nghiên-cứu); quyết định nằm ở [ADR-0001](../../docs/adr/adr-0001-self-built-thin-gateway.md).
 
 # Phụ lục A - Căn cứ từng ô của mục 3
 

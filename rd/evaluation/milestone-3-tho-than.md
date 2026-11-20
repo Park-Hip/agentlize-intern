@@ -12,8 +12,8 @@ Ngày: 2026-11-20. Trạng thái: bản nháp; phần chạy máy đã xong, phi
 
 ## 1. Mốc 3 cần chứng minh gì
 
-Mốc 3 đòi kịch bản C chạy trong Thổ Thần, phần sập giữa chừng của SR6 (không ghi trùng), SR4 (điểm dừng rủi ro), SR7 (vết xuyên suốt) và câu trả lời Q1 (sập giữa chừng, chạy lại có đủ?) ([spec, mục 9](../design/mvp-spec.md#9-bốn-mốc)).
-Kịch bản C là chị Hoa nhờ AI chuyển toàn bộ 30 task đang mở của chị Lan sang anh Minh ([spec, mục 2.2](../design/mvp-spec.md#22-bốn-kịch-bản-phải-chạy-trong-thổ-thần)).
+Mốc 3 đòi kịch bản C chạy trong Thổ Thần, phần sập giữa chừng của SR6 (không ghi trùng), SR4 (điểm dừng rủi ro), SR7 (vết xuyên suốt) và câu trả lời Q1 (sập giữa chừng, chạy lại có đủ?) ([spec, mục 5.2](../design/mvp-spec.md#52-điểm-dừng)).
+Kịch bản C là chị Hoa nhờ AI chuyển toàn bộ 30 task đang mở của chị Lan sang anh Minh ([spec, mục 3](../design/mvp-spec.md#3-bản-thử-hôm-nay)).
 Đề xuất phải dừng ở bước duyệt, anh Quang bấm Duyệt trên trang của cổng, rồi cổng ghi từng task một và hiện tiến độ.
 Phiên chạy thật chưa xảy ra, nên tài liệu này tách rõ hai phần: phần máy đã chạy ở mục 2 và phần chờ phiên ở mục 3 tới mục 12.
 Mục 13 là nơi duy nhất điền kết quả phiên; mục nào còn "Chưa chạy: điền sau phiên" thì mốc 3 chưa đóng.
@@ -67,7 +67,7 @@ Lần ngắt 20 giây tắt hẳn dịch vụ task, không chỉ làm chậm ph�
 
 ### 2.3. M5 (độ phức tạp vận hành)
 
-M5 là chỉ số độ phức tạp vận hành: số tiến trình, số file cấu hình, số bước cài và số chỗ phải sửa khi đổi một luật ([spec, mục 8.3](../design/mvp-spec.md#83-số-đo-đầu-tiên)).
+M5 là chỉ số độ phức tạp vận hành: số tiến trình, số file cấu hình, số bước cài và số chỗ phải sửa khi đổi một luật ([spec, mục 7.6](../design/mvp-spec.md#76-sáu-chỉ-số)).
 Trong báo cáo này, phần đo được là lõi chạy nền và chạy tiếp trong `lab/gateway/src/writes/outbox.ts`.
 
 Cách đếm: đọc từng dòng của tệp, bỏ dòng trắng và dòng chỉ có chú thích, giữ dòng có mã kể cả khi cuối dòng có chú thích.
@@ -96,7 +96,7 @@ Cổng vẫn chạy một tiến trình, và vòng chạy nền nằm trong ti�
 
 ### 2.4. Câu trả lời Q1 (sập giữa chừng)
 
-Q1 hỏi: đang chuyển 30 task mà ứng dụng sập thì chạy lại có đủ và không trùng không ([câu hỏi kiểm chứng, A.1](../design/research-questions-and-validation-plan.md#a1-q1-sập-giữa-chừng)).
+Q1 hỏi: đang chuyển 30 task mà ứng dụng sập thì chạy lại có đủ và không trùng không ([spec, mục 2.1](../design/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không)).
 Hai phương án là 1A (cổng tự lưu tiến độ và chạy tiếp) và 1B (dùng công cụ chạy quy trình, tức phần mềm chuyên nhớ từng bước đã xong).
 
 Kết quả ngày 2026-11-19: giữ 1A.
