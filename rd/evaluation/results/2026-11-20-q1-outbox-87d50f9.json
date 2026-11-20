@@ -1,0 +1,419 @@
+{
+  "schema": 3,
+  "scenario": {
+    "name": "q1-outbox",
+    "description": "Q1: ba bước sập giữa chừng của lệnh 30 task, mỗi bước lặp theo --runs, đếm task sót, task ghi hai lần và nội dung cuối; đích chọn bằng --target, mặc định gateway."
+  },
+  "generated_at": "2026-11-20T10:03:49.218Z",
+  "command": "npm run measure -- q1-outbox --target temporal --runs 100",
+  "runs": 100,
+  "elapsed_seconds": 5697.9,
+  "write_target": "temporal",
+  "parameters": {
+    "target": "temporal",
+    "target_selection": "--target; mặc định gateway",
+    "runs_per_step": 100,
+    "task_ids": [
+      "T-5",
+      "T-6",
+      "T-7",
+      "T-8",
+      "T-9",
+      "T-10",
+      "T-11",
+      "T-12",
+      "T-13",
+      "T-14",
+      "T-15",
+      "T-16",
+      "T-17",
+      "T-18",
+      "T-19",
+      "T-20",
+      "T-21",
+      "T-22",
+      "T-23",
+      "T-24",
+      "T-25",
+      "T-26",
+      "T-27",
+      "T-28",
+      "T-29",
+      "T-30",
+      "T-31",
+      "T-32",
+      "T-33",
+      "T-34"
+    ],
+    "changes": {
+      "assignee": "NV-04"
+    },
+    "crash_points": {
+      "temporal:before-first": {
+        "runs": 34,
+        "correct": 34,
+        "incorrect": 0,
+        "errors": 0,
+        "retries": 34,
+        "duplicates": 0,
+        "lost": 0,
+        "wrong_content": 0,
+        "point_missed": 0,
+        "unauthorized": 0,
+        "restarts": 34,
+        "trace_runs": 34,
+        "trace_rows": 5844,
+        "trace_leaks": 0
+      },
+      "temporal:mid-17": {
+        "runs": 33,
+        "correct": 33,
+        "incorrect": 0,
+        "errors": 0,
+        "retries": 33,
+        "duplicates": 0,
+        "lost": 0,
+        "wrong_content": 0,
+        "point_missed": 0,
+        "unauthorized": 0,
+        "restarts": 33,
+        "trace_runs": 33,
+        "trace_rows": 5406,
+        "trace_leaks": 0
+      },
+      "temporal:after-last": {
+        "runs": 33,
+        "correct": 33,
+        "incorrect": 0,
+        "errors": 0,
+        "retries": 33,
+        "duplicates": 0,
+        "lost": 0,
+        "wrong_content": 0,
+        "point_missed": 0,
+        "unauthorized": 0,
+        "restarts": 33,
+        "trace_runs": 33,
+        "trace_rows": 2118,
+        "trace_leaks": 0
+      }
+    },
+    "outage_ms": 20000,
+    "outage_shortened": false,
+    "fault_delays_ms": {
+      "before_first": 5000,
+      "after_item": 60000
+    },
+    "wait_timeouts_ms": {
+      "command": 10000,
+      "write": 30000,
+      "restart": 60000,
+      "outage": 120000
+    },
+    "counts": {
+      "step1": {
+        "runs": 100,
+        "correct": 100,
+        "incorrect": 0,
+        "errors": 0,
+        "retries": 100,
+        "duplicates": 0,
+        "lost": 0,
+        "wrong_content": 0,
+        "point_missed": 0,
+        "unauthorized": 0,
+        "restarts": 100,
+        "trace_runs": 100,
+        "trace_rows": 13368,
+        "trace_leaks": 0
+      },
+      "step2": {
+        "runs": 100,
+        "correct": 100,
+        "incorrect": 0,
+        "errors": 0,
+        "retries": 700,
+        "duplicates": 0,
+        "lost": 0,
+        "wrong_content": 0,
+        "point_missed": 0,
+        "unauthorized": 0,
+        "restarts": 0,
+        "trace_runs": 100,
+        "trace_rows": 7439,
+        "trace_leaks": 0
+      },
+      "step3": {
+        "runs": 100,
+        "correct": 100,
+        "incorrect": 0,
+        "errors": 0,
+        "retries": 100,
+        "duplicates": 0,
+        "lost": 0,
+        "wrong_content": 0,
+        "point_missed": 0,
+        "unauthorized": 0,
+        "restarts": 0,
+        "trace_runs": 100,
+        "trace_rows": 5999,
+        "trace_leaks": 0
+      },
+      "total": {
+        "runs": 300,
+        "correct": 300,
+        "incorrect": 0,
+        "errors": 0,
+        "retries": 900,
+        "duplicates": 0,
+        "lost": 0,
+        "wrong_content": 0,
+        "point_missed": 0,
+        "unauthorized": 0,
+        "restarts": 100,
+        "trace_runs": 300,
+        "trace_rows": 26806,
+        "trace_leaks": 0
+      }
+    },
+    "expected": {
+      "assignee": "NV-04",
+      "writes_per_task": 1,
+      "version_step": 1
+    }
+  },
+  "environment": {
+    "commit": "87d50f95a71a54294f246623f37eda3f738313b7",
+    "commit_short": "87d50f9",
+    "dirty": false,
+    "node": "v22.21.0",
+    "os": {
+      "platform": "win32",
+      "release": "10.0.26200",
+      "version": "Windows 11 Home",
+      "arch": "x64"
+    },
+    "cpu": {
+      "model": "Intel(R) Core(TM) Ultra 5 225H",
+      "count": 14,
+      "speed_mhz": 3686
+    },
+    "memory_total_bytes": 33752997888,
+    "timezone": "Asia/Bangkok"
+  },
+  "samples_file": {
+    "name": "2026-11-20-q1-outbox-87d50f9.samples.ndjson.gz",
+    "count": 300,
+    "sha256": "843f780ef732128624888fd78ea7dcd06d522d8726bd0e38814b6311ffa8c42c"
+  },
+  "summary": {
+    "overall": {
+      "client_ms": {
+        "count": 300,
+        "p50_ms": 22524.345,
+        "p95_ms": 30071.64,
+        "max_ms": 30527.002,
+        "min_ms": 7381.557,
+        "mean_ms": 18992.852
+      },
+      "gateway_duration_ms": null
+    },
+    "by_door": {
+      "q1-step1-crash": {
+        "client_ms": {
+          "count": 100,
+          "p50_ms": 22524.345,
+          "p95_ms": 23295.654,
+          "max_ms": 25464.41,
+          "min_ms": 12100.828,
+          "mean_ms": 19461.452
+        },
+        "gateway_duration_ms": null
+      },
+      "q1-step2-outage": {
+        "client_ms": {
+          "count": 100,
+          "p50_ms": 29934.487,
+          "p95_ms": 30150.341,
+          "max_ms": 30527.002,
+          "min_ms": 29594.834,
+          "mean_ms": 29909.955
+        },
+        "gateway_duration_ms": null
+      },
+      "q1-step3-lost-answer": {
+        "client_ms": {
+          "count": 100,
+          "p50_ms": 7610.244,
+          "p95_ms": 7722.759,
+          "max_ms": 7748.419,
+          "min_ms": 7381.557,
+          "mean_ms": 7607.149
+        },
+        "gateway_duration_ms": null
+      }
+    },
+    "by_tool": {
+      "temporal:before-first": {
+        "client_ms": {
+          "count": 34,
+          "p50_ms": 22966.884,
+          "p95_ms": 23528.891,
+          "max_ms": 25464.41,
+          "min_ms": 22818.746,
+          "mean_ms": 23096.478
+        },
+        "gateway_duration_ms": null
+      },
+      "temporal:mid-17": {
+        "client_ms": {
+          "count": 33,
+          "p50_ms": 22524.345,
+          "p95_ms": 23295.654,
+          "max_ms": 25115.415,
+          "min_ms": 22111.523,
+          "mean_ms": 22635.108
+        },
+        "gateway_duration_ms": null
+      },
+      "temporal:after-last": {
+        "client_ms": {
+          "count": 33,
+          "p50_ms": 12447.109,
+          "p95_ms": 13036.021,
+          "max_ms": 15508.954,
+          "min_ms": 12100.828,
+          "mean_ms": 12542.619
+        },
+        "gateway_duration_ms": null
+      },
+      "temporal": {
+        "client_ms": {
+          "count": 200,
+          "p50_ms": 7748.419,
+          "p95_ms": 30090.835,
+          "max_ms": 30527.002,
+          "min_ms": 7381.557,
+          "mean_ms": 18758.552
+        },
+        "gateway_duration_ms": null
+      }
+    },
+    "by_door_tool": [
+      {
+        "door": "q1-step1-crash",
+        "tool": "temporal:before-first",
+        "client_ms": {
+          "count": 34,
+          "p50_ms": 22966.884,
+          "p95_ms": 23528.891,
+          "max_ms": 25464.41,
+          "min_ms": 22818.746,
+          "mean_ms": 23096.478
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "q1-step1-crash",
+        "tool": "temporal:mid-17",
+        "client_ms": {
+          "count": 33,
+          "p50_ms": 22524.345,
+          "p95_ms": 23295.654,
+          "max_ms": 25115.415,
+          "min_ms": 22111.523,
+          "mean_ms": 22635.108
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "q1-step1-crash",
+        "tool": "temporal:after-last",
+        "client_ms": {
+          "count": 33,
+          "p50_ms": 12447.109,
+          "p95_ms": 13036.021,
+          "max_ms": 15508.954,
+          "min_ms": 12100.828,
+          "mean_ms": 12542.619
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "q1-step2-outage",
+        "tool": "temporal",
+        "client_ms": {
+          "count": 100,
+          "p50_ms": 29934.487,
+          "p95_ms": 30150.341,
+          "max_ms": 30527.002,
+          "min_ms": 29594.834,
+          "mean_ms": 29909.955
+        },
+        "gateway_duration_ms": null
+      },
+      {
+        "door": "q1-step3-lost-answer",
+        "tool": "temporal",
+        "client_ms": {
+          "count": 100,
+          "p50_ms": 7610.244,
+          "p95_ms": 7722.759,
+          "max_ms": 7748.419,
+          "min_ms": 7381.557,
+          "mean_ms": 7607.149
+        },
+        "gateway_duration_ms": null
+      }
+    ]
+  },
+  "targets": [],
+  "safety": {
+    "counters": [
+      {
+        "id": "duplicate_writes",
+        "label": "Ghi trùng",
+        "applicable": true,
+        "value": 0,
+        "detail": "Đếm số lần ghi thật trên 1 cho mỗi task, cộng qua 300 lần chạy; 0 lần ghi thêm."
+      },
+      {
+        "id": "lost_commands",
+        "label": "Lệnh mất",
+        "applicable": true,
+        "value": 0,
+        "detail": "Đếm task không có lần ghi nào sau khi đề xuất đã xong, cộng qua 300 lần chạy; 0 task sót."
+      },
+      {
+        "id": "unauthorized_writes",
+        "label": "Ghi vượt quyền",
+        "applicable": true,
+        "value": 0,
+        "detail": "Đếm lần ghi xảy ra trước khi người yêu cầu bấm Gửi hoặc trước khi trưởng nhóm duyệt; 0 lần."
+      },
+      {
+        "id": "out_of_scope_fields",
+        "label": "Trường ngoài quyền",
+        "applicable": false,
+        "value": null,
+        "detail": "Phép đo chỉ đọc và ghi task; không gọi find_employee hay get_task nên không có trường cá nhân nào để rò."
+      },
+      {
+        "id": "personal_data_in_trace",
+        "label": "Dữ liệu cá nhân trong vết",
+        "applicable": true,
+        "value": 0,
+        "detail": "Đã quét 26806 dòng vết của 300/300 lần chạy cho tên, email, số điện thoại, địa chỉ và khoá; 0 dòng chứa."
+      }
+    ],
+    "all_applicable_zero": true
+  },
+  "notes": [
+    "Mỗi lần chạy dựng một đích mới trên cổng mạng trống và thư mục dữ liệu tạm, nên bảng lệnh ghi và bảng vết chỉ chứa đúng lần chạy đó.",
+    "Bước 1 chia 100 lần cho ba thời điểm tắt: trước task đầu, giữa task 17 và sau task 30.",
+    "Bước 2 cho danh sách task ngừng 20000 ms giữa chừng và không khởi động lại cổng; số lần khởi động lại của cổng phải bằng 0.",
+    "Bước 3 làm rơi phản hồi của lần ghi đầu sau khi đã ghi; lần gửi lại phải dùng đúng mã cũ và nhận kết quả cũ.",
+    "Mục tiêu ban đầu 99/100 mỗi bước: kết quả 300/300 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất.",
+    "Bước 1 có 0 lần không chạm đúng thời điểm tắt; bước 3 có 0 lần không thấy lần gửi lại."
+  ]
+}
