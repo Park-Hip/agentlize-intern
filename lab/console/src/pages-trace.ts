@@ -218,9 +218,15 @@ ${traceGroups(view.rows)}
         ? `<p class="meta">Đang hiện ${view.rows.length} dòng mới nhất trong ${view.total} dòng khớp bộ lọc. Lọc theo task hay đề xuất để thấy dòng cũ hơn.</p>`
         : `<p class="meta">${view.rows.length} dòng khớp bộ lọc.</p>`;
 
+  const taskNote =
+    view.error !== undefined || view.query.filter.task === undefined
+      ? ''
+      : `<p class="meta">Lọc theo task <code>${esc(view.query.filter.task)}</code>: trang hiện mọi dòng của task đó và mọi dòng của đề xuất chứa nó. Một đề xuất 30 mục vì thế hiện cả 30 lệnh ghi, và dòng duyệt vẫn chỉ một.</p>`;
+
   const body = `<p class="sub">Bảng vết của cổng, mở từ <code>gateway.sqlite</code> ở chế độ chỉ đọc. Lọc theo người, task, đề xuất và cửa vào; các dòng của một đề xuất nằm chung một nhóm để đọc thành chuỗi soạn, xác nhận, ghi (SR7).</p>
 ${filterForm(view.query)}
 ${count}
+${taskNote}
 <p class="meta">Vết mới nhất trước. <span id="trace-updated"></span></p>
 <noscript><p class="banner" role="status">Trang vẫn lọc và xem đầy đủ khi JavaScript tắt; chỉ phần tự làm mới là không chạy. Bấm Lọc để tải lại.</p></noscript>
 ${shown}`;
