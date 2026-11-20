@@ -202,7 +202,7 @@
     "timezone": "Asia/Bangkok"
   },
   "samples_file": {
-    "name": "2026-11-20-q1-outbox-87d50f9.samples.ndjson.gz",
+    "name": "2026-11-20-q1-outbox-temporal-87d50f9.samples.ndjson.gz",
     "count": 300,
     "sha256": "843f780ef732128624888fd78ea7dcd06d522d8726bd0e38814b6311ffa8c42c"
   },

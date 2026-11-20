@@ -92,12 +92,13 @@ npm run measure -- m5-complexity --target temporal
 
 Phép đo thứ nhất chạy ba bước sập, mỗi bước 100 lần.
 Phép đo thứ hai đếm phần chạy tiếp, số dịch vụ, số file cấu hình, số bước cài và thử đổi một ô luật.
+Cùng phép đo thứ nhất với `--variant server-crash --runs 1` tắt cả dev server trong bước sập, mỗi bước một lần; xem mục Tắt ngang.
 
 ## Tắt ngang
 
 `crash()` mặc định tắt worker bằng `SIGKILL`, không đóng gì.
 Workflow vẫn nằm trên Temporal dev server, nên worker khởi động lại thì workflow chạy tiếp từ đúng activity đang dở.
-Đặt `LAB_TEMPORAL_CRASH_SCOPE=server` để tắt cả worker lẫn dev server trong một lượt; dev server mở lại trên cùng `--db-filename` nên workflow còn nguyên.
+Chạy lệnh đo với `--variant server-crash` để tắt cả worker lẫn dev server trong một lượt; dev server mở lại trên cùng `--db-filename` nên workflow còn nguyên.
 
 ## Thành phần
 
@@ -132,11 +133,11 @@ Intern đã từng dùng Temporal trước đây hay chưa là câu hỏi để 
 
 ## Kết quả
 
-- [Q1 Temporal](../../../rd/evaluation/results/2026-11-20-q1-outbox-87d50f9.json): 300/300 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất; bước 1 chia 100 lần cho ba thời điểm tắt, mỗi thời điểm đều đạt.
-- [M5 Temporal](../../../rd/evaluation/results/2026-11-20-m5-complexity-87d50f9.json): 4 file, 384 dòng vật lý và 330 dòng mã; 5 dịch vụ cần cho đường ghi, 4 bước cài, 2 bước sau khi sập, đổi một ô luật vẫn 1 chỗ.
-- [M5 bản tự viết](../../../rd/evaluation/results/2026-11-20-m5-complexity-62e309e.json): 2 file, 587 dòng vật lý và 476 dòng mã; 3 dịch vụ cần cho đường ghi, 4 bước cài, 1 bước sau khi sập, đổi một ô luật 1 chỗ.
+- [Q1 Temporal](../../../rd/evaluation/results/2026-11-20-q1-outbox-temporal-87d50f9.json): 300/300 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất; bước 1 chia 100 lần cho ba thời điểm tắt, mỗi thời điểm đều đạt.
+- [M5 Temporal](../../../rd/evaluation/results/2026-11-20-m5-complexity-temporal-87d50f9.json): 4 file, 384 dòng vật lý và 330 dòng mã; 5 dịch vụ cần cho đường ghi, 4 bước cài, 2 bước sau khi sập, đổi một ô luật vẫn 1 chỗ.
+- [M5 bản tự viết](../../../rd/evaluation/results/2026-11-20-m5-complexity-gateway-62e309e.json): 2 file, 587 dòng vật lý và 476 dòng mã; 3 dịch vụ cần cho đường ghi, 4 bước cài, 1 bước sau khi sập, đổi một ô luật 1 chỗ.
 
-Lượt tắt cả dev server dùng `LAB_TEMPORAL_CRASH_SCOPE=server` với `--runs 1` trong thư mục tạm: 3/3 lần đúng, 0 ghi trùng, 0 lệnh mất.
-Lượt đó không commit vì tên file kết quả trùng ngày, phép đo và commit với lượt 100 lần.
+Lượt tắt cả dev server chạy bằng `npm run measure -- q1-outbox --target temporal --variant server-crash --runs 1`; lượt đo thử khi dựng bản đối chứng đạt 3/3 lần đúng, 0 ghi trùng, 0 lệnh mất.
+Tên file kết quả nay có tên đích và tên biến thể, nên lượt này không còn trùng tên với lượt 100 lần ở trên.
 
 Kết luận Q1 nằm trong `rd/design/mvp-spec.md` mục 2.1 và `rd/findings.md`.

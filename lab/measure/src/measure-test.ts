@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFile, readdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -68,6 +68,25 @@ test('measure: a scenario without a target rejects --target', () => {
   assert.equal(rejected.stdout.trim(), '', 'the command stopped before it built the stack');
 });
 
+test('measure: --variant is parsed and a name that is not kebab-case stops the command', () => {
+  const bad = runCli(['q1-outbox', '--variant', 'ServerCrash']);
+  assert.equal(bad.status, 1);
+  assert.match(bad.stderr, /--variant must be a short kebab-case name/);
+  assert.equal(bad.stdout.trim(), '', 'no stack log and no result line');
+
+  const empty = runCli(['q1-outbox', '--variant=']);
+  assert.equal(empty.status, 1);
+  assert.match(empty.stderr, /--variant must not be empty/);
+
+  const missing = runCli(['q1-outbox', '--variant']);
+  assert.equal(missing.status, 1);
+  assert.match(missing.stderr, /--variant needs a value/);
+
+  const valued = runCli(['q1-outbox', '--force=yes']);
+  assert.equal(valued.status, 1);
+  assert.match(valued.stderr, /--force takes no value/);
+});
+
 test('measure: a target-only scenario builds no shared stack and records the target', async () => {
   const outDir = await mkdtemp(join(tmpdir(), 'agentlize-measure-target-only-'));
   let stackBuilds = 0;
@@ -108,6 +127,8 @@ test('measure: a target-only scenario builds no shared stack and records the tar
     const outcome = await measureScenario(scenario, {
       runs: 1,
       target: 'gateway',
+      variant: null,
+      force: false,
       outDir,
       repoRoot: join(MEASURE_DIR, '..', '..'),
       command: 'npm run measure -- probe-target-only --target gateway --runs 1',
@@ -119,11 +140,94 @@ test('measure: a target-only scenario builds no shared stack and records the tar
     });
 
     assert.equal(stackBuilds, 0);
-    assert.equal(outcome.result.schema, 3);
+    assert.equal(outcome.result.schema, 4);
     assert.equal(outcome.result.write_target, 'gateway');
+    assert.equal(outcome.result.variant, null);
     assert.deepEqual(outcome.result.parameters, { probe: true });
+    assert.match(basename(outcome.file), /^\d{4}-\d{2}-\d{2}-probe-target-only-gateway-[0-9a-f]{7}\.json$/);
+    assert.match(
+      basename(outcome.samplesFile),
+      /^\d{4}-\d{2}-\d{2}-probe-target-only-gateway-[0-9a-f]{7}\.samples\.ndjson\.gz$/,
+    );
     const loaded = await readMeasurement(outcome.file);
     assert.equal(loaded.summary.write_target, 'gateway');
+    assert.equal(loaded.summary.variant, null);
+  } finally {
+    await rm(outDir, { recursive: true, force: true });
+  }
+});
+
+test('measure: a variant gets its own file name and no run writes over an existing result', async () => {
+  const outDir = await mkdtemp(join(tmpdir(), 'agentlize-measure-variant-'));
+  try {
+    const scenario: Scenario = {
+      name: 'probe-variant',
+      description: 'A probe that records one sample and builds nothing.',
+      needs: { stack: false, target: true },
+
+      async run(context) {
+        assert.equal(context.target, 'gateway');
+        return {
+          samples: [
+            {
+              door: 'probe',
+              tool: 'probe',
+              run: 1,
+              client_ms: 1,
+              gateway_duration_ms: null,
+              trace_id: null,
+              status: 200,
+              reason_code: null,
+            },
+          ],
+          safety: [
+            safetyCounter('duplicate_writes', false, null, 'The probe writes nothing.'),
+            safetyCounter('lost_commands', false, null, 'The probe writes nothing.'),
+            safetyCounter('unauthorized_writes', false, null, 'The probe writes nothing.'),
+            safetyCounter('out_of_scope_fields', false, null, 'The probe reads no business record.'),
+            safetyCounter('personal_data_in_trace', false, null, 'The probe reads no trace table.'),
+          ],
+        };
+      },
+    };
+
+    const options = (variant: string | null, force: boolean) => ({
+      runs: 1,
+      target: 'gateway' as const,
+      variant,
+      force,
+      outDir,
+      repoRoot: join(MEASURE_DIR, '..', '..'),
+      command: 'npm run measure -- probe-variant --target gateway --runs 1',
+      log: () => {},
+    });
+
+    const first = await measureScenario(scenario, options(null, false));
+    assert.match(basename(first.file), /^\d{4}-\d{2}-\d{2}-probe-variant-gateway-[0-9a-f]{7}\.json$/);
+    assert.equal(first.result.variant, null);
+    assert.equal((await readdir(outDir)).length, 2);
+
+    // The same name again stops before a single run is made and writes nothing.
+    await assert.rejects(measureScenario(scenario, options(null, false)), /already exists; pass --force/);
+    assert.equal((await readdir(outDir)).length, 2, 'the blocked run wrote no file');
+
+    // --force is the explicit way over the existing result.
+    const forced = await measureScenario(scenario, options(null, true));
+    assert.equal(basename(forced.file), basename(first.file));
+    assert.equal((await readdir(outDir)).length, 2, 'force wrote over the same two files');
+
+    // A variant run lands in its own file, named after the target, and is recorded.
+    const varied = await measureScenario(scenario, options('short-outage', false));
+    assert.match(basename(varied.file), /^\d{4}-\d{2}-\d{2}-probe-variant-gateway-short-outage-[0-9a-f]{7}\.json$/);
+    assert.match(
+      basename(varied.samplesFile),
+      /^\d{4}-\d{2}-\d{2}-probe-variant-gateway-short-outage-[0-9a-f]{7}\.samples\.ndjson\.gz$/,
+    );
+    assert.equal(varied.result.variant, 'short-outage');
+    assert.equal(varied.result.write_target, 'gateway');
+    assert.equal((await readdir(outDir)).length, 4);
+    const loaded = await readMeasurement(varied.file);
+    assert.equal(loaded.summary.variant, 'short-outage');
   } finally {
     await rm(outDir, { recursive: true, force: true });
   }
@@ -137,11 +241,12 @@ test('measure: readMeasurement still opens a schema 2 result from the repository
     'rd',
     'evaluation',
     'results',
-    '2026-11-20-q1-outbox-7b7ae94.json',
+    '2026-11-20-q1-outbox-gateway-7b7ae94.json',
   );
   const loaded = await readMeasurement(file);
   assert.equal(loaded.summary.schema, 2);
   assert.equal(loaded.summary.write_target, undefined);
+  assert.equal(loaded.summary.variant, undefined);
   assert.ok(loaded.samples.length > 0);
 });
 
@@ -178,8 +283,9 @@ test('measure: m1-gateway writes a result for 2 runs of every tool and door', as
     const loaded = await readMeasurement(join(outDir, summaryName));
     const result = loaded.summary;
     const samples = loaded.samples;
-    assert.equal(result.schema, 3);
+    assert.equal(result.schema, 4);
     assert.equal(result.write_target, null);
+    assert.equal(result.variant, null);
     assert.equal('samples' in result, false);
     assert.equal(result.samples_file.name, samplesName);
     assert.equal(result.samples_file.count, 2 * 6 * 3);
