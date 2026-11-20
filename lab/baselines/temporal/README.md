@@ -132,5 +132,11 @@ Intern đã từng dùng Temporal trước đây hay chưa là câu hỏi để 
 
 ## Kết quả
 
-Kết quả đo nằm trong `rd/evaluation/results/` với tên bắt đầu bằng `2026-11-20-q1-outbox-` và `2026-11-20-m5-complexity-`, cùng hậu tố commit.
-Kết luận Q1 nằm trong `rd/design/research-questions-and-validation-plan.md` mục 2.1 và `rd/findings.md`.
+- [Q1 Temporal](../../../rd/evaluation/results/2026-11-20-q1-outbox-87d50f9.json): 300/300 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất; bước 1 chia 100 lần cho ba thời điểm tắt, mỗi thời điểm đều đạt.
+- [M5 Temporal](../../../rd/evaluation/results/2026-11-20-m5-complexity-87d50f9.json): 4 file, 384 dòng vật lý và 330 dòng mã; 5 dịch vụ cần cho đường ghi, 4 bước cài, 2 bước sau khi sập, đổi một ô luật vẫn 1 chỗ.
+- [M5 bản tự viết](../../../rd/evaluation/results/2026-11-20-m5-complexity-62e309e.json): 2 file, 587 dòng vật lý và 476 dòng mã; 3 dịch vụ cần cho đường ghi, 4 bước cài, 1 bước sau khi sập, đổi một ô luật 1 chỗ.
+
+Lượt tắt cả dev server dùng `LAB_TEMPORAL_CRASH_SCOPE=server` với `--runs 1` trong thư mục tạm: 3/3 lần đúng, 0 ghi trùng, 0 lệnh mất.
+Lượt đó không commit vì tên file kết quả trùng ngày, phép đo và commit với lượt 100 lần.
+
+Kết luận Q1 nằm trong `rd/design/mvp-spec.md` mục 2.1 và `rd/findings.md`.
