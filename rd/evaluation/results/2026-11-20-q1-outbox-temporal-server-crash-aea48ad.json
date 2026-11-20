@@ -1,18 +1,19 @@
 {
-  "schema": 3,
+  "schema": 4,
   "scenario": {
     "name": "q1-outbox",
     "description": "Q1: ba bước sập giữa chừng của lệnh 30 task, mỗi bước lặp theo --runs, đếm task sót, task ghi hai lần và nội dung cuối; đích chọn bằng --target, mặc định gateway."
   },
-  "generated_at": "2026-11-20T10:03:49.218Z",
-  "command": "npm run measure -- q1-outbox --target temporal --runs 100",
-  "runs": 100,
-  "elapsed_seconds": 5697.9,
+  "generated_at": "2026-11-20T10:46:57.880Z",
+  "command": "npm run measure -- q1-outbox --target temporal --variant server-crash --runs 1",
+  "runs": 1,
+  "elapsed_seconds": 50.8,
   "write_target": "temporal",
+  "variant": "server-crash",
   "parameters": {
     "target": "temporal",
     "target_selection": "--target; mặc định gateway",
-    "runs_per_step": 100,
+    "runs_per_step": 1,
     "task_ids": [
       "T-5",
       "T-6",
@@ -50,51 +51,19 @@
     },
     "crash_points": {
       "temporal:before-first": {
-        "runs": 34,
-        "correct": 34,
+        "runs": 1,
+        "correct": 1,
         "incorrect": 0,
         "errors": 0,
-        "retries": 34,
+        "retries": 1,
         "duplicates": 0,
         "lost": 0,
         "wrong_content": 0,
         "point_missed": 0,
         "unauthorized": 0,
-        "restarts": 34,
-        "trace_runs": 34,
-        "trace_rows": 5844,
-        "trace_leaks": 0
-      },
-      "temporal:mid-17": {
-        "runs": 33,
-        "correct": 33,
-        "incorrect": 0,
-        "errors": 0,
-        "retries": 33,
-        "duplicates": 0,
-        "lost": 0,
-        "wrong_content": 0,
-        "point_missed": 0,
-        "unauthorized": 0,
-        "restarts": 33,
-        "trace_runs": 33,
-        "trace_rows": 5406,
-        "trace_leaks": 0
-      },
-      "temporal:after-last": {
-        "runs": 33,
-        "correct": 33,
-        "incorrect": 0,
-        "errors": 0,
-        "retries": 33,
-        "duplicates": 0,
-        "lost": 0,
-        "wrong_content": 0,
-        "point_missed": 0,
-        "unauthorized": 0,
-        "restarts": 33,
-        "trace_runs": 33,
-        "trace_rows": 2118,
+        "restarts": 1,
+        "trace_runs": 1,
+        "trace_rows": 74,
         "trace_leaks": 0
       }
     },
@@ -112,67 +81,67 @@
     },
     "counts": {
       "step1": {
-        "runs": 100,
-        "correct": 100,
+        "runs": 1,
+        "correct": 1,
         "incorrect": 0,
         "errors": 0,
-        "retries": 100,
+        "retries": 1,
         "duplicates": 0,
         "lost": 0,
         "wrong_content": 0,
         "point_missed": 0,
         "unauthorized": 0,
-        "restarts": 100,
-        "trace_runs": 100,
-        "trace_rows": 13368,
+        "restarts": 1,
+        "trace_runs": 1,
+        "trace_rows": 74,
         "trace_leaks": 0
       },
       "step2": {
-        "runs": 100,
-        "correct": 100,
+        "runs": 1,
+        "correct": 1,
         "incorrect": 0,
         "errors": 0,
-        "retries": 700,
+        "retries": 7,
         "duplicates": 0,
         "lost": 0,
         "wrong_content": 0,
         "point_missed": 0,
         "unauthorized": 0,
         "restarts": 0,
-        "trace_runs": 100,
-        "trace_rows": 7439,
+        "trace_runs": 1,
+        "trace_rows": 74,
         "trace_leaks": 0
       },
       "step3": {
-        "runs": 100,
-        "correct": 100,
+        "runs": 1,
+        "correct": 1,
         "incorrect": 0,
         "errors": 0,
-        "retries": 100,
+        "retries": 1,
         "duplicates": 0,
         "lost": 0,
         "wrong_content": 0,
         "point_missed": 0,
         "unauthorized": 0,
         "restarts": 0,
-        "trace_runs": 100,
-        "trace_rows": 5999,
+        "trace_runs": 1,
+        "trace_rows": 60,
         "trace_leaks": 0
       },
       "total": {
-        "runs": 300,
-        "correct": 300,
+        "runs": 3,
+        "correct": 3,
         "incorrect": 0,
         "errors": 0,
-        "retries": 900,
+        "retries": 9,
         "duplicates": 0,
         "lost": 0,
         "wrong_content": 0,
         "point_missed": 0,
         "unauthorized": 0,
-        "restarts": 100,
-        "trace_runs": 300,
-        "trace_rows": 26806,
+        "restarts": 1,
+        "trace_runs": 3,
+        "trace_rows": 208,
         "trace_leaks": 0
       }
     },
@@ -183,8 +152,8 @@
     }
   },
   "environment": {
-    "commit": "87d50f95a71a54294f246623f37eda3f738313b7",
-    "commit_short": "87d50f9",
+    "commit": "aea48ada660629a7c99c48ecae4241e8e033abab",
+    "commit_short": "aea48ad",
     "dirty": false,
     "node": "v22.21.0",
     "os": {
@@ -202,53 +171,53 @@
     "timezone": "Asia/Bangkok"
   },
   "samples_file": {
-    "name": "2026-11-20-q1-outbox-87d50f9.samples.ndjson.gz",
-    "count": 300,
-    "sha256": "843f780ef732128624888fd78ea7dcd06d522d8726bd0e38814b6311ffa8c42c"
+    "name": "2026-11-20-q1-outbox-temporal-server-crash-aea48ad.samples.ndjson.gz",
+    "count": 3,
+    "sha256": "f00eda41449c589846cc04f6e055186c234cc4af5698e9091a01c3a30cb061be"
   },
   "summary": {
     "overall": {
       "client_ms": {
-        "count": 300,
-        "p50_ms": 22524.345,
-        "p95_ms": 30071.64,
-        "max_ms": 30527.002,
-        "min_ms": 7381.557,
-        "mean_ms": 18992.852
+        "count": 3,
+        "p50_ms": 13070.154,
+        "p95_ms": 29865.169,
+        "max_ms": 29865.169,
+        "min_ms": 7858.63,
+        "mean_ms": 16931.318
       },
       "gateway_duration_ms": null
     },
     "by_door": {
       "q1-step1-crash": {
         "client_ms": {
-          "count": 100,
-          "p50_ms": 22524.345,
-          "p95_ms": 23295.654,
-          "max_ms": 25464.41,
-          "min_ms": 12100.828,
-          "mean_ms": 19461.452
+          "count": 1,
+          "p50_ms": 13070.154,
+          "p95_ms": 13070.154,
+          "max_ms": 13070.154,
+          "min_ms": 13070.154,
+          "mean_ms": 13070.154
         },
         "gateway_duration_ms": null
       },
       "q1-step2-outage": {
         "client_ms": {
-          "count": 100,
-          "p50_ms": 29934.487,
-          "p95_ms": 30150.341,
-          "max_ms": 30527.002,
-          "min_ms": 29594.834,
-          "mean_ms": 29909.955
+          "count": 1,
+          "p50_ms": 29865.169,
+          "p95_ms": 29865.169,
+          "max_ms": 29865.169,
+          "min_ms": 29865.169,
+          "mean_ms": 29865.169
         },
         "gateway_duration_ms": null
       },
       "q1-step3-lost-answer": {
         "client_ms": {
-          "count": 100,
-          "p50_ms": 7610.244,
-          "p95_ms": 7722.759,
-          "max_ms": 7748.419,
-          "min_ms": 7381.557,
-          "mean_ms": 7607.149
+          "count": 1,
+          "p50_ms": 7858.63,
+          "p95_ms": 7858.63,
+          "max_ms": 7858.63,
+          "min_ms": 7858.63,
+          "mean_ms": 7858.63
         },
         "gateway_duration_ms": null
       }
@@ -256,45 +225,23 @@
     "by_tool": {
       "temporal:before-first": {
         "client_ms": {
-          "count": 34,
-          "p50_ms": 22966.884,
-          "p95_ms": 23528.891,
-          "max_ms": 25464.41,
-          "min_ms": 22818.746,
-          "mean_ms": 23096.478
-        },
-        "gateway_duration_ms": null
-      },
-      "temporal:mid-17": {
-        "client_ms": {
-          "count": 33,
-          "p50_ms": 22524.345,
-          "p95_ms": 23295.654,
-          "max_ms": 25115.415,
-          "min_ms": 22111.523,
-          "mean_ms": 22635.108
-        },
-        "gateway_duration_ms": null
-      },
-      "temporal:after-last": {
-        "client_ms": {
-          "count": 33,
-          "p50_ms": 12447.109,
-          "p95_ms": 13036.021,
-          "max_ms": 15508.954,
-          "min_ms": 12100.828,
-          "mean_ms": 12542.619
+          "count": 1,
+          "p50_ms": 13070.154,
+          "p95_ms": 13070.154,
+          "max_ms": 13070.154,
+          "min_ms": 13070.154,
+          "mean_ms": 13070.154
         },
         "gateway_duration_ms": null
       },
       "temporal": {
         "client_ms": {
-          "count": 200,
-          "p50_ms": 7748.419,
-          "p95_ms": 30090.835,
-          "max_ms": 30527.002,
-          "min_ms": 7381.557,
-          "mean_ms": 18758.552
+          "count": 2,
+          "p50_ms": 7858.63,
+          "p95_ms": 29865.169,
+          "max_ms": 29865.169,
+          "min_ms": 7858.63,
+          "mean_ms": 18861.9
         },
         "gateway_duration_ms": null
       }
@@ -304,38 +251,12 @@
         "door": "q1-step1-crash",
         "tool": "temporal:before-first",
         "client_ms": {
-          "count": 34,
-          "p50_ms": 22966.884,
-          "p95_ms": 23528.891,
-          "max_ms": 25464.41,
-          "min_ms": 22818.746,
-          "mean_ms": 23096.478
-        },
-        "gateway_duration_ms": null
-      },
-      {
-        "door": "q1-step1-crash",
-        "tool": "temporal:mid-17",
-        "client_ms": {
-          "count": 33,
-          "p50_ms": 22524.345,
-          "p95_ms": 23295.654,
-          "max_ms": 25115.415,
-          "min_ms": 22111.523,
-          "mean_ms": 22635.108
-        },
-        "gateway_duration_ms": null
-      },
-      {
-        "door": "q1-step1-crash",
-        "tool": "temporal:after-last",
-        "client_ms": {
-          "count": 33,
-          "p50_ms": 12447.109,
-          "p95_ms": 13036.021,
-          "max_ms": 15508.954,
-          "min_ms": 12100.828,
-          "mean_ms": 12542.619
+          "count": 1,
+          "p50_ms": 13070.154,
+          "p95_ms": 13070.154,
+          "max_ms": 13070.154,
+          "min_ms": 13070.154,
+          "mean_ms": 13070.154
         },
         "gateway_duration_ms": null
       },
@@ -343,12 +264,12 @@
         "door": "q1-step2-outage",
         "tool": "temporal",
         "client_ms": {
-          "count": 100,
-          "p50_ms": 29934.487,
-          "p95_ms": 30150.341,
-          "max_ms": 30527.002,
-          "min_ms": 29594.834,
-          "mean_ms": 29909.955
+          "count": 1,
+          "p50_ms": 29865.169,
+          "p95_ms": 29865.169,
+          "max_ms": 29865.169,
+          "min_ms": 29865.169,
+          "mean_ms": 29865.169
         },
         "gateway_duration_ms": null
       },
@@ -356,12 +277,12 @@
         "door": "q1-step3-lost-answer",
         "tool": "temporal",
         "client_ms": {
-          "count": 100,
-          "p50_ms": 7610.244,
-          "p95_ms": 7722.759,
-          "max_ms": 7748.419,
-          "min_ms": 7381.557,
-          "mean_ms": 7607.149
+          "count": 1,
+          "p50_ms": 7858.63,
+          "p95_ms": 7858.63,
+          "max_ms": 7858.63,
+          "min_ms": 7858.63,
+          "mean_ms": 7858.63
         },
         "gateway_duration_ms": null
       }
@@ -375,14 +296,14 @@
         "label": "Ghi trùng",
         "applicable": true,
         "value": 0,
-        "detail": "Đếm số lần ghi thật trên 1 cho mỗi task, cộng qua 300 lần chạy; 0 lần ghi thêm."
+        "detail": "Đếm số lần ghi thật trên 1 cho mỗi task, cộng qua 3 lần chạy; 0 lần ghi thêm."
       },
       {
         "id": "lost_commands",
         "label": "Lệnh mất",
         "applicable": true,
         "value": 0,
-        "detail": "Đếm task không có lần ghi nào sau khi đề xuất đã xong, cộng qua 300 lần chạy; 0 task sót."
+        "detail": "Đếm task không có lần ghi nào sau khi đề xuất đã xong, cộng qua 3 lần chạy; 0 task sót."
       },
       {
         "id": "unauthorized_writes",
@@ -403,17 +324,17 @@
         "label": "Dữ liệu cá nhân trong vết",
         "applicable": true,
         "value": 0,
-        "detail": "Đã quét 26806 dòng vết của 300/300 lần chạy cho tên, email, số điện thoại, địa chỉ và khoá; 0 dòng chứa."
+        "detail": "Đã quét 208 dòng vết của 3/3 lần chạy cho tên, email, số điện thoại, địa chỉ và khoá; 0 dòng chứa."
       }
     ],
     "all_applicable_zero": true
   },
   "notes": [
     "Mỗi lần chạy dựng một đích mới trên cổng mạng trống và thư mục dữ liệu tạm, nên bảng lệnh ghi và bảng vết chỉ chứa đúng lần chạy đó.",
-    "Bước 1 chia 100 lần cho ba thời điểm tắt: trước task đầu, giữa task 17 và sau task 30.",
+    "Bước 1 chia 1 lần cho ba thời điểm tắt: trước task đầu, giữa task 17 và sau task 30.",
     "Bước 2 cho danh sách task ngừng 20000 ms giữa chừng và không khởi động lại cổng; số lần khởi động lại của cổng phải bằng 0.",
     "Bước 3 làm rơi phản hồi của lần ghi đầu sau khi đã ghi; lần gửi lại phải dùng đúng mã cũ và nhận kết quả cũ.",
-    "Mục tiêu ban đầu 99/100 mỗi bước: kết quả 300/300 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất.",
+    "Mục tiêu ban đầu 99/100 mỗi bước: kết quả 3/3 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất.",
     "Bước 1 có 0 lần không chạm đúng thời điểm tắt; bước 3 có 0 lần không thấy lần gửi lại."
   ]
 }

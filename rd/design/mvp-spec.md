@@ -110,19 +110,19 @@ Kết quả ngày 2026-11-19:
 
 Bộ kết quả đo ngày 2026-11-20 nằm trong `rd/evaluation/results/`:
 
-- [Q1](../evaluation/results/2026-11-20-q1-outbox-7b7ae94.json): 300/300 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất.
-- [M2](../evaluation/results/2026-11-20-m2-scenarios-7b7ae94.json): 600/600 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất.
-- [M5](../evaluation/results/2026-11-20-m5-complexity-62e309e.json): 587 dòng vật lý và 476 dòng mã cho hai file chạy tiếp, trong đó `outbox.ts` là 319/267.
+- [Q1](../evaluation/results/2026-11-20-q1-outbox-gateway-7b7ae94.json): 300/300 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất.
+- [M2](../evaluation/results/2026-11-20-m2-scenarios-gateway-7b7ae94.json): 600/600 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất.
+- [M5](../evaluation/results/2026-11-20-m5-complexity-gateway-62e309e.json): 587 dòng vật lý và 476 dòng mã cho hai file chạy tiếp, trong đó `outbox.ts` là 319/267.
 - [M1](../evaluation/results/2026-11-20-m1-gateway-f4dbfe7.json) và [M4](../evaluation/results/2026-11-20-m4-load-6bd898d.json): số đo thời gian, không phải bằng chứng cho Q1.
 
 **Bản đối chứng Temporal ngày 2026-11-20.**
 Bản đối chứng dựng trong nửa ngày, dùng cùng 30 task, cùng danh sách lệnh mà cổng tạo sau khi anh Quang duyệt, cùng bộ tiếp hợp task và cùng mã chống ghi trùng.
 Temporal giữ vị trí từng bước; mỗi task là một activity.
 
-- [Q1 Temporal](../evaluation/results/2026-11-20-q1-outbox-87d50f9.json): 300/300 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất.
+- [Q1 Temporal](../evaluation/results/2026-11-20-q1-outbox-temporal-87d50f9.json): 300/300 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất.
   Bước 1 chia 100 lần cho ba thời điểm tắt và đạt 100/100; bước 2 ngắt danh sách task 20 giây và bước 3 làm rơi phản hồi cũng đạt 100/100 mỗi bước.
-- [M5 Temporal](../evaluation/results/2026-11-20-m5-complexity-87d50f9.json): 4 file, 384 dòng vật lý và 330 dòng mã; 5 dịch vụ cần cho đường ghi, 1 file cấu hình, 4 bước cài, 2 bước sau khi sập; đổi một ô luật vẫn sửa đúng 1 chỗ.
-- [M5 bản tự viết](../evaluation/results/2026-11-20-m5-complexity-62e309e.json): 2 file, 587 dòng vật lý và 476 dòng mã; 3 dịch vụ cần cho đường ghi, 1 file cấu hình, 4 bước cài, 1 bước sau khi sập; đổi một ô luật sửa đúng 1 chỗ.
+- [M5 Temporal](../evaluation/results/2026-11-20-m5-complexity-temporal-87d50f9.json): 4 file, 384 dòng vật lý và 330 dòng mã; 5 dịch vụ cần cho đường ghi, 1 file cấu hình, 4 bước cài, 2 bước sau khi sập; đổi một ô luật vẫn sửa đúng 1 chỗ.
+- [M5 bản tự viết](../evaluation/results/2026-11-20-m5-complexity-gateway-62e309e.json): 2 file, 587 dòng vật lý và 476 dòng mã; 3 dịch vụ cần cho đường ghi, 1 file cấu hình, 4 bước cài, 1 bước sau khi sập; đổi một ô luật sửa đúng 1 chỗ.
 
 | Việc | Bản tự viết | Bản Temporal |
 |-|-|-|

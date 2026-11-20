@@ -276,7 +276,7 @@
     "timezone": "Asia/Bangkok"
   },
   "samples_file": {
-    "name": "2026-11-20-m5-complexity-62e309e.samples.ndjson.gz",
+    "name": "2026-11-20-m5-complexity-gateway-62e309e.samples.ndjson.gz",
     "count": 4,
     "sha256": "f5acefc226c37dfc6ccf92790c53a12c5da3a7e2de4c17ac950103a6a1e9d86b"
   },

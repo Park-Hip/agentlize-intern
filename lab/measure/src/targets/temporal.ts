@@ -46,6 +46,7 @@ import type {
   TaskSnapshot,
   WriteTarget,
 } from './types.js';
+import { measurementVariant } from '../variant.js';
 
 const FETCH_TIMEOUT_MS = 15_000;
 const START_TIMEOUT_MS = 60_000;
@@ -197,7 +198,8 @@ export class TemporalTarget implements WriteTarget {
   private temporal: ProcessHandle | undefined;
   private tasks: SpawnedService | undefined;
   private restartCount = 0;
-  private readonly crashServer = process.env['LAB_TEMPORAL_CRASH_SCOPE'] === 'server';
+  /** True when `--variant server-crash` asked the crash step to stop the dev server, not just the worker. */
+  private readonly crashServer = measurementVariant() === 'server-crash';
 
   get restarts(): number {
     return this.restartCount;

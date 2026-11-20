@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { basename, join, relative } from 'node:path';
 import { performance } from 'node:perf_hooks';
@@ -26,11 +27,16 @@ import {
   type TargetRequest,
   type TargetScope,
 } from './types.js';
+import { setMeasurementVariant } from './variant.js';
 
 export interface MeasureOptions {
   readonly runs: number;
   /** The target chosen with `--target`, or null when the scenario does not use one. */
   readonly target: TargetName | null;
+  /** The variant chosen with `--variant`, or null when the run has none. */
+  readonly variant: string | null;
+  /** Write over an existing result file; without this an existing file stops the run. */
+  readonly force: boolean;
   readonly outDir: string;
   readonly repoRoot: string;
   readonly command: string;
@@ -57,6 +63,46 @@ export interface MeasureOutcome {
 function localDate(now: Date = new Date()): string {
   const pad = (value: number): string => String(value).padStart(2, '0');
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/**
+ * `<date>-<scenario>-<target>-<variant>-<commit>`, where the target segment
+ * exists only for a scenario that uses one and the variant only when the run
+ * has one. Two runs of one scenario can therefore never share a file name
+ * just because they landed on the same day and commit.
+ */
+function resultPrefix(options: {
+  readonly date: string;
+  readonly scenario: string;
+  readonly target: TargetName | null;
+  readonly variant: string | null;
+  readonly commitShort: string;
+}): string {
+  return [
+    options.date,
+    options.scenario,
+    ...(options.target === null ? [] : [options.target]),
+    ...(options.variant === null ? [] : [options.variant]),
+    options.commitShort,
+  ].join('-');
+}
+
+/** Stop before anything starts when the run would write over an existing result. */
+function assertWritable(input: {
+  readonly file: string;
+  readonly samplesFile: string;
+  readonly shownFile: string;
+  readonly shownSamplesFile: string;
+  readonly force: boolean;
+}): void {
+  if (input.force || (!existsSync(input.file) && !existsSync(input.samplesFile))) return;
+  const existing: string[] = [];
+  if (existsSync(input.file)) existing.push(input.shownFile);
+  if (existsSync(input.samplesFile)) existing.push(input.shownSamplesFile);
+  throw new Error(
+    `the result file ${existing.join(' and ')} already exists; pass --force to write over it, `
+      + 'or give this run its own --variant or --out folder',
+  );
 }
 
 function createContext(
@@ -196,6 +242,20 @@ function errorMessage(cause: unknown): string {
 export async function measureScenario(scenario: Scenario, options: MeasureOptions): Promise<MeasureOutcome> {
   const log = options.log ?? ((line: string) => console.log(line));
   const environment = readEnvironment(options.repoRoot, options.outDir);
+  setMeasurementVariant(options.variant);
+  const prefix = resultPrefix({
+    date: localDate(),
+    scenario: scenario.name,
+    target: options.target,
+    variant: options.variant,
+    commitShort: environment.commit_short,
+  });
+  const file = join(options.outDir, `${prefix}.json`);
+  const samplesFile = join(options.outDir, `${prefix}.samples.ndjson.gz`);
+  const shownFile = relative(options.repoRoot, file) || file;
+  const shownSamplesFile = relative(options.repoRoot, samplesFile) || samplesFile;
+  // The check runs before the stack is built, so a collision costs no run at all.
+  assertWritable({ file, samplesFile, shownFile, shownSamplesFile, force: options.force });
   const startedAt = performance.now();
   const buildStack = options.startStack ?? startMeasureStack;
   const stack = scenario.needs.stack ? await buildStack() : null;
@@ -204,7 +264,8 @@ export async function measureScenario(scenario: Scenario, options: MeasureOption
   if (stack !== null) {
     log(`[measure] ${scenario.name}: stack on ${stack.services.gateway}, data ${stack.dataDir}`);
   } else {
-    log(`[measure] ${scenario.name}: no shared stack, write target ${options.target ?? 'none'}`);
+    const variant = options.variant === null ? '' : `, variant ${options.variant}`;
+    log(`[measure] ${scenario.name}: no shared stack, write target ${options.target ?? 'none'}${variant}`);
   }
 
   try {
@@ -227,9 +288,6 @@ export async function measureScenario(scenario: Scenario, options: MeasureOption
   const failedTargets = targets.filter((target) => target.enforced && !target.met).map((target) => target.id);
   const allZero = allApplicableZero(outcome.safety);
 
-  const prefix = `${localDate()}-${scenario.name}-${environment.commit_short}`;
-  const file = join(options.outDir, `${prefix}.json`);
-  const samplesFile = join(options.outDir, `${prefix}.samples.ndjson.gz`);
   const ndjson = outcome.samples.map((sample) => `${JSON.stringify(sample)}\n`).join('');
   const compressed = gzipSync(Buffer.from(ndjson, 'utf8'));
   const sha256 = createHash('sha256').update(compressed).digest('hex');
@@ -242,6 +300,7 @@ export async function measureScenario(scenario: Scenario, options: MeasureOption
     runs: options.runs,
     elapsed_seconds: elapsedSeconds,
     write_target: options.target,
+    variant: options.variant,
     parameters: outcome.parameters ?? {},
     environment,
     samples_file: {
@@ -259,8 +318,6 @@ export async function measureScenario(scenario: Scenario, options: MeasureOption
   await writeFile(samplesFile, compressed);
   await writeFile(file, `${JSON.stringify(result, null, 2)}\n`, 'utf8');
 
-  const shownFile = relative(options.repoRoot, file) || file;
-  const shownSamplesFile = relative(options.repoRoot, samplesFile) || samplesFile;
   const gateway = summary.overall.gateway_duration_ms;
   const client = summary.overall.client_ms;
   log(`[measure] ${outcome.samples.length} samples, ${elapsedSeconds} s`);

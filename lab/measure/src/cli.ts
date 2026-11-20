@@ -6,13 +6,17 @@ import { DEFAULT_TARGET, TARGET_NAMES, parseTargetName } from './targets/index.j
 
 const DEFAULT_RUNS = 100;
 const MAX_RUNS = 100_000;
+const KEBAB_OK = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export interface ParsedArguments {
   readonly scenario: string | null;
   /** The raw `--target` value; undefined means the user did not pass it. */
   readonly target: string | undefined;
+  /** The raw `--variant` value; undefined means the user did not pass it. */
+  readonly variant: string | undefined;
   readonly runs: number;
   readonly out: string | undefined;
+  readonly force: boolean;
   readonly help: boolean;
 }
 
@@ -27,8 +31,10 @@ function readValue(argv: readonly string[], index: number, option: string): stri
 export function parseArguments(argv: readonly string[]): ParsedArguments {
   let scenario: string | null = null;
   let target: string | undefined;
+  let variant: string | undefined;
   let runs = DEFAULT_RUNS;
   let out: string | undefined;
+  let force = false;
   let help = false;
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -43,6 +49,22 @@ export function parseArguments(argv: readonly string[]): ParsedArguments {
       target = inline ?? readValue(argv, index, '--target');
       if (inline === undefined) index += 1;
       if (target.trim() === '') throw new Error('--target must not be empty');
+      continue;
+    }
+    if (option === '--variant') {
+      variant = inline ?? readValue(argv, index, '--variant');
+      if (inline === undefined) index += 1;
+      if (variant.trim() === '') throw new Error('--variant must not be empty');
+      if (!KEBAB_OK.test(variant)) {
+        throw new Error(
+          `--variant must be a short kebab-case name (lowercase letters, digits and hyphens), got "${variant}"`,
+        );
+      }
+      continue;
+    }
+    if (option === '--force') {
+      if (inline !== undefined) throw new Error('--force takes no value');
+      force = true;
       continue;
     }
     if (option === '--runs') {
@@ -66,7 +88,7 @@ export function parseArguments(argv: readonly string[]): ParsedArguments {
     scenario = argument;
   }
 
-  return { scenario, target, runs, out, help };
+  return { scenario, target, variant, runs, out, force, help };
 }
 
 function shellArgument(value: string): string {
@@ -76,11 +98,15 @@ function shellArgument(value: string): string {
 async function usage(): Promise<string> {
   const scenarios = await discoverScenarios();
   const lines = [
-    'Usage: npm run measure -- <scenario> [--target <target>] [--runs N] [--out <folder>]',
+    'Usage: npm run measure -- <scenario> [--target <target>] [--variant <name>] [--runs N] [--out <folder>] [--force]',
     '',
     'Runs one measurement. --target picks the write target for a scenario that uses one;',
     'the default is gateway. Only a scenario that declares the shared stack builds it.',
     '--runs defaults to 100; --out defaults to rd/evaluation/results/.',
+    '--variant names a run with its own configuration; it lands in the result file',
+    'name after the target and in the summary. A target may read it: temporal takes',
+    '--variant server-crash to stop the dev server in the crash step, not just the worker.',
+    'An existing result file stops the run; --force is the explicit way to write over it.',
     '',
     `Targets: ${TARGET_NAMES.join(', ')}`,
     '',
@@ -112,14 +138,18 @@ export async function main(argv: readonly string[]): Promise<number> {
     'npm run measure --',
     scenario.name,
     ...(args.target === undefined ? [] : ['--target', shellArgument(args.target)]),
+    ...(args.variant === undefined ? [] : ['--variant', shellArgument(args.variant)]),
     '--runs',
     String(args.runs),
     ...(args.out === undefined ? [] : ['--out', shellArgument(args.out)]),
+    ...(args.force ? ['--force'] : []),
   ].join(' ');
 
   const outcome = await measureScenario(scenario, {
     runs: args.runs,
     target,
+    variant: args.variant ?? null,
+    force: args.force,
     outDir,
     repoRoot,
     command,

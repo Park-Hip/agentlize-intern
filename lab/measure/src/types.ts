@@ -204,10 +204,10 @@ export interface MeasurementEnvironment {
   readonly timezone: string;
 }
 
-/** Schema 3 adds `write_target`; `readMeasurement` still opens schema 2 files. */
-export type MeasurementSchema = 2 | 3;
+/** Schema 3 adds `write_target` and schema 4 adds `variant`; `readMeasurement` still opens both older files. */
+export type MeasurementSchema = 2 | 3 | 4;
 
-export const MEASUREMENT_SCHEMA: MeasurementSchema = 3;
+export const MEASUREMENT_SCHEMA: MeasurementSchema = 4;
 
 export interface MeasurementResult {
   readonly schema: MeasurementSchema;
@@ -221,6 +221,8 @@ export interface MeasurementResult {
   readonly elapsed_seconds: number;
   /** The write target, or null when the scenario only needed the shared stack. Absent in schema 2. */
   readonly write_target?: TargetName | null;
+  /** The variant chosen with `--variant`, or null when the run had none. Absent in schemas 2 and 3. */
+  readonly variant?: string | null;
   readonly parameters: Readonly<Record<string, unknown>>;
   readonly environment: MeasurementEnvironment;
   readonly samples_file: SamplesFile;

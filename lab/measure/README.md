@@ -11,22 +11,31 @@ Lệnh đo chỉ dựng cụm đó khi phép đo khai cần; cụm bị dừng v
 cd lab
 npm run measure -- m1-gateway
 npm run measure -- q1-outbox --target gateway --runs 2
+npm run measure -- q1-outbox --target temporal --variant server-crash --runs 1
 npm run measure -- m1-gateway --runs 100 --out ../../rd/evaluation/results
 ```
 
 - `--target <đích>` chọn đường ghi cho phép đo có dùng đích; mặc định `gateway`.
   Tên lạ làm lệnh dừng trước khi dựng gì và liệt kê các đích hợp lệ.
   Phép đo không dùng đích mà nhận `--target` thì báo lỗi rõ ràng.
+- `--variant <tên>` gắn tên cho một lượt đo chạy cấu hình khác, ví dụ `server-crash`.
+  Tên viết thường kebab-case, vào tên file kết quả ngay sau tên đích, và vào trường `variant` của bản tóm tắt.
+  Đích có thể đọc biến thể: `temporal` nhận `server-crash` để bước sập tắt cả dev server, không chỉ worker.
 - `--runs N` là số lần đo cho mỗi cặp tool và cửa vào; mặc định 100.
 - `--out <thư mục>` là nơi ghi file kết quả; mặc định `rd/evaluation/results` ở gốc repo.
   Đường dẫn tương đối tính từ thư mục đang đứng.
+- `--force` là cách duy nhất để ghi đè file kết quả đã có.
+  Không có nó, lượt đo dừng trước khi chạy khi file đã tồn tại, nên hai lượt không bao giờ ghi đè nhau.
 - Chạy không có tên phép đo hoặc với `--help` để xem danh sách phép đo và đích đang có.
 
 Sau `npm install`, `npm run measure` dựng mã trước khi chạy, nên một lệnh là đủ.
 
 ## File kết quả
 
-Mỗi lần đo ghi hai file cạnh nhau trong thư mục kết quả, cùng tiền tố `<YYYY-MM-DD>-<phép đo>-<commit 7 ký tự>`:
+Mỗi lần đo ghi hai file cạnh nhau trong thư mục kết quả, cùng tiền tố `<YYYY-MM-DD>-<phép đo>-<đích>-<commit 7 ký tự>`.
+Tên đích chỉ có khi phép đo dùng đích; tên biến thể từ `--variant` đứng ngay sau tên đích, hoặc sau tên phép đo khi phép đo không dùng đích.
+Cùng một phép đo trên hai đích, hay hai biến thể trên cùng một đích, cho hai tên file khác nhau.
+Lượt đo không bao giờ ghi đè: khi file đã tồn tại, lệnh dừng trước khi chạy và chỉ chạy lại khi có `--force`.
 
 | File | Nội dung |
 | --- | --- |
@@ -38,13 +47,14 @@ Hai file được commit cùng thay đổi mà phép đo đo, để mọi con s�
 
 | Khoá | Nội dung |
 | --- | --- |
-| `schema` | Phiên bản định dạng, hiện là `3`; `readMeasurement` vẫn đọc file schema `2` đã commit |
+| `schema` | Phiên bản định dạng, hiện là `4`; `readMeasurement` vẫn đọc file schema `2` và `3` đã commit |
 | `scenario` | Tên và mô tả phép đo |
 | `generated_at` | Thời điểm ghi file, theo ISO 8601 |
 | `command` | Lệnh đo có thể chạy lại |
 | `runs` | Số lần đo mỗi cặp tool và cửa vào |
 | `elapsed_seconds` | Thời gian chạy phép đo, không tính bước dựng mã |
 | `write_target` | Đích ghi của lần đo, `null` khi phép đo chỉ dùng cụm chung; không có trong file schema `2` |
+| `variant` | Tên biến thể từ `--variant`, `null` khi lượt đo không có; không có trong file schema `3` và cũ hơn |
 | `parameters` | Cửa vào, tool, nhân vật, tham số gọi, cách đo và số vòng khởi động |
 | `environment` | Commit, cờ có thay đổi chưa commit, hệ điều hành, CPU, RAM, bản Node, múi giờ |
 | `samples_file` | Trỏ tới file mẫu: `name` là tên file cạnh bản tóm tắt, `count` là số mẫu, `sha256` là mã băm của file nén |
@@ -202,3 +212,7 @@ Con số này chỉ để báo ở lần đo đầu, không làm lệnh thất b
 Mỗi lần chạy tự dựng một đích mới, nên lệnh đo không dựng thêm cụm chung.
 Hai phép đo đọc tên đích từ `context.target`; mặc định là `gateway`, và tên đó được ghi vào `write_target` của file kết quả.
 `m1-gateway` và `m4-load` khai `needs: { stack: true, target: false }`, nên chúng nhận cụm chung và từ chối `--target`.
+
+Đích được dựng giữa lúc chạy nên đọc biến thể qua một bộ nhớ trong tiến trình lệnh đo, không qua `context`.
+Riêng `temporal` dùng biến thể để chọn cách sập: mặc định tắt worker, còn `server-crash` tắt cả dev server; biến thể khác không đổi cách sập.
+Biến thể vẫn vào tên file và bản tóm tắt ở mọi đích, kể cả khi đích không đọc nó.
