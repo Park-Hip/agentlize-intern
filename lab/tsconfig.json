@@ -5,7 +5,9 @@
     "baseUrl": ".",
     "paths": {
       "@lab/gateway": ["./gateway/src/lib.ts"],
-      "@lab/shared": ["./shared/src/index.ts"]
+      "@lab/shared": ["./shared/src/index.ts"],
+      "@lab/tests/doors": ["./tests/src/doors.ts"],
+      "@lab/tests/process": ["./tests/src/process.ts"]
     }
   },
   "include": [
@@ -15,6 +17,7 @@
     "fake-tasks/src/**/*.ts",
     "console/src/**/*.ts",
     "tests/src/**/*.ts",
+    "measure/src/**/*.ts",
     "scripts/**/*.ts"
   ]
 }
