@@ -1,7 +1,15 @@
 import { GUEST, PERSONAS } from '@lab/shared';
 import { ENTRIES, esc, type TraceRow } from '@lab/gateway';
 import { layout, type NavKey, type Notice } from './layout.js';
-import { clock, entryLabel, groupByProposal, outcomeLabel, type TraceGroup, type TraceQuery } from './trace-view.js';
+import {
+  clock,
+  entryLabel,
+  groupByProposal,
+  outcomeLabel,
+  usageLabel,
+  type TraceGroup,
+  type TraceQuery,
+} from './trace-view.js';
 
 export interface TraceView {
   readonly query: TraceQuery;
@@ -95,11 +103,17 @@ function whoLine(row: TraceRow): string {
   return `<small>${who} · ${what}</small>`;
 }
 
+/** The turn and its cost, kept under the tool so the table keeps its width. */
+function costLine(row: TraceRow): string {
+  const turn = row.turnId === null ? '' : `lượt <code>${esc(row.turnId)}</code> · `;
+  return `<small class="trace-cost">${turn}${esc(usageLabel(row))}</small>`;
+}
+
 function toolCell(row: TraceRow): string {
   const key = row.idempotencyKey ?? null;
-  if (key === null) return `<code>${breakable(row.tool)}</code>${whoLine(row)}`;
+  if (key === null) return `<code>${breakable(row.tool)}</code>${whoLine(row)}${costLine(row)}`;
   const attempts = row.attempts === null || row.attempts === undefined ? '-' : String(row.attempts);
-  return `<code>${breakable(row.tool)}</code><small>khoá ghi <code>${esc(key)}</code>, lần gửi ${attempts}</small>${whoLine(row)}`;
+  return `<code>${breakable(row.tool)}</code><small>khoá ghi <code>${esc(key)}</code>, lần gửi ${attempts}</small>${whoLine(row)}${costLine(row)}`;
 }
 
 function rowCells(row: TraceRow): string {
@@ -223,10 +237,16 @@ ${traceGroups(view.rows)}
       ? ''
       : `<p class="meta">Lọc theo task <code>${esc(view.query.filter.task)}</code>: trang hiện mọi dòng của task đó và mọi dòng của đề xuất chứa nó. Một đề xuất 30 mục vì thế hiện cả 30 lệnh ghi, và dòng duyệt vẫn chỉ một.</p>`;
 
-  const body = `<p class="sub">Bảng vết của cổng, mở từ <code>gateway.sqlite</code> ở chế độ chỉ đọc. Lọc theo người, task, đề xuất và cửa vào; các dòng của một đề xuất nằm chung một nhóm để đọc thành chuỗi soạn, xác nhận, ghi (SR7).</p>
+  const costNote =
+    view.error !== undefined
+      ? ''
+      : `<p class="meta">Chi phí mô hình do trợ lý báo qua <code>POST /v1/usage</code>; cổng không gọi mô hình. Lời gọi không mang mã lượt hiện "chi phí: host không báo"; lượt có gọi nhưng chưa báo hiện "chi phí: chưa báo".</p>`;
+
+  const body = `<p class="sub">Bảng vết của cổng, mở từ <code>gateway.sqlite</code> ở chế độ chỉ đọc. Lọc theo người, task, đề xuất và cửa vào; các dòng của một đề xuất nằm chung một nhóm để đọc thành chuỗi soạn, xác nhận, ghi (SR7). Mỗi dòng có thêm chi phí của lượt hội thoại đã gọi nó.</p>
 ${filterForm(view.query)}
 ${count}
 ${taskNote}
+${costNote}
 <p class="meta">Vết mới nhất trước. <span id="trace-updated"></span></p>
 <noscript><p class="banner" role="status">Trang vẫn lọc và xem đầy đủ khi JavaScript tắt; chỉ phần tự làm mới là không chạy. Bấm Lọc để tải lại.</p></noscript>
 ${shown}`;

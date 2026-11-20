@@ -49,7 +49,15 @@ test('trace: a line is stored with every field and read back', () => {
   try {
     store.append(sample);
     const [row] = store.list();
-    assert.deepEqual(row, { ...sample, idempotencyKey: null, attempts: null, at: '2026-11-17T09:00:00.000Z', durationMs: 3 });
+    assert.deepEqual(row, {
+      ...sample,
+      turnId: null,
+      idempotencyKey: null,
+      attempts: null,
+      usage: null,
+      at: '2026-11-17T09:00:00.000Z',
+      durationMs: 3,
+    });
     assert.equal(store.count(), 1);
   } finally {
     close();
@@ -325,8 +333,8 @@ test('trace cli: --employee and --task print a table, other input is a usage err
 
     const byEmployee = run('--employee', 'NV-05');
     assert.equal(byEmployee.length, 2, 'header and one line');
-    assert.match(byEmployee[0] ?? '', /^time\s+trace\s+requester\s+caller\s+entry\s+tool\s+object\s+outcome\s+reason\s+scope\s+rule\s+policy\s+host_user\s+proposal\s+key\s+tries\s+ms$/);
-    assert.match(byEmployee[1] ?? '', /tr-0000000000000002\s+NV-05\s+test\s+http\s+get_task\s+T-70\s+not_found\s+NOT_PERMITTED\s+out_of_scope\s+READ_SCOPE\.own_department\s+v1\s+-\s+-\s+-\s+-\s+3$/);
+    assert.match(byEmployee[0] ?? '', /^time\s+trace\s+requester\s+caller\s+entry\s+tool\s+object\s+outcome\s+reason\s+scope\s+rule\s+policy\s+host_user\s+proposal\s+key\s+tries\s+ms\s+turn\s+cost$/);
+    assert.match(byEmployee[1] ?? '', /tr-0000000000000002\s+NV-05\s+test\s+http\s+get_task\s+T-70\s+not_found\s+NOT_PERMITTED\s+out_of_scope\s+READ_SCOPE\.own_department\s+v1\s+-\s+-\s+-\s+-\s+3\s+-\s+chi phí: host không báo$/);
 
     const byTask = run('--task', 'T-12');
     assert.equal(byTask.length, 2);

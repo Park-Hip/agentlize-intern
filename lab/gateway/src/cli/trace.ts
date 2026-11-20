@@ -2,7 +2,13 @@ import { parseArgs } from 'node:util';
 import { EMPLOYEE_ID_PATTERN } from '@lab/shared';
 import { openGatewayDatabase } from '../database.js';
 import { PROPOSAL_ID_PATTERN } from '../proposals/proposal-store.js';
-import { ENTRIES, TraceStore, type TraceEntry, type TraceRow } from '../trace/trace-store.js';
+import {
+  ENTRIES,
+  formatUsd,
+  TraceStore,
+  type TraceEntry,
+  type TraceRow,
+} from '../trace/index.js';
 import { UsageError, type CliIo } from './keys.js';
 
 const USAGE = [
@@ -14,7 +20,19 @@ const USAGE = [
   '  npm run trace -- --limit <n>          show at most n lines (default 200)',
 ].join('\n');
 
-const COLUMNS = ['time', 'trace', 'requester', 'caller', 'entry', 'tool', 'object', 'outcome', 'reason', 'scope', 'rule', 'policy', 'host_user', 'proposal', 'key', 'tries', 'ms'] as const;
+const COLUMNS = ['time', 'trace', 'requester', 'caller', 'entry', 'tool', 'object', 'outcome', 'reason', 'scope', 'rule', 'policy', 'host_user', 'proposal', 'key', 'tries', 'ms', 'turn', 'cost'] as const;
+
+/**
+ * What one line's model cost looks like in the table. The three cases are
+ * distinct on purpose: the host named no turn, the host named one but the
+ * assistant has not reported yet, or the cost is there.
+ */
+function costCell(row: TraceRow): string {
+  if (row.turnId === null) return 'chi phí: host không báo';
+  if (row.usage === null) return 'chi phí: chưa báo';
+  const usage = row.usage;
+  return `${formatUsd(usage.costUsd)} (${usage.inputTokens} vào / ${usage.outputTokens} ra) ${usage.model}`;
+}
 
 function cells(row: TraceRow): string[] {
   return [
@@ -35,6 +53,8 @@ function cells(row: TraceRow): string[] {
     row.idempotencyKey ?? '-',
     row.attempts === null ? '-' : String(row.attempts),
     String(row.durationMs),
+    row.turnId ?? '-',
+    costCell(row),
   ];
 }
 

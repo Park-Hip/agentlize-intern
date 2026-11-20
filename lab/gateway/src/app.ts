@@ -2,12 +2,14 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { LOOPBACK_HOST, readJsonBody, sendJson, type RequestHandler, type ToolResponse } from '@lab/shared';
 import { catalogEntries, performCall, TraceUnavailableError, type GatewayDeps } from './call.js';
 import { handleMcp } from './mcp.js';
+import { handleUsage } from './trace/usage-route.js';
 import { handleWeb } from './web/routes.js';
 
 export type { GatewayDeps };
 
 const TOOLS_PATH = '/v1/tools';
 const TOOL_PATH = /^\/v1\/tools\/([A-Za-z0-9_]{1,64})$/;
+const USAGE_PATH = '/v1/usage';
 const MCP_PATH = '/mcp';
 
 async function handleToolCall(deps: GatewayDeps, req: IncomingMessage, res: ServerResponse, name: string): Promise<void> {
@@ -48,6 +50,11 @@ export function createGatewayHandler(deps: GatewayDeps): RequestHandler {
     if (toolMatch !== null) {
       if (method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' }, { allow: 'POST' });
       return handleToolCall(deps, req, res, toolMatch[1] ?? '');
+    }
+
+    if (path === USAGE_PATH) {
+      if (method !== 'POST') return sendJson(res, 405, { error: 'method_not_allowed' }, { allow: 'POST' });
+      return handleUsage(deps, req, res);
     }
 
     if (path === MCP_PATH) return handleMcp(deps, req, res);

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { LOOPBACK_HOST } from '@lab/shared';
+import { openGatewayDatabase, TraceStore } from '@lab/gateway';
 import {
   SERVICE_KEY,
   csrfFrom,
@@ -389,6 +390,38 @@ test('console: trace groups one task chain by proposal, with every column, and n
   // A long rule code breaks after each dot and underscore, so the table fits a laptop screen.
   assert.match(all, /<code>IDENTITY\.<wbr>KEY_<wbr>INVALID<\/code>/);
   assert.match(all, /<code>KEY_<wbr>INVALID<\/code>/);
+});
+
+test('console: a reported turn shows its tokens and money, and a call with no turn says the host did not report', async (t) => {
+  const fixture = await startFixture();
+  t.after(() => fixture.close());
+
+  fixture.appendTrace([
+    { ...line('tr-0000000000000001', { objectId: 'T-12' }), turnId: 'turn-hoa-cost' },
+    { ...line('tr-0000000000000002', { objectId: 'T-13' }), turnId: 'turn-hoa-waiting' },
+    line('tr-0000000000000003', { objectId: 'T-14' }),
+  ]);
+
+  const db = openGatewayDatabase(fixture.dataDir);
+  try {
+    new TraceStore(db).appendUsage({
+      turnId: 'turn-hoa-cost',
+      requester: 'NV-02',
+      caller: 'lab-console',
+      model: 'lab-test-model',
+      inputTokens: 1200,
+      outputTokens: 340,
+      costUsd: 0.0123,
+    });
+  } finally {
+    db.close();
+  }
+
+  const html = (await (await fetch(`${fixture.url}/trace`)).text()).replaceAll('<wbr>', '');
+  assert.match(html, /lượt <code>turn-hoa-cost<\/code> · chi phí: \$0\.0123 \(1200 vào \/ 340 ra, lab-test-model\)/);
+  assert.match(html, /lượt <code>turn-hoa-waiting<\/code> · chi phí: chưa báo/);
+  assert.match(html, /chi phí: host không báo/);
+  assert.match(html, /POST \/v1\/usage/);
 });
 
 test('console: the trace filters by person, proposal and door, and an invalid value is explained', async (t) => {

@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { ReasonCode } from '@lab/shared';
 import type { GatewayDatabase } from '../database.js';
+import { UsageReader, UsageStore, type UsageRecord, type UsageRow } from './usage-store.js';
 
 /**
  * Where a call came in: `http` is `POST /v1/tools/<name>`, `mcp` is the `/mcp`
@@ -41,6 +42,12 @@ export interface TraceRecord {
    * A claim to look at later, never an input to a permission decision (ADR-0005).
    */
   readonly hostUser: string | null;
+  /**
+   * The conversation turn named in `X-Lab-Turn`; null when the host sent none
+   * or sent a value that is not an opaque turn code. It groups the tool calls
+   * whose model cost the assistant reports later.
+   */
+  readonly turnId?: string | null;
   /** The proposal this line is a step of (write, send or cancel); null for a call that touched none. */
   readonly proposalId?: string | null;
   /** The fixed key of a write command; null for every line that is not a write. */
@@ -52,6 +59,9 @@ export interface TraceRecord {
 
 export interface TraceRow extends TraceRecord {
   readonly at: string;
+  readonly turnId: string | null;
+  /** The cost the assistant reported for this line's turn; null when it reported none. */
+  readonly usage: UsageRow | null;
 }
 
 export interface TraceFilter {
@@ -85,6 +95,7 @@ interface Row {
   rule_id: string | null;
   policy_version: number | null;
   host_user: string | null;
+  turn_id: string | null;
   proposal_id: string | null;
   idempotency_key: string | null;
   attempts: number | null;
@@ -110,6 +121,7 @@ function createTraceSql(table: string): string {
       rule_id        TEXT,
       policy_version INTEGER,
       host_user      TEXT,
+      turn_id        TEXT,
       proposal_id    TEXT,
       idempotency_key TEXT,
       attempts       INTEGER,
@@ -123,6 +135,7 @@ const GUARDS_SQL = `
   CREATE INDEX IF NOT EXISTS trace_requester ON trace (requester);
   CREATE INDEX IF NOT EXISTS trace_object ON trace (object_id);
   CREATE INDEX IF NOT EXISTS trace_proposal ON trace (proposal_id);
+  CREATE INDEX IF NOT EXISTS trace_turn ON trace (turn_id);
   CREATE TRIGGER IF NOT EXISTS trace_no_update BEFORE UPDATE ON trace
   BEGIN SELECT RAISE(ABORT, 'trace is append-only'); END;
   CREATE TRIGGER IF NOT EXISTS trace_no_delete BEFORE DELETE ON trace
@@ -151,10 +164,12 @@ function toRow(row: Row): TraceRow {
     ruleId: row.rule_id,
     policyVersion: row.policy_version,
     hostUser: row.host_user,
+    turnId: row.turn_id ?? null,
     proposalId: row.proposal_id,
     idempotencyKey: row.idempotency_key,
     attempts: row.attempts,
     durationMs: row.duration_ms,
+    usage: null,
   };
 }
 
@@ -164,14 +179,19 @@ function toRow(row: Row): TraceRow {
  * the query and the row shape exist once for the gateway, the CLI and the page.
  */
 export class TraceReader {
-  constructor(protected readonly db: GatewayDatabase) {}
+  private readonly usageReader: UsageReader;
+
+  constructor(protected readonly db: GatewayDatabase) {
+    this.usageReader = new UsageReader(db);
+  }
 
   /** Newest lines first, at most `limit`. Every filter narrows the same list. */
   list(filter: TraceFilter = {}): TraceRow[] {
     const { where, params } = this.where(filter);
     params['limit'] = filter.limit ?? DEFAULT_TRACE_LIMIT;
     const sql = `SELECT * FROM trace ${where} ORDER BY seq DESC LIMIT @limit`;
-    return (this.db.prepare(sql).all(params) as Row[]).map(toRow);
+    const rows = (this.db.prepare(sql).all(params) as Row[]).map(toRow);
+    return this.withUsage(rows);
   }
 
   /** How many lines match a filter, without reading them. */
@@ -179,6 +199,45 @@ export class TraceReader {
     const { where, params } = this.where(filter);
     const row = this.db.prepare(`SELECT COUNT(*) AS total FROM trace ${where}`).get(params) as { total: number };
     return row.total;
+  }
+
+  /** `turn_id` arrived with model cost; a read-only console may see a table made before it. */
+  private hasTurnColumn(): boolean {
+    return (this.db.prepare('PRAGMA table_info(trace)').all() as { name: string }[]).some(
+      (column) => column.name === 'turn_id',
+    );
+  }
+
+  /** Attach each line's turn cost; a database from before either table simply shows none. */
+  private withUsage(rows: TraceRow[]): TraceRow[] {
+    if (rows.length === 0 || !this.hasTurnColumn() || !this.usageReader.hasTable()) return rows;
+    const turnIds = [...new Set(rows.map((row) => row.turnId).filter((id): id is string => id !== null))];
+    if (turnIds.length === 0) return rows;
+    const found = this.usageReader.forTurns(turnIds);
+    return rows.map((row) => {
+      if (row.turnId === null) return row;
+      const usage = found.get(row.turnId);
+      return usage === undefined ? row : { ...row, usage };
+    });
+  }
+
+  /**
+   * The people who made a traced call in one turn. Cost reporting uses it: a
+   * turn belongs to one person, so a key may report only for a turn whose
+   * calls all carry its employee code.
+   */
+  turnRequesters(turnId: string): (string | null)[] {
+    if (!this.hasTurnColumn()) return [];
+    return (
+      this.db.prepare('SELECT DISTINCT requester FROM trace WHERE turn_id = @turnId').all({ turnId }) as {
+        requester: string | null;
+      }[]
+    ).map((row) => row.requester);
+  }
+
+  /** The cost reported for one turn, without reading the whole trace. */
+  usageOfTurn(turnId: string): UsageRow | undefined {
+    return this.usageReader.ofTurn(turnId);
   }
 
   /** `proposal_items` arrives with change sets; a trace-only database from before them has no such table. */
@@ -227,15 +286,19 @@ export class TraceReader {
 }
 
 /**
- * Owns the `trace` table (SR7). The table only grows: two triggers abort every
- * UPDATE and DELETE, so even code with database access cannot rewrite history.
+ * Owns the `trace` table (SR7) and the `model_usage` table beside it. Both only
+ * grow: two triggers on each abort every UPDATE and DELETE, so even code with
+ * database access cannot rewrite history.
  */
 export class TraceStore extends TraceReader {
+  private readonly usageStore: UsageStore;
+
   constructor(
     db: GatewayDatabase,
     private readonly now: () => Date = () => new Date(),
   ) {
     super(db);
+    this.usageStore = new UsageStore(db, now);
     const existing = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'trace'").get() as
       | { sql: string }
       | undefined;
@@ -247,12 +310,13 @@ export class TraceStore extends TraceReader {
 
     // A table made before a column existed gets it; ADD COLUMN is not an UPDATE, so the triggers stay quiet.
     const columns = (db.prepare('PRAGMA table_info(trace)').all() as { name: string }[]).map((column) => column.name);
-    for (const column of ['host_user', 'proposal_id', 'idempotency_key', 'attempts']) {
+    for (const column of ['host_user', 'turn_id', 'proposal_id', 'idempotency_key', 'attempts']) {
       if (!columns.includes(column)) {
         const type = column === 'attempts' ? 'INTEGER' : 'TEXT';
         db.exec(`ALTER TABLE trace ADD COLUMN ${column} ${type}`);
       }
     }
+    db.exec('CREATE INDEX IF NOT EXISTS trace_turn ON trace (turn_id);');
     // The `entry` check cannot be altered, so a table made before the `web` entry is copied into a new one.
     if (!existing.sql.includes("'web'")) this.rebuild();
   }
@@ -265,19 +329,27 @@ export class TraceStore extends TraceReader {
         DROP TRIGGER IF EXISTS trace_no_delete;
         DROP INDEX IF EXISTS trace_requester;
         DROP INDEX IF EXISTS trace_object;
+        DROP INDEX IF EXISTS trace_turn;
         ALTER TABLE trace RENAME TO trace_before_web;
       `);
       this.db.exec(createTraceSql('trace'));
       this.db.exec(`
         INSERT INTO trace (seq, trace_id, at, requester, caller, entry, tool, object_id, outcome, reason_code,
-                           out_of_scope, rule_id, policy_version, host_user, proposal_id, idempotency_key, attempts, duration_ms)
+                           out_of_scope, rule_id, policy_version, host_user, turn_id, proposal_id, idempotency_key,
+                           attempts, duration_ms)
         SELECT seq, trace_id, at, requester, caller, entry, tool, object_id, outcome, reason_code,
-               out_of_scope, rule_id, policy_version, host_user, proposal_id, idempotency_key, attempts, duration_ms
+               out_of_scope, rule_id, policy_version, host_user, turn_id, proposal_id, idempotency_key,
+               attempts, duration_ms
         FROM trace_before_web;
         DROP TABLE trace_before_web;
       `);
       this.db.exec(GUARDS_SQL);
     })();
+  }
+
+  /** Record the cost of one turn. A second report for the same turn is refused by the unique column. */
+  appendUsage(record: UsageRecord): UsageRow {
+    return this.usageStore.append(record);
   }
 
   append(record: TraceRecord): void {
@@ -295,6 +367,7 @@ export class TraceStore extends TraceReader {
       rule_id: record.ruleId,
       policy_version: record.policyVersion,
       host_user: record.hostUser,
+      turn_id: record.turnId ?? null,
       proposal_id: record.proposalId ?? null,
       idempotency_key: record.idempotencyKey ?? null,
       attempts: record.attempts ?? null,
@@ -303,10 +376,10 @@ export class TraceStore extends TraceReader {
     this.db
       .prepare(
         `INSERT INTO trace (trace_id, at, requester, caller, entry, tool, object_id, outcome, reason_code,
-                            out_of_scope, rule_id, policy_version, host_user, proposal_id, idempotency_key,
+                            out_of_scope, rule_id, policy_version, host_user, turn_id, proposal_id, idempotency_key,
                             attempts, duration_ms)
          VALUES (@trace_id, @at, @requester, @caller, @entry, @tool, @object_id, @outcome, @reason_code,
-                 @out_of_scope, @rule_id, @policy_version, @host_user, @proposal_id, @idempotency_key,
+                 @out_of_scope, @rule_id, @policy_version, @host_user, @turn_id, @proposal_id, @idempotency_key,
                  @attempts, @duration_ms)`,
       )
       .run(row);

@@ -28,6 +28,11 @@ Hai cửa mở đúng cùng một danh mục tool, cùng khoá `lab_` và cùng 
 Cả hai cần header `Authorization: Bearer <khoá lab_>`.
 `GET /v1/tools` trả danh mục mà không cần khoá, vì danh mục không chứa dữ liệu.
 
+Cả hai cửa đọc thêm header `X-Lab-Turn` khi nơi gọi gửi nó: đó là mã lượt hội thoại, 1 tới 64 ký tự chữ, số và `- . _ : / @`.
+Header không bắt buộc.
+Thiếu header, gửi hai giá trị, hoặc gửi giá trị sai định dạng thì cột `turn_id` của vết để trống.
+Mã lượt là thứ nối các lời gọi của cùng một lượt với chi phí mô hình mà trợ lý báo sau đó.
+
 Riêng cửa `/mcp`:
 
 - Cổng không giữ phiên: mỗi request dựng một server MCP mới, không cấp `mcp-session-id`, và bỏ qua mã host gửi.
@@ -194,9 +199,13 @@ Mỗi đề xuất chạy từng mục theo vị trí, một mục một lúc.
 ## Bảng vết
 
 Bảng `trace` trong `<LAB_DATA_DIR>/gateway.sqlite` chỉ ghi thêm: hai trigger của SQLite chặn mọi UPDATE và DELETE.
-Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi, cửa vào (`http`, `mcp` hoặc `web`), tool, đối tượng, kết quả, mã lý do, mã luật, phiên bản luật, `x-user-id` đã che và thời gian xử lý.
+Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi, cửa vào (`http`, `mcp` hoặc `web`), tool, đối tượng, kết quả, mã lý do, mã luật, phiên bản luật, `x-user-id` đã che, mã lượt (`turn_id`) và thời gian xử lý.
 Dòng của lệnh ghi có thêm mã chống ghi trùng và số lần gửi.
 Bảng không có cột cho tên, email, số điện thoại, địa chỉ hay khoá, nên các giá trị đó không thể lọt vào.
+
+Mã lượt đến từ header `X-Lab-Turn`; lời gọi không có header thì cột để trống.
+Mỗi dòng hiện thêm chi phí của lượt đó: số token vào, token ra, tên mô hình và số tiền.
+Lời gọi không có mã lượt hiện "chi phí: host không báo"; lượt có mã nhưng chưa báo hiện "chi phí: chưa báo".
 
 ```
 npm run trace -- --employee NV-05
@@ -212,6 +221,32 @@ Trang Vết của trang điều khiển lọc theo task cùng cách.
 
 Lời gọi từ sân chơi của trang điều khiển có cửa vào `http` và nơi gọi `lab-console`; lọc theo cửa vào để tách chúng khỏi lời gọi của Thổ Thần.
 
+## Chi phí mô hình
+
+Cổng không gọi mô hình nên không tự biết chi phí.
+Trợ lý của Lab tự tính `cost_usd` rồi báo lại sau mỗi lượt hội thoại bằng một lời gọi riêng:
+
+```
+POST /v1/usage
+Authorization: Bearer <khoá lab_>
+Content-Type: application/json
+
+{"turn_id":"turn-2026-11-20-01","model":"lab-model","input_tokens":1200,"output_tokens":340,"cost_usd":0.0123}
+```
+
+- `turn_id` là mã lượt đã gửi trong header `X-Lab-Turn` ở mọi lời gọi tool của lượt đó.
+- Cổng chỉ nhận lượt có ít nhất một dòng vết mang mã nhân viên của chủ khoá, và mọi dòng có người của lượt phải cùng một người.
+  Báo cho lượt của người khác, hoặc cho lượt chưa có lời gọi nào, trả 403 với mã `turn_not_yours`.
+- Một lượt chỉ có một dòng chi phí; báo lần hai trả 409 với mã `usage_already_reported`.
+  Bảng chỉ ghi thêm, không sửa và không xoá.
+- Body chỉ nhận đúng năm trường trên; trường lạ bị từ chối với 400.
+  Cổng không lưu câu hỏi, câu trả lời hay nội dung hội thoại, chỉ lưu mã lượt, người báo, nơi gọi, thời điểm, tên mô hình, số token và số tiền.
+- `model` là một mã như `gpt-4o-mini`, không phải một câu.
+- Thổ Thần không gửi chi phí cho cổng; credit của Thổ Thần vẫn ghi tay trong báo cáo nghiệm thu.
+
+Chi phí nằm ở bảng `model_usage` trong cùng `gateway.sqlite`.
+Tra vết theo task, theo người hay theo đề xuất tự nối các dòng của cùng một lượt với dòng chi phí đó.
+
 ## Mã nguồn
 
 | Thư mục | Nội dung |
@@ -225,5 +260,5 @@ Lời gọi từ sân chơi của trang điều khiển có cửa vào `http` v�
 | `src/proposals/` | Đề xuất, dấu vân tay, người duyệt |
 | `src/writes/` | Kiểm lúc Gửi, lệnh ghi, vòng chạy nền |
 | `src/web/` | Trang đăng nhập, xác nhận, hộp chờ duyệt, trang duyệt |
-| `src/trace/` | Bảng vết |
+| `src/trace/` | Bảng vết và bảng chi phí |
 | `src/cli/` | Lệnh `keys`, `seed-keys`, `trace` |
