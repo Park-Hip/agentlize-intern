@@ -1,17 +1,18 @@
 # Câu hỏi nghiên cứu và kế hoạch kiểm chứng
 
-Ngày: 2026-11-18. Trạng thái: cách làm đã chốt ở ADR-0001; Q1 và Q2 còn mở, chưa chạy phép thử nào.
+Ngày: 2026-11-19. Trạng thái: cách làm đã chốt ở ADR-0001; Q1 đã có bằng chứng tự động và giữ phương án 1A, phiên kịch bản C trong Thổ Thần desktop còn chờ; Q2 còn mở.
 
-Mọi giả thuyết dưới đây đoán từ tài liệu nguồn và bước so sánh, chưa chạy trên Lab.
+Các giả thuyết dưới đây đoán từ tài liệu nguồn và bước so sánh, trừ Q1 đã có kết quả tự động ở mục A.1.
 Tám yêu cầu dùng để đối chiếu lấy từ [PRD](../problem/prd-ai-platform.md).
 
 ## Đọc nhanh
 
 - Bước so sánh đã chọn tạm cách làm cho Lab, nhưng mới dựa trên đọc tài liệu.
 - Phần lớn điều còn chưa chắc đã có đáp án nhờ cách Lab tự dựng, nên chỉ cần kiểm tra khi dựng xong; chỉ hai điều thật sự chưa biết.
-- Thứ nhất: lệnh chuyển 30 việc bị đứt giữa chừng thì tự viết phần làm tiếp có đủ đơn giản không, hay cần thêm một công cụ chuyên dụng.
+- Thứ nhất: lệnh chuyển 30 việc bị đứt giữa chừng; phép thử tự động ngày 2026-11-19 cho thấy cổng tự viết đã làm được, nên giữ phương án 1A và chưa cần công cụ chạy quy trình.
+- Phiên chạy kịch bản C trong Thổ Thần desktop vẫn còn chờ, nên kết luận 1A mới dựa trên hệ thống giả.
 - Thứ hai: cách nối chuẩn chung thật sự tiết kiệm bao nhiêu công so với cách nối thường, câu mà chương trình bắt buộc phải trả lời.
-- Tiếp theo: chốt cách làm trong bản ghi quyết định, trả lời câu thứ nhất khi dựng và câu thứ hai khi đánh giá.
+- Tiếp theo: chạy kịch bản C trong Thổ Thần desktop để xác nhận Q1 trên host thật, rồi trả lời Q2 ở bước đánh giá.
 
 ## Nhân vật và tình huống
 
@@ -73,11 +74,11 @@ flowchart LR
 
 | Câu hỏi | Nếu bỏ qua, rủi ro là | Quyết định chờ câu này | Khi nào trả lời |
 | --- | --- | --- | --- |
-| Q1. Sập giữa chừng, chạy lại có đủ? | Task bị sót hoặc bị chuyển hai lần; hoặc Lab thêm một công cụ không cần thiết | Cách chạy tiếp lệnh hàng loạt bị đứt | Chọn trước, kiểm lại khi dựng |
+| Q1. Sập giữa chừng, chạy lại có đủ? | Task bị sót hoặc bị chuyển hai lần; hoặc Lab thêm một công cụ không cần thiết | Cách chạy tiếp lệnh hàng loạt bị đứt | Đã trả lời bằng phép thử tự động ngày 2026-11-19; phiên host thật còn chờ |
 | Q2. MCP tiết kiệm bao nhiêu công? | Kết luận về MCP không có số đo | Không có; đây là kết luận trong báo cáo đánh giá | Bước đánh giá |
 
 Không câu nào chặn bản ghi quyết định.
-Q1 có phương án mặc định đủ an toàn để chọn trước; Q2 chỉ cho kết luận.
+Q1 đã có kết quả tự động và giữ 1A; Q2 chỉ cho kết luận.
 
 # 2. Từng câu hỏi
 
@@ -101,12 +102,21 @@ Mỗi task mang một số phiếu riêng: nộp lại cùng số phiếu thì h
 Tắt ứng dụng ở ba thời điểm: trước task đầu, giữa chừng, và ngay trước khi báo xong.
 Chạy lại rồi đếm: đủ 30 task, không task nào bị chuyển hai lần.
 
+**Kết quả tự động ngày 2026-11-19.**
+`lab/tests/src/outbox-test.ts` tắt cổng ở ba thời điểm và tắt danh sách task 20 giây giữa chừng; cả bốn phép thử đều qua.
+Mỗi lần đủ 30 task, mỗi task đúng một lần ghi, người phụ trách là anh Minh và phiên bản tăng một bước.
+Lõi chạy nền và chạy tiếp là 267 dòng mã trong `lab/gateway/src/writes/outbox.ts`, không thêm biến môi trường và vẫn một tiến trình cổng.
+Vì vậy giữ 1A; chưa cần 1B.
+Phiên kịch bản C trong Thổ Thần desktop chưa chạy, nên kết quả này mới nói về hàng đợi lệnh ghi của cổng trên hệ thống giả.
+
 **Quyết định chờ câu này: cách chạy tiếp lệnh hàng loạt bị đứt.**
 
 | Phương án | Đổi lại | Chọn khi |
 | --- | --- | --- |
 | 1A. Ứng dụng tự lưu tiến độ và chạy tiếp | Lab tự viết và tự giữ phần này | Mặc định; giữ nếu đủ 30 task, không trùng, và phần chạy tiếp không quá rối |
 | 1B. Dùng công cụ chạy quy trình (workflow engine), loại phần mềm chuyên nhớ từng bước đã xong để chạy tiếp | Thêm một hệ thống phải cài và vận hành | Phương án 1A sót, trùng, hoặc quá rối |
+
+**Kết luận:** 1A đủ cho hàng đợi lệnh ghi của cổng trên hệ thống giả; chỉ xem lại 1B nếu phiên Thổ Thần desktop hoặc một hệ thống thật cho thấy task bị sót, bị ghi hai lần, hoặc phần chạy tiếp quá rối.
 
 ## 2.2. Q2. Cách nối chuẩn chung (MCP) tiết kiệm được bao nhiêu công?
 
@@ -161,10 +171,31 @@ Chưa biết ứng dụng tự viết có làm việc này đủ đúng và đ�
 | Đúng, và phần chạy tiếp gọn | 1A | Giữ phần chạy tiếp tự viết; đưa ba thời điểm tắt vào bộ phép thử. |
 | Sai, hoặc phần chạy tiếp tự viết quá rối | Thử 1B với cùng ba thời điểm tắt, so M5 (độ phức tạp vận hành) rồi chọn. | Có thể thêm một thành phần phải dựng và vận hành. |
 
+**Kết quả ngày 2026-11-19.**
+
+```
+cd lab
+npm run lint
+npm test
+node --test --test-name-pattern "outbox: a crash before the first item" "tests/dist/outbox-test.js"
+node --test --test-name-pattern "outbox: the task list not answering for twenty seconds" "tests/dist/outbox-test.js"
+```
+
+- `npm run lint`: không lỗi.
+- `npm test`: 420 phép thử, 420 qua, 0 hỏng, khoảng 45 giây.
+- Phép thử tắt cổng: 3/3 phép thử con qua, 6,9 giây; đủ 30 task, mỗi task đúng một lần ghi, phiên bản 2.
+- Phép thử ngắt 20 giây: 1/1 qua, 33,2 giây; cùng một tiến trình cổng, không khởi động lại.
+- M5 của lõi `outbox.ts`: 319 dòng vật lý, 267 dòng mã (bỏ 23 dòng trắng và 29 dòng chú thích).
+
+Chọn 1A.
+Kết quả này chứng minh hàng đợi lệnh ghi của cổng trên hệ thống giả, với một tiến trình cổng.
+Nó chưa chứng minh phiên kịch bản C trong Thổ Thần desktop, nhiều bản cổng chạy cùng lúc, hay một hệ thống thật không nhận mã chống ghi trùng.
+Phiên Thổ Thần desktop còn chờ, và đó là lần kiểm cuối trước khi đóng mốc 3.
+
 - **Đối chứng:** mốc là ứng dụng tự viết.
   Nếu thử công cụ chạy quy trình, dùng cùng ba thời điểm tắt và cùng số phiếu.
   Không so công cụ chạy quy trình với tiến độ giữ trong bộ nhớ tạm rồi kết luận công cụ đó là cần thiết.
-- **Chưa đủ bằng chứng khi:** không xem được trạng thái từng task sau khi khởi động lại.
+- **Chưa đủ bằng chứng khi:** không xem được trạng thái từng task sau khi khởi động lại; lần này xem được cả 30 task.
 - **Giới hạn:** công cụ chạy quy trình giữ tiến độ, nhưng không thay việc kiểm quyền hay chống ghi trùng ở danh sách công việc.
 
 Kết quả câu này cũng là bằng chứng cho việc khi nào cần công cụ chạy quy trình, một trong năm cách chương trình yêu cầu khảo sát.
