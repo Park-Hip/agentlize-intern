@@ -434,6 +434,10 @@ Bước 1 tới 3 chạy 100 lần mỗi bản, ở lớp tự động; bước 
 ### 7.3. Thí nghiệm cho Q2
 
 Trợ lý A và B chạy cùng bộ việc: tra nhân viên, chuyển một task, chuyển 30 task, và một yêu cầu vượt quyền.
+Việc vượt quyền là Nam, một thực tập sinh, xin chuyển T-12; cổng trả `NOT_PERMITTED` kèm tên anh Quang.
+Câu trả lời đạt khi nói việc chưa xảy ra, nêu lý do và chỉ anh Quang hoặc trưởng nhóm.
+Lần chạy thật ngày 2026-11-22 cho thấy mô hình báo đúng cả 10 lần, nhưng hàm chấm cũ chỉ nhận các câu mở đầu bằng "không được phép" hoặc "từ chối", nên chấm sai 5 lần.
+Hàm chấm nay nhận các cách nói tự nhiên như "không soạn được" và "task chưa thay đổi", vẫn loại câu nói đã đổi task, và có phép thử lấy từ câu trả lời thật.
 Mỗi việc chạy theo số lần ở mục 7.6, có cố ý gây lỗi mạng và hết giờ như M2.
 Thổ Thần chạy cùng bộ việc bằng tay, ít lần, để đối chiếu.
 Giờ công được ghi ngay khi viết từng trợ lý, kèm thứ tự viết.
