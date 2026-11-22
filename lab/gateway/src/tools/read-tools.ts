@@ -116,7 +116,10 @@ export function notFoundTask(taskId: string, ruleId: string, extra: Partial<Tool
 
 const findEmployee = defineTool(
   'find_employee',
-  'Tìm nhân viên theo tên hoặc theo phòng (Vận hành, Kinh doanh). ' +
+  // The first sentence is shared with assistant B's hand-written catalog (issue #136).
+  'Luôn gọi công cụ này khi người dùng nhắc tới một nhân viên, kể cả khi chỉ có tên gọi như "anh Minh": ' +
+    'dùng phần tên đó làm tham số name (ví dụ "Minh") để cổng tự tìm, rồi mới hỏi lại nếu có nhiều người khớp. ' +
+    'Tìm nhân viên theo tên hoặc theo phòng (Vận hành, Kinh doanh). ' +
     'Chỉ so khớp trên tên và phòng, không tìm được theo email hay số điện thoại. ' +
     'Mỗi người chỉ kèm các thông tin mà vai của người hỏi được phép xem, và luôn có mã nhân viên (ví dụ NV-04). ' +
     'Khi tìm thấy người, câu trả lời có một dòng nêu tên các trường bị ẩn theo quyền, không kèm giá trị. ' +

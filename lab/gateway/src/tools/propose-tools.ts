@@ -43,7 +43,13 @@ const dueSchema = z
   .string()
   .trim()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => new Date(`${value}T00:00:00Z`).toISOString().startsWith(value), 'không phải một ngày có thật');
+  .refine((value) => new Date(`${value}T00:00:00Z`).toISOString().startsWith(value), 'không phải một ngày có thật')
+  // Word for word the same field note as assistant B's hand-written catalog (issue #136).
+  .describe(
+    'Hạn mới dạng YYYY-MM-DD. Nếu người dùng nói một thứ trong tuần mà không nêu ngày, ' +
+      'hãy chọn ngày của thứ đó gần nhất sau hạn hiện tại của task và nêu ngày đã chọn trong câu trả lời; ' +
+      'không hỏi lại chỉ vì thiếu ngày.',
+  );
 
 const proposeInput = z.strictObject({
   task_ids: z
