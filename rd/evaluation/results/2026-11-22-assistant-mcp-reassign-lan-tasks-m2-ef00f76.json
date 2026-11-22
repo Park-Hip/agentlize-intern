@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "kind": "assistant",
+  "generated_at": "2026-11-22T12:01:28.780Z",
+  "command": "npm run assistant -- --door mcp --job reassign-lan-tasks --runs 20 --fault m2",
+  "model": "deepseek-flash",
+  "door": "mcp",
+  "peak": false,
+  "allow_peak": false,
+  "job": {
+    "id": "reassign-lan-tasks",
+    "label": "Chuyển 30 task đang mở của chị Lan cho anh Minh",
+    "persona": "hoa",
+    "user_message": "Chuyển hết 30 task đang mở của chị Lan sang cho anh Minh."
+  },
+  "runs": 20,
+  "balance": {
+    "threshold_usd": 0.2,
+    "before_usd": 0.98,
+    "after_usd": 0.96,
+    "checks": [
+      {
+        "after_run": 0,
+        "usd": 0.98,
+        "at": "2026-11-22T11:59:56.351Z"
+      },
+      {
+        "after_run": 10,
+        "usd": 0.97,
+        "at": "2026-11-22T12:00:40.075Z"
+      },
+      {
+        "after_run": 20,
+        "usd": 0.96,
+        "at": "2026-11-22T12:01:28.676Z"
+      }
+    ],
+    "error": null
+  },
+  "stopped_early": null,
+  "environment": {
+    "commit": "ef00f76c7457841fd6ec42ec00a0874d13b88eda",
+    "commit_short": "ef00f76",
+    "dirty": false,
+    "node": "v22.21.0",
+    "os": {
+      "platform": "win32",
+      "release": "10.0.26200",
+      "version": "Windows 11 Home",
+      "arch": "x64"
+    },
+    "cpu": {
+      "model": "Intel(R) Core(TM) Ultra 5 225H",
+      "count": 14,
+      "speed_mhz": 3686
+    },
+    "memory_total_bytes": 33752997888,
+    "timezone": "Asia/Bangkok"
+  },
+  "samples_file": {
+    "name": "2026-11-22-assistant-mcp-reassign-lan-tasks-m2-ef00f76.samples.ndjson.gz",
+    "count": 20,
+    "sha256": "4168cff40e74f522b1c86042d56d07de4a65407ca4f6b689676cb9dc45607f27"
+  },
+  "summary": {
+    "runs": 20,
+    "correct_runs": 20,
+    "model_ms": {
+      "count": 20,
+      "p50_ms": 4333.8,
+      "max_ms": 5055.3,
+      "mean_ms": 4366.2
+    },
+    "gateway_ms": {
+      "count": 20,
+      "p50_ms": 100.2,
+      "max_ms": 162.6,
+      "mean_ms": 102.6
+    },
+    "total_ms": {
+      "count": 20,
+      "p50_ms": 4462.9,
+      "max_ms": 6715.8,
+      "mean_ms": 4581.8
+    },
+    "input_tokens": 351500,
+    "cache_hit_tokens": 293759,
+    "cache_miss_tokens": 57741,
+    "output_tokens": 15328,
+    "cost_usd": 0.018741
+  },
+  "notes": [
+    "Mô hình: deepseek-flash. Cửa: mcp. Mỗi lần chạy là một lượt hội thoại có mã lượt riêng.",
+    "Số dư DeepSeek đọc trước khi chạy và sau mỗi 10 lượt; ngưỡng dừng 0.20 USD.",
+    "Giờ cao điểm: không.",
+    "Chi phí báo qua POST /v1/usage; token vào, token ra, token trúng bộ nhớ đệm và tiền lấy từ phản hồi của mô hình.",
+    "File mẫu không giữ câu trả lời hay nội dung tool, chỉ giữ số đo, mã lý do và mã lỗi ngắn.",
+    "Kết quả đúng hay sai do hàm chấm của việc quyết định, không do người đọc file.",
+    "Lớp có lỗi M2: lời gọi soạn đề xuất đầu tiên ở lượt 1-10 và 12-15 gặp lỗi mạng, lượt 11 gặp hết giờ, rồi được gửi lại vào cổng thật; lượt 16-20 sạch.",
+    "Lỗi được gây ở một cổng cục bộ đóng kết nối ngay hoặc không bao giờ trả lời, nên cổng thật chỉ nhận đúng một lời gọi và mô hình chỉ thấy câu trả lời thật.",
+    "Lớp này chỉ soạn đề xuất, không bấm Gửi: ghi trùng và lệnh mất bằng 0 theo thiết kế, còn đề xuất trùng và đề xuất thiếu được đếm thay thế."
+  ],
+  "fault": {
+    "plan": "m2",
+    "timeout_ms": 2000,
+    "network_runs": 14,
+    "timeout_runs": 1,
+    "clean_runs": 5,
+    "point_missed": 0,
+    "network_errors": 14,
+    "timeouts": 1,
+    "retries": 15,
+    "duplicate_proposals": 0,
+    "incomplete_proposals": 0,
+    "duplicate_writes": 0,
+    "lost_commands": 0,
+    "note": "Lớp có mô hình chỉ soạn đề xuất và không bấm Gửi, nên không tạo lệnh ghi nào: ghi trùng và lệnh mất bằng 0 theo thiết kế. Đề xuất trùng và đề xuất thiếu là hai bộ đếm thay thế ở lớp này."
+  }
+}

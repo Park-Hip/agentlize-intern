@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "kind": "assistant",
+  "generated_at": "2026-11-22T11:49:56.767Z",
+  "command": "npm run assistant -- --door function --job assign-t12-to-minh --runs 20",
+  "model": "deepseek-flash",
+  "door": "function",
+  "peak": false,
+  "allow_peak": false,
+  "job": {
+    "id": "assign-t12-to-minh",
+    "label": "Chuyển T-12 cho anh Minh, hạn thứ Sáu",
+    "persona": "hoa",
+    "user_message": "Chuyển task T-12 sang cho anh Minh, hạn thứ Sáu."
+  },
+  "runs": 20,
+  "balance": {
+    "threshold_usd": 0.2,
+    "before_usd": 1.06,
+    "after_usd": 1.06,
+    "checks": [
+      {
+        "after_run": 0,
+        "usd": 1.06,
+        "at": "2026-11-22T11:48:43.531Z"
+      },
+      {
+        "after_run": 10,
+        "usd": 1.06,
+        "at": "2026-11-22T11:49:17.493Z"
+      },
+      {
+        "after_run": 20,
+        "usd": 1.06,
+        "at": "2026-11-22T11:49:56.659Z"
+      }
+    ],
+    "error": null
+  },
+  "stopped_early": null,
+  "environment": {
+    "commit": "ef00f76c7457841fd6ec42ec00a0874d13b88eda",
+    "commit_short": "ef00f76",
+    "dirty": false,
+    "node": "v22.21.0",
+    "os": {
+      "platform": "win32",
+      "release": "10.0.26200",
+      "version": "Windows 11 Home",
+      "arch": "x64"
+    },
+    "cpu": {
+      "model": "Intel(R) Core(TM) Ultra 5 225H",
+      "count": 14,
+      "speed_mhz": 3686
+    },
+    "memory_total_bytes": 33752997888,
+    "timezone": "Asia/Bangkok"
+  },
+  "samples_file": {
+    "name": "2026-11-22-assistant-function-assign-t12-to-minh-ef00f76.samples.ndjson.gz",
+    "count": 20,
+    "sha256": "7f829adb40d5ca152339dfd157d20819bd1125c43ecd457794c2537ee51de4cb"
+  },
+  "summary": {
+    "runs": 20,
+    "correct_runs": 20,
+    "model_ms": {
+      "count": 20,
+      "p50_ms": 3450.9,
+      "max_ms": 4677.1,
+      "mean_ms": 3607.9
+    },
+    "gateway_ms": {
+      "count": 20,
+      "p50_ms": 26.5,
+      "max_ms": 63.3,
+      "mean_ms": 27.7
+    },
+    "total_ms": {
+      "count": 20,
+      "p50_ms": 3482.6,
+      "max_ms": 4703.5,
+      "mean_ms": 3637.6
+    },
+    "input_tokens": 190143,
+    "cache_hit_tokens": 172672,
+    "cache_miss_tokens": 17471,
+    "output_tokens": 9795,
+    "cost_usd": 0.009018
+  },
+  "notes": [
+    "Mô hình: deepseek-flash. Cửa: function. Mỗi lần chạy là một lượt hội thoại có mã lượt riêng.",
+    "Số dư DeepSeek đọc trước khi chạy và sau mỗi 10 lượt; ngưỡng dừng 0.20 USD.",
+    "Giờ cao điểm: không.",
+    "Chi phí báo qua POST /v1/usage; token vào, token ra, token trúng bộ nhớ đệm và tiền lấy từ phản hồi của mô hình.",
+    "File mẫu không giữ câu trả lời hay nội dung tool, chỉ giữ số đo, mã lý do và mã lỗi ngắn.",
+    "Kết quả đúng hay sai do hàm chấm của việc quyết định, không do người đọc file."
+  ]
+}
