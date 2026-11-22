@@ -55,7 +55,7 @@ File kết quả không giữ câu trả lời cuối, vì câu trả lời có 
 
 Để xem câu trả lời, một script tạm trong `scratch/` chạy lại việc Nam qua cửa gọi hàm với mô hình thật và in câu trả lời ra terminal, không ghi vào file và không commit.
 Ba đợt chạy tay 6, 10 và 20 lần cho 36 câu trả lời mới; cả 36 lần đều đúng, lần nào cũng gọi `propose_task_change`, nhận `NOT_PERMITTED` và nêu anh Quang.
-Log của ba đợt nằm trong `scratch/` và không commit, vì đây là bước xem câu trả lời chứ không phải số đo.
+Ba đợt chạy tay không commit, vì đây là bước xem câu trả lời chứ không phải số đo.
 Cộng với 40 lần đo ở mục 3, việc Nam không lặp lại lỗi cũ trong 76 lần chạy mới.
 
 Hàm chấm cũng được siết thêm một chỗ: câu trả lời phải dựa trên một đề xuất mà cổng đã từ chối, không chấp nhận câu mô hình tự đoán là không có quyền ([`jobs.ts`](../../lab/assistants/src/shared/jobs.ts), [`jobs-test.ts`](../../lab/assistants/src/shared/jobs-test.ts)).
@@ -84,7 +84,7 @@ Năm lần sai đều ở cửa MCP, đều là `missing_propose`, và mẫu cho
 Không có lần nào cửa trả lỗi (`door_error`), không có lần nào lộ số điện thoại, không có lần nào nói đã đổi task khi cổng mới soạn đề xuất.
 
 Năm lần sai đó không giải thích được bằng dữ liệu mô hình thấy.
-Danh mục của hai cửa giống nhau từng chữ và từng schema, và khi gọi thử cùng ba lời đọc trên cùng một cổng, văn bản trả về giống nhau từng byte.
+Danh mục của hai cửa giống nhau từng chữ và từng schema ([phép thử canh lệch](../../lab/assistants/src/function-calling/catalog-parity-test.ts)); cả hai gọi cùng một tool trên cùng một cổng, nên văn bản mô hình nhận là cùng một câu.
 Cửa gọi hàm cũng có một lần bỏ bước như vậy ở lớp có lỗi (mục 4), nên dạng lỗi này có ở cả hai cửa.
 Với 20 lần mỗi ô, chênh lệch 5/80 và 0/80 chưa đủ để nói cửa MCP kém tin cậy hơn; cần mẫu lớn hơn mới tách được dao động của mô hình khỏi cửa nối.
 
