@@ -15,6 +15,7 @@ import {
 } from './command.js';
 import { ModelHttpError, ModelTimeoutError } from './errors.js';
 import { TOOL_SPECS, createFakeModel, createScriptedDoor } from './fake-model.js';
+import { createDoor as createFunctionDoor } from '../function-calling/door.js';
 import { readAssistantResult, type AssistantResult, type AssistantSample } from './result.js';
 import type { TurnUsage } from './usage.js';
 
@@ -32,6 +33,12 @@ const FIND_MINH_TEXT = [
 
 const OFF_PEAK = (): Date => new Date('2026-11-22T00:00:00Z');
 const PEAK = (): Date => new Date('2026-11-23T02:00:00Z');
+
+const PROPOSE_T12_TEXT = [
+  'Đã soạn đề xuất dx-0123456789abcdef cho task T-12. Chưa có gì được ghi vào task.',
+  'Link xác nhận:',
+  'http://127.0.0.1:8790/xac-nhan/dx-0123456789abcdef',
+].join('\n');
 
 function findMinhModel() {
   return createFakeModel({
@@ -94,14 +101,17 @@ test('command: arguments parse into one door, one job and a bounded run count', 
     maxSteps: 8,
     force: false,
     allowPeak: false,
+    fault: null,
     help: false,
   });
   assert.equal(parseAssistantArguments(['--door=function', '--job=nam-assign-t12']).door, 'function');
   assert.equal(parseAssistantArguments(['--allow-peak']).allowPeak, true);
+  assert.equal(parseAssistantArguments(['--fault', 'm2']).fault, 'm2');
   assert.equal(parseAssistantArguments(['--help']).help, true);
   assert.throws(() => parseAssistantArguments(['--door', 'nope', '--job', 'x']), /--door must be one of/);
   assert.throws(() => parseAssistantArguments(['--door', 'mcp', '--job', 'x', '--runs', '0']), /--runs/);
   assert.throws(() => parseAssistantArguments(['--door', 'mcp', '--job', 'x', '--max-steps', '51']), /--max-steps/);
+  assert.throws(() => parseAssistantArguments(['--fault', 'nope']), /--fault must be one of/);
   assert.throws(() => parseAssistantArguments(['--allow-peak=1']), /--allow-peak takes no value/);
   assert.throws(() => parseAssistantArguments(['--nope']), /unknown option/);
   assert.throws(() => parseAssistantArguments(['stray']), /unexpected argument/);
@@ -349,5 +359,81 @@ test('command: a timeout and a door failure get their own safe codes', async () 
       doorDeps,
     );
     assert.equal((await readOne(outDir)).samples[0]?.error_code, 'door_error');
+  });
+});
+
+test('command: --fault m2 injects the M2 plan before the first proposal and still writes a correct run', async () => {
+  await withTemp(async (outDir) => {
+    const scripted = createScriptedDoor(() => ({ text: PROPOSE_T12_TEXT }));
+    const deps = baseDeps({
+      faultTimeoutMs: 25,
+      createModel: () =>
+        createFakeModel({
+          steps: [
+            {
+              toolCalls: [
+                {
+                  name: 'propose_task_change',
+                  arguments: { task_ids: ['T-12'], changes: { assignee: 'NV-04', due: '2026-11-27' } },
+                },
+              ],
+            },
+            { text: 'Đã soạn đề xuất cho T-12, chưa ghi gì. Bạn mở link xác nhận và bấm Gửi.' },
+          ],
+        }),
+      createDoor: async (_name, context) => {
+        // The real call stays scripted; the fault calls use the real function
+        // door against the local refusing and silent ports the command opened.
+        if (context.baseUrl === 'http://127.0.0.1:8790') return scripted.door;
+        return createFunctionDoor(context);
+      },
+    });
+
+    const code = await main(
+      ['--door', 'function', '--job', 'assign-t12-to-minh', '--runs', '20', '--fault', 'm2', '--out', outDir],
+      deps,
+    );
+    assert.equal(code, 0);
+
+    const loaded = await readOne(outDir);
+    assert.match(
+      loaded.result.samples_file.name,
+      /^\d{4}-\d{2}-\d{2}-assistant-function-assign-t12-to-minh-m2-[0-9a-f]{7}\.samples\.ndjson\.gz$/,
+    );
+    const fault = loaded.result.fault;
+    assert.ok(fault !== undefined, 'a faulted result carries its M2 block');
+    assert.equal(fault.plan, 'm2');
+    assert.equal(fault.timeout_ms, 25);
+    assert.equal(fault.network_runs, 14);
+    assert.equal(fault.timeout_runs, 1);
+    assert.equal(fault.clean_runs, 5);
+    assert.equal(fault.point_missed, 0);
+    assert.equal(fault.network_errors, 14);
+    assert.equal(fault.timeouts, 1);
+    assert.equal(fault.retries, 15);
+    assert.equal(fault.duplicate_proposals, 0);
+    assert.equal(fault.incomplete_proposals, 0);
+    assert.equal(fault.duplicate_writes, 0);
+    assert.equal(fault.lost_commands, 0);
+
+    assert.equal(loaded.samples.length, 20);
+    assert.equal(loaded.samples[0]?.fault?.mode, 'network');
+    assert.equal(loaded.samples[9]?.fault?.mode, 'network');
+    assert.equal(loaded.samples[10]?.fault?.mode, 'timeout');
+    assert.equal(loaded.samples[10]?.fault?.timeouts, 1);
+    assert.equal(loaded.samples[11]?.fault?.mode, 'network');
+    assert.equal(loaded.samples[14]?.fault?.mode, 'network');
+    assert.equal(loaded.samples[15]?.fault?.mode, 'none');
+    assert.ok(
+      loaded.samples
+        .filter((sample) => sample.fault?.mode !== 'none')
+        .every((sample) => sample.fault?.attempted === true),
+    );
+    assert.ok(
+      loaded.samples
+        .filter((sample) => sample.fault?.mode === 'none')
+        .every((sample) => sample.fault?.attempted === false),
+    );
+    assert.equal(scripted.calls.length, 20, 'the real door sees one call per run, never the fault attempt');
   });
 });

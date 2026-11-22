@@ -1,6 +1,6 @@
 # Bộ khung hai trợ lý của Lab
 
-Ngày: 2026-11-22. Trạng thái: phần dùng chung đã chạy với mô hình giả; hai cửa nối MCP và gọi hàm còn ở #108 và #109.
+Ngày: 2026-11-22. Trạng thái: hai cửa nối MCP và gọi hàm đã chạy với mô hình giả; lớp có lỗi M2 đã có, số đo thật nằm ở báo cáo Q2.
 
 ## Đọc nhanh
 
@@ -38,9 +38,11 @@ Câu lệnh và danh mục công cụ giữ nguyên ở đầu hội thoại đ�
 - `listTools()` trả danh mục công cụ cho mô hình, gồm tên, mô tả tiếng Việt và JSON Schema của tham số.
 - `callTool({ name, args, turnId })` gọi một công cụ và gắn `turnId` vào header `X-Lab-Turn`.
 
-Trợ lý A viết `src/mcp/door.ts` (#108), trợ lý B viết `src/function-calling/door.ts` (#109).
+Trợ lý A viết `src/mcp/door.ts` (#108), trợ lý B viết `src/function-calling/door.ts` (#109) và `src/function-calling/tools.ts`.
 Mỗi tệp xuất `createDoor(context)` với `context` gồm `baseUrl`, `employeeId` và `toolKey`.
 Lệnh `npm run assistant` tự nạp đúng tệp theo `--door`; thiếu tệp thì lệnh báo issue đang dựng cửa đó.
+Cửa MCP lấy danh mục từ `tools/list` của cổng.
+Cửa gọi hàm chép tay sáu công cụ từ `GET /v1/tools`; `catalog-parity-test.ts` dựng cổng thật và so từng chữ, từng schema, nên hai trợ lý luôn đọc cùng một mô tả công cụ.
 
 ## 4. Mô hình
 
@@ -77,6 +79,7 @@ Lý do dừng nằm ở `stopped_early` của file kết quả, gồm `balance_l
 cd lab
 npm run assistant -- --door mcp --job lookup-minh-phone --runs 1
 npm run assistant -- --door function --job nam-assign-t12 --runs 1 --out ../rd/evaluation/results
+npm run assistant -- --door mcp --job assign-t12-to-minh --runs 20 --fault m2
 ```
 
 | Biến | Mặc định | Việc |
@@ -88,13 +91,16 @@ npm run assistant -- --door function --job nam-assign-t12 --runs 1 --out ../rd/e
 | `LAB_MODEL_NAME` | `deepseek-flash` | Đổi tên mô hình khi cần đối chiếu |
 
 `--allow-peak` cho phép chạy trong giờ cao điểm; thiếu cờ này thì lệnh dừng trước khi đọc số dư.
+`--fault m2` chạy lớp có lỗi của M2; xem mục 6.1.
 
 Lệnh ghi hai file cạnh nhau trong `rd/evaluation/results/`, theo cách đặt tên của #101:
 
 - `<YYYY-MM-DD>-assistant-<door>-<job>-<commit 7>.json`: bản tóm tắt nhỏ, đọc được trên GitHub.
+- `<YYYY-MM-DD>-assistant-<door>-<job>-<plan>-<commit 7>.json`: bản của lớp có lỗi, có thêm tên kế hoạch `m2` trước commit.
 - `<...>.samples.ndjson.gz`: từng lần chạy, nén gzip, có `sha256` trong bản tóm tắt để kiểm lại.
 
 Tên việc đứng ở vị trí biến thể của mẫu tên #101, nên hai việc khác nhau không ghi đè nhau.
+Tên kế hoạch lỗi đứng ngay trước commit, cùng chỗ với `--variant` của `npm run measure`.
 Cùng một việc chạy hai lần trong ngày trên cùng một commit thì lần sau cần `--force`.
 
 Bản tóm tắt ghi số lần chạy, số lần đúng, p50 và lần chậm nhất của phần mô hình và phần cổng, token vào trúng và không trúng bộ nhớ đệm, token ra, tiền, giờ cao điểm, số dư trước và sau, và lý do dừng sớm nếu có.
@@ -106,6 +112,35 @@ Lệnh trả 0 sau khi ghi file khi có ít nhất một lần chạy ra kết q
 Lệnh trả 1 khi dừng sớm vì số dư, hoặc khi mọi lần chạy đều lỗi; file vẫn được giữ để điều tra.
 Một file đã có thì lệnh dừng trước khi chạy; `--force` là cách duy nhất ghi đè.
 
+### 6.1. Lớp có lỗi M2
+
+`--fault m2` lặp lại hai lỗi mà `lab/measure/src/scenarios/m2-scenarios.ts` gây ở lớp tự động, nhưng đặt đúng vào lời gọi công cụ của trợ lý:
+
+| Lượt | Lỗi | Cách gây |
+| --- | --- | --- |
+| 1-10 và 12-15 | Lỗi mạng | Gọi vào một cổng nhận request rồi đóng kết nối, sau đó gửi lại lời gọi thật |
+| 11 | Hết giờ | Gọi vào một cổng im lặng, bỏ cuộc sau 2 giây, rồi gửi lại lời gọi thật |
+| 16 trở đi | Không lỗi | Chạy sạch để so |
+
+Lỗi chỉ gây ở lời gọi `propose_task_change` đầu tiên của mỗi lượt, vì đó là lời gọi sẽ thành lệnh ghi sau khi người dùng bấm Gửi.
+Cổng thật chỉ nhận lời gọi gửi lại, nên mô hình chỉ thấy câu trả lời thật và không thấy một nửa kết quả.
+Lượt không gọi `propose_task_change` được đếm là `point_missed`, giống M2 ở lớp tự động.
+
+Bản tóm tắt của lớp có lỗi mang thêm khối `fault`:
+
+| Khoá | Nghĩa |
+| --- | --- |
+| `network_runs`, `timeout_runs`, `clean_runs` | Số lượt theo từng loại |
+| `point_missed` | Số lượt có kế hoạch gây lỗi nhưng mô hình không gọi `propose_task_change` |
+| `network_errors`, `timeouts`, `retries` | Số lỗi mạng, số lần hết giờ và số lần gửi lại |
+| `duplicate_proposals` | Số đề xuất thừa cho một task đã được soạn trong cùng lượt |
+| `incomplete_proposals` | Số task của việc không được đề xuất nào phủ |
+| `duplicate_writes`, `lost_commands` | Luôn 0: lớp này không bấm Gửi nên không tạo lệnh ghi nào |
+
+Hai bộ đếm cuối là bộ đếm của lớp tự động, không phải của lớp có mô hình.
+Lớp này chỉ soạn đề xuất, nên đề xuất trùng và đề xuất thiếu là hai bộ đếm thay thế có nghĩa.
+Mọi lần chạy vẫn đọc số dư trước và sau, từ chối giờ cao điểm như lớp sạch.
+
 ## 7. Mô hình giả và phép thử
 
 `src/shared/fake-model.ts` và `src/shared/balance.ts` có ba thứ cho phép thử:
@@ -116,6 +151,8 @@ Một file đã có thì lệnh dừng trước khi chạy; `--force` là cách 
 
 `npm test` chạy bốn việc với mô hình giả, kiểm thêm các trường hợp sai: trợ lý bịa số điện thoại, trợ lý nói đã đổi task khi mới soạn đề xuất, và vòng lặp chạm số bước.
 Phép thử cũng kiểm khoá không lọt vào lỗi, cách tính tiền giờ cao điểm, ngưỡng số dư 0,20 USD, việc từ chối giờ cao điểm, mã lỗi ngắn, và file kết quả đọc lại được.
+`faults-test.ts` mở hai cổng lỗi thật trên loopback, kiểm cổng đóng kết nối và cổng im lặng, rồi kiểm lỗi mạng, hết giờ, số lần gửi lại và cách đếm đề xuất trùng hoặc thiếu.
+Phép thử của lệnh chạy cả 20 lượt của kế hoạch M2 với mô hình giả, nên `npm test` không gọi mạng và không cần khoá.
 
 ## 8. Thêm một việc
 
@@ -129,4 +166,4 @@ Chỉ dữ liệu giả lập của Lab đi tới nhà cung cấp mô hình.
 Không có khoá thật, token hay dữ liệu khách hàng trong mã, log, phép thử hay file kết quả.
 Khoá mô hình chỉ nằm trong `LAB_MODEL_API_KEY`, và mọi thông báo lỗi đều được che trước khi in.
 
-**Kết luận:** phần dùng chung đã đủ để trợ lý A và B chỉ viết cửa nối của mình; số dòng của `src/shared/` là mốc M6 trong PR.
+**Kết luận:** phần dùng chung đã đủ để trợ lý A và B chỉ viết cửa nối của mình; lớp có lỗi M2 dùng lại đúng cửa nối đó và chỉ thêm một lớp bọc quanh lời gọi công cụ, nên số dòng của `src/shared/` là mốc M6 trong PR.
