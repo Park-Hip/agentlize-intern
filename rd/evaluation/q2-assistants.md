@@ -84,16 +84,27 @@ Năm lần sai đều ở cửa MCP, đều là `missing_propose`, và mẫu cho
 Không có lần nào cửa trả lỗi (`door_error`), không có lần nào lộ số điện thoại, không có lần nào nói đã đổi task khi cổng mới soạn đề xuất.
 
 Năm lần sai đó không giải thích được bằng dữ liệu mô hình thấy.
-Danh mục của hai cửa giống nhau từng chữ và từng schema ([phép thử canh lệch](../../lab/assistants/src/function-calling/catalog-parity-test.ts)); cả hai gọi cùng một tool trên cùng một cổng, nên văn bản mô hình nhận là cùng một câu.
-Cửa gọi hàm cũng có một lần bỏ bước như vậy ở lớp có lỗi (mục 4), nên dạng lỗi này có ở cả hai cửa.
-Với 20 lần mỗi ô, chênh lệch 5/80 và 0/80 chưa đủ để nói cửa MCP kém tin cậy hơn; cần mẫu lớn hơn mới tách được dao động của mô hình khỏi cửa nối.
+Danh mục của hai cửa giống nhau từng chữ và từng schema ([phép thử canh lệch](../../lab/assistants/src/function-calling/catalog-parity-test.ts)).
+Người review đã kiểm trên một cụm riêng ở commit `2dd0aeb`: danh mục mà mỗi cửa đưa cho mô hình giống nhau từng byte khi tuần tự hóa.
+Sáu công cụ đứng cùng thứ tự `find_employee`, `get_task`, `list_tasks`, `propose_task_change`, `get_request_status`, `propose_employee_change`, với cùng mô tả và cùng schema.
+Comment trên PR #131 cũng ghi rằng văn bản trả lời, mã lý do và cờ lỗi của cổng giống nhau giữa hai cửa ([comment PR #131](https://github.com/Park-Hip/agentlize-intern/pull/131#issuecomment-7076738438)).
+Vì vậy dữ liệu mô hình nhận là như nhau.
+
+Khoảng cách độ đúng không nhỏ: cộng lớp sạch ở trên với lớp có lỗi ở mục 4, cửa MCP sai 8/120 và cửa gọi hàm sai 1/120.
+Kiểm định Fisher chính xác hai phía cho 8/120 so với 1/120 ra p khoảng 0,036; riêng lớp sạch 5/80 so với 0/80 ra p khoảng 0,059.
+Đây là mức biên, không phải chênh lệch không đáng kể, nên báo cáo ghi nguyên trạng thay vì nói hai cửa ngang nhau.
+Với dữ liệu mô hình giống nhau, phần còn lại là dao động lấy mẫu của mô hình.
+Cách xác nhận là chạy mẫu lớn hơn, ví dụ 100 lần mỗi việc mỗi cửa cho hai việc đổi task.
+Đó là việc kiểm tra tiếp theo, báo cáo này không chạy mẫu đó.
 
 Về M1 (thời gian), phần mô hình chiếm 97,9% tới 99,6% tổng thời gian.
 Phần cổng p50 của cửa MCP cao hơn cửa gọi hàm 5,5 ms ở việc tra cứu, 13,2 ms ở việc chuyển T-12, 26,1 ms ở việc chuyển 30 task và 14,6 ms ở việc Nam.
 Tổng p50 chênh lệch từ -4,1% tới +21,4% và đổi dấu giữa các việc, vì thời gian mô hình thay đổi nhiều hơn phần cổng.
 Con số cổng ở đây là tổng các lời gọi trong một hội thoại, không phải một lời gọi; M1 của lớp tự động đo từng lời gọi và đã có p95 dưới 50 ms ([M1 lớp tự động](results/2026-11-20-m1-gateway-f4dbfe7.json)).
 
-**Kết luận:** hai cửa cho cùng kết quả khi mô hình gọi đúng công cụ; lỗi còn lại là mô hình bỏ bước soạn đề xuất, không phải cửa nối trả sai. Phần cổng của MCP chậm hơn nhưng chỉ vài chục mili giây, không phải nguồn chênh lệch thời gian của người dùng.
+**Kết luận:** hai cửa cho cùng kết quả khi mô hình gọi đúng công cụ; lỗi còn lại là mô hình bỏ bước soạn đề xuất, không phải cửa nối trả sai.
+Khoảng cách 8/120 so với 1/120 là mức biên, cần mẫu lớn hơn để xác nhận, và không có lần nào cửa trả sai.
+Phần cổng của MCP chậm hơn nhưng chỉ vài chục mili giây, không phải nguồn chênh lệch thời gian của người dùng.
 
 ## 4. Lớp có lỗi: 80 hội thoại
 
@@ -194,12 +205,13 @@ Số đo trong báo cáo này chạy sau #137, nên hai cửa đọc cùng một
 Bảng kết luận ở [spec, mục 2.2](../design/mvp-spec.md#22-q2-thêm-một-trợ-lý-thứ-hai-thì-mcp-tiết-kiệm-bao-nhiêu-công-so-với-gọi-hàm-và-phải-trả-giá-gì) có hai dòng.
 Báo cáo chọn **dòng thứ nhất**: "MCP ít công hơn rõ, không chậm hơn và không đắt hơn đáng kể", nên "Dùng MCP khi có từ hai nơi gọi trở lên, kể cả khi cùng một nhóm viết".
 
-Các số đỡ cho lựa chọn này:
+Các số đỡ và điểm phải cân nhắc:
 
 - M6: cửa MCP 127 dòng so với 250 dòng của cửa gọi hàm, và không phải chép danh mục; ước tính trợ lý thứ hai theo MCP nhẹ hơn khoảng một nửa.
 - M1: phần cổng của MCP chậm hơn 5 tới 26 ms mỗi hội thoại, khoảng 0,3% tới 0,5% tổng thời gian; tổng thời gian do mô hình chi phối và chênh lệch không theo một chiều.
 - M3: tiền gần bằng nhau; chênh lệch đến từ độ dài câu trả lời và số lần sai, không từ giao thức.
 - M2: 0 ghi trùng, 0 lệnh mất, 0 đề xuất trùng, 0 đề xuất thiếu khi mô hình soạn đủ; lỗi mạng và hết giờ không tạo thêm đề xuất.
+- Độ đúng: MCP sai 8/120, gọi hàm sai 1/120, p khoảng 0,036; dữ liệu mô hình nhận giống nhau, nên phần còn lại là dao động lấy mẫu và cần mẫu lớn hơn để xác nhận.
 
 Điều này chỉ đúng khi có từ hai nơi gọi.
 Nếu chỉ có một trợ lý và không có kế hoạch thêm trợ lý thứ hai, cửa gọi hàm có ít thành phần giao thức hơn: một request HTTP, không bắt tay, không phiên MCP; khi đó MCP là sai lựa chọn vì thêm một giao thức mà không có nơi gọi thứ hai để chia sẻ.
@@ -211,6 +223,7 @@ Quyền theo vai, bước duyệt, danh tính người hỏi và vết xuyên su
 Trong Thổ Thần, MCP còn không cho cổng biết chắc ai đang hỏi và cắt mọi lời gọi sau 60 giây ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)).
 
 **Kết luận:** chọn dòng thứ nhất cho trường hợp có từ hai nơi gọi; giữ toàn bộ phần an toàn ở cổng, vì MCP chỉ là đường vận chuyển lời gọi.
+Khoảng cách độ đúng 8/120 so với 1/120 là mức biên, cần mẫu lớn hơn để xác nhận, không đủ để đổi dòng.
 
 ## 9. Giới hạn
 
