@@ -206,6 +206,14 @@ test('approval: a lead sees every item and reason, approves once, and the comman
     assert.match(html, /Hạn duyệt lúc \d{2}:\d{2}/);
     assert.match(html, /action="\/duyet\/dx-[0-9a-f]{16}\/duyet"/);
     assert.match(html, /action="\/duyet\/dx-[0-9a-f]{16}\/tu-choi"/);
+    const approveForm = /<form class="panel" method="post" action="\/duyet\/[^"]+\/duyet">([\s\S]*?)<\/form>/.exec(html)?.[1] ?? '';
+    const rejectForm = /<form class="panel" method="post" action="\/duyet\/[^"]+\/tu-choi">([\s\S]*?)<\/form>/.exec(html)?.[1] ?? '';
+    assert.match(approveForm, /<label for="note">Ghi chú khi duyệt/, 'the note field sits in the Duyệt form');
+    assert.match(approveForm, /<textarea id="note" name="reason" maxlength="500"><\/textarea>/);
+    assert.match(approveForm, /<button type="submit">Duyệt<\/button>/);
+    assert.match(rejectForm, /<label for="reason">Lý do từ chối/, 'the reason field sits in the Từ chối form');
+    assert.match(rejectForm, /<textarea id="reason" name="reason" maxlength="500"><\/textarea>/);
+    assert.match(rejectForm, /<button type="submit" class="danger">Từ chối<\/button>/);
     assert.match(html, /maxlength="500"/);
     assert.match(html, /data-label="Mục">T-100</);
 
@@ -234,6 +242,7 @@ test('approval: a lead sees every item and reason, approves once, and the comman
     assert.equal(decided?.approval?.decision, 'approve');
     assert.equal(decided?.approval?.actor, QUANG);
     assert.equal(decided?.approval?.fingerprint, decided?.fingerprint);
+    assert.equal(decided?.approval?.reason, null, 'a press without a note keeps no sentence');
 
     // The commands were made in the approval transaction, not by the executor.
     const commands = f.gateway.commands.listByProposal(id);
@@ -254,6 +263,39 @@ test('approval: a lead sees every item and reason, approves once, and the comman
     assert.doesNotMatch(afterHtml, /Hạn duyệt lúc/, 'a settled proposal has no deadline line left');
     assert.doesNotMatch(afterHtml, /Lần gửi lại kế tiếp/, 'no retry column while no item waits for a resend');
     assert.doesNotMatch(afterHtml, /<button/);
+  });
+});
+
+test('approval: a note typed with Duyệt is kept and shown to the requester', async () => {
+  await withGateway(async (f) => {
+    const { id } = await waitingProposal(f, HOA);
+    const quang = await signInForApproval(f, QUANG, id);
+
+    const tooLong = await pressApproval(f, id, 'duyet', quang, { reason: 'x'.repeat(501) });
+    assert.equal(tooLong.status, 400);
+    assert.match(await tooLong.text(), /Ghi chú khi duyệt dài quá 500 ký tự/);
+    assert.equal(f.gateway.proposals.get(id)?.status, 'awaiting_approval', 'a refused note changes nothing');
+    assert.equal(f.gateway.commands.listByProposal(id).length, 0);
+    assert.equal(f.systems.writeCount('T-100'), 0);
+
+    const note = 'Ok luôn em, nhớ báo lại chị Lan.';
+    const approved = await pressApproval(f, id, 'duyet', quang, { reason: note });
+    assert.equal(approved.status, 303);
+    const decided = f.gateway.proposals.get(id);
+    assert.equal(decided?.status, 'confirmed');
+    assert.equal(decided?.approval?.decision, 'approve');
+    assert.equal(decided?.approval?.reason, note, 'the note is stored with the approval');
+
+    const leadPage = await fetch(`${f.gateway.url}/duyet/${id}`, { headers: { cookie: quang.cookie } });
+    const leadHtml = await leadPage.text();
+    assert.match(leadHtml, /Trần Văn Quang đã duyệt\./);
+    assert.ok(leadHtml.includes(note), 'the approver sees the note again on the approval page');
+
+    const hoa = await login(f, HOA, `/xac-nhan/${id}`);
+    const card = await fetch(`${f.gateway.url}/xac-nhan/${id}`, { headers: { cookie: hoa.cookie } });
+    const cardHtml = await card.text();
+    assert.match(cardHtml, /Trần Văn Quang đã duyệt\./);
+    assert.ok(cardHtml.includes(note), 'the requester sees the note on the request page');
   });
 });
 

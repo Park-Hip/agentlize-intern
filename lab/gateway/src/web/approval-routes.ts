@@ -393,8 +393,9 @@ async function handleApprovalPress(
   }
 
   const reasonText = (form.get('reason') ?? '').trim();
-  if (action === 'reject' && reasonText.length > MAX_APPROVAL_REASON) {
-    return refused(400, null, 'WEB.REASON_TOO_LONG', `Lý do từ chối dài quá ${MAX_APPROVAL_REASON} ký tự nên chưa lưu gì. Hãy rút ngắn rồi bấm lại.`);
+  if (reasonText.length > MAX_APPROVAL_REASON) {
+    const what = action === 'approve' ? 'Ghi chú khi duyệt' : 'Lý do từ chối';
+    return refused(400, null, 'WEB.REASON_TOO_LONG', `${what} dài quá ${MAX_APPROVAL_REASON} ký tự nên chưa lưu gì. Hãy rút ngắn rồi bấm lại.`);
   }
 
   // The rule file, the directory and the target records are read again; `allowed`
@@ -466,10 +467,11 @@ async function handleApprovalPress(
     if (action === 'approve') deps.commands.createForProposal(decided);
   };
 
+  const note = reasonText === '' ? null : reasonText;
   const result =
     action === 'approve'
-      ? deps.proposals.approve(proposal.proposalId, viewer.id, allowed, record)
-      : deps.proposals.reject(proposal.proposalId, viewer.id, reasonText === '' ? null : reasonText, allowed, record);
+      ? deps.proposals.approve(proposal.proposalId, viewer.id, note, allowed, record)
+      : deps.proposals.reject(proposal.proposalId, viewer.id, note, allowed, record);
 
   if (!result.ok) {
     const known = REFUSAL[result.reason];
