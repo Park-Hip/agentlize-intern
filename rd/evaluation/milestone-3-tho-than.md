@@ -1,6 +1,6 @@
 # Nghiệm thu mốc 3 trong Thổ Thần
 
-Ngày: 2026-11-22. Trạng thái: hai phiên đã chạy và đạt trong Thổ Thần desktop; còn thiếu số credit sau kịch bản A và D.
+Ngày: 2026-11-22. Trạng thái: hai phiên đã chạy và đạt trong Thổ Thần desktop; mốc 3 đã đủ bằng chứng.
 
 ## Đọc nhanh
 
@@ -9,7 +9,7 @@ Ngày: 2026-11-22. Trạng thái: hai phiên đã chạy và đạt trong Thổ 
 - AI đếm sai số task theo trạng thái hai lần, nhưng cổng tự đọc lại dữ liệu, nên trang duyệt vẫn đúng 30 task.
 - Phần máy: 442 phép thử tự động đều qua, gồm ba lần tắt cổng và một lần danh sách task tắt 20 giây; cổng tiếp tục tự giữ hàng đợi lệnh ghi.
 - Phiên thứ hai chạy lại ba kịch bản cũ, và cả ba vẫn đạt: Nam bị từ chối, chị Hoa tự chuyển được T-12, và số điện thoại anh Minh không lộ.
-- Tiếp theo: ghi số credit còn thiếu, rồi đóng #84.
+- Tiếp theo: đóng #84, rồi sửa trang duyệt để người duyệt có chỗ ghi chú khi đồng ý.
 
 ## 1. Mốc 3 cần chứng minh gì
 
@@ -596,17 +596,20 @@ Không điền khoá, mật khẩu trang, địa chỉ đường hầm còn số
 | B: credit trước và sau | Trước: nạp thêm 490, ô đăng ký "10 / 500". Sau: nạp thêm 487, ô đăng ký "13 / 500". Phần nạp thêm giảm 3 | Trang tài khoản Thổ Thần |
 | B: lý do và mã luật trong vết | `propose_task_change` T-12 `refused`, `NOT_PERMITTED`, `task.change_task_assignee_or_due.intern` lúc 08:35:42Z | Bảng vết |
 | B: ảnh câu trả lời của Nam, không có link | Có; không link, chỉ tới anh Quang, không nói đã chuyển | `milestone-3-refused-nam.png` |
-| A: credit trước và sau | Trước: bằng số sau B. Sau: Chưa ghi: chờ số credit hiện tại | Trang tài khoản Thổ Thần |
+| A: credit trước và sau | Trước: bằng số sau B. Sau: không đọc riêng; xem dòng D cho tổng của A và D | Trang tài khoản Thổ Thần |
 | A: mã đề xuất `dx-...` và mã luật của lần soạn | `dx-da7e55db7cdaa5c0`, `task.change_task_assignee_or_due.staff`; câu trả lời không nói cần duyệt | Bảng vết |
 | A: ảnh câu trả lời có link | Có; địa chỉ đường hầm trong ảnh đã chết từ 15:38 | `milestone-3-proposal-t12.png` |
 | A: ảnh trang xác nhận sau khi ghi | Có; băng "Đã ghi thay đổi vào T-12 ở lần gửi thứ 1." | `milestone-3-confirm-t12.png` |
 | A: T-12 sau khi ghi (người phụ trách, hạn, phiên bản) và số lần ghi | `NV-04`, hạn 2026-11-27, phiên bản 2, `so lan ghi that: 1`; trợ lý hiểu "thứ Sáu" là thứ Sáu tuần này, 27/11, và tự nói hạn mới sớm hơn hạn cũ 2/12 | `tasks.sqlite` |
 | A: số dòng vết theo `--proposal` | 3: soạn và gửi cùng mang `task.change_task_assignee_or_due.staff`, lệnh ghi `WRITE.SEND` với `tries` bằng 1; Gửi lúc 08:37:20.938Z, ghi xong 11 mili giây sau | `scratch/milestone-3/trace-a.txt` |
-| D: credit trước và sau | Trước: bằng số sau A. Sau: Chưa ghi: chờ số credit hiện tại | Trang tài khoản Thổ Thần |
+| D: credit trước và sau | Sau cả A và D: nạp thêm 481, ô đăng ký "19 / 500". Từ sau B tới đây phần nạp thêm giảm 6, là tổng của A và D | Trang tài khoản Thổ Thần |
 | D: trợ lý giữ nguyên hay viết lại câu nêu trường bị ẩn | Viết lại: "số điện thoại cá nhân không hiển thị với quyền của bạn, cùng với địa chỉ nhà" | - |
 | D: ảnh câu trả lời, chỉ có email công việc | Có; chỉ `minh.vu@lab.example`, không chữ số nào của số điện thoại | `milestone-3-phone-minh.png` |
 | D: mã luật trong vết | `find_employee` `ok`, `employee.fields.staff` lúc 08:37:47Z | Bảng vết |
-| Kiểm tra sau khi tắt, xoay khoá, skill đã xoá | `curl.exe` thoát mã 7, 0 tiến trình `cloudflared`; `seed-keys --rotate` lúc 08:38:44Z và hai khoá của phiên có giờ thu hồi; skill: chờ người thực tập xác nhận đã xoá | - |
+| Kiểm tra sau khi tắt, xoay khoá, skill đã xoá | `curl.exe` thoát mã 7, 0 tiến trình `cloudflared`; `seed-keys --rotate` lúc 08:38:44Z và hai khoá của phiên có giờ thu hồi; người thực tập đã xoá skill | - |
+
+Credit cả hai phiên: phần nạp thêm giảm 2 ở kịch bản C (có thể chưa tính câu hỏi đầu), 3 ở B, và 6 cho A cộng D.
+Ở cả bốn lần đọc, số bên trái của ô đăng ký tăng đúng bằng số nạp thêm giảm, nên tổng hai số luôn là 500.
 
 Phiên 2 cho thấy hai điều nhỏ:
 
@@ -697,9 +700,9 @@ Phiên 2, kịch bản A, B, D:
 
 Cả hai phiên:
 
-- [ ] Credit trước và sau từng kịch bản đã ghi; không lúc nào còn dưới 100 credit.
+- [x] Credit trước và sau từng kịch bản đã ghi, riêng A và D chỉ có tổng vì không đọc credit giữa hai kịch bản; không lúc nào còn dưới 100 credit.
 - [x] Mười ảnh đã che khoá và email thật, nằm cạnh tài liệu.
-- [ ] Sau mỗi phiên, đường hầm đã tắt, ba dịch vụ đã tắt, skill đã xoá và khoá đã xoay.
+- [x] Sau mỗi phiên, đường hầm đã tắt, ba dịch vụ đã tắt, skill đã xoá và khoá đã xoay.
 - [x] Mục 14 ghi rõ H12 (#73) không được kiểm lại.
 
 Nếu một dòng không đánh dấu được, #84 vẫn mở và ghi lý do vào phần cuối tài liệu này.
@@ -730,10 +733,9 @@ Sau khi đủ, cập nhật dòng mốc 3 ở [tổng hợp, mục 8](../finding
 
 | Việc | Vì sao | Cách kiểm |
 | --- | --- | --- |
-| Ghi số credit sau kịch bản A và D, và xác nhận skill đã xoá | Hai ô còn thiếu ở mục 14.2 | Mục 15 tick đủ |
 | Thêm ô ghi chú khi duyệt, hoặc ghi rõ ô lý do chỉ dùng khi từ chối | Người duyệt gõ lời đồng ý vào ô lý do từ chối (mục 14.3) | Phép thử trang duyệt; người duyệt không còn gõ nhầm ô |
-| Đóng [#84](https://github.com/Park-Hip/agentlize-intern/issues/84) sau khi mục 14 đủ | Issue chỉ đóng khi có bằng chứng phiên thật | Tick mọi dòng ở mục 15 |
+| Đóng [#84](https://github.com/Park-Hip/agentlize-intern/issues/84) | Mục 14 đã đủ và mục 15 đã tick mọi dòng | PR ghi `Closes #84` được merge |
 | Chạy lại H12 (#73) trước lần nghiệm thu sau | Bản Thổ Thần 2026-11-18 có thể đổi hành vi MCP | Cắm probe qua đường hầm, gọi `whoami` và `fake_write` |
 | Đo M5 đầy đủ khi thêm hệ thống thứ ba | M5 không chỉ là dòng mã của một tệp | Đếm tiến trình, file cấu hình, bước cài và chỗ sửa luật |
 
-**Kết luận:** bốn kịch bản đã đạt trong Thổ Thần desktop trên bản hiện tại; mốc 3 chỉ còn hai ô ghi chép ở mục 14.2.
+**Kết luận:** bốn kịch bản đã đạt trong Thổ Thần desktop trên bản hiện tại, nên mốc 3 đóng; việc còn lại là sửa giao diện trang duyệt và kiểm lại H12.
