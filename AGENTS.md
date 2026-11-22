@@ -141,6 +141,21 @@ npm run measure -- m1-gateway --runs 100
 npm run measure -- q1-outbox --target gateway --runs 2
 ```
 
+### Assistant cho Q2
+
+`npm run assistant -- --door <mcp|function> --job <việc> --runs N` chạy một việc của Q2 qua một cửa nối và ghi kết quả vào `rd/evaluation/results/`.
+`--door` chọn `mcp` (#108) hoặc `function` (#109); phần dùng chung nằm ở `lab/assistants/src/shared/`.
+`--job` chọn một trong bốn việc, `--runs` mặc định 1, `--max-steps` mặc định 8.
+Lệnh đọc số dư USD của DeepSeek trước khi chạy và sau mỗi 10 lượt; dừng khi dưới 0,20 USD.
+Trong giờ cao điểm 08:00-11:00 và 13:00-17:00 giờ Việt Nam, thứ Hai tới thứ Sáu, lệnh từ chối chạy nếu thiếu `--allow-peak`.
+Kết quả ghi số dư trước và sau, giờ cao điểm, và lý do dừng sớm nếu có.
+Khoá mô hình chỉ đọc từ `LAB_MODEL_API_KEY`, không in ra log; `npm test` dùng mô hình giả nên không cần khoá và không gọi mạng.
+`lab/assistants/README.md` mô tả biến môi trường, bốn việc, định dạng kết quả và cách thêm một việc.
+
+```
+npm run assistant -- --door mcp --job lookup-minh-phone --runs 1
+```
+
 ### Tunnel for one acceptance session
 
 `npm run tunnel` (in `lab/`) exposes only the gateway's `/mcp` through a Cloudflare quick tunnel for at most 45 minutes.
