@@ -207,7 +207,11 @@ function confirmedBanner(
   const done = commands.filter((command) => command?.status === 'done').length;
   const unknown = commands.filter((command) => command?.status === 'sent_unknown').length;
   const waiting = commands.filter((command) => command === undefined || command.status === 'not_sent').length;
-  const approved = approval?.decision === 'approve' ? `${approval.actorLabel} đã duyệt. ` : '';
+  const note =
+    approval?.decision === 'approve' && approval.reason !== null && approval.reason !== ''
+      ? `Ghi chú khi duyệt: ${approval.reason}. `
+      : '';
+  const approved = approval?.decision === 'approve' ? `${approval.actorLabel} đã duyệt. ${note}` : '';
 
   if (waiting === total) {
     return { text: `${approved}Đã xác nhận đề xuất. Cổng chưa gửi lệnh ghi.`, tone: 'info' };
@@ -441,7 +445,7 @@ export interface ApprovalPageView {
   readonly csrfToken: string;
 }
 
-/** The lead's page for one proposal: every item, who asked, why, the deadline and the two buttons. */
+/** The lead's page for one proposal: every item, who asked, why, the deadline, and a form per button with its own sentence. */
 export function approvalPage(view: ApprovalPageView): string {
   const count = view.items.length;
   const title = count === 1 ? `Duyệt thay đổi ${view.items[0]?.recordId ?? ''}` : `Duyệt thay đổi ${count} mục`;
@@ -450,21 +454,25 @@ export function approvalPage(view: ApprovalPageView): string {
     if (view.self) {
       state = banner('Bạn là người yêu cầu nên không tự duyệt được. Hãy nhờ một trưởng nhóm khác cùng phòng.', 'bad');
     } else {
-      state = `<div class="panel">
-<div class="actions">
-<form method="post" action="/duyet/${esc(view.proposalId)}/duyet">
+      state = `<form class="panel" method="post" action="/duyet/${esc(view.proposalId)}/duyet">
 <input type="hidden" name="csrf" value="${esc(view.csrfToken)}">
+<h2>Duyệt đề xuất</h2>
+<label for="note">Ghi chú khi duyệt (tuỳ chọn, tối đa 500 ký tự)</label>
+<textarea id="note" name="reason" maxlength="500"></textarea>
+<div class="actions">
 <button type="submit">Duyệt</button>
+</div>
+<p class="meta">Duyệt xong thì cổng tạo lệnh ghi trong cùng giao dịch và gửi chúng ở chế độ nền. Ghi chú của bạn hiện cho người yêu cầu.</p>
 </form>
-</div>
-<p class="meta">Duyệt xong thì cổng tạo lệnh ghi trong cùng giao dịch và gửi chúng ở chế độ nền. Từ chối thì không có gì được ghi và lý do của bạn hiện cho người yêu cầu.</p>
-</div>
 <form class="panel" method="post" action="/duyet/${esc(view.proposalId)}/tu-choi">
 <input type="hidden" name="csrf" value="${esc(view.csrfToken)}">
 <h2>Từ chối đề xuất</h2>
 <label for="reason">Lý do từ chối (tuỳ chọn, tối đa 500 ký tự)</label>
 <textarea id="reason" name="reason" maxlength="500"></textarea>
+<div class="actions">
 <button type="submit" class="danger">Từ chối</button>
+</div>
+<p class="meta">Từ chối thì không có gì được ghi và lý do của bạn hiện cho người yêu cầu.</p>
 </form>`;
     }
   } else if (view.status === 'confirmed') {

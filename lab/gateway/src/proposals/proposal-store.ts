@@ -7,7 +7,7 @@ import { compareRecordIds, fingerprintOf, type Changes } from './fingerprint.js'
 /** A proposal lives this long before its requester has pressed Gửi. After it the page and the status tool say it has expired. */
 export const PROPOSAL_TTL_MS = 30 * 60 * 1000;
 
-/** A rejected proposal keeps at most this much of the lead's sentence (ADR-0008 section 3.2). */
+/** A lead's note on a decision keeps at most this much of their sentence (ADR-0008 section 3.2). */
 export const MAX_APPROVAL_REASON = 500;
 
 export const PROPOSAL_STATUSES = [
@@ -47,7 +47,7 @@ export interface Approval {
   readonly actor: string;
   readonly decision: 'approve' | 'reject';
   readonly fingerprint: string;
-  /** The lead's sentence, kept for a rejection; null when there was none. */
+  /** The lead's sentence: a note on an approval, the reason for a rejection; null when there was none. */
   readonly reason: string | null;
   readonly at: string;
 }
@@ -506,15 +506,22 @@ export class ProposalStore {
   }
 
   /**
-   * A lead approves a proposal that waits for approval. The checks the approval
-   * decided on are done again here, in one transaction: the person may not be
-   * the requester, the proposal still waits, its deadline has not passed, its
-   * print still matches, and `allowed` says the rule file and directory still
-   * permit this lead and this request. On success the proposal becomes
-   * `confirmed`; the caller creates the write commands in `record`, inside the
-   * same transaction.
+   * A lead approves a proposal that waits for approval, with an optional
+   * sentence of at most 500 characters. The checks the approval decided on are
+   * done again here, in one transaction: the person may not be the requester,
+   * the proposal still waits, its deadline has not passed, its print still
+   * matches, and `allowed` says the rule file and directory still permit this
+   * lead and this request. On success the proposal becomes `confirmed`; the
+   * caller creates the write commands in `record`, inside the same transaction.
    */
-  approve(proposalId: string, actor: string, allowed: () => boolean, record: (proposal: Proposal) => void): DecideResult {
+  approve(
+    proposalId: string,
+    actor: string,
+    reason: string | null,
+    allowed: () => boolean,
+    record: (proposal: Proposal) => void,
+  ): DecideResult {
+    const text = reason === null ? null : reason.trim().slice(0, MAX_APPROVAL_REASON);
     return this.db
       .transaction((): DecideResult => {
         const row = this.db.prepare('SELECT * FROM proposals WHERE proposal_id = ?').get(proposalId) as Row | undefined;
@@ -530,8 +537,20 @@ export class ProposalStore {
           .prepare("UPDATE proposals SET status = 'confirmed' WHERE proposal_id = ? AND status = 'awaiting_approval'")
           .run(proposalId);
         if (changed.changes !== 1) return { ok: false, reason: 'APPROVAL_USED', proposal };
-        this.recordApproval(proposalId, actor, 'approve', proposal.fingerprint, null, this.now());
-        const decided = { ...proposal, status: 'confirmed' as const };
+        const now = this.now();
+        this.recordApproval(proposalId, actor, 'approve', proposal.fingerprint, text, now);
+        const decided = {
+          ...proposal,
+          status: 'confirmed' as const,
+          approval: {
+            proposalId,
+            actor,
+            decision: 'approve' as const,
+            fingerprint: proposal.fingerprint,
+            reason: text,
+            at: now.toISOString(),
+          },
+        };
         record(decided);
         return { ok: true, proposal: decided };
       })
