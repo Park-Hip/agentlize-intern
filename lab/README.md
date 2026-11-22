@@ -45,7 +45,7 @@ Mở `http://127.0.0.1:8793` để xem trang điều khiển; sân chơi ở đ�
 | `tests` | Phép thử nhiều dịch vụ: phép thử khói, nghiệm thu đọc và ghi, client giả Thổ Thần | `tests/src/` |
 | `measure` | Lệnh đo chạy lại được: dựng cụm riêng, ghi mẫu thô và tóm tắt vào `rd/evaluation/results/` | [measure/README.md](measure/README.md) |
 | `assistants` | Hai trợ lý của Q2: bộ việc, câu lệnh hệ thống, vòng hội thoại, mô hình giả và lệnh chạy | [assistants/README.md](assistants/README.md) |
-| `scripts` | Lệnh `start` và `tunnel` | `scripts/` |
+| `scripts` | Lệnh `start`, `tunnel` và `sr` | `scripts/` |
 
 Thư viện nằm ở `package.json` gốc, để mọi gói dùng chung một lần cài và một phiên bản.
 
@@ -61,7 +61,15 @@ Thư viện nằm ở `package.json` gốc, để mọi gói dùng chung một l
 | `npm run seed-keys [-- --rotate]` | Cấp khoá và mật khẩu trang cho sáu nhân vật và khách; `--rotate` thu hồi bộ cũ trước |
 | `npm run keys -- <lệnh con>` | Quản lý khoá từng người, xem [khoá và mật khẩu trang](gateway/README.md#khoá-và-mật-khẩu-trang) |
 | `npm run trace -- --task T-12` | Đọc bảng vết, xem [bảng vết](gateway/README.md#bảng-vết) |
+| `npm run sr` | Dựng mã, chạy toàn bộ phép thử và in bảng tám yêu cầu SR1-SR8 |
 | `npm run tunnel` | Mở cổng ra Internet cho một phiên nghiệm thu, xem mục dưới |
+
+## Báo cáo tám yêu cầu
+
+`npm run sr` dựng mã, chạy toàn bộ phép thử rồi in một bảng cho tám yêu cầu SR1-SR8.
+Mỗi dòng ghi số phép thử, số đạt và số hỏng của yêu cầu đó.
+Danh sách mẫu tên phép thử nằm trong [scripts/sr-map.json](scripts/sr-map.json), và `npm test` kiểm rằng mọi mẫu khớp ít nhất một tên phép thử trong mã nguồn.
+Lệnh trả mã lỗi khi một yêu cầu không có phép thử nào, khi một phép thử hỏng, hoặc khi cả bộ phép thử có lỗi.
 
 ## Biến môi trường
 
