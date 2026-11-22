@@ -1,6 +1,6 @@
 # Nghiệm thu mốc 3 trong Thổ Thần
 
-Ngày: 2026-11-22. Trạng thái: phiên 1 (kịch bản C) đã chạy và đạt trong Thổ Thần desktop; phiên 2 (A, B, D) chưa chạy.
+Ngày: 2026-11-22. Trạng thái: hai phiên đã chạy và đạt trong Thổ Thần desktop; còn thiếu số credit sau kịch bản A và D.
 
 ## Đọc nhanh
 
@@ -8,7 +8,8 @@ Ngày: 2026-11-22. Trạng thái: phiên 1 (kịch bản C) đã chạy và đ�
 - Kết quả ngày 2026-11-22: chị Hoa nhờ AI trong Thổ Thần desktop chuyển 30 task; việc dừng chờ anh Quang duyệt, rồi cổng ghi đủ 30 task, mỗi task một lần.
 - AI đếm sai số task theo trạng thái hai lần, nhưng cổng tự đọc lại dữ liệu, nên trang duyệt vẫn đúng 30 task.
 - Phần máy: 442 phép thử tự động đều qua, gồm ba lần tắt cổng và một lần danh sách task tắt 20 giây; cổng tiếp tục tự giữ hàng đợi lệnh ghi.
-- Tiếp theo: phiên thứ hai chạy lại ba kịch bản cũ (chị Hoa chuyển T-12, Nam bị từ chối, tra số điện thoại anh Minh), điền mục 14.2, rồi đóng #84.
+- Phiên thứ hai chạy lại ba kịch bản cũ, và cả ba vẫn đạt: Nam bị từ chối, chị Hoa tự chuyển được T-12, và số điện thoại anh Minh không lộ.
+- Tiếp theo: ghi số credit còn thiếu, rồi đóng #84.
 
 ## 1. Mốc 3 cần chứng minh gì
 
@@ -565,7 +566,7 @@ Không điền khoá, mật khẩu trang, địa chỉ đường hầm còn số
 | Bằng chứng | Giá trị | Nơi lưu |
 | --- | --- | --- |
 | Giờ mở phiên | 2026-11-22 14:57 giờ Việt Nam; lời gọi kiểm 401 lúc 07:57:36Z | `gateway.sqlite`, bảng `trace` |
-| Bản Thổ Thần desktop đã dùng | Không ghi trong phiên 1; ghi ở phiên 2 | - |
+| Bản Thổ Thần desktop đã dùng | Không tìm thấy số bản dựng trong ứng dụng; câu trả lời ghi mô hình `deepseek/deepseek-v4.1-flash` | Ảnh ở mục 14.2 |
 | Credit trước phiên | Nạp thêm 492; ô đăng ký "8 / 500". Số này chụp lúc gửi ảnh câu trả lời đầu, nên có thể đã trừ câu hỏi đầu | Trang tài khoản Thổ Thần |
 | Tên skill đã thêm (không chép địa chỉ đường hầm) | `lab-gateway` | - |
 | Ảnh câu trả lời của AI, đã che email thật | Có; khung trả lời không có email, và địa chỉ đường hầm trong ảnh đã chết từ 15:16 | `milestone-3-ai-answer.png`, `milestone-3-ai-hoi-lai.png` |
@@ -590,25 +591,38 @@ Không điền khoá, mật khẩu trang, địa chỉ đường hầm còn số
 
 | Bằng chứng | Giá trị | Nơi lưu |
 | --- | --- | --- |
-| Giờ mở và giờ tắt phiên, số phút đã chạy | Chưa chạy: điền sau phiên | - |
-| Bản Thổ Thần desktop đã dùng, nếu khác phiên 1 | Chưa chạy: điền sau phiên | - |
-| B: credit trước và sau | Chưa chạy: điền sau phiên | Trang tài khoản Thổ Thần |
-| B: lý do và mã luật trong vết | Chưa chạy: điền sau phiên | Bảng vết |
-| B: ảnh câu trả lời của Nam, không có link | Chưa chạy: điền sau phiên | `milestone-3-refused-nam.png` |
-| A: credit trước và sau | Chưa chạy: điền sau phiên | Trang tài khoản Thổ Thần |
-| A: mã đề xuất `dx-...` và mã luật của lần soạn | Chưa chạy: điền sau phiên | Bảng vết |
-| A: ảnh câu trả lời có link | Chưa chạy: điền sau phiên | `milestone-3-proposal-t12.png` |
-| A: ảnh trang xác nhận sau khi ghi | Chưa chạy: điền sau phiên | `milestone-3-confirm-t12.png` |
-| A: T-12 sau khi ghi (người phụ trách, hạn, phiên bản) và số lần ghi | Chưa chạy: điền sau phiên | `tasks.sqlite` |
-| A: số dòng vết theo `--proposal` | Chưa chạy: điền sau phiên | `scratch/milestone-3/trace-a.txt` |
-| D: credit trước và sau | Chưa chạy: điền sau phiên | Trang tài khoản Thổ Thần |
-| D: trợ lý giữ nguyên hay viết lại câu nêu trường bị ẩn | Chưa chạy: điền sau phiên | - |
-| D: ảnh câu trả lời, chỉ có email công việc | Chưa chạy: điền sau phiên | `milestone-3-phone-minh.png` |
-| D: mã luật trong vết | Chưa chạy: điền sau phiên | Bảng vết |
-| Kiểm tra sau khi tắt, xoay khoá, skill đã xoá | Chưa chạy: điền sau phiên | - |
+| Giờ mở và giờ tắt phiên, số phút đã chạy | Mở 15:30 (lời gọi kiểm 401 lúc 08:30:54Z), tắt 15:38:30, khoảng 8 phút | `gateway.sqlite`, bảng `trace` |
+| Bản Thổ Thần desktop đã dùng, nếu khác phiên 1 | Như phiên 1: không tìm thấy số bản dựng; mô hình `deepseek/deepseek-v4.1-flash` | Ảnh ở mục này |
+| B: credit trước và sau | Trước: nạp thêm 490, ô đăng ký "10 / 500". Sau: nạp thêm 487, ô đăng ký "13 / 500". Phần nạp thêm giảm 3 | Trang tài khoản Thổ Thần |
+| B: lý do và mã luật trong vết | `propose_task_change` T-12 `refused`, `NOT_PERMITTED`, `task.change_task_assignee_or_due.intern` lúc 08:35:42Z | Bảng vết |
+| B: ảnh câu trả lời của Nam, không có link | Có; không link, chỉ tới anh Quang, không nói đã chuyển | `milestone-3-refused-nam.png` |
+| A: credit trước và sau | Trước: bằng số sau B. Sau: Chưa ghi: chờ số credit hiện tại | Trang tài khoản Thổ Thần |
+| A: mã đề xuất `dx-...` và mã luật của lần soạn | `dx-da7e55db7cdaa5c0`, `task.change_task_assignee_or_due.staff`; câu trả lời không nói cần duyệt | Bảng vết |
+| A: ảnh câu trả lời có link | Có; địa chỉ đường hầm trong ảnh đã chết từ 15:38 | `milestone-3-proposal-t12.png` |
+| A: ảnh trang xác nhận sau khi ghi | Có; băng "Đã ghi thay đổi vào T-12 ở lần gửi thứ 1." | `milestone-3-confirm-t12.png` |
+| A: T-12 sau khi ghi (người phụ trách, hạn, phiên bản) và số lần ghi | `NV-04`, hạn 2026-11-27, phiên bản 2, `so lan ghi that: 1`; trợ lý hiểu "thứ Sáu" là thứ Sáu tuần này, 27/11, và tự nói hạn mới sớm hơn hạn cũ 2/12 | `tasks.sqlite` |
+| A: số dòng vết theo `--proposal` | 3: soạn và gửi cùng mang `task.change_task_assignee_or_due.staff`, lệnh ghi `WRITE.SEND` với `tries` bằng 1; Gửi lúc 08:37:20.938Z, ghi xong 11 mili giây sau | `scratch/milestone-3/trace-a.txt` |
+| D: credit trước và sau | Trước: bằng số sau A. Sau: Chưa ghi: chờ số credit hiện tại | Trang tài khoản Thổ Thần |
+| D: trợ lý giữ nguyên hay viết lại câu nêu trường bị ẩn | Viết lại: "số điện thoại cá nhân không hiển thị với quyền của bạn, cùng với địa chỉ nhà" | - |
+| D: ảnh câu trả lời, chỉ có email công việc | Có; chỉ `minh.vu@lab.example`, không chữ số nào của số điện thoại | `milestone-3-phone-minh.png` |
+| D: mã luật trong vết | `find_employee` `ok`, `employee.fields.staff` lúc 08:37:47Z | Bảng vết |
+| Kiểm tra sau khi tắt, xoay khoá, skill đã xoá | `curl.exe` thoát mã 7, 0 tiến trình `cloudflared`; `seed-keys --rotate` lúc 08:38:44Z và hai khoá của phiên có giờ thu hồi; skill: chờ người thực tập xác nhận đã xoá | - |
+
+Phiên 2 cho thấy hai điều nhỏ:
+
+- Ở kịch bản B, trợ lý tự gọi `get_task` và `find_employee` trước khi soạn, nên Nam vẫn thấy thông tin T-12 mà vai thực tập được đọc; chỉ việc đổi bị chặn.
+  Trợ lý còn đề nghị soạn đề xuất cho trường khác, đúng với bộ luật nhưng là gợi ý mà kịch bản không đòi.
+- Ở kịch bản A, chị Hoa bấm Gửi và lệnh ghi xong 11 mili giây sau, nên băng "Cổng chưa gửi lệnh ghi" không kịp hiện.
+
+![Kịch bản B: Nam bị từ chối, không có link](milestone-3-refused-nam.png)
+
+![Kịch bản A: trợ lý soạn đề xuất cho T-12 và trả link xác nhận](milestone-3-proposal-t12.png)
+
+![Kịch bản A: trang xác nhận sau khi ghi](milestone-3-confirm-t12.png)
+
+![Kịch bản D: chỉ có email công việc, số điện thoại bị ẩn](milestone-3-phone-minh.png)
 
 Ảnh của phiên 1 nằm ở mục 14.3, cùng bảng vết dạng chữ thay cho ảnh vết.
-Sau phiên 2, dán bốn ảnh đã che vào cuối mục này bằng `![Mô tả](tên-ảnh.png)`.
 Ảnh nằm cạnh tài liệu và đi cùng commit; log thô ở `scratch/milestone-3/` thì không.
 Kiểm tra lại từng ảnh trước khi `git add`: không có khoá, không có email thật, không có địa chỉ đường hầm còn sống.
 
@@ -676,15 +690,15 @@ Phiên 1, kịch bản C:
 
 Phiên 2, kịch bản A, B, D:
 
-- [ ] B: Nam bị từ chối với `NOT_PERMITTED`, được chỉ tới anh Quang, và không có link.
-- [ ] A: chị Hoa nhận đề xuất và link, bấm Gửi mà không cần duyệt, và T-12 có `NV-04`, phiên bản 2, đúng một lần ghi.
-- [ ] A: vết theo `--proposal` có đủ ba dòng: soạn, gửi và một lệnh ghi.
-- [ ] D: câu trả lời chỉ có email công việc, nói rõ số điện thoại cá nhân bị ẩn, và không có chữ số nào của số điện thoại.
+- [x] B: Nam bị từ chối với `NOT_PERMITTED`, được chỉ tới anh Quang, và không có link.
+- [x] A: chị Hoa nhận đề xuất và link, bấm Gửi mà không cần duyệt, và T-12 có `NV-04`, phiên bản 2, đúng một lần ghi.
+- [x] A: vết theo `--proposal` có đủ ba dòng: soạn, gửi và một lệnh ghi.
+- [x] D: câu trả lời chỉ có email công việc, nói rõ số điện thoại cá nhân bị ẩn, và không có chữ số nào của số điện thoại.
 
 Cả hai phiên:
 
 - [ ] Credit trước và sau từng kịch bản đã ghi; không lúc nào còn dưới 100 credit.
-- [ ] Mười ảnh đã che khoá và email thật, nằm cạnh tài liệu.
+- [x] Mười ảnh đã che khoá và email thật, nằm cạnh tài liệu.
 - [ ] Sau mỗi phiên, đường hầm đã tắt, ba dịch vụ đã tắt, skill đã xoá và khoá đã xoay.
 - [x] Mục 14 ghi rõ H12 (#73) không được kiểm lại.
 
@@ -716,10 +730,10 @@ Sau khi đủ, cập nhật dòng mốc 3 ở [tổng hợp, mục 8](../finding
 
 | Việc | Vì sao | Cách kiểm |
 | --- | --- | --- |
-| Chạy phiên 2 (A, B, D) trong Thổ Thần desktop, rồi điền mục 14.2 | Phiên 1 đã đạt ngày 2026-11-22; đây là phần còn lại của mốc 3 | Ảnh, vết và số credit như mục 13 |
+| Ghi số credit sau kịch bản A và D, và xác nhận skill đã xoá | Hai ô còn thiếu ở mục 14.2 | Mục 15 tick đủ |
 | Thêm ô ghi chú khi duyệt, hoặc ghi rõ ô lý do chỉ dùng khi từ chối | Người duyệt gõ lời đồng ý vào ô lý do từ chối (mục 14.3) | Phép thử trang duyệt; người duyệt không còn gõ nhầm ô |
 | Đóng [#84](https://github.com/Park-Hip/agentlize-intern/issues/84) sau khi mục 14 đủ | Issue chỉ đóng khi có bằng chứng phiên thật | Tick mọi dòng ở mục 15 |
 | Chạy lại H12 (#73) trước lần nghiệm thu sau | Bản Thổ Thần 2026-11-18 có thể đổi hành vi MCP | Cắm probe qua đường hầm, gọi `whoami` và `fake_write` |
 | Đo M5 đầy đủ khi thêm hệ thống thứ ba | M5 không chỉ là dòng mã của một tệp | Đếm tiến trình, file cấu hình, bước cài và chỗ sửa luật |
 
-**Kết luận:** mốc 3 còn phiên 2 trong Thổ Thần desktop; phần máy, phiên 1 và câu trả lời Q1 đã có bằng chứng.
+**Kết luận:** bốn kịch bản đã đạt trong Thổ Thần desktop trên bản hiện tại; mốc 3 chỉ còn hai ô ghi chép ở mục 14.2.

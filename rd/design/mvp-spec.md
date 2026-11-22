@@ -212,10 +212,10 @@ Bốn kịch bản chạy trong Thổ Thần desktop:
 
 | Kịch bản | Câu người dùng gõ | Kết quả mong đợi | Hôm nay |
 |-|-|-|-|
-| A. Làm được ngay | Chị Hoa: "chuyển T-12 sang anh Minh, hạn thứ Sáu" | Đề xuất, chị Hoa bấm Gửi, T-12 được ghi đúng một lần | Đạt ngày 2026-11-18 |
-| B. Bị từ chối | Nam, thực tập sinh, gõ đúng câu đó | "Chưa thực hiện", nêu lý do và người cần hỏi là anh Quang | Đạt ngày 2026-11-18 |
+| A. Làm được ngay | Chị Hoa: "chuyển T-12 sang anh Minh, hạn thứ Sáu" | Đề xuất, chị Hoa bấm Gửi, T-12 được ghi đúng một lần | Đạt ngày 2026-11-18; đạt lại ngày 2026-11-22 qua hàng đợi ghi |
+| B. Bị từ chối | Nam, thực tập sinh, gõ đúng câu đó | "Chưa thực hiện", nêu lý do và người cần hỏi là anh Quang | Đạt ngày 2026-11-18; đạt lại ngày 2026-11-22 |
 | C. Cần duyệt | Chị Hoa: "chuyển hết task của chị Lan sang anh Minh" | 30 task chờ anh Quang duyệt, rồi chạy nền, trang hiện tiến độ | Đạt ngày 2026-11-22 trong Thổ Thần desktop |
-| D. Tra cứu có lọc | Chị Hoa: "cho chị số điện thoại anh Minh" | Chỉ có email công việc, câu trả lời nói rõ trường bị ẩn | Đạt ngày 2026-11-18 |
+| D. Tra cứu có lọc | Chị Hoa: "cho chị số điện thoại anh Minh" | Chỉ có email công việc, câu trả lời nói rõ trường bị ẩn | Đạt ngày 2026-11-18; đạt lại ngày 2026-11-22 |
 
 Bộ phép thử tự động có 442 phép thử, đạt cả 442, chạy bằng `npm test` trong `lab/` ngày 2026-11-22.
 

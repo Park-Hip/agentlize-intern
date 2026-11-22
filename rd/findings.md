@@ -20,7 +20,8 @@ Mọi người và dữ liệu trong ví dụ đều là giả lập.
 - Phần lõi đã dựng lại; hàng đợi ghi tự chạy tiếp và bản đối chứng Temporal cùng đạt 300/300 lần, không ghi trùng, không mất lệnh, nên Q1 giữ phương án 1A; engine chỉ đáng dùng khi quy trình nhiều bước.
 - Ngày 2026-11-22, việc chuyển 30 task chạy trong Thổ Thần desktop: việc dừng chờ trưởng nhóm duyệt, rồi cổng ghi đủ 30 task, mỗi task một lần.
   AI đếm sai số task trong câu chat, nhưng trang duyệt của cổng vẫn đúng.
-- Tiếp theo: chạy lại ba kịch bản cũ trong Thổ Thần desktop, rồi đóng mốc 3.
+- Cùng ngày, ba việc cũ chạy lại vẫn đúng: người không có quyền bị từ chối, một việc nhỏ ghi ngay sau khi bấm Gửi, và số điện thoại cá nhân không lộ.
+- Tiếp theo: đo hai trợ lý, một nối qua MCP và một gọi hàm trực tiếp, để trả lời câu hỏi MCP tiết kiệm bao nhiêu công.
 
 ## 1. Vấn đề
 
@@ -204,7 +205,7 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 | Tuần 3 | Dựng lại lõi theo [ADR-0007](../docs/adr/adr-0007-system-adapters-and-change-sets.md) (bộ tiếp hợp theo hệ thống, luật dạng dữ liệu, đề xuất nhiều mục, hàng đợi lệnh ghi, chặn tách nhỏ) và [ADR-0008](../docs/adr/adr-0008-approval-page-login.md) (mật khẩu trang riêng, hộp chờ duyệt, hạn duyệt 2 giờ) | Phép thử ở ADR-0007 mục 5 đạt; sửa danh bạ đi qua đường ghi chung |
 | Xong phần máy 2026-11-19 | Phép thử sập và ngắt 20 giây cho hàng đợi lệnh ghi; Q1 giữ 1A | [Nghiệm thu mốc 3, mục 2](evaluation/milestone-3-tho-than.md#2-phần-đã-chạy-bằng-máy) |
 | Xong phiên 1 2026-11-22 | Kịch bản 30 task trong Thổ Thần desktop: chờ duyệt, rồi ghi đủ 30 task, mỗi task một lần | [Nghiệm thu mốc 3, mục 14](evaluation/milestone-3-tho-than.md#14-chỗ-điền-bằng-chứng) |
-| Đầu tuần 4 | Phiên 2 trong Thổ Thần desktop: chạy lại A, B, D; điền bằng chứng và đóng #84 | [Nghiệm thu mốc 3, mục 13](evaluation/milestone-3-tho-than.md#13-phiên-2-chạy-lại-kịch-bản-a-b-d) |
+| Xong phiên 2 2026-11-22 | Chạy lại A, B, D trong Thổ Thần desktop trên bản hiện tại; cả ba vẫn đạt | [Nghiệm thu mốc 3, mục 14](evaluation/milestone-3-tho-than.md#14-chỗ-điền-bằng-chứng) |
 | Cuối tuần 3 | Hỏi Kevin ba câu về eve: trợ lý trong Lark, ứng dụng Lark thử và khoá mô hình (#92) | Câu trả lời ghi vào [eve](research/eve.md) |
 | Tuần 4 | Thêm cửa gọi hàm, đo lần đầu; viết ADR chọn nơi gọi thứ hai | Số đo baseline |
 | Tuần 5-6 | Đánh giá, trả lời Q2, chạy thử sản phẩm làm cột "mua" | Báo cáo có mục "khi nào không nên dùng MCP" |
