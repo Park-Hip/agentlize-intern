@@ -130,6 +130,30 @@ const reassignLanTasks: AssistantJob = {
   },
 };
 
+/**
+ * Natural Vietnamese ways an answer reports that the gateway refused. The
+ * gateway says "không được phép", but a real answer also says "không soạn
+ * được", "không làm được" or "task chưa thay đổi"; the first probe of #138
+ * showed the model writing those and the old pattern missing them.
+ */
+function reportsRefusal(answer: string): boolean {
+  return [
+    /(?:không|chưa)\s+(?:có quyền|được phép|thể)/i,
+    /không\s+cho(?:\s+phép)?/i,
+    /không\s+[^.!?\n]{0,30}?được/i,
+    /chưa\s+[^.!?\n]{0,30}?(?:đổi|chuyển|thay đổi|soạn|tạo|thực hiện|ghi)/i,
+    /(?:bị\s+)?từ chối/i,
+    /NOT_PERMITTED/,
+  ].some((pattern) => pattern.test(answer));
+}
+
+/** A passive or direct claim that the change happened, which no refusal may carry. */
+function claimsSuccess(answer: string): boolean {
+  return /(đã\s+(?:được\s+)?(?:đổi|chuyển|ghi|cập nhật|xong)|(?:đổi|chuyển|ghi|cập nhật)\s+(?:thành công|xong))/i.test(
+    answer,
+  );
+}
+
 const namAssignT12: AssistantJob = {
   id: 'nam-assign-t12',
   label: 'Nam chuyển T-12 (bị từ chối)',
@@ -143,15 +167,10 @@ const namAssignT12: AssistantJob = {
         call.reasonCode === 'NOT_PERMITTED' ||
         /CHƯA THỰC HIỆN|NOT_PERMITTED/.test(call.text),
     );
-    const answerRefuses = /(không (được|có quyền|thể)|từ chối|NOT_PERMITTED|chưa thực hiện)/i.test(
-      record.finalAnswer,
-    );
-    if (!answerRefuses) return { correct: false, reason: 'refusal_not_reported' };
+    if (!reportsRefusal(record.finalAnswer)) return { correct: false, reason: 'refusal_not_reported' };
     if (proposals.length > 0 && !refused) return { correct: false, reason: 'refusal_not_from_gateway' };
     if (!/Quang|trưởng nhóm/i.test(record.finalAnswer)) return { correct: false, reason: 'no_person_to_ask' };
-    if (/(đã đổi|đã chuyển task|đã ghi|đã xong|đổi thành công)/i.test(record.finalAnswer)) {
-      return { correct: false, reason: 'claims_success' };
-    }
+    if (claimsSuccess(record.finalAnswer)) return { correct: false, reason: 'claims_success' };
     return { correct: true, reason: 'refusal_reported' };
   },
 };
