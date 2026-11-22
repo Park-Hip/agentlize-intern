@@ -190,6 +190,16 @@ Vì vậy chiều hướng "cách nào ít công hơn, rẻ hơn" mang sang đư
 Dù số đo ra sao, kết luận cũng ghi thêm điều đã đo trên Thổ Thần: MCP chỉ mang lời gọi, không mang an toàn.
 Trong Thổ Thần, MCP không cho cổng biết chắc ai đang hỏi, không có bước duyệt trước khi ghi, và cắt mọi lời gọi sau 60 giây ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)).
 
+**Kết quả đo ngày 2026-11-22.**
+Hai trợ lý chạy 160 hội thoại sạch và 80 hội thoại có lỗi, trên cùng một cổng, cùng mô hình `deepseek-flash`, cùng câu lệnh hệ thống và cùng sáu mô tả công cụ ([báo cáo Q2](../evaluation/q2-assistants.md)).
+Cửa MCP viết 127 dòng, cửa gọi hàm viết 250 dòng vì phải chép tay sáu mô tả công cụ.
+Phần cổng của cửa MCP chậm hơn 5 tới 26 ms mỗi hội thoại, khoảng 0,3% tới 0,5% tổng thời gian; tiền gần bằng nhau; cả hai cửa có 0 ghi trùng và 0 lệnh mất ở lớp có lỗi.
+Trong 240 hội thoại, hai cửa đúng 231; cả 9 lần sai là mô hình đọc dữ liệu rồi không soạn đề xuất, không phải cửa nối trả sai.
+
+**Kết luận.** Chọn dòng thứ nhất của bảng trên: dùng MCP khi có từ hai nơi gọi trở lên, kể cả khi cùng một nhóm viết.
+MCP chỉ mang lời gọi, không mang an toàn: quyền, bước duyệt và danh tính vẫn phải nằm ở cổng.
+Khi chỉ có một nơi gọi và không có kế hoạch thêm nơi thứ hai, cửa gọi hàm có ít thành phần giao thức hơn và là lựa chọn đúng.
+
 **Kết luận:** Q1 quyết định Lab có thêm một phần mềm phải vận hành hay không; Q2 cho con số để trả lời câu chương trình bắt buộc, khi nào không nên dùng MCP.
 
 ## 3. Bản thử hôm nay
@@ -483,6 +493,9 @@ Số dư 1,10 USD đủ cho cả lớp có mô hình, kể cả khi phần gây 
   240 hội thoại cần khoảng 660 lời gọi, tức khoảng 14 ngày chạy.
 - Mô hình nhỏ chạy trên máy báo "đã soạn đề xuất" khi chưa gọi công cụ, nên số đo của nó phản ánh lỗi mô hình, không phản ánh cách nối.
 - Gói OpenCode Go có API, nhưng điều khoản chỉ dành cho coding agent ([tài liệu OpenCode Go](https://opencode.ai/docs/console/go/)), và lớp trung gian làm số M1, M3 kém sạch.
+
+**Kết quả đo đủ 20 lần.**
+Ngày 2026-11-22, hai trợ lý chạy 160 hội thoại sạch và 80 hội thoại có lỗi trên cụm riêng; kết quả, cách chạy lại và kết luận ở [báo cáo Q2](../evaluation/q2-assistants.md).
 
 ### 7.4. Tám yêu cầu
 

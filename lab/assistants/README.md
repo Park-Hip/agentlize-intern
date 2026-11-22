@@ -1,6 +1,6 @@
 # Bộ khung hai trợ lý của Lab
 
-Ngày: 2026-11-22. Trạng thái: hai cửa nối MCP và gọi hàm đã chạy với mô hình giả; lớp có lỗi M2 đã có, số đo thật nằm ở báo cáo Q2.
+Ngày: 2026-11-22. Trạng thái: hai cửa nối và lớp có lỗi M2 đã chạy; số đo 240 hội thoại ở [báo cáo Q2](../../rd/evaluation/q2-assistants.md).
 
 ## Đọc nhanh
 
