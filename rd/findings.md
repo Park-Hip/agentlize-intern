@@ -73,10 +73,10 @@ Cả hai là nơi gọi, không phải cổng: không cái nào làm thay SR3 (p
 | --- | --- | --- |
 | Là gì | Ứng dụng desktop cá nhân, chạy bằng tài khoản AI của từng người | Bộ khung để một đội lập trình dựng trợ lý chạy trên máy chủ |
 | Nhân viên Appota gặp ở đâu | Trên máy của người tự cài; không có Lark | Trong nhóm chat Lark, nhờ bộ nối Lark do Lark phát hành |
-| Vai trò trong Lab | Nơi gọi thêm cho người đã dùng Claude Code hay Codex (T1) | Ứng viên nơi gọi thứ hai ở mốc 4, so được lối MCP với lối gọi hàm trên cùng một trợ lý |
+| Vai trò trong Lab | Ngoài bản thử: hợp với người đã dùng Claude Code hay Codex, tự cài trên máy | Ngoài bản thử: hợp với trợ lý chung trong Lark, cần một đội giữ mã |
 
 **Kết luận:** eve gần công việc hằng ngày của nhân viên hơn MausBot, vì nó vào được Lark.
-Đề xuất dùng eve làm nơi gọi thứ hai ở mốc 4 thay chương trình chat tự viết, nếu năm phép kiểm đầu ở [eve, mục 7](research/eve.md#7-những-gì-cần-kiểm-tra) đạt; quyết định ghi thành ADR trước khi dựng.
+Bản thử giữ hai trợ lý A và B tự dựng ([spec bản thử, mục 5.1](design/mvp-spec.md#51-trong-phạm-vi)); quyết định chọn nơi gọi thứ hai ghi thành ADR trước khi dựng.
 
 ## 4. Thổ Thần
 
@@ -157,7 +157,7 @@ Chuyển 30 task cần anh Quang duyệt là kịch bản thứ tư, làm khi ba
 | Q1. Sập giữa lúc chuyển 30 task: chạy lại có đủ, không trùng? | Cổng tự viết làm được, nếu mỗi task có mã riêng và tiến độ lưu sau mỗi task | Đã đạt trên phép thử tự động và bản đối chứng Temporal: mỗi bản 300/300 lần, 0 ghi trùng, 0 lệnh mất; xem [Q1 tự viết](evaluation/results/2026-11-20-q1-outbox-gateway-7b7ae94.json) và [Q1 Temporal](evaluation/results/2026-11-20-q1-outbox-temporal-87d50f9.json) | Xong phần máy 2026-11-20; phiên kịch bản C trong Thổ Thần desktop còn chờ |
 | Q2. MCP tiết kiệm bao nhiêu công so với gọi hàm? | Gần bằng nhau khi Lab viết cả hai nơi gọi | Thêm trợ lý AI thứ hai cho từng cách, đếm giờ công | Bước đánh giá |
 | Nhân viên thật dùng Thổ Thần trên điện thoại, web hay desktop? | Điện thoại hoặc web, vì PRD Skill Studio thiết kế cho điện thoại trước; khi đó stdio không tới được người dùng thật | Hỏi Kevin; mở thử app điện thoại | Tuần 2, quyết định cách nối từ mốc 2 |
-| Hook của AgentLize chạy ở đâu, và danh tính người dùng đi tiếp tới cổng thế nào? | Chưa ai dựng; nếu có, Hook chạy trong Thổ Thần vì chỉ ở đó có phiên đăng nhập. Mã LobeHub 2.1.56 không gắn danh tính vào lời gọi MCP, nhưng Thổ Thần có gắn header ở đường HTTPS | Hỏi Kevin; mã LobeHub đã đọc ([mục 6.2](appota/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt)), phần còn lại là H9 | Tuần 2, không chặn mốc 1 |
+| Danh tính người dùng đi tiếp tới cổng thế nào? | Quyền quyết ở cổng, vì ai có khoá cũng gọi thẳng được cổng. Mã LobeHub 2.1.56 không gắn danh tính vào lời gọi MCP, nhưng Thổ Thần có gắn header ở đường HTTPS | Hỏi Kevin; mã LobeHub đã đọc ([mục 6.2](appota/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt)), phần còn lại là H9 | Tuần 2, không chặn mốc 1 |
 | H9 (ghi đè `x-user-id`): Thổ Thần ghi đè header `x-user-id` người dùng tự đặt, hay nối thêm? | Ghi đè; chưa chứng minh | Thêm header `x-user-id: spoof-test` vào skill, gọi `whoami`, xem probe nhận giá trị nào | Trước khi bật lớp thứ hai của ADR-0005 |
 | H10 (phiên tách theo người dùng): hai người cùng cấu hình có chung phiên MCP không? | Không chung; chưa chứng minh | Hai tài khoản cùng skill, so `mcp-session-id` và `x-user-id` | Trước khi bật lớp thứ hai của ADR-0005; cần tài khoản thứ hai |
 | H11 (`execAgent` mặc định không hỏi duyệt): gọi `execAgent` không kèm cấu hình duyệt có chạy công cụ ghi mà không hỏi không? | Có, vì mã mặc định `headless`; mới đọc mã, chưa đo | Gọi API với công cụ ghi giả lập, xem có bản ghi chờ duyệt không | Khi đo kênh duyệt của Thổ Thần, cần Kevin |
@@ -171,7 +171,7 @@ Kết luận này chỉ nói về hàng đợi lệnh ghi trên hệ thống gi�
 
 Q1 và Q2 chi tiết ở [spec bản thử, mục 2.1](design/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không).
 Bốn câu H9 tới H12 chi tiết ở [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được).
-Hai câu về thiết bị và Hook, cùng mọi mối nối giữa Appota, AgentLize, Thổ Thần, MausBot và Lab ở [bản đồ hệ thống](design/system-map.md).
+Câu về thiết bị, cùng mọi mối nối giữa Appota, AgentLize, Thổ Thần, MausBot và Lab ở [bản đồ hệ thống](design/system-map.md).
 
 Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã có lời đáp ở mục 4; câu khoá riêng hay dùng chung vẫn mở.
 
@@ -201,8 +201,8 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 | Tuần 3 | Dựng lại lõi theo [ADR-0007](../docs/adr/adr-0007-system-adapters-and-change-sets.md) (bộ tiếp hợp theo hệ thống, luật dạng dữ liệu, đề xuất nhiều mục, hàng đợi lệnh ghi, chặn tách nhỏ) và [ADR-0008](../docs/adr/adr-0008-approval-page-login.md) (mật khẩu trang riêng, hộp chờ duyệt, hạn duyệt 2 giờ) | Phép thử ở ADR-0007 mục 5 đạt; sửa danh bạ đi qua đường ghi chung |
 | Xong phần máy 2026-11-19 | Phép thử sập và ngắt 20 giây cho hàng đợi lệnh ghi; Q1 giữ 1A | [Nghiệm thu mốc 3, mục 2](evaluation/milestone-3-tho-than.md#2-phần-đã-chạy-bằng-máy) |
 | Đầu tuần 4, còn phiên host | Hai phiên trong Thổ Thần desktop: kịch bản 30 task, rồi chạy lại A, B, D; điền bằng chứng và đóng #84 | [Nghiệm thu mốc 3, mục 14](evaluation/milestone-3-tho-than.md#14-chỗ-điền-bằng-chứng) |
-| Cuối tuần 3 | Hỏi Kevin ba câu về eve: trợ lý trong Lark, ứng dụng Lark thử và khoá mô hình, eve làm nơi gọi thứ hai (#92) | Câu trả lời ghi vào [eve, mục 9](research/eve.md#9-thứ-tự-làm) |
-| Tuần 4 | Thêm cửa gọi hàm, đo lần đầu; nếu Kevin đồng ý thì chạy phép kiểm eve KE1-KE5 và viết ADR chọn nơi gọi thứ hai | Số đo baseline |
+| Cuối tuần 3 | Hỏi Kevin ba câu về eve: trợ lý trong Lark, ứng dụng Lark thử và khoá mô hình (#92) | Câu trả lời ghi vào [eve](research/eve.md) |
+| Tuần 4 | Thêm cửa gọi hàm, đo lần đầu; viết ADR chọn nơi gọi thứ hai | Số đo baseline |
 | Tuần 5-6 | Đánh giá, trả lời Q2, chạy thử sản phẩm làm cột "mua" | Báo cáo có mục "khi nào không nên dùng MCP" |
 
 ## 9. Tài liệu chi tiết
@@ -212,8 +212,8 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 - [Bài học từ thị trường](research/market-lessons.md): bảy bài học, việc của cổng, và khi nào xem lại quyết định tự dựng.
 - [So sánh phương án](research/option-comparison.md) và [khung so sánh chi tiết](research/comparison-framework.md): năm cách nối.
 - [Kiến trúc hệ thống thật](research/real-system-architectures.md) và [tổng quan MCP](research/mcp-overview.md).
-- [MausBot](research/mausbot.md): ứng dụng agent mã nguồn mở, ứng viên nơi chạy thứ hai cho bộ công cụ của Lab; đứng ở lớp thực thi cạnh Thổ Thần desktop và trùng vai một phần với AgentLize.
-- [eve](research/eve.md): bộ khung dựng agent của Vercel; vào được Lark, ứng viên nơi gọi thứ hai ở mốc 4.
+- [MausBot](research/mausbot.md): ứng dụng mã nguồn mở cho nhân viên tự cài, mỗi người một nhóm bot; không có Lark, phải tự viết cầu nối.
+- [eve](research/eve.md): bộ khung của Vercel để dựng trợ lý trong Lark; mẫu kết nối Lark hiện phải sửa.
 - [Khảo sát Thổ Thần](appota/tho-than-platform.md), [kịch bản đo MCP trong Thổ Thần](appota/tho-than-mcp-probe.md), [tình huống Appota](appota/appota-cases.md), [skill của AppotaPay](appota/appotapay-skills.md).
 - [Spec bản thử đầu](design/mvp-spec.md): bản thử chứng minh gì, kiến trúc, phép thử và bốn mốc.
 - [Bản đồ hệ thống](design/system-map.md) và [bản vẽ](design/system-map.html): năm mảnh ghép nối với nhau thế nào, mối nối nào đã đo, điều gì chưa biết và cách kiểm.

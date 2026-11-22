@@ -81,6 +81,13 @@ check "$RAW/docs/concepts/security-model.md" "another person's message waits for
 check "$RAW/docs/concepts/security-model.md" "Don't trust body-supplied identity." "bảo mật: không tin danh tính trong nội dung"
 check "$RAW/docs/concepts/security-model.md" "never saves it in session state" "bảo mật: khoá kết nối không nằm trong phiên"
 
+# Bản phát hành và issue mới (mục Vấn đề của eve)
+check "https://registry.npmjs.org/eve/1.3.0" '"version":"1.3.0"' "npm eve 1.3.0: bản ngày 20/11"
+check "https://github.com/vercel/eve/issues/1753" "generated channel can never reply" "issue #1753: kênh Lark không trả lời được"
+check "https://github.com/vercel/eve/issues/3570" "fails every parked session" "issue #3570: nâng cấp làm hỏng việc đang chờ"
+check "https://github.com/vercel/eve/issues/5841" "This call did not run" "issue #5841: lệnh đã chạy bị báo là chưa chạy"
+check "https://github.com/vercel/eve/issues/6645" "Security audit trail" "issue #6645: chưa có vết kiểm toán an ninh"
+
 echo "----"
 echo "PASS: $PASS  FAIL: $FAIL"
 [ "$FAIL" -eq 0 ]

@@ -1,278 +1,145 @@
-# MausBot và cách tích hợp với Thổ Thần
+# MausBot
 
-Ngày: 2026-11-19. Trạng thái: đọc tài liệu và mã nguồn xong, thêm phần nhân viên Appota gặp MausBot ở đâu; chưa chạy phép kiểm tra nào, chờ Kevin chọn hướng.
+Ngày: 2026-11-21. Trạng thái: đọc tài liệu, mã nguồn và báo chí về MausBot và eve; chưa chạy thử cả hai trong môi trường của công ty.
 
 ## Đọc nhanh
 
-- MausBot là ứng dụng mã nguồn mở trên máy tính, cho mỗi người một nhóm trợ lý AI chạy bằng tài khoản AI của chính họ.
-- Trong hệ sinh thái Appota, nó đứng cùng chỗ với Thổ Thần desktop: nơi nhân viên giao việc cho AI. Nó còn tự mang luật duyệt, danh mục công cụ và giới hạn chi tiêu, vốn là việc của AgentLize.
-- Cách tích hợp có ích nhất là cho Thổ Thần và MausBot cùng dùng một bộ công cụ của Lab, để luật và lịch sử nằm một chỗ; hai cách còn lại (Thổ Thần sai bot MausBot, chép mã MausBot vào Thổ Thần) vướng giới hạn 60 giây, phần phải mua và mã đổi quá nhanh.
-- MausBot không vào được Lark, nơi nhân viên Appota đang làm việc; trợ lý dựng bằng eve thì vào được ([eve](eve.md)).
-- Tiếp theo: hỏi Kevin chọn hướng nào, rồi chạy các phép kiểm tra ở mục 6 theo đúng hướng đó, tối đa một ngày.
+- MausBot là ứng dụng miễn phí, mã nguồn mở, cho mỗi nhân viên một nhóm "nhân viên AI" tự làm việc lặp lại theo lịch.
+- Tích hợp ở đây là cho nhân viên dùng MausBot với tài khoản, kênh chat Lark, dữ liệu, mô hình AI và luật của công ty. Việc này gồm bảy lớp.
+- Bốn lớp nối được ngay bằng cấu hình: mô hình AI, hạ tầng, dữ liệu nội bộ, phân phối bot. Ba lớp phải tự làm hoặc chờ nhà làm: chat trong Lark, đăng nhập bằng tài khoản công ty, và kiểm quyền, duyệt khi bot ghi vào hệ thống nội bộ.
+- MausBot có vài điểm bảo mật phải xử lý trước, nổi bật là bot được toàn quyền ngay từ đầu và ứng dụng tự cập nhật.
+- Đề xuất: kiểm bảo mật trước, thử với 3 đến 5 người trên dữ liệu được phép, rồi mới nối hệ thống nội bộ.
 
-## 1. Câu hỏi nghiên cứu
+## MausBot là gì
 
-Câu hỏi chính: MausBot nối với Thổ Thần và với bộ công cụ của Lab theo cách nào, mỗi cách được gì và mất gì, và có nên làm không.
+MausBot là ứng dụng chat trên máy tính, điện thoại và máy chủ tự cài. Mỗi "bot" giữ một việc, có chỉ dẫn, bộ nhớ, lịch chạy, máy tính và trình duyệt riêng. Bot tự làm theo lịch hoặc khi có sự kiện, và nhiều bot phối hợp được với nhau.
 
-Nó tách thành sáu câu nhỏ:
+| Điều | Nội dung |
+|-|-|
+| Ai làm | Supamaus Software Private Limited (Ấn Độ). Kho mã OpenMausBot tạo ngày 2026-08-11; ngày 2026-11-20 có khoảng 26 nghìn sao, 1.161 issue đang mở. |
+| Bộ não AI | Không có mô hình riêng. Bot chạy bằng Claude Code, Codex, Grok, Cursor, OpenCode... hoặc khoá API; tiền AI trả riêng cho nhà cung cấp. |
+| Giấy phép | Phần lõi Apache 2.0, dùng và sửa tự do. Thư mục enterprise (trang quản trị, trần chi tiêu cả công ty, đăng nhập công ty) cần khoá bản quyền. |
+| Giá | Tự cài bản mã mở: miễn phí. Business tự cài: 299 USD/tháng cho 20 người. Bản trên mây của nhà làm: 15 tới 99 USD/tháng mỗi người. Giá đọc ngày 2026-11-20. |
 
-1. MausBot là gì, ai làm, dùng giấy phép nào?
-2. MausBot đứng ở đâu trong hệ sinh thái AI của Appota, và nối vào đó ở những chỗ nào?
-3. Có những cách tích hợp với Thổ Thần nào, cách nào chạy được?
-4. Khi làm nơi chạy trợ lý AI (host), MausBot đáp ứng tám yêu cầu SR1-SR8 của [PRD](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc) tới đâu, so với Thổ Thần?
-5. Điều gì đã biết từ tài liệu, điều gì phải chạy thử mới biết?
-6. Lab nên làm gì, theo thứ tự nào, trong bao lâu?
+**Kết luận:** MausBot là nơi nhân viên giao việc cho AI. Nó không giữ dữ liệu nghiệp vụ, nên giá trị phụ thuộc vào việc nối được tới hệ thống của công ty.
 
-Câu hỏi này gắn với tiêu chí nghiệm thu của Track 01: "chứng minh Agent khác tái sử dụng được công cụ" ([tài liệu chương trình](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt), dòng 239).
+## Tích hợp nghĩa là gì
 
-**Kết luận:** nghiên cứu này phải ra một quyết định về vai trò của MausBot, kèm bằng chứng chạy thật, không chỉ một bản mô tả sản phẩm.
+Tích hợp là để nhân viên dùng MausBot như một công cụ của công ty: đăng nhập bằng tài khoản công ty, gọi bot trong Lark, bot đọc và ghi dữ liệu nội bộ, chạy bằng mô hình AI công ty trả tiền, và tuân theo luật của công ty. Có ba mức, mức sau gồm mức trước.
 
-## 2. MausBot là gì
+| Mức | Nhân viên thấy gì | Lớp phải nối | Rủi ro |
+|-|-|-|-|
+| 1. Dùng riêng | App MausBot trên máy chủ công ty; bot làm việc trên dữ liệu công khai, như theo dõi trang giá của đối thủ. | Mô hình AI (4), hạ tầng (6) | Thấp |
+| 2. Nối dữ liệu | Bot đọc danh bạ, danh sách task, Lark Base; đề xuất chuyển task T-12 cho anh Minh và chỉ ghi khi người có quyền duyệt. | Thêm dữ liệu nội bộ (3), quản trị (5) | Trung bình |
+| 3. Nằm trong Lark | Nhân viên nhắn bot ngay trong chat Lark, đăng nhập bằng tài khoản công ty. | Thêm đăng nhập (1), kênh chat (2), phân phối (7) | Cao |
 
-| Điều | Nội dung | Nguồn |
-| --- | --- | --- |
-| Sản phẩm | Ứng dụng desktop (Windows, macOS, Linux) và app điện thoại để điều khiển từ xa. Mỗi bot chạy bằng một trình AI có sẵn trên máy (Claude Code, Codex, Grok, Cursor...) hoặc khoá API. | [mausbot.com](https://mausbot.com/), [tài liệu](https://docs.openmausbot.com/docs) |
-| Ai làm | Supamaus Software Private Limited; commit ghi múi giờ +05:30 (Ấn Độ). | [chính sách riêng tư](https://mausbot.com/privacy) |
-| Mã nguồn | [milind-soni/OpenMausBot](https://github.com/milind-soni/OpenMausBot), tạo ngày 2026-08-11, khoảng 24 nghìn sao, hơn 100 người đóng góp. | GitHub, ngày 2026-11-17 |
-| Tốc độ đổi | 5.793 commit trong 30 ngày tới 2026-11-17, gần 200 commit mỗi ngày; ba bản phát hành trong hai ngày 15 và 16/11. | `gh api search/commits`, `gh api .../releases` |
-| Giấy phép | Phần lõi Apache 2.0. Thư mục `enterprise/` có giấy phép riêng, phải mua khi dùng thật. Tên "MausBot" là nhãn hiệu. | [LICENSING.md](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/LICENSING.md) |
-| Giá | Bản desktop miễn phí. Bản đám mây cá nhân từ 15 USD/tháng; gói nhóm 40 USD/tháng cho 2 người, thêm 20 USD mỗi người; bản tự cài cho doanh nghiệp 299 USD/tháng tới 20 người. Trang Enterprise, ngày 2026-11-17 còn ghi gói đổi nhãn từ 1.000 USD/tháng cộng 5.000 USD phí cài đặt, nay chuyển sang bán bộ SDK cho công ty phần mềm và không công bố giá. Tiền gọi mô hình AI người dùng tự trả. | [bảng giá](https://mausbot.com/pricing), [enterprise](https://mausbot.com/enterprise), đọc lại ngày 2026-11-19 |
-| Dữ liệu | Bản desktop giữ hội thoại trên máy. Nội dung chat vẫn được gửi tới nhà cung cấp AI mà người dùng chọn. | [chính sách riêng tư](https://mausbot.com/privacy) |
-| Bản trên máy Lab | 0.1.165, chạy ở cổng `8799`; máy có sẵn `claude` và `codex`. | `GET http://127.0.0.1:8799/api/health`, ngày 2026-11-17 |
-| Bản mới nhất | 0.1.170 ngày 2026-11-19; khoảng 25,6 nghìn sao; 144 commit trong hai ngày 18 và 19/11. | `gh api .../releases`, `gh api search/commits`, ngày 2026-11-19 |
+**Kết luận:** mức 1 và mức 2 làm được với MausBot hôm nay. Mức 3 phụ thuộc vào phần công ty phải tự viết và phần nhà làm chưa giao.
 
-MausBot không phải chatbot cho khách hàng (kiểu Zalo, Messenger).
-Nó là một nơi để người trong công ty giao việc cho AI, giống Thổ Thần desktop.
-
-**Kết luận:** MausBot và Thổ Thần cùng là nơi chạy trợ lý AI, nên tích hợp nghĩa là hai nơi này dùng chung công cụ, gọi nhau, hoặc gộp mã.
-
-## 3. Chỗ đứng trong hệ sinh thái Appota
-
-Một slide nội bộ chia hệ sinh thái AI của Appota thành bốn lớp ([ngữ cảnh hệ sinh thái](../../docs/context/appota-ai-ecosystem.md)):
-
-- **AgentLize** đặt luật, giữ danh mục công cụ và tài sản AI, đo giá trị (lớp điều khiển, control plane).
-- **Thổ Thần AI** chạy agent, gọi mô hình và gọi công cụ (lớp thực thi, execution plane).
-- **Kdata** giữ máy chủ, khoá bí mật và mạng.
-- **Các phòng ban** giữ dữ liệu và hệ thống nghiệp vụ (HRM, Lark, CRM, ERP).
-
-Slide đó là bản chép từ ảnh và chưa được Kevin xác nhận, nên bảng dưới là cách đặt thử, chưa phải sơ đồ đã chốt.
-
-### 3.1. MausBot có gì ở từng lớp
-
-Cột "MausBot tự có" lấy từ tài liệu trong kho mã, ghim ở commit `d01c7be`; các câu trích được kiểm lại bằng `rd/checks/mausbot.sh`.
+## Bảy lớp tích hợp
 
-| Lớp và việc slide giao | MausBot tự có | Quan hệ với Appota |
-| --- | --- | --- |
-| AgentLize: chợ và quản lý tài sản AI (Marketplace Skill/Agent) | Thư viện tổ chức: Admin đẩy gói bot và skill xuống máy nhân viên, mỗi gói đóng dấu mã băm ([org-library](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/org-library.md)). Bot chia sẻ được dưới dạng thư mục mẫu; skill viết theo chuẩn chung Agent Skills (`SKILL.md`) ([team-sharing](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/team-sharing.md)). | Trùng vai. Thư viện chỉ nhận danh mục từ dịch vụ Admin của MausBot, và dịch vụ đó không nằm trong mã mở. |
-| AgentLize: danh mục kết nối (API/MCP, connector) | Admin tổ chức giữ danh sách server MCP được duyệt; bot chỉ thấy server có tên trong danh sách. Ở máy chủ nhóm, mỗi kết nối chọn dùng chung cho cả nhóm hay riêng từng người ([team-cloud](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/team-cloud.md)). | Trùng vai. Danh sách nằm trong MausBot, không đọc từ AgentLize. |
-| AgentLize: quản trị (chính sách, phê duyệt, kiểm toán) | Mức duyệt cho từng bot; giới hạn chi tiêu theo ngày và tháng cho từng bot ở mọi bản ([usage-caps](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/usage-caps.md)). Trang quản trị và giới hạn chi tiêu cả workspace thuộc bản trả tiền; đăng nhập bằng tài khoản công ty (SSO) mới là kế hoạch ([enterprise](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/enterprise/README.md)). | Trùng một phần. Thiếu đúng thứ slide coi là gốc: đăng nhập bằng tài khoản `@appota.com`. |
-| AgentLize: đo giá trị (Value Intelligence) | Sổ chi phí theo bot và mô hình trên trang Usage, xuất được CSV. | Nguồn số liệu thô, không phải nơi đo giá trị. |
-| Thổ Thần: chạy agent, điều phối, bộ nhớ | Bot chạy bằng trình AI cài trên máy (Claude Code, Codex...), chạy theo lịch, giao việc cho bot khác, có bộ nhớ riêng. | Trùng vai với Thổ Thần desktop. Khác Thổ Thần web: Thổ Thần web chạy trên máy chủ, không điều khiển được máy người dùng. |
-| Thổ Thần: cổng mô hình (Model Gateway) | Không có cổng; chỉ gọi ra. Nhận mọi địa chỉ theo chuẩn OpenAI (OpenAI-compatible) ([custom-engines](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/custom-engines.md)). | Bổ sung được: MausBot có thể gọi mô hình qua cổng của công ty, nếu cổng đó mở cho bên ngoài. |
-| Thổ Thần: gọi công cụ (Tool/MCP Runtime) | Gọi server MCP qua stdio và địa chỉ web, và 24 ứng dụng SaaS dựng sẵn qua Composio (Slack, Gmail, Jira...). | Trùng vai, nhưng cùng chuẩn MCP nên dùng chung được một bộ công cụ. |
-| Kdata: máy chủ, khoá bí mật, mạng | Bản máy chủ tự cài bằng Docker, Kubernetes hay Railway; một máy chủ chạy được nhiều workspace tách nhau ([self-hosting](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/self-hosting.md)). Khoá lưu trong tệp cấu hình của MausBot. | Kdata chạy được máy chủ nhóm; khoá thì nằm ngoài kho khoá chung, trái nguyên tắc "nền tảng AI không tự giữ khoá". |
-| Phòng ban giữ dữ liệu (HRM, Lark, CRM) | Không chạm thẳng; chỉ tới qua server MCP hoặc Composio. Nội dung chat đi tới nhà cung cấp AI mà người dùng chọn. | Chủ dữ liệu phải đồng ý cho dữ liệu đi qua nhà cung cấp AI đó, ngoài tài khoản Thổ Thần. |
-
-**Kết luận:** MausBot nằm ở lớp thực thi, cạnh Thổ Thần desktop: một nơi chạy agent trên máy nhân viên hoặc trên máy chủ của nhóm.
-Nó mang theo một lớp điều khiển thu nhỏ (danh mục, duyệt, giới hạn chi tiêu), và lớp này trùng vai với AgentLize.
-Nếu công ty dùng MausBot, AgentLize phải là nơi quyết định, còn phần điều khiển của MausBot chỉ được làm theo, không được thành nguồn luật thứ hai.
-
-### 3.2. Nối vào hệ thống ở đâu
-
-Bốn mối nối, xếp theo giá trị cho Appota:
-
-| Mối nối | Làm gì | Ví dụ trong Lab | Điều kiện | Ai quyết |
-| --- | --- | --- | --- | --- |
-| N1. Một cửa công cụ | Thổ Thần và MausBot cùng gọi một server MCP của Lab; danh sách server được duyệt của MausBot chỉ chứa server này. | Chị Hoa chuyển T-12 từ Thổ Thần hay từ MausBot đều đi qua cùng cổng, cùng luật, cùng vết. | Cổng nhận người qua khoá riêng, như đã làm với Thổ Thần. | Lab; đây là T1 ở mục 4. |
-| N2. Khoá riêng từng người trong nhóm | Ở máy chủ nhóm (Team Cloud), Admin đặt server của Lab ở chế độ "từng người"; mỗi thành viên tự nhập khoá của mình. | Nam và chị Hoa dùng chung bot Vận hành, nhưng cổng thấy hai khoá khác nhau và từ chối Nam. | Cần gói nhóm trả phí. Việc chạy theo lịch "không làm thay ai", nên cổng cần một danh tính dịch vụ riêng cho bot. | Kevin, vì tốn phí. |
-| N3. Một cổng mô hình | MausBot gọi mô hình qua cổng mô hình của công ty thay vì tài khoản AI cá nhân. | Mọi lượt chat trong MausBot tính chi phí về một nơi. | Thổ Thần phải mở cổng mô hình theo chuẩn OpenAI ra ngoài; hiện chưa thấy API công khai nào. | Đội Thổ Thần. |
-| N4. Một kho skill | Skill viết theo chuẩn Agent Skills dùng được ở cả hai nơi; AgentLize giữ bản gốc. | Skill "tra danh bạ" viết một lần, nạp vào cả Thổ Thần và MausBot. | Cần biết Thổ Thần nhận skill ở định dạng nào. | AgentLize. |
-
-Đồng bộ thẳng danh mục AgentLize sang thư viện tổ chức của MausBot thì khó hơn nhiều, vì phải dựng lại dịch vụ Admin mà MausBot không công bố mã.
-
-**Kết luận:** mối nối rẻ nhất và đáng giá nhất là N1, đúng phần Lab đang dựng.
-N2 vá chỗ yếu về danh tính (SR1) của MausBot nhưng cần gói trả phí; N3 và N4 tùy câu trả lời của đội Thổ Thần và AgentLize.
+Cột "Có sẵn" đọc từ tài liệu trong mã nguồn (commit d01c7be), chưa chạy thử.
 
-### 3.3. Nhân viên Appota gặp MausBot ở đâu
-
-Câu hỏi của Kevin tuần 3: MausBot gắn vào công việc hằng ngày của nhân viên ở đâu.
-Đọc lại kho mã ở commit `96acdd4` (bản 0.1.170) cho ba điều:
-
-- **Ở máy của từng người.** Mỗi người cài ứng dụng desktop, hoặc dùng app điện thoại để điều khiển máy đó từ xa.
-  Bot chạy bằng tài khoản Claude Code, Codex hay khoá API của chính người đó.
-- **Slack chỉ ở bản đám mây trả phí.** Người trong Slack của công ty nhắc `@MausBot` thì bot trả lời; tin Slack đi qua dịch vụ Admin của MausBot, nên chỉ bản đám mây (gói Pro trở lên hoặc gói nhóm) có đường này, còn ứng dụng desktop và máy chủ tự cài thì không ([team-slack](https://github.com/milind-soni/OpenMausBot/blob/96acdd4bcd14b702288fcca25baf414f469cd4c1/docs/team-slack.md)).
-- **Không có Lark.** Kho mã không có kênh Lark hay Feishu; tìm từ `feishu` trong mã ra 0 kết quả, từ `lark` ra một tệp kiểm thử không liên quan.
-
-| Nhóm nhân viên | MausBot hợp không | Vì sao |
-| --- | --- | --- |
-| Lập trình viên đã dùng Claude Code hay Codex | Hợp | Họ đã có tài khoản AI; MausBot cho họ bot chạy nền, chạy theo lịch, và gọi được cổng của Lab (T1) |
-| Nhân viên vận hành, kinh doanh làm việc trong Lark | Không hợp | Phải mở thêm một ứng dụng, tự có tài khoản AI, và không gặp bot trong Lark |
-| Cả công ty | Không hợp lúc này | Dữ liệu đi qua tài khoản AI cá nhân; đăng nhập bằng tài khoản `@appota.com` mới là kế hoạch của MausBot |
-
-**Kết luận:** MausBot hợp với nhóm nhỏ đã quen trình AI trên máy, không hợp làm cửa vào chung cho hơn 400 nhân viên.
-Với nhân viên làm việc trong Lark, đường ngắn hơn là trợ lý dựng bằng eve ([eve, mục 4](eve.md#4-gắn-vào-công-việc-hằng-ngày-của-nhân-viên-appota)); vai trò của MausBot trong Lab giữ nguyên là T1.
-
-## 4. Bốn cách tích hợp
-
-| Cách | Ví dụ | Chạy được không (theo tài liệu) | Giá trị cho Lab |
-| --- | --- | --- | --- |
-| T1. Dùng chung bộ công cụ Lab | Chị Hoa gõ "chuyển T-12 cho anh Minh" trong Thổ Thần hoặc trong MausBot; cả hai gọi cùng một server MCP của Lab. | Được. MausBot nhận server stdio và server qua địa chỉ web. | Cao. Đây chính là phép thử "agent thứ hai dùng lại cùng công cụ" và SR8 (dùng lại, quyền theo người). |
-| T2. Thổ Thần sai bot MausBot | Chị Hoa gõ trong Thổ Thần "nhờ bot Vận hành soạn danh sách task quá hạn"; AI của Thổ Thần gửi việc sang MausBot và chờ kết quả. | Được một chiều, kèm bốn giới hạn ở mục 4.1. Chiều ngược lại không được, vì Thổ Thần không có API công khai. | Thấp. Một AI sai một AI khác, không giúp nhận người, duyệt hay chống ghi trùng. |
-| T3. Chép mã MausBot vào Thổ Thần | Đội Thổ Thần lấy một phần mã MausBot, ví dụ thẻ duyệt, đưa vào sản phẩm. | Hợp pháp với phần lõi Apache 2.0. Công sức tùy phần được chọn. | Không thuộc Lab; là quyết định sản phẩm của đội Thổ Thần. |
-| T4. Mua gói đổi nhãn | Appota trả Supamaus để chạy MausBot dưới tên của mình. | Cần hợp đồng đối tác. | Không thuộc Lab; Lab chỉ góp số đo từ T1. |
-
-### 4.1. Giới hạn của T2 (Thổ Thần sai bot MausBot)
-
-MausBot desktop kèm sẵn một server MCP chạy kiểu stdio, với công cụ gửi việc cho bot (`send_bot_message`) và chờ bot làm xong (`wait_for_conversation`) ([tài liệu](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/mcp-server.md)).
-Thổ Thần desktop chạy được server stdio trong chat ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)).
-Cấu hình dán vào Thổ Thần qua "Import JSON config"; khoá lấy bằng cách ghép đôi (pairing) trong MausBot:
-
-```json
-{
-  "mcpServers": {
-    "openmausbot": {
-      "command": "%LOCALAPPDATA%\\Programs\\OpenMausBot\\OpenMausBot.exe",
-      "args": ["%LOCALAPPDATA%\\Programs\\OpenMausBot\\resources\\server\\mcp-server.js"],
-      "env": { "ELECTRON_RUN_AS_NODE": "1", "OMB_PORT": "8799", "OPENMAUSBOT_TOKEN": "<khoá ghép đôi>" }
-    }
-  }
-}
-```
-
-| Giới hạn | Vì sao | Cách chịu |
-| --- | --- | --- |
-| Việc dài bị cắt | Thổ Thần cắt mọi lệnh sau 60 giây; lệnh chờ của MausBot mặc định 30 giây, tối đa 120 giây | AI gọi chờ với `timeout_seconds` dưới 50, hết giờ thì gọi chờ lại |
-| Không duyệt được trong Thổ Thần | Server MCP của MausBot "cannot approve requests"; bot cần duyệt thì dừng ở trạng thái `needs-user` | Người dùng mở app MausBot để bấm duyệt |
-| Hai tài khoản AI | Bot MausBot chạy bằng tài khoản AI riêng, ngoài tài khoản Thổ Thần | Tốn thêm tiền; dữ liệu đi qua thêm một nhà cung cấp AI |
-| Chỉ trên một máy | Server stdio nói chuyện với MausBot ở `127.0.0.1` | Mỗi người tự cài cả hai ứng dụng |
-
-Chiều MausBot gọi vào từ ngoài cũng hẹp: lời gọi qua [Bot API](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/bot-api.md) "has no shell, computer, browser, phone, connected apps, MCP servers or data tools".
-
-### 4.2. Giấy phép và bảo trì của T3 và T4
-
-- **Phần lõi Apache 2.0.** Được chép, sửa, gộp vào sản phẩm đóng và bán, miễn là giữ tệp `LICENSE` và `NOTICE` và ghi rõ chỗ đã sửa.
-- **Phần `enterprise/` không phải mã mở.** Nó gồm đổi nhãn (`whitelabel`), trang quản trị (`admin`), giới hạn chi tiêu (`budgets`), tính tiền theo mô hình (`billing`) và đăng nhập bằng tài khoản công ty (`sso`, chưa làm xong).
-  Chạy thật cần khoá bản quyền; đổi nhãn hay cung cấp cho bên thứ ba cần hợp đồng đối tác ([enterprise/LICENSE](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/enterprise/LICENSE)).
-- **Không được dùng tên.** Sản phẩm dựng trên mã này phải đặt tên khác.
-- **Kiến trúc khác nhau.** Thổ Thần là LobeHub đổi nhãn, bản web chạy trên máy chủ. Phần đáng giá nhất của MausBot là điều khiển trình AI cài trên máy người dùng, nên chỉ hợp với Thổ Thần desktop.
-- **Bản chép sẽ tụt lại nhanh.** Với gần 200 commit mỗi ngày, một bản tách riêng phải tự gánh mọi bản sửa lỗi bảo mật.
-
-**Kết luận:** Lab chỉ làm T1, vì đó là cách duy nhất phục vụ thẳng tiêu chí nghiệm thu.
-T2 làm được nhưng ít giá trị; T3 và T4 là quyết định sản phẩm, cần Kevin nói rõ muốn tính năng nào của MausBot trước khi ai đó đọc sâu.
-
-## 5. Đối chiếu với tám yêu cầu SR1-SR8
-
-Cột Thổ Thần lấy từ lần đo ngày 2026-11-16 ([kịch bản đo](../appota/tho-than-mcp-probe.md#9-bảng-tổng-hợp-để-bàn-giao)).
-Cột MausBot lấy từ tài liệu và mã nguồn, chưa đo; mã phép kiểm tra ở mục 6.
-Cả tám yêu cầu do cổng của Lab làm; bảng này chỉ hỏi nơi chạy giúp hay cản cổng.
-
-| Yêu cầu | Thổ Thần (đã đo) | MausBot (theo tài liệu) | Hệ quả cho cổng | Kiểm bằng |
-| --- | --- | --- | --- | --- |
-| SR1 (danh tính và một cửa ghi) | Không gửi danh tính; khoá riêng mỗi người tới được server. | Không gửi danh tính. Trường `_meta` ghi bot nào gọi nhưng "never proof of who called". Server do Admin nhóm thêm thì mặc định cả nhóm dùng chung một khoá; Admin đổi được sang chế độ "từng người". | Cổng nhận người qua khoá riêng trên cả hai nơi; trong nhóm MausBot, server của Lab phải ở chế độ "từng người" (mục 3.2, N2). | K2, K3, K20 |
-| SR2 (luật chạy được) | Không liên quan nơi chạy. | Không liên quan nơi chạy. | Luật nằm trong cổng. | - |
-| SR3 (phạm vi quyền) | Không liên quan nơi chạy. | Kết quả quá 8.000 ký tự từ server stdio bị rút gọn trước khi tới AI. | Cổng che trường trước khi trả; việc rút gọn của MausBot không phải là che. | K10 |
-| SR4 (điểm dừng rủi ro) | Không hỏi duyệt trước khi ghi. | Có thẻ Cho phép/Từ chối ở mức "Hỏi", nhưng mặc định là toàn quyền và không hỏi. Người bấm là người ngồi trước máy, không phải người có quyền duyệt. | Cổng tự giữ đề xuất và trang duyệt, không tin bước duyệt của nơi chạy. | K4, K5, K6 |
-| SR5 (không chắc thì chặn) | Kết quả lỗi vẫn có dấu tích xanh. | Lỗi của server tới AI kèm mã và nội dung. | Cổng ghi lỗi rõ trong chữ; hai nơi chạy cần cùng một cách viết lỗi. | K9 |
-| SR6 (không ghi trùng) | Không tự gọi lại; mỗi lần gọi là tiến trình mới. | Không tự đặt hạn cho lời gọi công cụ. Server MCP của MausBot tự có mã `send_id` chống gửi trùng. | Cổng giữ mã lệnh; cần đo xem AI trong MausBot có tự gọi lại không. | K7, K8, K15 |
-| SR7 (vết xuyên suốt) | Không có mã vết, không có số token. | Chưa rõ; tài liệu không nói về mã vết gửi sang server. | Cổng tự sinh mã vết. | K9 |
-| SR8 (dùng lại, quyền theo người) | Nơi gọi thứ nhất. | Nhận nguyên khối cấu hình `mcpServers`, chạy được bằng Claude và Codex. | Ứng viên tốt cho nơi gọi thứ hai, và cho cả nơi gọi thứ ba bằng một trình AI khác. | K11 |
-
-**Kết luận:** MausBot không cản yêu cầu nào và cũng không làm thay cổng yêu cầu nào.
-Thiết kế cổng hiện tại (tự nhận người qua khoá, tự giữ lời duyệt, tự chống ghi trùng, tự sinh mã vết) đứng vững trên cả hai nơi chạy.
-
-## 6. Những gì cần kiểm tra
-
-Mọi phép kiểm tra chỉ dùng dữ liệu và khoá giả, vì mọi câu chat đi qua tài khoản Claude hoặc Codex của người chạy.
-Nhóm A và B dùng `tools/mcp-probe` có sẵn, với các công cụ `whoami`, `fake_write`, `ask_confirm`, `slow`, `flaky`, `structured`, `echo_link`.
-Cột "Ta đoán" là điều tài liệu nói; phép kiểm tra xác nhận hoặc bác nó.
-
-### 6.1. Nhóm A: MausBot làm nơi chạy bộ công cụ Lab (T1)
-
-Chạy lại năm câu P1-P5 của [kịch bản đo Thổ Thần](../appota/tho-than-mcp-probe.md) để hai cột ở mục 5 so được với nhau.
-
-| Mã | Câu hỏi | Cách kiểm | Ta đoán | Bằng chứng |
-| --- | --- | --- | --- | --- |
-| K1 (cách nối) | MausBot nối được bằng stdio, địa chỉ web trên máy và khoá bearer không? | Thêm probe kiểu stdio; chạy probe ở chế độ HTTP có khoá bearer giả rồi thêm server URL; gọi `whoami` từng cách | Cả ba chạy được trong chat | Log probe, ảnh chụp màn hình |
-| K2 (danh tính) | Server nhận được gì về người hỏi? | Gọi `whoami`; đọc `clientInfo`, header, `_meta` | Chỉ có tên ứng dụng, không có người | Dòng `initialize` và `tools/call` trong log |
-| K3 (khoá riêng) | Khoá `LAB_USER_KEY` mỗi người đặt có tới server không, đổi khoá có hiệu lực ngay không? | Đặt khoá, gọi `whoami`, đổi khoá, gọi lại | Tới được; đổi khoá có hiệu lực ở lượt sau | Trường `labEnv` trong log |
-| K4 (duyệt ở mức Hỏi) | Có thẻ Cho phép/Từ chối trước `fake_write` không? | Bot ở mức "Ask", nhờ chuyển T-12 cho Minh | Có thẻ | Ảnh thẻ, log không có `tools/call` khi bấm Từ chối |
-| K5 (duyệt ở mức mặc định) | Ở mức toàn quyền, `fake_write` có chạy không hỏi không? | Đổi bot sang "Full access", lặp lại K4 | Chạy không hỏi | Log có `tools/call` mà không có thẻ |
-| K6 (biểu mẫu hỏi người dùng) | MausBot có hiện biểu mẫu hỏi người dùng (elicitation) không? | Gọi `ask_confirm` | Chưa rõ, tài liệu không nói | Log `elicitation/create`, ảnh |
-| K7 (thời gian chờ) | Lời gọi dài có bị cắt không, cắt ở đâu? | Gọi `slow` 90 giây rồi 300 giây | Không cắt ở 60 giây | Thời điểm trong log |
-| K8 (tự gọi lại) | Công cụ báo lỗi thì AI có tự gọi lại không? | Gọi `flaky key=a`, đếm số lần gọi | Tùy trình AI | Số dòng `tools/call` cùng khoá |
-| K9 (hiển thị và vết) | Dữ liệu có cấu trúc, lỗi và link hiện ra sao; có mã vết, số token không? | Gọi `structured`, `echo_link`, một lệnh lỗi | Lỗi hiện kèm mã; mã vết chưa rõ | Ảnh, header trong log |
-| K10 (kết quả lớn) | Kết quả trên 8.000 ký tự có bị rút gọn không? | Thêm vào probe một công cụ trả danh sách khoảng 100 task giả, rồi gọi nó | Bị rút gọn, kèm công cụ `query_result` | Ảnh, log |
-| K11 (agent thứ hai) | Một bot Codex có gọi cùng server mà không sửa server không? | Tạo bot Codex, lặp lại K2 và K4 | Được | Log có `clientInfo` khác nhau, cùng kết quả |
-
-### 6.2. Nhóm B: Thổ Thần sai bot MausBot (T2)
-
-Chỉ chạy khi Kevin quan tâm T2.
-
-| Mã | Câu hỏi | Cách kiểm | Ta đoán | Bằng chứng |
-| --- | --- | --- | --- | --- |
-| K12 (cắm vào Thổ Thần) | Thổ Thần desktop chạy được server MCP của MausBot không? | Ghép đôi lấy khoá, dán cấu hình ở mục 4.1, gõ "liệt kê bot MausBot" | Được | Ảnh danh sách bot trong Thổ Thần |
-| K13 (việc ngắn) | Việc dưới 60 giây có trả kết quả về Thổ Thần không? | Nhờ bot làm một việc ngắn trên dữ liệu giả | Được | Ảnh, nhật ký hội thoại trong MausBot |
-| K14 (việc dài) | Việc trên 60 giây có lấy được kết quả bằng cách chờ nhiều lượt không? | Nhờ bot làm việc khoảng 3 phút | AI của Thổ Thần phải tự gọi chờ lại; có thể bỏ cuộc | Số lần gọi chờ, kết quả cuối |
-| K15 (gửi trùng) | Gửi lại cùng `send_id` có tạo tin thứ hai không? | Gọi `send_bot_message` hai lần cùng mã | Không | Hội thoại chỉ có một tin |
-| K16 (bot cần duyệt) | Bot dừng chờ duyệt thì Thổ Thần hiện gì? | Bot ở mức "Ask", nhờ việc cần ghi tệp | Thổ Thần nhận `needs-user`, người dùng phải mở MausBot | Ảnh hai bên |
-
-### 6.3. Nhóm C: Đưa MausBot vào Thổ Thần (T3, T4)
-
-Chỉ làm khi Kevin muốn đi hướng này; không cần chạy thử.
-
-| Mã | Câu hỏi | Cách kiểm | Bằng chứng |
-| --- | --- | --- | --- |
-| K17 (tính năng cần) | Thổ Thần muốn tính năng nào của MausBot: bot chạy nền theo lịch, AI điều khiển máy tính, nhóm bot giao việc cho nhau, thẻ duyệt? | Hỏi Kevin | Câu trả lời ghi vào mục 4 |
-| K18 (phần mở hay đóng) | Tính năng đó nằm trong phần lõi hay trong `enterprise/`? | Đọc mã đúng tính năng đó và `enterprise/FEATURES` | Danh sách tệp và giấy phép từng tệp |
-| K19 (pháp lý) | Appota có được dùng phần đó trong Thổ Thần không? | Gửi `LICENSE`, `LICENSING.md`, `enterprise/LICENSE`, `NOTICE` cho bộ phận pháp lý | Ý kiến bằng văn bản |
-
-### 6.4. Nhóm D: MausBot trong hệ sinh thái Appota (N2, N3, N4)
-
-Chỉ làm khi Kevin muốn MausBot dùng cho cả nhóm, không chỉ trên một máy.
-
-| Mã | Câu hỏi | Cách kiểm | Ta đoán | Bằng chứng |
-| --- | --- | --- | --- | --- |
-| K20 (khoá theo người trong nhóm) | Ở máy chủ nhóm, server của Lab đặt chế độ "từng người" thì cổng có thấy khoá riêng của từng thành viên không? Việc chạy theo lịch dùng khoá nào? | Hai thành viên giả, mỗi người một khoá; cùng gọi `whoami` qua một bot chung; thêm một việc chạy theo lịch gọi `whoami` | Hai khoá khác nhau; việc chạy theo lịch không có khoá người nào | Trường `labEnv` hoặc header trong log probe |
-| K21 (cổng mô hình) | Thổ Thần có cổng mô hình theo chuẩn OpenAI mà công cụ ngoài gọi được không? | Hỏi Kevin hoặc đội Thổ Thần | Chưa rõ; chưa thấy API công khai | Câu trả lời ghi vào mục 3.2 |
-| K22 (định dạng skill) | Thổ Thần nhận skill ở định dạng nào, có đọc được `SKILL.md` không? | Hỏi đội Thổ Thần; thử nạp một skill giả | Chưa rõ | Câu trả lời ghi vào mục 3.2 |
-
-**Kết luận:** nhóm A trả lời được câu hỏi của Lab trong khoảng nửa ngày, và kết quả có ích dù Kevin chọn hướng nào.
-Nhóm B mất khoảng hai giờ; nhóm C không tốn thời gian chạy thử nhưng phụ thuộc người khác.
-Nhóm D gồm một phép chạy cần gói nhóm trả phí và hai câu hỏi cho đội Thổ Thần.
-
-## 7. Mẫu thiết kế đáng chép
-
-MausBot là mã nguồn mở và đã gặp đúng các vấn đề của Lab.
-Bốn mẫu khớp với [bài học từ thị trường](market-lessons.md):
-
-1. **Chữ không phải là lời duyệt.** Mọi dòng bot đọc được gắn nhãn nguồn; dòng từ bot khác, webhook hay ứng dụng ngoài chỉ là thông tin, kể cả khi ghi "đã duyệt".
-2. **"Luôn cho phép" chỉ cho lệnh đọc.** Quyền nhớ sẵn gắn đúng bot, đúng server, đúng công cụ, và mất khi cấu hình server đổi; lệnh tạo, sửa, xoá luôn hỏi lại.
-3. **Gửi lại không gửi trùng.** Lệnh gửi tin nhận một mã `send_id`; gửi lại cùng mã thì trả biên nhận cũ.
-   Đây là chống ghi trùng (idempotency) ở mức tin nhắn, cùng ý với SR6 (không ghi trùng).
-4. **Kết quả lớn bị giữ lại phía host.** Host chỉ cho AI xem hình dạng dữ liệu và vài dòng đầu, rồi cho một công cụ hỏi tiếp phần cần.
-
-**Kết luận:** mẫu 1 và 2 đã nằm trong thiết kế cổng; mẫu 3 xác nhận cách làm SR6; mẫu 4 ghi lại để xem khi công cụ tra cứu trả về danh sách dài.
-
-## 8. Rủi ro
-
-- **Sản phẩm còn rất mới và đổi rất nhanh.** Kho mã ba tháng tuổi, gần 200 commit mỗi ngày; hành vi có thể khác tài liệu, nên mọi kết luận phải ghi số phiên bản đã đo.
-- **Dữ liệu đi qua nhà cung cấp AI.** Mọi câu chat gửi tới trình AI người dùng chọn; Lab chỉ dùng dữ liệu giả lập, nên không vướng ranh giới dữ liệu.
-- **Mặc định toàn quyền.** Ai cài MausBot mà không đổi mức duyệt thì bot gọi công cụ ghi không hỏi.
-- **Lệch khỏi việc chính.** [Tổng hợp phát hiện, mục 5.3](../findings.md#53-không-làm-bây-giờ) chốt không đọc sâu thêm hệ thống ngoài; nghiên cứu này phải giữ giới hạn một ngày.
-
-**Kết luận:** không rủi ro nào chặn nhóm A với dữ liệu giả; rủi ro thứ ba củng cố quyết định duyệt ở cổng, rủi ro thứ tư đặt giới hạn thời gian.
-
-## 9. Thứ tự làm
-
-| Bước | Việc | Giới hạn thời gian | Bằng chứng xong |
-| --- | --- | --- | --- |
-| 1 | Hỏi Kevin muốn hướng nào trong T1-T4, nếu là T3 hay T4 thì muốn tính năng nào (K17), và có muốn dùng MausBot cho cả nhóm không; hỏi đội Thổ Thần K21 và K22 | Đầu tuần 2, cùng lúc báo ba điểm về Thổ Thần | Câu trả lời ghi vào mục 3.2 và mục 4 |
-| 2 | Chạy nhóm A (K1-K11) trên MausBot 0.1.165 | Nửa ngày | Log trong `scratch/mcp-probe/`, cột MausBot ở mục 5 đổi thành "đã đo" |
-| 3 | Chạy nhóm B (K12-K16) nếu Kevin chọn T2 | Hai giờ | Ảnh và log, bảng ở mục 4.1 đổi thành "đã đo" |
-| 4 | Làm nhóm C (K18-K19) nếu Kevin chọn T3 hoặc T4 | Không quá nửa ngày đọc mã; phần pháp lý do người khác | Danh sách tệp và ý kiến pháp lý |
-| 5 | Chạy K20 nếu Kevin chọn dùng cho cả nhóm và có gói nhóm | Hai giờ | Log probe có hai khoá khác nhau |
-| 6 | Khi bản thử của Lab chạy được trong Thổ Thần, chạy ba kịch bản ở [tổng hợp phát hiện, mục 5.2](../findings.md#52-phạm-vi-bản-thử) trong MausBot | Tuần 3-4 | Bằng chứng "agent thứ hai dùng lại cùng công cụ"; so với trợ lý eve ở [eve, mục 5.1](eve.md#51-nơi-gọi-thứ-hai-cho-mốc-4) |
-
-Kiểm lại các câu trích trong tài liệu này: `bash rd/checks/mausbot.sh`.
-
-**Kết luận:** việc làm ngay là hỏi Kevin và chạy nhóm A; mọi việc khác chờ câu trả lời của Kevin.
+| Lớp | MausBot có sẵn | Chỗ thiếu | Cách nối | Đánh giá |
+|-|-|-|-|-|
+| 1. Đăng nhập | Máy chủ tự cài cho đăng nhập bằng mã email, theo danh sách hoặc cả tên miền; gửi mã qua máy chủ thư của công ty được. Vai trò Admin và Member. | Chưa có đăng nhập một lần (SSO): "planned: nothing checks it yet". Không đăng nhập bằng Lark. | Giới hạn theo tên miền công ty, gửi mã qua thư công ty; chờ SSO. | Chờ nhà làm |
+| 2. Kênh chat | App máy tính, app điện thoại. Slack chỉ chạy qua dịch vụ Admin của nhà làm; máy chủ tự cài trả lỗi 404 cho mọi đường Slack. | Không có Lark. | Tự viết cầu nối Lark ([mục Lark làm kênh chat](#lark-làm-kênh-chat)). | Tự làm |
+| 3. Dữ liệu nội bộ | Server MCP (chuẩn chung để AI gọi công cụ) qua stdio và HTTP; danh sách server được duyệt; khoá "từng người" trên máy chủ nhóm; Composio cho Gmail, Slack, HubSpot; trình duyệt tự đăng nhập. | Server không biết chắc ai đang gọi: "never proof of who called". Không có công cụ Lark dựng sẵn. | Mọi hệ thống nội bộ đi qua một cổng kiểm soát; mỗi nhân viên một khoá riêng; Lark nối qua server MCP chính thức của Lark ([mục Lark làm kênh chat](#lark-làm-kênh-chat)). | Cấu hình và một cổng |
+| 4. Mô hình AI | Một khoá API chung cho cả máy chủ, hoặc mọi cổng theo chuẩn OpenAI; sổ chi phí theo bot và mô hình. | Codex luôn đòi tài khoản ChatGPT cá nhân. | Trỏ mọi bot tới khoá hoặc cổng mô hình của công ty; cấm tài khoản AI cá nhân. | Sẵn |
+| 5. Quản trị | Năm mức duyệt, trần chi tiêu theo bot, nhật ký Activity cho thao tác quản trị, trang People có chi phí từng người. | Mặc định Toàn quyền; chưa ép được mức duyệt cho cả công ty; người bấm duyệt là người ngồi trước máy, không phải người có thẩm quyền. | Luật gốc đặt ở cổng kiểm soát; quy định mức "Hỏi" cho mọi bot có công cụ ghi. | Cấu hình và một cổng |
+| 6. Hạ tầng | Docker, Kubernetes, bộ cài một lệnh cho Ubuntu; nhiều workspace tách biệt trên một máy; sao lưu thư mục dữ liệu. | Dịch vụ trung gian của nhà làm và analytics bật sẵn; bot đọc được tệp chứa khoá. | Tự cài trên hạ tầng công ty; tắt dịch vụ trung gian; OMB_LOOPBACK_TRUST=service. | Sẵn |
+| 7. Phân phối bot | Gói mẫu cả nhóm bot trong một tệp Markdown; skill theo chuẩn SKILL.md; thư viện tổ chức. | Thư viện tổ chức cần dịch vụ Admin của nhà làm, dịch vụ này không có trong mã mở. | Kho gói nội bộ trên Git hoặc Lark Drive, cài bằng tay hoặc bằng dòng lệnh. | Sẵn |
+
+**Kết luận:** lớp 4, 6, 7 nối được bằng cấu hình. Lớp 3 và 5 cần thêm một cổng kiểm soát đứng trước hệ thống nội bộ. Lớp 1 và 2 là hai khoảng trống thật.
+
+## Ba khoảng trống và cách lấp
+
+### Lark làm kênh chat
+
+- MausBot không hỗ trợ Lark. Kênh chat công ty duy nhất là Slack, và chỉ chạy qua dịch vụ Admin của nhà làm.
+- Ở Slack, dịch vụ Admin mở một phiên riêng cho đúng người gửi, nên bot làm việc với quyền của người đó. Cầu nối Lark phải làm được điều tương tự.
+- Hai đường vào có sẵn để cầu nối dùng: dòng lệnh điều khiển máy chủ (headless CLI) và Bot API. Lời gọi qua Bot API thì bot không có công cụ nào: "no shell, computer, browser, phone, connected apps, MCP servers or data tools".
+- Vì vậy cầu nối phải gắn mỗi người gửi Lark với một phiên MausBot của đúng người đó. Tài liệu chưa nói cách làm việc này trên máy chủ tự cài.
+
+**Kết luận:** chat trong Lark là việc tự viết, độ khó chưa rõ. Cần chạy thử trước khi hứa mức 3.
+
+### Đăng nhập bằng tài khoản công ty
+
+- Đăng nhập một lần qua nhà cung cấp danh tính (OIDC) nằm trong phần enterprise và mới là kế hoạch; bản Business ghi "coming soon".
+- Tạm thời, máy chủ tự cài cho đăng nhập bằng mã gửi qua email, giới hạn theo tên miền công ty; nghỉ việc thì xoá khỏi danh sách bằng tay.
+
+**Kết luận:** đủ cho giai đoạn thử; dùng rộng thì cần nhà làm cam kết ngày giao SSO.
+
+### Kiểm quyền và duyệt khi bot ghi vào hệ thống nội bộ
+
+- MausBot gửi kèm tên bot, nhưng đó "never proof of who called". Máy chủ nhóm mặc định dùng một khoá chung cho cả nhóm, và việc chạy theo lịch "act for nobody".
+- Thẻ duyệt của MausBot hỏi người ngồi trước máy, không hỏi người có thẩm quyền như trưởng nhóm.
+- Lark có server MCP chính thức (gói @larksuiteoapi/lark-mcp, bản 0.5.1, còn beta, cập nhật lần cuối ngày 2025-08-12). Nó chạy bằng danh tính ứng dụng hoặc danh tính từng người qua đăng nhập ủy quyền (OAuth).
+- Cách lấp: một cổng kiểm soát đứng trước mọi hệ thống nội bộ. Cổng đổi khoá thành người, kiểm quyền, giữ đề xuất chờ người có thẩm quyền duyệt, chống ghi trùng và ghi vết. Việc chạy theo lịch dùng một danh tính dịch vụ có quyền hẹp.
+
+**Kết luận:** đây là khoảng trống quan trọng nhất của mức 2. Nó không phụ thuộc nhà làm: công ty tự dựng cổng, và cổng dùng lại được cho mọi công cụ AI khác.
+
+## Vấn đề của MausBot ảnh hưởng tích hợp
+
+Nguồn chính là issue #4716 trên GitHub. Một nhóm đánh giá MausBot để dùng trên máy có dữ liệu kinh doanh nhạy cảm, bằng cách đọc mã, không chạy ứng dụng. Họ "found no evidence of a backdoor, hidden destination or malicious code", nhưng công ty chưa thể giới hạn dữ liệu chỉ đi tới dịch vụ đã duyệt. Ngày 2026-11-21 issue vẫn mở, nhà làm chưa trả lời.
+
+| Vấn đề | Chi tiết | Chặn lớp | Xử lý |
+|-|-|-|-|
+| Toàn quyền mặc định, không cách ly | Bot đọc email hay trang web có câu lệnh cài cắm (prompt injection) có thể đọc khoá trên máy và gửi ra ngoài. | 5 | Đặt mức Hỏi từng bot; chưa ép chung được |
+| Dữ liệu ứng dụng kết nối đi qua dịch vụ của nhà làm | Mặc định, lời gọi Gmail, Drive, Slack đi qua một dịch vụ trên tên miền cá nhân của nhà làm, dùng một khoá chung cho mọi người dùng. | 3, 6 | Khoá Composio riêng hoặc OMB_COMPOSIO_BROKER=off |
+| Tự cập nhật, không ghim phiên bản | Bản desktop tự tải và cài bản mới mỗi giờ; bản Windows không kiểm chữ ký. | 6 | Dùng máy chủ tự cài; máy chủ không tự cập nhật |
+| Bản trên mây của nhà làm | Tự cho mượn thư mục nhà và chép tệp .env; Admin của nhà làm mở được phiên quản trị mà khách không duyệt. | 6 | Không dùng bản trên mây |
+| Máy chủ dùng chung | Người được chat với bot có thể mượn bot chạy ở mức Toàn quyền; bot đọc được tệp cấu hình chứa khoá. | 1, 6 | OMB_LOOPBACK_TRUST=service; khoá quan trọng để ở cổng, không để trên máy chủ |
+| Analytics bật sẵn | Số liệu dùng gửi đi trước khi người dùng chọn; tổ chức không tắt chung được. | 6 | Chặn ở tường lửa, kiểm bằng phép đo mạng |
+| Đổi rất nhanh | Ba tháng tuổi, khoảng 200 commit mỗi ngày, năm bản phát hành trong ba ngày 17 đến 19/11; phần lớn mã do một người viết. | Mọi lớp | Ghim phiên bản, nâng cấp mỗi tháng có kiểm thử |
+
+**Kết luận:** tự cài máy chủ và tắt dịch vụ trung gian xử lý được phần lớn vấn đề. Hai điểm còn lại phải chờ nhà làm: ép mức duyệt cho cả công ty và SSO.
+
+## Thị trường cho thấy giá trị ở đâu
+
+MausBot chưa có doanh nghiệp nào công bố kết quả. Grok Bot của xAI, sản phẩm MausBot tự nhận là bản thay thế mở, đã có số liệu ở đúng mức 2 (bot nối dữ liệu nội bộ). Số liệu do xAI hoặc khách của xAI công bố, chưa ai kiểm độc lập.
+
+| Bộ phận | Bot làm gì | Kết quả công bố | Người vẫn phải làm |
+|-|-|-|-|
+| Kế toán (nội bộ xAI) | Năm bot: mở tài khoản, xuất hóa đơn, hỗ trợ thanh toán, đối soát, thu nợ. | Hóa đơn từ khoảng 24 giờ xuống vài phút; đối soát từ 3-4 giờ xuống khoảng 30 phút. | Hoàn tiền cần người có thẩm quyền duyệt. |
+| Hỗ trợ khách (nội bộ xAI) | Trả lời phiếu hỗ trợ. | Lượng phiếu tăng 175% không tuyển thêm; 0,20-0,30 USD mỗi phiếu. | Ban đầu mọi lệnh ghi phải duyệt. |
+| Kinh doanh (nội bộ xAI) | Nghiên cứu khách qua đêm, soạn thư, báo giá. | Không công bố số. | Nhân viên không tự duyệt chiết khấu của mình được. |
+| Bảo hiểm (Harper) | Bot dùng chung xử lý hợp đồng bảo hiểm. | Dựng trong 24 giờ, tiết kiệm cho khách hơn 120.000 USD (lời CEO Harper). | Không nêu. |
+
+Sản phẩm cùng loại OpenClaw cho thấy mặt trái: một skill độc âm thầm gửi dữ liệu ra ngoài (Cisco, 28/1/2026), và bản 2.0 tắt sẵn cách ly và bước duyệt (The Register, 31/8/2026).
+
+**Kết luận:** giá trị đến từ việc lặp lại có quy trình, nối vào dữ liệu nội bộ, với người có thẩm quyền duyệt ở điểm rủi ro. Đó đúng là mức 2 cộng cổng kiểm soát; dừng ở mức 1 thì giá trị thấp.
+
+## Lộ trình
+
+| Giai đoạn | Làm gì | Đi tiếp khi |
+|-|-|-|
+| 0. Kiểm bảo mật | Cài máy chủ trong máy ảo cô lập, dữ liệu giả; tắt dịch vụ trung gian; ghi lại toàn bộ kết nối mạng; gửi email chứa câu lệnh cài cắm cho bot. | Chỉ còn kết nối tới địa chỉ đã duyệt; ở mức Hỏi, bot không làm gì ra ngoài khi chưa duyệt. |
+| 1. Mức 1 | 3 đến 5 người, 2 việc trên dữ liệu công khai; đo thời gian tiết kiệm, số lần phải sửa, chi phí AI mỗi việc. | Tiết kiệm trên 50% thời gian, dưới 10% kết quả phải sửa. |
+| 2. Mức 2 | Nối danh bạ, danh sách task giả lập và một bảng Lark Base thử qua cổng kiểm soát; hai người dùng chung một bot. | Mỗi lệnh gắn đúng người; không lệnh ghi nào chạy khi chưa duyệt; gửi lại không ghi hai lần. |
+| 3. Thử cầu nối Lark | Bot Lark nhận tin trong một nhóm thử, chuyển vào MausBot, trả lời lại. | Giữ đúng người gửi; độ trễ chấp nhận được. Khi đó mới quyết mức 3. |
+
+**Kết luận:** hết giai đoạn 3 là có đủ số liệu để quyết dùng rộng hay dừng. Mỗi giai đoạn có điểm dừng, nên dừng sớm không tốn thêm.
+
+## Nguồn
+
+- [MausBot: trang chủ](https://mausbot.com/)
+- [MausBot: bảng giá](https://mausbot.com/pricing)
+- [OpenMausBot issue #4716: Security and Privacy Issues](https://github.com/milind-soni/OpenMausBot/issues/4716)
+- [OpenMausBot: Self-hosting](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/self-hosting.md)
+- [OpenMausBot: Slack for Team Clouds](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/team-slack.md)
+- [OpenMausBot: Bot API](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/bot-api.md)
+- [OpenMausBot: Run from scripts and CI](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/headless-cli.md)
+- [OpenMausBot: Custom MCP servers](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/custom-mcp-servers.md)
+- [OpenMausBot: Bring your own engine](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/custom-engines.md)
+- [OpenMausBot: Composio](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/composio.md)
+- [OpenMausBot: Approval levels](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/approval-levels.md)
+- [OpenMausBot: Team Cloud](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/team-cloud.md)
+- [OpenMausBot: Organization library](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/docs/org-library.md)
+- [OpenMausBot: Enterprise features](https://github.com/milind-soni/OpenMausBot/blob/d01c7be498bfe7ee3c0963b169fb63fe531b1425/enterprise/FEATURES)
+- [Lark: lark-openapi-mcp](https://github.com/larksuite/lark-openapi-mcp)
+- [xAI: Grok Bot for Enterprise](https://x.ai/news/grok-bot-for-enterprise)
+- [TeslaNorth: Grok Bots handling the books](https://teslanorth.com/2026/11/18/grok-bot-accounting-team-spacexsi/)
+- [Zappiq: Grok Bot use cases](https://zappiqai.com/blog/grok-bot-use-cases)
+- [CellCog: Grok Team Bots](https://cellcog.ai/blog/grok-team-bots/)
+- [Cisco: Personal AI agents like OpenClaw](https://blogs.cisco.com/ai/personal-ai-agents-like-openclaw-are-a-security-nightmare)
+- [The Register: OpenClaw 2.0 security](https://www.theregister.com/ai-and-ml/2026/08/31/openclaw-20-pours-glitter-on-slow-burning-security-dumpster-fire/5293492)

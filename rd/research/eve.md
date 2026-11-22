@@ -1,221 +1,192 @@
-# Vercel eve và cách gắn vào công việc ở Appota
+# eve
 
-Ngày: 2026-11-19. Trạng thái: đọc bài công bố bản 1.0 và tài liệu trong kho mã xong; chưa chạy thử, chờ Kevin chọn hướng.
+Ngày: 2026-11-21. Trạng thái: đọc tài liệu, mã nguồn và báo chí về MausBot và eve; chưa chạy thử cả hai trong môi trường của công ty.
 
 ## Đọc nhanh
 
-- eve là bộ khung mã nguồn mở của Vercel để lập trình viên tự dựng một trợ lý AI chạy trên máy chủ; bản chính thức ra ngày 17/11/2026.
-  Nhân viên không cài eve; họ dùng trợ lý mà một đội đã dựng bằng eve.
-- Điểm hợp với Appota nhất: trợ lý dựng bằng eve có thể ngồi ngay trong nhóm chat Lark, nơi nhân viên đang làm việc, nhờ bộ nối Lark do chính Lark phát hành.
-- Với Lab, eve là ứng viên tốt cho trợ lý thứ hai dùng lại cùng công cụ ở mốc 4: nó gọi được cổng của Lab bằng khoá riêng của từng người, và không bị cắt sau 60 giây như Thổ Thần.
-- eve không làm thay cổng: nút duyệt của eve chỉ là lời đồng ý trong chat, nên cổng vẫn tự giữ quyền, bước duyệt và việc chống ghi trùng.
-- Tiếp theo: hỏi Kevin có muốn đi hướng Lark không, rồi dành nửa ngày chạy các phép kiểm ở mục 7; việc này cần một khoá gọi mô hình AI.
+- eve là bộ khung mã nguồn mở, miễn phí của Vercel để đội lập trình dựng trợ lý AI riêng cho công ty. Nhân viên không cài gì; họ nhắn trợ lý ngay trong nhóm chat.
+- So với MausBot, trợ lý dựng bằng eve vào được Lark, biết ai đang nhắn qua tài khoản Lark, và chờ người duyệt nhiều ngày mà không mất việc đang làm.
+- Đổi lại, công ty phải có một đội viết và giữ mã. Phần kiểm quyền và duyệt khi trợ lý ghi vào hệ thống nội bộ vẫn phải tự dựng, giống MausBot.
+- eve mới ra bản chính thức ngày 17/11/2026 và đổi rất nhanh. Mẫu kết nối Lark hiện có lỗi: trợ lý nhận được tin nhưng không trả lời được, phải sửa trước khi dùng.
+- Đề xuất: thử một trợ lý chỉ đọc trong một nhóm Lark thử với dữ liệu giả, rồi mới cho ghi qua bước duyệt. Song song, hỏi Lark về aily, nền tảng dựng trợ lý không cần viết mã của Lark, trước khi quyết tự dựng.
 
-## 1. Câu hỏi nghiên cứu
+## eve là gì
 
-Ngày 2026-11-19, Kevin giao tìm hiểu MausBot và eve trong tuần 3 (issue #92).
-MausBot đã có [tài liệu riêng](mausbot.md); tài liệu này lo phần eve và đặt ba nơi gọi cạnh nhau.
+eve là bộ khung để viết trợ lý AI bằng TypeScript. Nó lo sẵn vòng gọi mô hình AI, gọi công cụ, giao việc cho trợ lý con, kênh chat, bộ nhớ, lịch chạy và ghi vết. Đội lập trình viết phần riêng của công ty: trợ lý làm việc gì, được gọi công cụ nào, đặt ở kênh nào.
 
-Câu hỏi chính: eve gắn vào công việc hằng ngày của nhân viên Appota ở đâu, và gắn vào Lab ở đâu?
+| Điều | Nội dung |
+|-|-|
+| Ai làm | Vercel, công ty làm Next.js và nền tảng chạy web. Kho mã vercel/eve tạo ngày 2026-06-16; ngày 2026-11-21 có khoảng 6 nghìn sao, 439 issue và 537 yêu cầu sửa mã đang mở. |
+| Giấy phép | Apache 2.0 cho toàn bộ kho, dùng và sửa tự do. Không có phần nào khoá bản quyền. |
+| Phát hành | Bản thử công khai từ tháng 6/2026, hơn 230 bản phát hành. Bản 1.0 ngày 17/11/2026; bản 1.3.0 ngày 20/11/2026. |
+| Bộ não AI | Không có mô hình riêng. Gọi qua cổng mô hình của Vercel (AI Gateway) hoặc thẳng tới nhà cung cấp; tiền AI trả riêng. |
+| Giá | Bộ khung miễn phí. Chạy trên Vercel thì trả theo dịch vụ Vercel dùng tới; bài công bố không có bảng giá riêng cho eve. Tự cài thì chỉ tốn máy chủ và tiền AI. |
+| Chạy ở đâu | Trên Vercel, hoặc tự cài như một dịch vụ Node 24 trở lên. Một máy thì lưu phiên vào SQLite; nhiều máy thì lưu vào PostgreSQL. |
 
-Nó tách thành sáu câu nhỏ:
+**Kết luận:** eve không phải ứng dụng để nhân viên cài, mà là vật liệu để công ty dựng trợ lý của riêng mình. Chi phí chính là người viết và giữ mã, không phải tiền bản quyền.
 
-1. eve là gì, ai làm, giấy phép và giá thế nào?
-2. eve khác Thổ Thần và MausBot ở đâu, và đứng ở lớp nào trong hệ sinh thái AI của Appota?
-3. Nhân viên Appota sẽ gặp một trợ lý dựng bằng eve ở chỗ nào trong ngày làm việc?
-4. Lab dùng eve vào việc gì: nơi gọi thứ hai, đường vòng qua giới hạn 60 giây, hay mẫu thiết kế?
-5. Khi làm nơi gọi (host), eve giúp hay cản tám yêu cầu SR1-SR8 của [PRD](../problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc) tới đâu?
-6. Điều gì phải chạy thử mới biết, và chạy theo thứ tự nào?
+## Tích hợp nghĩa là gì
 
-Câu hỏi gắn với tiêu chí nghiệm thu "chứng minh Agent khác tái sử dụng được công cụ" ([tài liệu chương trình](../../docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt), dòng 239) và với mốc 4 của [spec bản thử, mục 5.2](../design/mvp-spec.md#52-điểm-dừng).
+Tích hợp eve là công ty tự dựng một hoặc vài trợ lý, đặt trong Lark, nối hệ thống nội bộ, chạy bằng mô hình AI công ty trả tiền, cài trên máy chủ công ty và tuân theo luật của công ty. Khác MausBot, Lark là điểm bắt đầu chứ không phải bước cuối. Có ba mức, mức sau gồm mức trước.
 
-**Kết luận:** tài liệu phải ra một đề xuất về vai trò của eve ở mốc 4 và ở Appota, kèm danh sách phép kiểm để biến đề xuất thành bằng chứng.
+| Mức | Nhân viên thấy gì | Lớp phải nối | Rủi ro |
+|-|-|-|-|
+| 1. Hỏi đáp trong Lark | Nhắn trợ lý trong một nhóm Lark; trợ lý trả lời từ tài liệu được phép, như quy trình nghỉ phép. | Đăng nhập (1), kênh chat (2), mô hình AI (4), hạ tầng (6) | Thấp |
+| 2. Đọc dữ liệu theo quyền | Chị Hoa hỏi "task nào của phòng đang quá hạn"; trợ lý chỉ trả phần chị Hoa được xem. | Thêm dữ liệu nội bộ (3), quản trị (5) | Trung bình |
+| 3. Ghi có duyệt | Chị Hoa gõ "chuyển T-12 cho anh Minh"; trợ lý soạn đề xuất, người có thẩm quyền duyệt rồi mới ghi. Sáng thứ Hai trợ lý tự gửi danh sách task quá hạn. | Thêm phân phối (7); luật duyệt và danh tính dịch vụ ở quản trị (5) | Cao |
 
-## 2. eve là gì
+**Kết luận:** mức 1 làm được ngay khi sửa xong kết nối Lark. Mức 2 và mức 3 cần cổng kiểm soát đứng trước hệ thống nội bộ, cùng loại cổng mà MausBot cần.
 
-Mọi dòng dưới đây lấy từ [bài công bố bản 1.0](https://vercel.com/blog/eve-is-now-generally-available) và tài liệu trong kho [vercel/eve](https://github.com/vercel/eve), ghim ở commit `08034cd`.
-Các câu trích được kiểm lại bằng `rd/checks/eve.sh`.
+## Bảy lớp tích hợp
 
-| Điều | Nội dung | Nguồn |
-| --- | --- | --- |
-| Sản phẩm | Bộ khung để viết agent bằng TypeScript: vòng lặp gọi mô hình, gọi công cụ và giao việc cho agent con, cộng các kênh chat, bộ nhớ, lịch chạy và vết. Bài công bố gọi nó là "the open-source framework for building production-ready agents". | Bài công bố |
-| Ai làm | Vercel, công ty làm Next.js và nền tảng chạy web. | Bài công bố, chín tác giả |
-| Mã nguồn | `vercel/eve`, tạo ngày 2026-06-16, khoảng 6 nghìn sao, giấy phép Apache 2.0 cho toàn bộ kho. | `gh api repos/vercel/eve`, ngày 2026-11-19 |
-| Phát hành | Bản thử công khai từ tháng 6/2026, hơn 230 bản phát hành trong giai đoạn thử; 1.0 ngày 17/11; 1.1.0 ngày 18/11. | Bài công bố, `gh api .../releases` |
-| Chạy ở đâu | Trên Vercel, hoặc tự cài như một dịch vụ Node: một tiến trình lưu phiên vào SQLite trên đĩa, nhiều bản sao thì lưu vào PostgreSQL. Cần Node 24 trở lên. | [Tự cài](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/guides/deployment/self-hosting/index.md), [nơi lưu phiên](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/guides/deployment/workflow-worlds.md), npm `eve@1.1.0` |
-| Mô hình AI | Gọi qua cổng mô hình của Vercel (AI Gateway) hoặc thẳng tới nhà cung cấp qua thư viện AI SDK. Bài công bố không nêu danh sách mô hình. | Tự cài, mục "Configure model access" |
-| Giá | Bộ khung miễn phí. Chạy trên Vercel thì trả tiền theo dịch vụ Vercel dùng tới; bài công bố không có bảng giá cho eve. Tiền gọi mô hình trả riêng. | Bài công bố |
-| Kênh chat | Slack, Microsoft Teams, Discord, Telegram, GitHub, Linear, Twilio, web chat, iMessage; thêm mọi kênh có bộ nối Chat SDK, trong đó có Lark. | Bài công bố, [Chat SDK](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/channels/chat-sdk/index.mdx) |
-| Nối công cụ | Ba cách: gọi server MCP của người khác qua địa chỉ web, gọi API mô tả bằng OpenAPI, hoặc tự viết công cụ. | [Kết nối](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/connections/index.mdx), [kết nối MCP](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/connections/mcp.mdx) |
-| Duyệt | Mỗi công cụ hay mỗi kết nối chọn mức hỏi: không hỏi, hỏi lần đầu, hỏi mọi lần, để một mô hình nhỏ quyết định, hoặc luật tự viết. Nút duyệt hiện trong kênh chat; mặc định chỉ người yêu cầu được bấm. | [Người trong vòng lặp](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/tools/human-in-the-loop.md) |
-| Chạy bền | Mỗi phiên là một quy trình bền (durable workflow): sập rồi chạy tiếp từ bước đã xong; chờ người duyệt được nhiều ngày mà không giữ máy chạy. | [Mô hình chạy](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/concepts/execution-model-and-durability.mdx) |
-| Vết | Theo chuẩn OpenTelemetry; ghi lần gọi mô hình, gọi công cụ, gọi server MCP và quyết định duyệt. Hội thoại riêng ở bản chạy thật chỉ gửi siêu dữ liệu, không gửi nội dung. | Bài công bố, [bảo mật](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/concepts/security-model.md) |
+Dùng cùng bảy lớp với phần MausBot để so trên một thước đo. Cột "Có sẵn" đọc từ tài liệu trong mã nguồn (commit 08034cd) và các issue trên GitHub, chưa chạy thử.
 
-Bộ nối Lark là gói `@larksuite/vercel-chat-adapter` 0.3.0 trên npm, giấy phép MIT, do tổ chức `larksuite` trên npm phát hành.
-Đọc gói tải về cho thấy ba điều: bot nhận tin qua kết nối dài WebSocket nên không cần địa chỉ công khai để nhận tin; nút bấm hiện thành thẻ Lark và gọi ngược về bot; biểu mẫu nhập liệu chưa hỗ trợ (README của gói, mục "Interactive cards").
+| Lớp | eve có sẵn | Chỗ thiếu | Cách nối | Đánh giá |
+|-|-|-|-|-|
+| 1. Đăng nhập | Kênh chat nhận người nhắn từ chữ ký đã kiểm của nền tảng, không tin tên người ghi trong nội dung tin nhắn. Nhân viên dùng luôn tài khoản Lark. | Không có trang quản lý người dùng riêng; nghỉ việc thì phụ thuộc việc khoá tài khoản Lark. | Dựa vào tài khoản Lark của công ty; giới hạn người thấy bot bằng phạm vi ứng dụng Lark. | Sẵn qua Lark |
+| 2. Kênh chat | Slack, Teams, Discord, Telegram, web chat có sẵn. Lark đi qua bộ nối chính thức của Lark (@larksuite/vercel-chat-adapter 0.3.0, MIT): nhận tin qua kết nối dài nên không cần địa chỉ công khai; nút bấm hiện thành thẻ Lark. | Mẫu kết nối Lark không gửi được câu trả lời (issue #1753, mở từ 2026-08-07). Thẻ Lark chưa có biểu mẫu nhập liệu. | Đội lập trình sửa đường gửi trả lời ([mục Sửa kết nối Lark](#sửa-kết-nối-lark)). | Phải sửa |
+| 3. Dữ liệu nội bộ | Ba cách nối: server MCP (chuẩn chung để AI gọi công cụ), API mô tả bằng OpenAPI, công cụ tự viết. Khoá chọn được theo từng người hỏi; khoá nằm phía máy chủ, không tới mô hình. | Kết quả công cụ tới mô hình nguyên văn, không có bước lọc. Mỗi lời gọi MCP tốn sáu yêu cầu mạng (issue #2432). | Mọi hệ thống nội bộ đi qua một cổng kiểm soát; cổng che trường trước khi trả. Lark nối qua server MCP chính thức của Lark. | Cấu hình và một cổng |
+| 4. Mô hình AI | Cổng mô hình của Vercel hoặc gọi thẳng nhà cung cấp; đổi mô hình bằng cấu hình. | Không có trần chi tiêu dựng sẵn. | Dùng khoá hoặc cổng mô hình của công ty; đặt trần ở phía nhà cung cấp. | Sẵn |
+| 5. Quản trị | Mỗi công cụ chọn mức hỏi: không hỏi, hỏi lần đầu, hỏi mọi lần, để một mô hình nhỏ quyết, hoặc luật tự viết. Ghi vết theo chuẩn OpenTelemetry; hội thoại riêng chỉ gửi siêu dữ liệu. | "Approval is consent only": bấm duyệt không đổi quyền. Mặc định chỉ người yêu cầu được bấm, không phải trưởng nhóm. Chưa có vết kiểm toán an ninh (issue #6645). Không có trang quản trị. | Luật gốc, bước duyệt và vết đặt ở cổng kiểm soát. | Cấu hình và một cổng |
+| 6. Hạ tầng | Dịch vụ Node cộng PostgreSQL và Docker; mỗi phiên là quy trình bền, sập rồi chạy tiếp từ bước đã xong. | Đăng nhập kết nối qua Vercel Connect, máy ảo cách ly và trang xem lượt chạy chỉ có trên Vercel. Có lỗi mở khi tự cài ([mục Vấn đề của eve ảnh hưởng tích hợp](#vấn-đề-của-eve-ảnh-hưởng-tích-hợp)). | Tự cài trên hạ tầng công ty; ghim phiên bản; kiểm sập và nâng cấp trước khi dùng thật. | Sẵn, phải kiểm |
+| 7. Phân phối | Một trợ lý chung; nhân viên thêm bot vào nhóm Lark là dùng, không cài gì. | Thêm việc mới là sửa mã và triển khai lại; người không biết lập trình không tự thêm được. | Mỗi việc mới đi qua đội giữ mã, có kiểm thử trước khi triển khai. | Sẵn |
 
-**Kết luận:** eve không phải một ứng dụng để nhân viên cài, mà là vật liệu để một đội lập trình dựng trợ lý của riêng mình.
-Nó mã nguồn mở, tự cài được trên máy chủ công ty, và đã có đường vào Lark.
+**Kết luận:** lớp 1, 4, 7 có sẵn; lớp 6 có sẵn nhưng phải kiểm. Lớp 3 và 5 cần cổng kiểm soát như MausBot. Lớp 2 là khoảng trống duy nhất thuộc về eve, và nhỏ hơn nhiều so với MausBot vì đã có bộ nối do Lark làm.
 
-## 3. Ba nơi gọi đặt cạnh nhau
+## Nhân viên dùng thế nào
 
-Nơi gọi (host) là phần mềm người dùng mở để nói chuyện với agent ([bảng thuật ngữ](../problem/glossary.md)).
-Cột Thổ Thần lấy từ các lần đo ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)); cột MausBot lấy từ [tài liệu MausBot](mausbot.md); cột eve lấy từ mục 2.
+Ví dụ lấy từ phòng Vận hành giả lập, với danh bạ nhân viên và danh sách task giả.
 
-| Điều | Thổ Thần | MausBot | eve |
-| --- | --- | --- | --- |
-| Là gì | Ứng dụng chat AI của công ty | Ứng dụng desktop cá nhân, mỗi người một nhóm bot | Bộ khung để lập trình viên dựng trợ lý |
-| Ai dựng, ai dùng | Đội Thổ Thần dựng; mọi nhân viên dùng | Supamaus dựng; người tự cài dùng | Một đội của Appota dựng; nhân viên dùng qua kênh chat |
-| Nhân viên gặp nó ở đâu | Trong ứng dụng Thổ Thần (web, desktop, điện thoại) | Trong ứng dụng MausBot; Slack chỉ ở bản đám mây trả phí; không có Lark | Ở kênh được chọn: Lark, Slack, Teams, trang web riêng |
-| Server công cụ biết ai đang hỏi không | Không; chỉ có header `x-user-id` chưa kiểm được nguồn | Không; khoá do người thêm server đặt | Kênh xác thực người nhắn bằng chữ ký của nền tảng; agent tự chọn khoá theo người đó |
-| Duyệt trước khi ghi | Không hỏi | Có thẻ duyệt, nhưng mặc định toàn quyền | Có nút duyệt; chỉ là lời đồng ý, không đổi quyền |
-| Việc dài | Cắt sau 60 giây | Không tự cắt | Chờ được nhiều ngày, sống qua lần khởi động lại |
-| Cổng của Lab phải mở ra ngoài không | Phải, vì lời gọi đi từ máy chủ Thổ Thần | Không, nếu chạy cùng máy | Không, nếu eve chạy cùng mạng với cổng |
-| Ai trả tiền mô hình | Credit Thổ Thần | Tài khoản AI cá nhân | Khoá mô hình của đội dựng |
-| Phải viết mã không | Không | Không | Có, TypeScript |
+| Cách dùng | Ví dụ | Cần gì | Ai đồng ý |
+|-|-|-|-|
+| Hỏi trợ lý trong nhóm chat | Trong nhóm Lark của phòng, chị Hoa gõ "@Trợ lý chuyển T-12 cho anh Minh"; trợ lý trả đề xuất và link duyệt ngay trong nhóm. | Một ứng dụng Lark tự dựng do quản trị Lark cấp; quyền đọc tin và nhận bấm thẻ; một khoá mô hình. | Quản trị Lark |
+| Nhắc việc theo lịch | Sáng thứ Hai, trợ lý gửi vào nhóm danh sách task quá hạn của phòng. | Như trên, cộng một danh tính dịch vụ có quyền hẹp, vì việc chạy theo lịch không có người hỏi. | Chủ dữ liệu task |
+| Nghe trong kênh và tự đề xuất | Trợ lý đọc tin trong nhóm được chọn; thấy ai đó nhờ việc thì đề xuất tạo task. | Như trên. Một mô hình nhỏ đọc mọi tin của nhóm để lọc, nên mọi tin đều đi tới nhà cung cấp mô hình. | Chủ nhóm chat và chủ dữ liệu |
 
-### 3.1. eve ở lớp nào của hệ sinh thái Appota
+**Kết luận:** hỏi trợ lý trong nhóm chat là đường ngắn nhất tới chỗ nhân viên đang làm việc, vì không ai phải mở thêm ứng dụng. Nghe trong kênh chỉ nên bật sau khi chủ dữ liệu đồng ý.
 
-Đặt theo [ngữ cảnh hệ sinh thái](../../docs/context/appota-ai-ecosystem.md), bản chép từ slide và chưa được Kevin xác nhận:
+## Khoảng trống phải tự làm và cách lấp
 
-- **Thổ Thần (lớp thực thi).** eve trùng vai ở chạy agent, điều phối nhiều bước, bộ nhớ và vết.
-  Khác ở chỗ eve là mã do đội mình giữ, còn Thổ Thần là sản phẩm có sẵn.
-- **AgentLize (lớp điều khiển).** eve gần như không trùng: không có chợ skill, không có danh mục kết nối dùng chung, không có trang quản trị.
-  MausBot thì trùng nhiều hơn ([MausBot, mục 3.1](mausbot.md#31-mausbot-có-gì-ở-từng-lớp)).
-- **Kdata (hạ tầng).** Bản tự cài là một dịch vụ Node cộng PostgreSQL và Docker, đúng loại máy chủ Kdata đang vận hành.
-- **Chủ dữ liệu.** eve chỉ chạm hệ thống nghiệp vụ qua công cụ và kết nối; khoá kết nối nằm phía máy chủ, không tới mô hình.
+### Sửa kết nối Lark
 
-**Kết luận:** Thổ Thần và MausBot là ứng dụng cho người dùng cuối; eve là vật liệu để dựng một ứng dụng như thế, và nó đứng ở lớp thực thi cạnh Thổ Thần.
-Câu hỏi đúng cho Appota vì vậy không phải "nhân viên có cài eve không", mà "có dựng trợ lý nào bằng eve không, và đặt nó ở kênh nào".
+- Lệnh tạo kênh Lark của eve sinh ra mã chỉ gửi trả lời được khi tin đến qua địa chỉ web (webhook). Bộ nối của Lark lại nhận tin qua kết nối dài, nên mọi câu trả lời đều lỗi (issue #1753).
+- Issue mở từ 2026-08-07, cập nhật lần cuối 2026-09-06, chưa có bản sửa chính thức.
+- Cách lấp: đội lập trình viết lại đường gửi trả lời, gửi thẳng qua API của Lark. Cách này chưa chạy thử.
 
-## 4. Gắn vào công việc hằng ngày của nhân viên Appota
+**Kết luận:** việc sửa nhỏ, nhưng phải chạy thử trong một nhóm Lark thử trước khi hứa mức 1.
 
-Ba điều Lab biết về nơi nhân viên làm việc: Appota có hơn 400 nhân sự, Lark nằm trong danh sách hệ thống nghiệp vụ trên slide hệ sinh thái, và báo cáo tuần của Lab nộp qua Lark.
-Lab chưa đo phòng nào dùng Lark vào việc gì, nên bảng dưới lấy ví dụ từ phòng Vận hành giả lập của Lab.
+### Gắn người nhắn với quyền trong hệ thống
 
-| Cách | Ví dụ | Cần gì | Ai quyết |
-| --- | --- | --- | --- |
-| E1. Trợ lý trong nhóm chat Lark | Trong nhóm Lark của phòng Vận hành, chị Hoa gõ "@Trợ lý chuyển T-12 cho anh Minh"; bot trả đề xuất và link duyệt ngay trong nhóm. | Một ứng dụng Lark tự dựng (self-built app) do quản trị Lark của Appota cấp; quyền đọc tin và nhận bấm thẻ; một khoá mô hình. | Quản trị Lark và Kevin |
-| E2. Nhắc việc theo lịch | Sáng thứ Hai, bot gửi vào nhóm danh sách task quá hạn của phòng. | Như E1, cộng một danh tính dịch vụ cho cổng, vì việc chạy theo lịch không có người hỏi. | Chủ dữ liệu task |
-| E3. Nghe ngầm trong kênh | Bot đọc mọi tin trong nhóm được chọn và tự đề xuất tạo task khi thấy ai đó nhờ việc. | Như E1; bot đọc mọi tin nhắn của nhóm. | Chủ nhóm chat; cần đồng ý về dữ liệu |
-| E4. Thổ Thần giao việc dài cho eve | Chị Hoa gõ trong Thổ Thần "rà 100 task quá hạn và soạn đề xuất"; AI của Thổ Thần giao việc cho trợ lý eve rồi hỏi lại kết quả. | eve mở kênh MCP của nó (bốn công cụ bắt đầu, xem, trả lời, hủy); cổng của eve phải có địa chỉ công khai, vì Thổ Thần gọi từ máy chủ của nó. | Đội Thổ Thần |
+- eve biết người nhắn là ai trong Lark, nhưng hệ thống nội bộ cần biết người đó được làm gì.
+- Cách A: eve giữ khoá riêng của từng người và gửi đúng khoá theo người hỏi. Hệ thống không phải đổi gì, nhưng máy chủ eve giữ khoá của mọi người và thành nơi cần bảo vệ nhất.
+- Cách B: eve gọi bằng một khoá dịch vụ và báo kèm tên người hỏi; cổng kiểm soát chỉ tin tên này khi đến từ đúng khoá dịch vụ đó. eve đã dùng mẫu này giữa hai trợ lý eve với nhau.
+- Việc chạy theo lịch không có người hỏi, nên dùng một danh tính dịch vụ có quyền hẹp.
 
-E4 có hai giới hạn đã ghi trong tài liệu của eve.
-Công cụ bắt đầu việc (`agent_start`) không chống gửi trùng, nên AI của Thổ Thần gửi lại thì thành hai việc.
-AI của Thổ Thần phải tự hỏi lại kết quả nhiều lượt, mỗi lượt dưới 60 giây; giống giới hạn của đường Thổ Thần sai bot MausBot ([MausBot, mục 4.1](mausbot.md#41-giới-hạn-của-t2-thổ-thần-sai-bot-mausbot)).
+**Kết luận:** chọn cách B khi có cổng kiểm soát, vì khoá của từng người không nằm rải trên máy chủ trợ lý.
 
-**Kết luận:** E1 là đường ngắn nhất từ công cụ của Lab tới chỗ nhân viên đang làm việc, vì người dùng không phải mở thêm ứng dụng nào.
-E1 cần Appota cấp một ứng dụng Lark và một khoá mô hình, nên Kevin quyết; E3 cần thêm đồng ý của chủ dữ liệu và không nên làm trong Lab.
+### Kiểm quyền và duyệt khi trợ lý ghi vào hệ thống nội bộ
 
-## 5. Gắn vào Lab
+- Tài liệu eve viết thẳng "Approval is consent only": lời gọi vẫn chạy bằng danh tính của người yêu cầu, người bấm duyệt không thêm quyền.
+- Mặc định chỉ người yêu cầu bấm được nút duyệt. Nam xin chuyển T-12 thì chính Nam tự duyệt, không phải trưởng nhóm.
+- Nếu máy chủ sập ngay sau khi lệnh ghi đã chạy, eve có thể báo "This call did not run" (issue #5841). Mô hình tưởng chưa ghi và đề nghị làm lại, dẫn tới ghi hai lần.
+- Cách lấp: cổng kiểm soát giữ đề xuất, cho đúng người có thẩm quyền duyệt, chống ghi trùng và ghi vết. Đây là cùng cổng ở [mục Kiểm quyền và duyệt khi bot ghi vào hệ thống nội bộ](mausbot.md#kiểm-quyền-và-duyệt-khi-bot-ghi-vào-hệ-thống-nội-bộ).
 
-### 5.1. Nơi gọi thứ hai cho mốc 4
+**Kết luận:** đây là khoảng trống quan trọng nhất. Công ty dựng cổng một lần và dùng chung cho cả eve, MausBot và mọi công cụ AI khác.
 
-Spec hiện ghi nơi gọi thứ hai là "trợ lý gọi hàm của Lab", một chương trình chat dòng lệnh tự viết ([spec, mục 6](../design/mvp-spec.md#6-kiến-trúc-tóm-tắt)).
-Một trợ lý eve làm được cùng việc đó, theo hai lối vào của cổng:
+### Đội giữ mã
 
-- **Lối MCP:** một kết nối MCP trỏ tới `/mcp` của cổng ([cửa `/mcp`](../../lab/gateway/README.md#hai-cửa-vào)).
-- **Lối gọi hàm:** năm công cụ tự viết, mỗi công cụ gọi `POST /v1/tools/<tên>` ([đường đọc của cổng](../../lab/gateway/README.md#một-lời-gọi-đi-qua-đâu)).
+- Mỗi việc mới của trợ lý là mã TypeScript phải viết, kiểm thử và triển khai lại.
+- eve đổi rất nhanh, nên đội phải theo dõi bản mới và nâng cấp có kiểm thử.
 
-Cùng một trợ lý, cùng mô hình, chỉ đổi lối vào: đây là phép so MCP với gọi hàm sạch nhất mà Lab có thể dựng, vì mọi biến khác đứng yên.
+**Kết luận:** chỉ chọn eve khi công ty sẵn sàng giao trợ lý cho một đội cụ thể giữ lâu dài.
 
-| Tiêu chí | Chương trình chat tự viết | Trợ lý eve |
-| --- | --- | --- |
-| Thuyết phục người chấm về SR8 (dùng lại, quyền theo người) | Thấp hơn: Lab viết cả hai đầu nên dễ bị coi là may đo | Cao hơn: bộ khung của bên thứ ba gọi cổng mà cổng không sửa dòng nào |
-| Gần công việc thật | Dòng lệnh, chỉ Lab dùng | Chạy được trong Lark (E1) |
-| Đo M6 (công sức dùng lại) | Đo công sức viết một chương trình | Đo công sức gắn một bộ khung có sẵn, gần thực tế hơn |
-| Phụ thuộc | Không thêm gì | Node 24 (Lab đang dùng Node 22.21), bộ khung mới ra hai ngày |
-| Khoá mô hình | Cần | Cần |
+## Vấn đề của eve ảnh hưởng tích hợp
 
-### 5.2. Ai đổi người thành khoá
+Nguồn là tài liệu và issue trên kho vercel/eve, đọc ngày 2026-11-21. Các lỗi dưới đây do người dùng báo, nhà làm chưa đóng.
 
-eve biết ai đang nhắn, nhưng cổng của Lab nhận người qua khoá `lab_` ([ADR-0005](../../docs/adr/adr-0005-requester-identity.md)).
-Có hai cách nối hai điều này:
+| Vấn đề | Chi tiết | Chặn lớp | Xử lý |
+|-|-|-|-|
+| Đổi rất nhanh | Bốn bản phát hành trong bốn ngày, từ 1.0 (17/11) tới 1.3.0 (20/11); 439 issue và 537 yêu cầu sửa mã đang mở. | Mọi lớp | Ghim phiên bản, nâng cấp theo đợt có kiểm thử |
+| Nâng cấp làm hỏng việc đang chờ | Tài liệu ghi: tự cài mà đổi phiên bản thì phiên đang dở không chạy tiếp được. Một người dùng mất 420 phiên sau khi nâng cấp (issue #3570). | 6 | Nâng cấp khi không còn việc chờ duyệt; báo trước cho người dùng |
+| Sập giữa chừng khi tự cài | Trên PostgreSQL, lượt đang chạy khi máy sập có thể không bao giờ chạy tiếp (issue #535). Lệnh ghi đã chạy có thể bị báo là chưa chạy (issue #5841). | 5, 6 | Cổng chống ghi trùng; kiểm bằng phép tắt máy giữa lúc ghi |
+| Một số phần chỉ có trên Vercel | Đăng nhập kết nối qua Vercel Connect, máy ảo cách ly và trang xem lượt chạy. | 3, 6 | Tự làm phần cần dùng, bỏ phần còn lại |
+| Dữ liệu ra ngoài | Nội dung chat tới nhà cung cấp mô hình. Chạy trên Vercel thì dữ liệu nằm ở máy chủ nước ngoài. | 4, 6 | Tự cài trên hạ tầng công ty; chỉ dùng nhà cung cấp mô hình đã duyệt |
+| Chưa có vết kiểm toán an ninh | Chưa có cách được hướng dẫn để gửi sự kiện an ninh sang hệ thống giám sát; lần xác thực bị từ chối chưa được ghi (issue #6645, mở 2026-11-19). | 5 | Tự ghi qua hook của eve; vết chính đặt ở cổng |
 
-- **Cách A, eve giữ khoá của từng người.** Kết nối MCP dùng hàm chọn khoá theo người hỏi (`principalType: "user"`), đọc khoá của người đó từ kho khoá của eve.
-  Cổng không đổi dòng nào; đổi lại, máy chủ eve giữ khoá của mọi người và trở thành nơi cần bảo vệ nhất.
-- **Cách B, cổng tin eve báo tên người.** eve gọi bằng một khoá dịch vụ và gắn header nêu người hỏi; cổng chỉ nhận header này từ đúng khoá dịch vụ đó.
-  eve đã có mẫu này giữa hai agent eve (`trustedForwarders`); với cổng của Lab, đây là thay đổi ADR-0005 và cần một ADR mới.
+**Kết luận:** không vấn đề nào chặn một bản thử với dữ liệu giả. Hai vấn đề sập và nâng cấp chặn việc ghi thật, nên phải kiểm trước mức 3.
 
-### 5.3. Duyệt vẫn nằm ở cổng
+## Thị trường cho thấy giá trị ở đâu
 
-Tài liệu eve viết thẳng: "Approval is consent only."
-Người bấm duyệt không đổi quyền của lời gọi; lời gọi vẫn chạy bằng danh tính và khoá của người yêu cầu.
-Điều này khớp với thiết kế của Lab: lời duyệt có hiệu lực là lời bấm trên trang của cổng ([ADR-0008](../../docs/adr/adr-0008-approval-page-login.md)).
-Năm công cụ của cổng chỉ đọc hoặc soạn đề xuất, không công cụ nào tự ghi, nên trợ lý eve có thể để mức "không hỏi" mà không mất an toàn.
+Ba công ty đầu dùng eve, số liệu do Vercel công bố. Hai công ty sau dựng trợ lý trong Slack bằng công cụ khác, đưa vào để thấy giá trị của trợ lý trong kênh chat. Chưa số liệu nào được kiểm độc lập.
 
-eve còn một cách gửi danh tính người duyệt sang server công cụ trong một header riêng, chỉ cho đúng lời gọi đã được duyệt.
-Về sau, đây có thể là đường để cổng nhận lời duyệt bấm trên thẻ Lark thay vì trên trang của cổng, với điều kiện thẻ khoá vào đúng dấu vân tay của đề xuất.
-Lab chưa làm việc này trước khi mốc 3 xong.
+| Công ty | Trợ lý làm gì | Kết quả công bố | Người vẫn phải làm |
+|-|-|-|-|
+| Clay (eve) | Trợ lý dữ liệu trả lời câu hỏi của nhân viên trong Slack. | Sau hơn hai tháng, 30-40% công ty dùng hằng tuần. | Không nêu. |
+| Rillet (eve) | Nhận yêu cầu của khách, viết đặc tả, kiểm thử thay đổi, mở yêu cầu sửa mã. | Tốc độ ra bản mới gấp ba trong ba tháng. | Người duyệt từng yêu cầu sửa mã. |
+| Evisions (eve) | Chuyển trợ lý có sẵn sang eve. | Bớt 25 nghìn dòng mã, chi phí AI giảm một nửa, thời gian chạy cải thiện 66%. | Không nêu. |
+| Salesforce (công cụ của Salesforce) | Trợ lý trong Slack trả lời và làm việc cho nhân viên; trợ lý hỗ trợ kỹ thuật nội bộ. | 86% nhân viên dùng; một trợ lý có khoảng 25 nghìn người dùng; trợ lý kỹ thuật xử lý hơn 64 nghìn yêu cầu, trả lại 17 nghìn giờ. | Rút kho kiến thức từ 2.000 bài xuống 600 bài đã kiểm. |
+| Devolutions (tự viết) | Gõ một lệnh trong kênh sự cố là trợ lý soạn báo cáo sau sự cố, kéo ca hỗ trợ liên quan, đưa vào Jira; trợ lý pháp lý trả lời 10-15 câu hỏi tuân thủ về điều khoản nhà cung cấp. | Không công bố số. | Người quản lý sự cố duyệt báo cáo. |
 
-### 5.4. Năm mẫu thiết kế khớp với Lab
+**Kết luận:** giá trị rõ nhất là trợ lý trả lời câu hỏi về dữ liệu ngay trong kênh chat, tức mức 2. Khi trợ lý ghi, các công ty vẫn giữ người duyệt, đúng vai của cổng kiểm soát.
 
-1. **Duyệt chỉ là đồng ý.** Như mục 5.3.
-2. **Một lượt chạy chỉ thuộc một người.** Trong nhóm chat chung, tin của người khác chờ lượt sau và chạy bằng danh tính của họ; khớp với cách cổng gắn mỗi lời gọi với một khoá.
-3. **Không tin danh tính trong nội dung request.** Kênh chỉ nhận người từ chữ ký đã kiểm; cùng lý do cổng chưa dùng `x-user-id` để cấp quyền.
-4. **Khoá kết nối không tới mô hình và không nằm trong phiên.** Cổng cũng giữ khoá dịch vụ của hai hệ thống giả ở phía mình.
-5. **Bắt đầu việc không chống gửi trùng.** Chính eve để việc này cho phía gọi; đây là bằng chứng thêm rằng SR6 (không ghi trùng) phải nằm ở cổng.
+## Tự dựng hay dùng aily của Lark
 
-**Kết luận:** eve là ứng viên mạnh hơn chương trình chat tự viết cho nơi gọi thứ hai, vì nó vừa là bằng chứng dùng lại do bên thứ ba làm, vừa so được hai lối vào trên cùng một trợ lý.
-Đề xuất dùng eve ở mốc 4 theo cách A nếu phép kiểm KE1 tới KE5 ở mục 7 đạt, và ghi quyết định thành một ADR trước khi dựng.
+Lark có aily, nền tảng dựng trợ lý cho doanh nghiệp. Theo bài của Feishu ngày 2025-11-26, dựng một trợ lý chỉ cần "配置人设（指令）、接入企业知识、添加业务系统 MCP" (đặt chỉ dẫn, nối kho kiến thức, thêm server MCP của hệ thống nghiệp vụ). Quyền đọc kiến thức trong Lark áp luôn cho trợ lý. Nguồn này là bản Feishu ở Trung Quốc; chưa xác nhận aily có trên gói Lark quốc tế của công ty.
 
-## 6. Đối chiếu với tám yêu cầu SR1-SR8
+| Điều | eve | aily |
+|-|-|-|
+| Ai dựng | Đội lập trình viết TypeScript. | Người nghiệp vụ cấu hình, kéo thả quy trình. |
+| Quyền trên dữ liệu Lark | Tự làm qua cổng kiểm soát. | Kế thừa quyền của Lark. |
+| Nối hệ thống nội bộ | MCP, OpenAPI, công cụ tự viết. | MCP. |
+| Kênh | Lark, Slack, Teams, web và nhiều kênh khác. | Bot Lark, quầy hỗ trợ, trang web. |
+| Dữ liệu và mô hình ở đâu | Tự cài trên máy chủ công ty; tự chọn nhà cung cấp mô hình. | Chưa rõ. |
+| Việc dài, luật riêng | Chờ duyệt nhiều ngày; luật duyệt tự viết được. | Chưa rõ. |
 
-Cả tám yêu cầu do cổng của Lab làm; bảng này chỉ hỏi nơi gọi giúp hay cản cổng.
-Cột eve lấy từ tài liệu, chưa đo; mã phép kiểm ở mục 7.
+**Kết luận:** hỏi Lark xem gói của công ty có aily không. Nếu có, aily hợp với mức 1 và mức 2 vì không cần viết mã. eve hợp khi cần dữ liệu ở lại máy chủ công ty, việc dài, luật duyệt riêng hoặc nhiều kênh ngoài Lark.
 
-| Yêu cầu | Thổ Thần (đã đo) | eve (theo tài liệu) | Hệ quả cho cổng | Kiểm bằng |
-| --- | --- | --- | --- | --- |
-| SR1 (danh tính và một cửa ghi) | Không gửi danh tính | Biết người nhắn qua kênh đã xác thực; gửi khoá riêng theo người hỏi | Cổng giữ nguyên cách nhận người qua khoá (cách A ở mục 5.2) | KE2 |
-| SR2 (luật chạy được) | Không liên quan | Không liên quan | Luật nằm trong cổng | - |
-| SR3 (phạm vi quyền) | Không liên quan | Kết quả MCP tới mô hình nguyên văn, không có bước lọc riêng | Cổng che trường trước khi trả, như hiện nay | KE1 |
-| SR4 (điểm dừng rủi ro) | Không hỏi duyệt | Nút duyệt chỉ là lời đồng ý | Cổng tự giữ đề xuất và trang duyệt | KE3 |
-| SR5 (không chắc thì chặn) | Lỗi vẫn có thể hiện dấu tích xanh | Kết quả có đánh dấu lỗi làm lời gọi thất bại kèm nội dung | Câu "CHƯA THỰC HIỆN" của cổng tới được mô hình | KE3 |
-| SR6 (không ghi trùng) | Không tự gọi lại | Chạy lại từ bước đã xong sau khi sập; chưa rõ lời gọi đang dở có bị gọi lại không | Mã chống ghi trùng ở cổng đỡ trường hợp này | KE5 |
-| SR7 (vết xuyên suốt) | Không có mã vết | Vết OpenTelemetry có lời gọi server MCP; chưa rõ có gửi mã vết sang server không | Cổng tự sinh mã vết; nếu eve gửi mã vết thì nối được hai bên | KE8 |
-| SR8 (dùng lại, quyền theo người) | Nơi gọi thứ nhất | Gọi được cả MCP lẫn API thường | Ứng viên nơi gọi thứ hai (mục 5.1) | KE1, KE4 |
+## eve và MausBot đặt cạnh nhau
 
-**Kết luận:** eve không cản yêu cầu nào và cũng không làm thay cổng yêu cầu nào; thiết kế cổng hiện tại đứng vững khi thêm eve.
-Hai điểm chưa rõ là SR6 khi sập giữa lời gọi và SR7 khi nối vết, và cả hai kiểm được bằng phép chạy thử.
+| Điều | MausBot | eve |
+|-|-|-|
+| Là gì | Ứng dụng có sẵn, mỗi người một nhóm bot. | Bộ khung để dựng trợ lý chung. |
+| Ai dựng, ai dùng | Nhà làm dựng; nhân viên tự cài và tự cấu hình bot. | Đội của công ty dựng; nhân viên chỉ nhắn. |
+| Vào Lark | Không; phải tự viết cầu nối. | Có bộ nối của Lark; mẫu hiện phải sửa. |
+| Biết ai đang nhắn | Không chắc: "never proof of who called". | Có, qua tài khoản Lark. |
+| Duyệt | Năm mức, mặc định toàn quyền; người ngồi trước máy duyệt. | Từng công cụ chọn mức hỏi; duyệt chỉ là đồng ý. |
+| Cần viết mã | Không. | Có. |
+| Hợp với việc gì | Nhân viên tự động hóa việc lặp lại của riêng mình. | Trợ lý chung cho một phòng, ngay trong Lark. |
 
-## 7. Những gì cần kiểm tra
+**Kết luận:** hai sản phẩm không loại trừ nhau. Cả hai cần cùng một cổng kiểm soát đứng trước hệ thống nội bộ, nên cổng là phần nên làm trước, bất kể chọn bên nào.
 
-Mọi phép kiểm chỉ dùng dữ liệu giả và khoá giả của Lab.
-eve cần Node 24 nên chạy trong một thư mục riêng ngoài workspace `lab/`, không đổi phiên bản Node của Lab.
-Cột "Ta đoán" là điều tài liệu nói; phép kiểm xác nhận hoặc bác nó.
+## Lộ trình
 
-| Mã | Câu hỏi | Cách kiểm | Ta đoán | Bằng chứng |
-| --- | --- | --- | --- | --- |
-| KE1 (nối `/mcp`) | Kết nối MCP của eve có nói chuyện được với cổng không giữ phiên, chỉ nhận `POST`? | Trợ lý eve chạy `eve dev`, kết nối tới `http://127.0.0.1:8790/mcp` bằng khoá chị Hoa; hỏi số điện thoại anh Minh | Được; eve hỏi phiên bản giao thức trước, cổng báo lỗi thì eve quay về bắt tay thường | Dòng vết của cổng, câu trả lời |
-| KE2 (khoá theo người) | Hai người nhắn cùng trợ lý thì cổng có thấy hai khoá khác nhau không? | Kênh web của eve với hai tài khoản giả; hàm chọn khoá theo người | Hai dòng vết, một `NV-02`, một `NV-05` | Bảng vết |
-| KE3 (từ chối và duyệt) | Nam xin chuyển T-12 thì trợ lý nói gì; chị Hoa thì có link duyệt không? | Chạy kịch bản A và B của mốc 2 | Nam thấy "CHƯA THỰC HIỆN"; chị Hoa thấy link trang của cổng | Ảnh, vết; số lần trợ lý báo sai vào M2 |
-| KE4 (lối gọi hàm) | Cùng trợ lý, lối `POST /v1/tools` cho cùng kết quả với lối `/mcp` không? | Năm công cụ tự viết; chạy lại KE1 tới KE3 | Cùng kết quả | Thời gian và số token mỗi lối, cho M1 và M3 |
-| KE5 (sập giữa chừng) | Tắt eve đúng lúc đang gọi công cụ soạn đề xuất thì khi chạy lại có gọi lần nữa không? | Dừng tiến trình giữa lời gọi `propose_task_change`, khởi động lại | Có thể gọi lại; cổng chỉ giữ một đề xuất | Số đề xuất trong cổng, số lời gọi trong vết |
-| KE6 (Lark) | Bot eve có nhận tin, trả lời và hiện link duyệt trong một nhóm Lark không? | Một tài khoản Lark thử, không phải Lark của Appota; bot vào một nhóm có hai người | Được; nút trên thẻ gọi ngược về bot | Ảnh nhóm chat, vết |
-| KE7 (Thổ Thần giao việc) | Thổ Thần desktop giao được một việc 3 phút cho eve và lấy được kết quả không? | Mở kênh MCP của eve qua đường hầm 45 phút; gõ trong Thổ Thần | AI của Thổ Thần phải hỏi lại nhiều lượt; có thể bỏ cuộc | Số lần hỏi lại, kết quả cuối |
-| KE8 (mã vết) | eve có gửi mã vết (header `traceparent`) sang cổng không? | Ghi header của request trong KE1 | Chưa rõ | Header trong log của cổng |
+| Giai đoạn | Làm gì | Đi tiếp khi |
+|-|-|-|
+| 0. Kiểm kỹ thuật | Cài eve ghim phiên bản trên máy ảo cô lập, dữ liệu giả; sửa kết nối Lark trong một nhóm Lark thử; tắt máy giữa lúc ghi; nâng cấp phiên bản khi có việc đang chờ. | Trợ lý trả lời được trong nhóm thử; sập hay nâng cấp không làm mất việc và không ghi hai lần. |
+| 1. Mức 1 | 3 đến 5 người hỏi đáp trên tài liệu được phép. Nếu Lark của công ty có aily, dựng cùng việc đó trên aily để so. | Trên 80% câu trả lời đúng; người thử dùng hằng tuần; biết nên chọn eve hay aily. |
+| 2. Mức 2 | Nối danh bạ và danh sách task giả lập qua cổng kiểm soát; hai người hỏi cùng một câu. | Mỗi người chỉ thấy phần mình được xem; mỗi lời gọi gắn đúng người. |
+| 3. Mức 3 | Cho trợ lý soạn đề xuất ghi, người có thẩm quyền duyệt qua cổng; bật nhắc việc theo lịch bằng danh tính dịch vụ. | Không lệnh ghi nào chạy khi chưa duyệt; gửi lại không ghi hai lần. Khi đó mới quyết dùng rộng. |
 
-**Kết luận:** KE1 tới KE5 trả lời câu hỏi của mốc 4 trong khoảng nửa ngày và chỉ cần một khoá mô hình.
-KE6 cần một tài khoản Lark thử, KE7 cần một phiên đường hầm; cả hai chỉ chạy khi Kevin chọn E1 hoặc E4.
+**Kết luận:** hết giai đoạn 3 là có đủ số liệu để quyết dùng rộng hay dừng. Giai đoạn 1 còn trả lời luôn câu tự dựng hay dùng aily.
 
-## 8. Rủi ro
+## Nguồn
 
-- **Bộ khung còn rất mới.** Bản 1.0 mới hai ngày tuổi và đã có 1.1.0; khi tự cài, đổi phiên bản eve thì phiên đang dở không chạy tiếp được ([nơi lưu phiên](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/guides/deployment/workflow-worlds.md)). Mọi kết quả phải ghi số phiên bản đã đo.
-- **Một số phần chỉ đủ trên Vercel.** Đăng nhập kết nối qua Vercel Connect, máy ảo cách ly và trang xem lượt chạy là dịch vụ Vercel; tự cài thì phải tự làm hoặc bỏ.
-- **Dữ liệu ra khỏi công ty.** Nội dung chat tới nhà cung cấp mô hình, và tin Lark tới máy chủ eve; chạy trên Vercel thì dữ liệu nằm ở máy chủ nước ngoài. Lab chỉ dùng dữ liệu giả nên không vướng ranh giới dữ liệu.
-- **Lệch khỏi việc chính.** Mốc 3 phải nghiệm thu đầu tuần 4; phép kiểm eve chỉ chạy sau đó, trong giới hạn nửa ngày.
-
-**Kết luận:** không rủi ro nào chặn phép kiểm với dữ liệu giả; rủi ro thứ ba là lý do mọi bản dùng thật phải tự cài trên hạ tầng của Kdata.
-
-## 9. Thứ tự làm
-
-| Bước | Việc | Giới hạn thời gian | Bằng chứng xong |
-| --- | --- | --- | --- |
-| 1 | Hỏi Kevin: có muốn trợ lý trong Lark (E1) không, Appota có cấp được ứng dụng Lark thử và khoá mô hình không, và dùng eve làm nơi gọi thứ hai ở mốc 4 có được không | Cuối tuần 3 | Câu trả lời ghi vào mục 4 và mục 5 |
-| 2 | Chạy KE1 tới KE5 với eve 1.1.0 | Nửa ngày, sau nghiệm thu mốc 3 | Cột eve ở mục 6 đổi thành "đã đo" |
-| 3 | Viết ADR chọn nơi gọi thứ hai và cách đổi người thành khoá (mục 5.2) | Đầu tuần 4 | ADR mới trong `docs/adr/` |
-| 4 | Chạy KE6 nếu Kevin chọn E1, KE7 nếu chọn E4 | Hai giờ mỗi phép | Ảnh và vết |
-
-Kiểm lại các câu trích trong tài liệu này: `bash rd/checks/eve.sh`.
-
-**Kết luận:** việc làm ngay là hỏi Kevin ba câu ở bước 1; phép chạy thử chờ mốc 3 xong để không chen vào việc chính.
+- [Vercel: Introducing eve 1.0](https://vercel.com/blog/eve-is-now-generally-available)
+- [Vercel: eve](https://vercel.com/eve)
+- [GitHub: vercel/eve](https://github.com/vercel/eve)
+- [eve: Self-hosting](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/guides/deployment/self-hosting/index.md)
+- [eve: Workflow worlds](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/guides/deployment/workflow-worlds.md)
+- [eve: Chat SDK channel](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/channels/chat-sdk/index.mdx)
+- [eve: Connections](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/connections/index.mdx)
+- [eve: Human in the loop](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/tools/human-in-the-loop.md)
+- [eve: Security model](https://github.com/vercel/eve/blob/08034cde67d2c301c8c339f56db5d118cf14b74a/docs/concepts/security-model.md)
+- [eve issue #1753: Lark channel can never reply](https://github.com/vercel/eve/issues/1753)
+- [eve issue #535: in-flight turn never resumed after crash](https://github.com/vercel/eve/issues/535)
+- [eve issue #5841: applied call settled as did not run](https://github.com/vercel/eve/issues/5841)
+- [eve issue #3570: upgrade fails parked sessions](https://github.com/vercel/eve/issues/3570)
+- [eve issue #6645: security audit trail](https://github.com/vercel/eve/issues/6645)
+- [eve issue #2432: six HTTP requests per MCP call](https://github.com/vercel/eve/issues/2432)
+- [npm: @larksuite/vercel-chat-adapter](https://www.npmjs.com/package/@larksuite/vercel-chat-adapter)
+- [Feishu: aily](https://www.feishu.cn/content/article/7576921890476788922)
+- [Salesforce: Agentforce in Slack](https://www.salesforce.com/blog/linked-content/deploying-agentforce-in-slack-salesforces-journey-to-saving-over-500k-employee-hours-annually/)
+- [Slack: Devolutions](https://slack.com/customer-stories/devolutions)

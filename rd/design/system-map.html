@@ -121,8 +121,6 @@
   .card h3{margin:0 0 6px;font-size:16px}
   .card p{margin:6px 0;color:var(--text-2);font-size:14px}
   .card .q{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.04em}
-  .card.hook{border-color:rgba(167,139,250,.45)}
-  .card.hook h3{color:var(--cap)}
   .card.gate{border-color:rgba(245,185,66,.5)}
   .card.gate h3{color:var(--auth)}
   .card.warn{border-color:rgba(251,113,133,.4)}
@@ -130,11 +128,10 @@
   .so{margin-top:18px;padding:14px 18px;border-left:3px solid var(--intent);background:rgba(34,211,238,.05);border-radius:0 10px 10px 0;color:var(--text-2);font-size:14.5px}
   .so b{color:var(--text)}
 
-  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:18px 0 0}
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 0}
   .step{background:var(--panel-2);border:1px solid var(--line-2);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text-2)}
   .step .who{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
   .step.s-tt .who{color:var(--intent)}
-  .step.s-hk .who{color:var(--cap)}
   .step.s-gw .who{color:var(--auth)}
   .step.s-sys .who{color:var(--good)}
   .step.s-tr .who{color:var(--muted)}
@@ -182,10 +179,10 @@
     <h3>Đọc nhanh</h3>
     <ul>
       <li>Appota muốn nhân viên nhờ AI làm việc trên dữ liệu công ty. <b>AgentLize</b> đặt luật và giữ danh mục công cụ, <b>Thổ Thần</b> là nơi nhân viên chat với AI, các phòng ban giữ dữ liệu.</li>
-      <li><b>Lab</b> là cổng an toàn giữa AI và dữ liệu: biết ai đang hỏi, chặn việc vượt quyền, chờ người duyệt, không ghi hai lần. <b>MausBot</b> là ứng dụng AI bên ngoài, dùng để chứng minh một AI thứ hai dùng lại được cùng cổng.</li>
+      <li><b>Lab</b> là cổng an toàn giữa AI và dữ liệu: biết ai đang hỏi, chặn việc vượt quyền, chờ người duyệt, không ghi hai lần. <b>MausBot</b> là ứng dụng AI bên ngoài, có thể gọi cùng cổng nếu được cắm vào.</li>
       <li><b>Đã đo:</b> Thổ Thần trên máy tính gọi được công cụ của Lab, nhưng không cho biết ai đang hỏi và không hỏi lại trước khi ghi.</li>
-      <li><b>Chưa biết, quan trọng nhất:</b> lớp kiểm quyền của AgentLize chạy ở đâu, và nhân viên thật dùng Thổ Thần trên điện thoại hay máy tính. Bản thử của Lab hiện chỉ chạy trên máy tính.</li>
-      <li><b>Tuần này:</b> gửi Kevin năm câu hỏi, tự làm các phép kiểm nhỏ, ghi các quyết định thiết kế, và dựng bản thử chỉ đọc chạy trong Thổ Thần.</li>
+      <li><b>Chưa biết, quan trọng nhất:</b> Thổ Thần có chuyển danh tính người dùng sang cổng không, và nhân viên thật dùng Thổ Thần trên điện thoại hay máy tính. Bản thử của Lab hiện chỉ chạy trên máy tính.</li>
+      <li><b>Tuần này:</b> gửi Kevin ba câu hỏi, tự làm các phép kiểm nhỏ, ghi các quyết định thiết kế, và dựng bản thử chỉ đọc chạy trong Thổ Thần.</li>
     </ul>
   </div>
 </header>
@@ -230,7 +227,7 @@
     <text class="al-t" x="940" y="44">AgentLize</text>
     <text class="al-s" x="940" y="62">lớp điều khiển · chưa thấy phần mềm chạy</text>
     <rect class="node n-plan" x="940" y="78" width="270" height="66" rx="10"/>
-    <text class="t1" x="1075" y="106">Skill Studio + Hook</text>
+    <text class="t1" x="1075" y="106">Skill Studio</text>
     <text class="t2" x="1075" y="125">PRD nháp · tab trong Thổ Thần</text>
     <rect class="node n-plan" x="940" y="158" width="270" height="60" rx="10"/>
     <text class="t1" x="1075" y="184">Luật · danh mục · duyệt tài sản</text>
@@ -311,7 +308,6 @@
     <path class="e e-plain" d="M745 310 H760"/>
     <path class="e e-plan" d="M390 360 V423" marker-end="url(#a-plan)"/>
     <path class="e e-plan" d="M570 360 V423" marker-end="url(#a-plan)"/>
-    <path class="e e-unknown" d="M940 118 H430 V148" marker-end="url(#a-bad)"/>
     <path class="e e-unknown" d="M918 350 H747" marker-start="url(#a-bad)" marker-end="url(#a-bad)"/>
     <path class="e e-plan" d="M1075 420 V382" marker-end="url(#a-plan)"/>
 
@@ -326,9 +322,8 @@
     <g class="badge b-plan"><circle cx="790" cy="250" r="10"/><text x="790" y="250">8</text></g>
     <g class="badge b-plan"><circle cx="893" cy="190" r="10"/><text x="893" y="190">9</text></g>
     <g class="badge b-plan"><circle cx="390" cy="392" r="10"/><text x="390" y="392">10</text></g>
-    <g class="badge b-unknown"><circle cx="680" cy="118" r="10"/><text x="680" y="118">11</text></g>
-    <g class="badge b-unknown"><circle cx="835" cy="350" r="10"/><text x="835" y="350">12</text></g>
-    <g class="badge b-plan"><circle cx="1075" cy="401" r="10"/><text x="1075" y="401">13</text></g>
+    <g class="badge b-unknown"><circle cx="835" cy="350" r="10"/><text x="835" y="350">11</text></g>
+    <g class="badge b-plan"><circle cx="1075" cy="401" r="10"/><text x="1075" y="401">12</text></g>
   </svg>
   </div>
 
@@ -346,9 +341,8 @@
       <tr><td class="num">8</td><td>Trợ lý gọi hàm của Lab gọi cổng</td><td><span class="pill p-plan">kế hoạch</span></td><td>Cùng API <code>POST /v1/tools/&lt;tên&gt;</code></td><td>Chưa dựng</td></tr>
       <tr><td class="num">9</td><td>Người duyệt bấm trên trang của cổng</td><td><span class="pill p-plan">kế hoạch</span></td><td>Link trong kết quả công cụ bấm được (đã đo)</td><td>AI có giữ nguyên link khi tóm tắt không</td></tr>
       <tr><td class="num">10</td><td>Cổng đọc và ghi danh bạ giả, task giả</td><td><span class="pill p-plan">kế hoạch</span></td><td>Theo spec</td><td>Chưa dựng</td></tr>
-      <tr><td class="num">11</td><td>Hook của AgentLize kiểm quyền trong Thổ Thần</td><td><span class="pill p-unknown">chưa biết</span></td><td>PRD: Hook lọc danh mục Skill trước khi nạp vào chat, chặn công cụ ngoài danh sách</td><td>Hook chạy trong hay ngoài Thổ Thần; có chuyển danh tính sang công cụ không</td></tr>
-      <tr><td class="num">12</td><td>AgentLize trao luật cho cổng, nhận vết từ cổng</td><td><span class="pill p-unknown">chưa biết</span></td><td>Slide vẽ "chính sách và phân quyền" xuống, "telemetry và kết quả" lên</td><td>Có API không; vết cần trường nào</td></tr>
-      <tr><td class="num">13</td><td>Lark cấp danh bạ, phòng ban, thẻ duyệt</td><td><span class="pill p-plan">kế hoạch</span></td><td>PRD: đồng bộ Lark theo sự kiện, duyệt Skill qua thẻ Lark</td><td>Lời duyệt từng lệnh ghi có cần lên Lark không</td></tr>
+      <tr><td class="num">11</td><td>AgentLize trao luật cho cổng, nhận vết từ cổng</td><td><span class="pill p-unknown">chưa biết</span></td><td>Slide vẽ "chính sách và phân quyền" xuống, "telemetry và kết quả" lên</td><td>Có API không; vết cần trường nào</td></tr>
+      <tr><td class="num">12</td><td>Lark cấp danh bạ, phòng ban, thẻ duyệt</td><td><span class="pill p-plan">kế hoạch</span></td><td>PRD: đồng bộ Lark theo sự kiện, duyệt Skill qua thẻ Lark</td><td>Lời duyệt từng lệnh ghi có cần lên Lark không</td></tr>
     </tbody>
   </table>
   </div>
@@ -362,18 +356,12 @@
 
   <div class="flow">
     <div class="step s-tt"><div class="who">1 · Thổ Thần</div>Chị Hoa đã đăng nhập chưa?</div>
-    <div class="step s-hk"><div class="who">2 · Hook AgentLize</div>Chị Hoa có được bật Skill "quản lý task" không, Skill đó được dùng công cụ nào?</div>
-    <div class="step s-gw"><div class="who">3 · Cổng của Lab</div>Lệnh này (T-12, sang anh Minh, hạn thứ Sáu) có hợp luật không, cần trưởng nhóm duyệt không, đã ghi lần nào chưa?</div>
-    <div class="step s-sys"><div class="who">4 · Hệ thống task</div>Ghi đúng một lần.</div>
-    <div class="step s-tr"><div class="who">5 · Cổng, rồi AgentLize</div>Ai yêu cầu, ai duyệt, đổi gì, tốn bao nhiêu?</div>
+    <div class="step s-gw"><div class="who">2 · Cổng của Lab</div>Lệnh này (T-12, sang anh Minh, hạn thứ Sáu) có hợp luật không, cần trưởng nhóm duyệt không, đã ghi lần nào chưa?</div>
+    <div class="step s-sys"><div class="who">3 · Hệ thống task</div>Ghi đúng một lần.</div>
+    <div class="step s-tr"><div class="who">4 · Cổng, rồi AgentLize</div>Ai yêu cầu, ai duyệt, đổi gì, tốn bao nhiêu?</div>
   </div>
 
-  <div class="grid2" style="margin-top:16px">
-    <div class="card hook">
-      <h3>Hook của AgentLize (PRD Skill Studio)</h3>
-      <p class="q">"Người này có được dùng công cụ này không?"</p>
-      <p>Kiểm theo Skill và theo công cụ. Duyệt một Skill trước khi cả phòng dùng, và duyệt lần xin quyền đầu tiên, trên thẻ Lark.</p>
-    </div>
+  <div style="margin-top:16px">
     <div class="card gate">
       <h3>Cổng của Lab</h3>
       <p class="q">"Lệnh này, với tham số này, vào lúc này, có được chạy không?"</p>
@@ -381,7 +369,7 @@
     </div>
   </div>
 
-  <div class="so"><b>So what:</b> hai lớp bổ sung cho nhau chứ không trùng; Lab là lớp ghi an toàn phía sau Hook. Danh tính là chỗ hai lớp phải khớp: hôm nay cổng nhận người qua khoá riêng, nên phần "đổi khoá thành người" phải là một module thay được. Kevin cần xác nhận vị trí này.</div>
+  <div class="so"><b>So what:</b> quyền được quyết ở cổng, không ở nơi chat; Lab là lớp kiểm từng lệnh ở phía hệ thống nghiệp vụ, dùng được với mọi nơi chat. Hôm nay cổng nhận người qua khoá riêng; về lâu dài nơi chat gửi danh tính đã xác minh (token theo chuẩn ủy quyền của MCP, hoặc token do máy chủ Thổ Thần ký), nên phần "đổi khoá thành người" phải là một module thay được.</div>
 </section>
 
 <section id="conflicts">
@@ -390,9 +378,9 @@
   <div class="grid3">
     <div class="card warn">
       <h3>Danh tính</h3>
-      <p>PRD Skill Studio coi như Thổ Thần đã biết người dùng và Hook kiểm được "bạn là ai".</p>
+      <p>PRD Skill Studio coi như Thổ Thần đã biết người dùng.</p>
       <p>Phép đo: server công cụ không nhận được gì về người dùng.</p>
-      <p>Cả hai cùng đúng chỉ khi Hook chạy bên trong Thổ Thần, hoặc Thổ Thần chuyển danh tính ra ngoài. Chưa nguồn nào nói cách nào.</p>
+      <p>Cả hai cùng đúng khi Thổ Thần chỉ dùng danh tính bên trong phiên đăng nhập và không chuyển nó sang server công cụ.</p>
     </div>
     <div class="card warn">
       <h3>Thiết bị</h3>
@@ -415,17 +403,15 @@
     <div class="col">
       <h3>Hỏi Kevin, gửi hôm nay</h3>
       <div class="item ask"><div class="h"><span class="id">U1 · thiết bị</span></div><p>Nhân viên thật dùng Thổ Thần trên điện thoại, web hay desktop?</p><p class="then">Điện thoại hay web: từ mốc 2 dời sang <code>/mcp</code>. Desktop: giữ stdio.</p></div>
-      <div class="item ask"><div class="h"><span class="id">U2 · Hook</span></div><p>Ai đang dựng Hook và Skill Studio, chạy trong hay ngoài Thổ Thần, Lab có là phần kiểm từng lệnh ghi phía sau không?</p><p class="then">Có người dựng: khớp hợp đồng danh tính và vết. Cả hai trường hợp Lab vẫn tự dựng cổng.</p></div>
-      <div class="item ask"><div class="h"><span class="id">U3 · danh tính</span></div><p>Thổ Thần có kế hoạch chuyển danh tính người dùng sang server công cụ (OAuth) không?</p><p class="then">Có: thêm cách đó vào module danh tính. Không: khoá riêng là cách chính, cần cấp và thu hồi tử tế.</p></div>
-      <div class="item ask"><div class="h"><span class="id">U4 · địa chỉ công khai</span></div><p>Lab có được mở địa chỉ HTTPS công khai tạm thời để thử Thổ Thần web không?</p><p class="then">Có: chạy V2. Không: đường web chỉ kiểm bằng phép thử tự động.</p></div>
-      <div class="item ask"><div class="h"><span class="id">U5 · MausBot</span></div><p>MausBot chỉ làm nơi gọi thứ hai (cách T1) là đủ chưa?</p><p class="then">Hướng khác: mở lại mục 6 của tài liệu MausBot.</p></div>
+      <div class="item ask"><div class="h"><span class="id">U2 · danh tính</span></div><p>Thổ Thần có kế hoạch chuyển danh tính người dùng sang server công cụ (OAuth) không?</p><p class="then">Có: thêm cách đó vào module danh tính. Không: khoá riêng là cách chính, cần cấp và thu hồi tử tế.</p></div>
+      <div class="item ask"><div class="h"><span class="id">U3 · địa chỉ công khai</span></div><p>Lab có được mở địa chỉ HTTPS công khai tạm thời để thử Thổ Thần web không?</p><p class="then">Có: chạy V2. Không: đường web chỉ kiểm bằng phép thử tự động.</p></div>
     </div>
     <div class="col">
       <h3>Lab tự kiểm</h3>
-      <div class="item now"><div class="h"><span class="id">V1 · mã LobeHub</span><span class="time">2 giờ</span></div><p>LobeHub 2.1.56 gửi gì sang server công cụ: header, <code>_meta</code>, OAuth, các chế độ duyệt.</p><p class="then">Trả lời một phần U3: Thổ Thần ẩn tính năng có sẵn, hay LobeHub không có.</p></div>
-      <div class="item wait"><div class="h"><span class="id">V2 · Thổ Thần web</span><span class="time">1 giờ</span></div><p>Probe sau đường hầm HTTPS, cắm vào bản web, gọi <code>whoami</code> và <code>slow</code>.</p><p class="then">Mối nối 5. Chờ U4.</p></div>
+      <div class="item now"><div class="h"><span class="id">V1 · mã LobeHub</span><span class="time">2 giờ</span></div><p>LobeHub 2.1.56 gửi gì sang server công cụ: header, <code>_meta</code>, OAuth, các chế độ duyệt.</p><p class="then">Trả lời một phần U2: Thổ Thần ẩn tính năng có sẵn, hay LobeHub không có.</p></div>
+      <div class="item wait"><div class="h"><span class="id">V2 · Thổ Thần web</span><span class="time">1 giờ</span></div><p>Probe sau đường hầm HTTPS, cắm vào bản web, gọi <code>whoami</code> và <code>slow</code>.</p><p class="then">Mối nối 5. Chờ U3.</p></div>
       <div class="item now"><div class="h"><span class="id">V3 · Coding Agent</span><span class="time">1 giờ</span></div><p>Cắm probe vào extension VS Code, chạy rút gọn P1-P5.</p><p class="then">Nơi gọi thứ hai là sản phẩm của chính Appota: làm trước V4.</p></div>
-      <div class="item"><div class="h"><span class="id">V4 · MausBot</span><span class="time">2 giờ</span></div><p>Chạy K1, K2, K3, K11: nối, danh tính, khoá riêng, bot thứ hai.</p><p class="then">Mối nối 7.</p></div>
+      <div class="item"><div class="h"><span class="id">V4 · MausBot</span><span class="time">2 giờ</span></div><p>Cắm probe, gọi <code>whoami</code> với hai khoá: nối, danh tính, khoá riêng.</p><p class="then">Mối nối 7.</p></div>
       <div class="item now"><div class="h"><span class="id">V5 · chế độ duyệt</span><span class="time">30 phút</span></div><p>Lặp phép đo duyệt với Allow List và Bypass Security.</p></div>
       <div class="item now"><div class="h"><span class="id">V6 · định dạng Skill</span><span class="time">30 phút</span></div><p>Skill Store của Thổ Thần có nhận Skill theo chuẩn <code>SKILL.md</code> không.</p></div>
       <div class="item now"><div class="h"><span class="id">V7 · điện thoại</span><span class="time">30 phút</span></div><p>App AppotaHub hoặc bản web trên điện thoại có chỗ cắm công cụ không.</p></div>
@@ -443,8 +429,8 @@
   <h2>5. Hướng đi tuần này</h2>
   <p class="sub">Tuần 2, 16/11 tới 22/11. Ba việc nghiên cứu trong kế hoạch tuần đã xong; còn ADR và bản thử.</p>
   <div class="week">
-    <div class="day today"><div class="d">Thứ Ba 17/11 · hôm nay</div><h4>Hỏi và đọc mã</h4><ul><li>Gửi Kevin U1-U5 cùng ba giới hạn của Thổ Thần</li><li>Chạy V1, gồm cả lời gọi mô hình</li></ul><div class="done">Xong khi: tin nhắn đã gửi; V1 ghi vào khảo sát Thổ Thần</div></div>
-    <div class="day"><div class="d">Thứ Tư 18/11</div><h4>Năm ADR</h4><ul><li>Theo spec, mục 11</li><li>Mỗi ADR có mục "xem lại khi" gắn với U1-U4</li><li>Chạy V5, V6</li></ul><div class="done">Xong khi: có <code>adr-0001</code> tới <code>adr-0005</code></div></div>
+    <div class="day today"><div class="d">Thứ Ba 17/11 · hôm nay</div><h4>Hỏi và đọc mã</h4><ul><li>Gửi Kevin U1-U3 cùng ba giới hạn của Thổ Thần</li><li>Chạy V1, gồm cả lời gọi mô hình</li></ul><div class="done">Xong khi: tin nhắn đã gửi; V1 ghi vào khảo sát Thổ Thần</div></div>
+    <div class="day"><div class="d">Thứ Tư 18/11</div><h4>Năm ADR</h4><ul><li>Theo spec, mục 11</li><li>Mỗi ADR có mục "xem lại khi" gắn với U1-U3</li><li>Chạy V5, V6</li></ul><div class="done">Xong khi: có <code>adr-0001</code> tới <code>adr-0005</code></div></div>
     <div class="day"><div class="d">Thứ Năm 19/11 · Thứ Sáu 20/11</div><h4>Mốc 1: lát mỏng chỉ đọc</h4><ul><li>Danh bạ giả, cổng đổi khoá thành người, <code>find_employee</code> chỉ trả trường đã khai, chương trình nối stdio, vết</li><li>Kịch bản D (tra cứu có lọc) chạy trong Thổ Thần</li></ul><div class="done">Xong khi: ảnh và log kịch bản D; phép thử SR3 (phạm vi quyền) đạt bằng một lệnh</div></div>
     <div class="day"><div class="d">Thứ Bảy 21/11</div><h4>Kiểm nơi gọi thứ hai</h4><ul><li>V3, V7; còn thời gian thì V4</li><li>Cập nhật tổng hợp phát hiện, viết báo cáo tuần</li></ul><div class="done">Xong khi: báo cáo tuần 2 trong <code>submitted/weekly-report/</code></div></div>
   </div>
@@ -454,7 +440,6 @@
     <thead><tr><th>Kevin trả lời</th><th>Lab làm</th></tr></thead>
     <tbody>
       <tr><td>Người dùng thật ở điện thoại hay web</td><td>Mốc 2 làm qua <code>/mcp</code>; xin địa chỉ công khai; chạy V2; đo thêm cách cổng đóng vai mô hình AI</td></tr>
-      <tr><td>Có người đang dựng Hook</td><td>Hẹn một buổi khớp hợp đồng danh tính và vết; Lab không dựng phần lọc danh mục Skill</td></tr>
       <tr><td>Thổ Thần sẽ chuyển danh tính</td><td>Module danh tính thêm cách thứ hai; khoá riêng giữ cho MausBot và trợ lý gọi hàm</td></tr>
       <tr><td>Chưa trả lời</td><td>Không chờ: mốc 1 và mốc 2 có ích với mọi câu trả lời</td></tr>
     </tbody>
@@ -468,7 +453,7 @@
   Nguồn trong repo:
   <ul>
     <li><a href="../appota/tho-than-mcp-probe.md">Kịch bản đo MCP trong Thổ Thần</a> và <a href="../appota/tho-than-platform.md">khảo sát Thổ Thần</a></li>
-    <li><a href="../research/mausbot.md">MausBot và cách tích hợp với Thổ Thần</a></li>
+    <li><a href="../research/mausbot.md">MausBot</a> và <a href="../research/eve.md">eve</a></li>
     <li><a href="../../docs/context/appota-ai-ecosystem.md">Slide hệ sinh thái AI Appota</a> (bản chép, chưa xác nhận) và PRD AgentLize Skill Studio (bản nháp, <code>docs/context/</code>)</li>
     <li><a href="mvp-spec.md">Spec bản thử đầu</a> và <a href="../findings.md">tổng hợp phát hiện</a></li>
   </ul>
