@@ -733,7 +733,7 @@ Sau khi đủ, cập nhật dòng mốc 3 ở [tổng hợp, mục 8](../finding
 
 | Việc | Vì sao | Cách kiểm |
 | --- | --- | --- |
-| Thêm ô ghi chú khi duyệt, hoặc ghi rõ ô lý do chỉ dùng khi từ chối | Người duyệt gõ lời đồng ý vào ô lý do từ chối (mục 14.3) | Phép thử trang duyệt; người duyệt không còn gõ nhầm ô |
+| Thêm ô ghi chú khi duyệt, hoặc ghi rõ ô lý do chỉ dùng khi từ chối ([#133](https://github.com/Park-Hip/agentlize-intern/issues/133)) | Người duyệt gõ lời đồng ý vào ô lý do từ chối (mục 14.3) | Phép thử trang duyệt; người duyệt không còn gõ nhầm ô |
 | Đóng [#84](https://github.com/Park-Hip/agentlize-intern/issues/84) | Mục 14 đã đủ và mục 15 đã tick mọi dòng | PR ghi `Closes #84` được merge |
 | Chạy lại H12 (#73) trước lần nghiệm thu sau | Bản Thổ Thần 2026-11-18 có thể đổi hành vi MCP | Cắm probe qua đường hầm, gọi `whoami` và `fake_write` |
 | Đo M5 đầy đủ khi thêm hệ thống thứ ba | M5 không chỉ là dòng mã của một tệp | Đếm tiến trình, file cấu hình, bước cài và chỗ sửa luật |
