@@ -65,6 +65,44 @@ test('read: the catalog lists the three read tools and the three proposal tools,
   });
 });
 
+test('read: the catalog publishes the two sentences that keep both assistants on the same wording', async () => {
+  await withGateway(async (f) => {
+    const response = await fetch(`${f.gateway.url}/v1/tools`);
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      tools: {
+        name: string;
+        description: string;
+        input_schema: {
+          properties?: Record<string, { properties?: Record<string, { description?: string }> }>;
+        };
+      }[];
+    };
+
+    const find = body.tools.find((tool) => tool.name === 'find_employee');
+    assert.ok(find !== undefined);
+    assert.ok(
+      find.description.startsWith(
+        'Luôn gọi công cụ này khi người dùng nhắc tới một nhân viên, kể cả khi chỉ có tên gọi như "anh Minh": ' +
+          'dùng phần tên đó làm tham số name (ví dụ "Minh") để cổng tự tìm, rồi mới hỏi lại nếu có nhiều người khớp. ',
+      ),
+      'find_employee must tell the model to search a short name before asking for more detail',
+    );
+
+    const propose = body.tools.find((tool) => tool.name === 'propose_task_change');
+    assert.ok(propose !== undefined);
+    const due = propose.input_schema.properties?.['changes']?.properties?.['due'];
+    assert.ok(due !== undefined);
+    assert.equal(
+      due.description,
+      'Hạn mới dạng YYYY-MM-DD. Nếu người dùng nói một thứ trong tuần mà không nêu ngày, ' +
+        'hãy chọn ngày của thứ đó gần nhất sau hạn hiện tại của task và nêu ngày đã chọn trong câu trả lời; ' +
+        'không hỏi lại chỉ vì thiếu ngày.',
+      'the due field must say how to turn a weekday into a date',
+    );
+  });
+});
+
 test('read: find_employee returns only the fields declared for the role of the asker', async () => {
   await withGateway(async (f) => {
     const hoa = await f.call('find_employee', { name: 'Minh' }, f.keyFor(HOA));

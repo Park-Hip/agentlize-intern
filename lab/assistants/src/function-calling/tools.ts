@@ -3,12 +3,10 @@ import type { ToolSpec } from '../shared/door.js';
 /**
  * The six tools of the gateway, declared here by hand because plain function
  * calling has no catalog endpoint to ask (issue #109). The names, Vietnamese
- * descriptions and JSON Schemas start from `GET /v1/tools` on 2026-11-22.
- * Two sentences were added after watching DeepSeek: find_employee now says a
- * short name such as "anh Minh" is a valid search, and the due field says how
- * to turn a weekday name into a date. Without them the model asked for more
- * detail instead of calling the tool. That hand tuning is part of M6; a change
- * on the gateway still does not reach this file by itself.
+ * descriptions and JSON Schemas mirror `GET /v1/tools`: the gateway publishes
+ * the two sentences DeepSeek needed, so both assistants read one wording
+ * (issue #136). `catalog-parity-test.ts` fails when a single character drifts,
+ * because this copy does not follow the gateway by itself.
  */
 export const TOOL_DECLARATIONS: readonly ToolSpec[] = [
   {

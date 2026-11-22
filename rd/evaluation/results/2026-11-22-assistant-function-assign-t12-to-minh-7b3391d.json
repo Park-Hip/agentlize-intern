@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "kind": "assistant",
+  "generated_at": "2026-11-22T10:03:56.749Z",
+  "command": "npm run assistant -- --door function --job assign-t12-to-minh --runs 1",
+  "model": "deepseek-flash",
+  "door": "function",
+  "peak": false,
+  "allow_peak": false,
+  "job": {
+    "id": "assign-t12-to-minh",
+    "label": "Chuyển T-12 cho anh Minh, hạn thứ Sáu",
+    "persona": "hoa",
+    "user_message": "Chuyển task T-12 sang cho anh Minh, hạn thứ Sáu."
+  },
+  "runs": 1,
+  "balance": {
+    "threshold_usd": 0.2,
+    "before_usd": 1.09,
+    "after_usd": 1.09,
+    "checks": [
+      {
+        "after_run": 0,
+        "usd": 1.09,
+        "at": "2026-11-22T10:03:51.655Z"
+      },
+      {
+        "after_run": 1,
+        "usd": 1.09,
+        "at": "2026-11-22T10:03:56.627Z"
+      }
+    ],
+    "error": null
+  },
+  "stopped_early": null,
+  "environment": {
+    "commit": "7b3391d2ca89b6f6e9ab849f1d172cce71283406",
+    "commit_short": "7b3391d",
+    "dirty": false,
+    "node": "v22.21.0",
+    "os": {
+      "platform": "win32",
+      "release": "10.0.26200",
+      "version": "Windows 11 Home",
+      "arch": "x64"
+    },
+    "cpu": {
+      "model": "Intel(R) Core(TM) Ultra 5 225H",
+      "count": 14,
+      "speed_mhz": 3686
+    },
+    "memory_total_bytes": 33752997888,
+    "timezone": "Asia/Bangkok"
+  },
+  "samples_file": {
+    "name": "2026-11-22-assistant-function-assign-t12-to-minh-7b3391d.samples.ndjson.gz",
+    "count": 1,
+    "sha256": "0dd452165acb3a9a9996a089b71d2159743f07463fd2aa3c107cef2250865b66"
+  },
+  "summary": {
+    "runs": 1,
+    "correct_runs": 1,
+    "model_ms": {
+      "count": 1,
+      "p50_ms": 4722.9,
+      "max_ms": 4722.9,
+      "mean_ms": 4722.9
+    },
+    "gateway_ms": {
+      "count": 1,
+      "p50_ms": 34.3,
+      "max_ms": 34.3,
+      "mean_ms": 34.3
+    },
+    "total_ms": {
+      "count": 1,
+      "p50_ms": 4760.7,
+      "max_ms": 4760.7,
+      "mean_ms": 4760.7
+    },
+    "input_tokens": 9547,
+    "cache_hit_tokens": 8576,
+    "cache_miss_tokens": 971,
+    "output_tokens": 537,
+    "cost_usd": 0.000494
+  },
+  "notes": [
+    "Mô hình: deepseek-flash. Cửa: function. Mỗi lần chạy là một lượt hội thoại có mã lượt riêng.",
+    "Số dư DeepSeek đọc trước khi chạy và sau mỗi 10 lượt; ngưỡng dừng 0.20 USD.",
+    "Giờ cao điểm: không.",
+    "Chi phí báo qua POST /v1/usage; token vào, token ra, token trúng bộ nhớ đệm và tiền lấy từ phản hồi của mô hình.",
+    "File mẫu không giữ câu trả lời hay nội dung tool, chỉ giữ số đo, mã lý do và mã lỗi ngắn.",
+    "Kết quả đúng hay sai do hàm chấm của việc quyết định, không do người đọc file."
+  ]
+}
