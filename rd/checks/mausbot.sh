@@ -97,6 +97,12 @@ check "$RAW2/docs/team-slack.md" "One MausBot Slack app is installed per company
 check "$RAW2/docs/team-slack.md" "Slack's events arrive at the Admin" "Slack: tin Slack đi qua dịch vụ Admin"
 check "$RAW2/docs/team-slack.md" "Everywhere else (the desktop app, a self-hosted server) every route below answers 404" "Slack: bản desktop và tự cài không có Slack"
 
+# Issue bảo mật #4716 và đăng nhập một lần (mục Vấn đề của MausBot, mục Bảy lớp)
+check "https://github.com/milind-soni/OpenMausBot/issues/4716" "found no evidence of a backdoor, hidden destination or malicious code" "issue #4716: không thấy cửa sau, nhưng chưa giới hạn được dữ liệu"
+check "https://github.com/milind-soni/OpenMausBot/issues/4716" "Analytics are on before any choice, with no organization control" "issue #4716: analytics bật trước khi người dùng chọn"
+check "https://github.com/milind-soni/OpenMausBot/issues/4716" "Windows and AppImage updates have no signature check" "issue #4716: bản Windows không kiểm chữ ký"
+check "$RAW/enterprise/README.md" "planned: nothing checks it yet" "đăng nhập: SSO mới là kế hoạch"
+
 echo "----"
 echo "PASS: $PASS  FAIL: $FAIL"
 [ "$FAIL" -eq 0 ]
