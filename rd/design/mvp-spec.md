@@ -484,14 +484,14 @@ Số dư 1,10 USD đủ cho cả lớp có mô hình, kể cả khi phần gây 
 
 | Yêu cầu | Phép thử chính | Hôm nay |
 |-|-|-|
-| SR1 (danh tính và một cửa ghi) | Khoá của Nam xin chuyển T-12: từ chối, vết ghi Nam; khoá bị thu hồi: từ chối ở lần gọi sau | Đạt |
-| SR2 (luật chạy được) | Không có câu dặn nào, chị Hoa sửa task phòng Kinh doanh vẫn bị chặn; hạ vai chị Hoa trước khi bấm Gửi thì không ghi | Đạt |
-| SR3 (phạm vi quyền) | Chị Hoa tra anh Minh không thấy số cá nhân; trường mới chưa khai không ra khỏi cổng; quét vết không có dữ liệu cá nhân | Đạt |
-| SR4 (điểm dừng rủi ro) | Chuyển 30 task chờ duyệt; năm đề xuất nhỏ trong 60 phút cũng chờ duyệt; nội dung đổi sau khi duyệt, duyệt quá hạn, tự duyệt đều bị từ chối | Đạt trên máy; chưa chạy kịch bản C trong Thổ Thần |
-| SR5 (không chắc thì chặn) | File luật hỏng: mọi lệnh bị từ chối, 0 bản ghi đổi; task bị người khác sửa trong lúc chờ: không ghi | Đạt |
-| SR6 (không ghi trùng) | Mất phản hồi rồi gửi lại, bấm Gửi hai lần cùng lúc, tắt cổng ở ba thời điểm của lệnh 30 task: mỗi task đúng một lần ghi | Đạt trên máy |
-| SR7 (vết xuyên suốt) | Một lần tra "T-12" cho biết ai yêu cầu, ai duyệt, đổi gì, kết quả, chi phí, phiên bản luật | Một phần: thiếu chi phí; người duyệt có trong vết nhưng tra theo task chỉ thấy ở task đầu của đề xuất, các task còn lại phải tra theo mã đề xuất |
-| SR8 (dùng lại, quyền theo người) | Cùng bộ phép thử qua mọi nơi gọi cho cùng kết quả; 0 bộ tiếp hợp phải sửa | Một phần: ba lối vào đã cùng kết quả, chưa có trợ lý thứ hai có mô hình |
+| SR1 (danh tính và một cửa ghi) | Khoá của Nam xin chuyển T-12: từ chối, vết ghi Nam; khoá bị thu hồi: từ chối ở lần gọi sau | Đạt: 13/13 phép thử |
+| SR2 (luật chạy được) | Không có câu dặn nào, chị Hoa sửa task phòng Kinh doanh vẫn bị chặn; hạ vai chị Hoa trước khi bấm Gửi thì không ghi | Đạt: 72/72 phép thử |
+| SR3 (phạm vi quyền) | Chị Hoa tra anh Minh không thấy số cá nhân; trường mới chưa khai không ra khỏi cổng; quét vết không có dữ liệu cá nhân | Đạt: 27/27 phép thử |
+| SR4 (điểm dừng rủi ro) | Chuyển 30 task chờ duyệt; năm đề xuất nhỏ trong 60 phút cũng chờ duyệt; nội dung đổi sau khi duyệt, duyệt quá hạn, tự duyệt đều bị từ chối | Đạt trên máy: 20/20 phép thử; chưa chạy kịch bản C trong Thổ Thần |
+| SR5 (không chắc thì chặn) | File luật hỏng: mọi lệnh bị từ chối, 0 bản ghi đổi; task bị người khác sửa trong lúc chờ: không ghi | Đạt: 17/17 phép thử |
+| SR6 (không ghi trùng) | Mất phản hồi rồi gửi lại, bấm Gửi hai lần cùng lúc, tắt cổng ở ba thời điểm của lệnh 30 task: mỗi task đúng một lần ghi | Đạt trên máy: 26/26 phép thử |
+| SR7 (vết xuyên suốt) | Một lần tra "T-12" cho biết ai yêu cầu, ai duyệt, đổi gì, kết quả, chi phí, phiên bản luật | Đạt: 19/19 phép thử; người duyệt và chi phí đã có trong vết |
+| SR8 (dùng lại, quyền theo người) | Cùng bộ phép thử qua mọi nơi gọi cho cùng kết quả; 0 bộ tiếp hợp phải sửa | Đạt: 97/97 phép thử; ba cửa vào và hai trợ lý với mô hình giả |
 
 ### 7.5. Năm con số phải bằng 0
 

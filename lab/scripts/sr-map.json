@@ -1,0 +1,157 @@
+{
+  "SR1": {
+    "name": "danh tính và một cửa ghi",
+    "patterns": [
+      "SR1: Nam cannot move T-12",
+      "identity: a wrong, missing or malformed key gives KEY_INVALID",
+      "identity: a revoked key gives KEY_REVOKED on the very next call",
+      "mcp: a missing, wrong or revoked key gets 401",
+      "mcp: a revoked key stops the very next call",
+      "read: a key without a person in the directory, a bad key and a revoked key are all refused",
+      "write: a drafting key removed or a person gone from the directory is KEY_INVALID at Gửi",
+      "a revoked key of chị Hoa is refused on the very next call",
+      "page password: a tool key is refused at login, and a page password is refused at both tool doors"
+    ]
+  },
+  "SR2": {
+    "name": "luật chạy được",
+    "patterns": [
+      "SR2: a sales task is not found",
+      "write: a role lowered after the draft is refused at Gửi with NOT_PERMITTED",
+      "policy table: task",
+      "policy table: employee edit_work_email",
+      "policy file: every cell of both record types is declared and matches the table",
+      "policy file: the file declares read scope and fields for every role",
+      "policy default: unknown action, unknown role and unknown field are refused",
+      "policy scope: a read_only key turns every write cell into NOT_PERMITTED",
+      "read: task read scope comes from the rule file",
+      "read: removing work_email from staff changes the hidden line on the next call, without a restart",
+      "rules path: an edited rule file applies to the next call",
+      "acceptance: removing work_email from staff in the console changes the next gateway answer"
+    ]
+  },
+  "SR3": {
+    "name": "phạm vi quyền",
+    "patterns": [
+      "SR3: Nam edits a description but not an assignee",
+      "read: find_employee returns only the fields declared for the role of the asker",
+      "read: find_employee names the labelled fields hidden from the asker",
+      "read: a field new to the directory with no label is never named and never leaves the gateway",
+      "a field added to the directory after the rule file never leaves the gateway",
+      "read: find_employee matches on name and department only",
+      "a phone number, or a fragment of it, is not a search key for anyone",
+      "chị Hoa finds anh Minh and gets no personal phone or address",
+      "chị Nhung in HR sees the two personal fields of the same person",
+      "trace: after real calls every call has one line and no line holds personal data or a key",
+      "trace by employee lists the calls of one person, and no log holds a key or a personal field",
+      "policy fields: every role sees id, name, department, role and work email; only hr sees phone and address",
+      "policy fields: an unknown role gets no field at all",
+      "policy default: a field that is not listed is never returned",
+      "console: trace groups one task chain by proposal, with every column, and never shows personal data"
+    ]
+  },
+  "SR4": {
+    "name": "điểm dừng rủi ro",
+    "patterns": [
+      "bulk: thirty codes stop at the lead",
+      "propose: thirty codes at the bulk threshold are drafted with a note that a lead must approve",
+      "cumulative: five one-task proposals in the window put the fifth at the lead",
+      "cumulative: two presses at the same time for the fourth and fifth proposal leave exactly one waiting",
+      "cumulative: after the window passes the count starts again from zero",
+      "cumulative: items a lead approved are never counted again",
+      "cumulative: the count is per person and per action, not across both",
+      "approval inbox: only a lead of the requester department sees the waiting proposal",
+      "approval: a lead sees every item and reason, approves once",
+      "approval: rejecting keeps the sentence inside the labelled data block and writes nothing",
+      "approval refusals: content changed, expired, self approval",
+      "approval: a lead who is the requester cannot approve their own proposal",
+      "write: a batch at the bulk threshold waits for the lead",
+      "write: a proposal that expired after the draft is refused",
+      "expiry: after 30 minutes the page and both buttons say APPROVAL_EXPIRED",
+      "policy approval: the file lists the roles, the department rule and the wait time",
+      "policy window: the file names the 60-minute look-back",
+      "send: a stored proposal whose content no longer matches its print is refused as CONTENT_CHANGED"
+    ]
+  },
+  "SR5": {
+    "name": "không chắc thì chặn",
+    "patterns": [
+      "SR5: a broken rule file stops every draft and press",
+      "write: a broken rule file at Gửi refuses with POLICY_UNAVAILABLE",
+      "write: a task changed after the draft fails with TARGET_CHANGED and keeps the other change",
+      "write: one changed task is skipped while the other items",
+      "write: a task that disappeared between the draft and the press is refused",
+      "policy unavailable:",
+      "read: a rule file that cannot be read stops every tool",
+      "read: a typo in a record type stops every tool with POLICY_UNAVAILABLE",
+      "read: a system that does not answer gives GATEWAY_UNAVAILABLE, never half an answer",
+      "rules path: an edited rule file applies to the next call, and a broken one refuses the write",
+      "propose: a change that equals the task makes no proposal, an unclear name is asked back, a wrong date is a bad request"
+    ]
+  },
+  "SR6": {
+    "name": "không ghi trùng",
+    "patterns": [
+      "SR6:",
+      "outbox: a crash before the first item",
+      "outbox: the task list not answering for twenty seconds",
+      "write: two presses at the same time make one command and one write",
+      "write: an answer lost after the write is sent again with the same key and lands once",
+      "write: with no answer the command stays sent_unknown",
+      "write: a command left not_sent by a crash is sent by the first round",
+      "write: a three-item proposal makes one command per item, writes each once",
+      "target gateway: one task is drafted, sent and written exactly once",
+      "write: a retry after a lost response gets the old answer, not 409, and counts one write",
+      "write: an acknowledged write can be sent again and gets the same bytes back",
+      "write: eight identical commands sent at once make one write",
+      "write: a key reused with different content answers 422 and writes nothing",
+      "directory: the same Idempotency-Key replays the first answer",
+      "directory: reusing an Idempotency-Key for different content answers 422"
+    ]
+  },
+  "SR7": {
+    "name": "vết xuyên suốt",
+    "patterns": [
+      "trace: task 17 of a 30-task proposal shows the requester, the approver, the policy version",
+      "trace: the task filter reaches every line of a proposal",
+      "trace: a task in a rejected proposal shows its send and its one rejection",
+      "trace: the task filter leaves no duplicate approval rows",
+      "trace: a database without proposal_items still filters by object id",
+      "trace cli: --task prints the requester, the approver, the policy version and the write",
+      "trace cli: --employee and --task print a table",
+      "usage: a reported turn shows tokens and money when T-12 is looked up",
+      "usage: both doors write the turn code",
+      "usage: the cost table only grows",
+      "usage: a cost reported once survives a restart",
+      "usage: a database from before the turn column still reads",
+      "console: a reported turn shows its tokens and money",
+      "trace: after real calls every call has one line and no line holds personal data or a key",
+      "trace: a line is stored with every field and read back",
+      "trace: the reader filters by proposal and door",
+      "trace: the table only grows, because the database refuses UPDATE and DELETE",
+      "write: Gửi answers at once, then writes once, and the command keeps its key, version, count and result",
+      "send: when the trace line cannot be written the press is rolled back"
+    ]
+  },
+  "SR8": {
+    "name": "dùng lại, quyền theo người",
+    "note": "Ba cửa vào: http, mcp-http, tho-than-host. Hai trợ lý: mcp và function, chạy mô hình giả.",
+    "patterns": [
+      "^gateway read path ",
+      "^gateway write path ",
+      "gateway read path: the three doors publish one catalog",
+      "gateway write path: the three doors refuse the same write in the same words",
+      "mcp door: the fake model passes all four jobs",
+      "function door: the fake model passes all four jobs",
+      "conversation: the fake model and a scripted door pass all four jobs without a key",
+      "mcp door: the catalog comes from tools/list",
+      "function door: the hand-declared catalog holds the six gateway tools",
+      "function door: a 403 refusal is an error",
+      "function door: an unreachable gateway fails without carrying the key",
+      "mcp: tools/list is the same catalog as GET /v1/tools",
+      "mcp: a call answers with the same text and reason code as the REST door",
+      "mcp: the same field allowlist applies",
+      "mcp: x-user-id goes to the trace masked like a key"
+    ]
+  }
+}

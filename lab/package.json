@@ -30,6 +30,7 @@
     "build:scripts": "tsc -p tsconfig-scripts.json",
     "lint": "tsc -p tsconfig.json --noEmit && tsc -p assistants/tsconfig-lint.json",
     "test": "npm run build && node --test \"shared/dist/**/*-test.js\" \"gateway/dist/**/*-test.js\" \"fake-directory/dist/**/*-test.js\" \"fake-tasks/dist/**/*-test.js\" \"console/dist/**/*-test.js\" \"tests/dist/**/*-test.js\" \"measure/dist/**/*-test.js\" \"assistants/dist/**/*-test.js\" \"dist/scripts/**/*-test.js\"",
+    "sr": "npm run build && node dist/scripts/sr.js",
     "start": "npm run build && node dist/scripts/start.js",
     "tunnel": "npm run build && node dist/scripts/tunnel.js",
     "keys": "npm run build:shared && npm run build:gateway && node gateway/dist/cli/keys-main.js",
