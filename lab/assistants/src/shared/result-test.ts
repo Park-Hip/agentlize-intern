@@ -147,3 +147,53 @@ test('result: one write produces the summary and the gzipped samples, and readAs
     await rm(outDir, { recursive: true, force: true });
   }
 });
+
+test('result: a faulted layer puts the plan before the commit and keeps its M2 block', async () => {
+  const outDir = await mkdtemp(join(tmpdir(), 'lab-assistant-fault-result-'));
+  const job = findJob('assign-t12-to-minh');
+  assert.ok(job !== undefined);
+  const fault = {
+    plan: 'm2',
+    timeout_ms: 2_000,
+    network_runs: 10,
+    timeout_runs: 1,
+    clean_runs: 1,
+    point_missed: 0,
+    network_errors: 10,
+    timeouts: 1,
+    retries: 11,
+    duplicate_proposals: 0,
+    incomplete_proposals: 0,
+    duplicate_writes: 0,
+    lost_commands: 0,
+    note: 'note',
+  } as const;
+
+  try {
+    const written = await writeAssistantResult({
+      outDir,
+      repoRoot: REPO_ROOT,
+      command: 'npm run assistant -- --door mcp --job assign-t12-to-minh --runs 12 --fault m2',
+      model: 'deepseek-flash',
+      door: 'mcp',
+      job,
+      runs: 12,
+      samples: SAMPLES,
+      peak: false,
+      allowPeak: false,
+      balance: BALANCE,
+      stoppedEarly: null,
+      fault,
+      now: new Date('2026-11-22T00:00:00Z'),
+    });
+
+    assert.match(
+      basename(written.file),
+      /^\d{4}-\d{2}-\d{2}-assistant-mcp-assign-t12-to-minh-m2-[0-9a-f]{7}\.json$/,
+    );
+    assert.deepEqual(written.result.fault, fault);
+    assert.match(written.result.command, /--fault m2/);
+  } finally {
+    await rm(outDir, { recursive: true, force: true });
+  }
+});

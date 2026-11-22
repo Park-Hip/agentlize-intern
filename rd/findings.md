@@ -158,7 +158,7 @@ Chuyển 30 task cần anh Quang duyệt là kịch bản thứ tư, làm khi ba
 | Máy chủ Thổ Thần có ký header danh tính và gọi ra từ dải IP cố định không? | Chưa biết; header `x-user-id` hiện có thể do người gọi tự đặt | Hỏi Kevin; thử gửi header giả và so IP gọi ra | Tuần 2, quyết định cách dùng `x-user-id` |
 | Hai tài khoản có trông giống nhau ở phía server không? | Giống nhau | Chạy lại `whoami` bằng tài khoản thứ hai | Khi có tài khoản thứ hai |
 | Q1. Sập giữa lúc chuyển 30 task: chạy lại có đủ, không trùng? | Cổng tự viết làm được, nếu mỗi task có mã riêng và tiến độ lưu sau mỗi task | Đã đạt trên phép thử tự động và bản đối chứng Temporal: mỗi bản 300/300 lần, 0 ghi trùng, 0 lệnh mất; xem [Q1 tự viết](evaluation/results/2026-11-20-q1-outbox-gateway-7b7ae94.json) và [Q1 Temporal](evaluation/results/2026-11-20-q1-outbox-temporal-87d50f9.json) | Xong phần máy 2026-11-20; kịch bản C trong Thổ Thần desktop đạt 2026-11-22, chưa tắt cổng giữa chừng trên host |
-| Q2. MCP tiết kiệm bao nhiêu công so với gọi hàm? | Gần bằng nhau khi Lab viết cả hai nơi gọi | Thêm trợ lý AI thứ hai cho từng cách, đếm giờ công | Bước đánh giá |
+| Q2. MCP tiết kiệm bao nhiêu công so với gọi hàm? | Đã đo: cửa MCP 127 dòng so với 250 dòng của cửa gọi hàm; phần cổng chậm hơn 5 tới 26 ms mỗi hội thoại, tiền gần bằng; dùng MCP khi có từ hai nơi gọi, kể cả cùng một nhóm | Đã chạy 160 hội thoại sạch và 80 hội thoại có lỗi; xem [báo cáo Q2](evaluation/q2-assistants.md) | Xong 2026-11-22 |
 | Nhân viên thật dùng Thổ Thần trên điện thoại, web hay desktop? | Điện thoại hoặc web, vì PRD Skill Studio thiết kế cho điện thoại trước; khi đó stdio không tới được người dùng thật | Hỏi Kevin; mở thử app điện thoại | Tuần 2, quyết định cách nối từ mốc 2 |
 | Danh tính người dùng đi tiếp tới cổng thế nào? | Quyền quyết ở cổng, vì ai có khoá cũng gọi thẳng được cổng. Mã LobeHub 2.1.56 không gắn danh tính vào lời gọi MCP, nhưng Thổ Thần có gắn header ở đường HTTPS | Hỏi Kevin; mã LobeHub đã đọc ([mục 6.2](appota/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt)), phần còn lại là H9 | Tuần 2, không chặn mốc 1 |
 | H9 (ghi đè `x-user-id`): Thổ Thần ghi đè header `x-user-id` người dùng tự đặt, hay nối thêm? | Ghi đè; chưa chứng minh | Thêm header `x-user-id: spoof-test` vào skill, gọi `whoami`, xem probe nhận giá trị nào | Trước khi bật lớp thứ hai của ADR-0005 |
@@ -176,6 +176,10 @@ Trên host thật, kịch bản C ngày 2026-11-22 ghi đủ 30 task, mỗi task
 Q1 và Q2 chi tiết ở [spec bản thử, mục 2.1](design/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không).
 Bốn câu H9 tới H12 chi tiết ở [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được).
 Câu về thiết bị, cùng mọi mối nối giữa Appota, AgentLize, Thổ Thần, MausBot và Lab ở [bản đồ hệ thống](design/system-map.md).
+
+Q2 đã có số đo: cửa MCP viết 127 dòng so với 250 dòng của cửa gọi hàm, phần cổng chậm hơn 5 tới 26 ms mỗi hội thoại, tiền gần bằng; cả hai cửa có 0 ghi trùng và 0 lệnh mất ở lớp có lỗi ([báo cáo Q2](evaluation/q2-assistants.md)).
+Vì vậy dùng MCP khi có từ hai nơi gọi trở lên, kể cả cùng một nhóm viết.
+MCP chỉ mang lời gọi, không mang an toàn.
 
 Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã có lời đáp ở mục 4; câu khoá riêng hay dùng chung vẫn mở.
 

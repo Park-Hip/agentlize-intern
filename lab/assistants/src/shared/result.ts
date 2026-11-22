@@ -6,6 +6,44 @@ import { gunzipSync, gzipSync } from 'node:zlib';
 import { readEnvironment, type AssistantEnvironment } from './environment.js';
 import type { AssistantJob } from './jobs.js';
 
+/** What one faulted run saw at the tool call, so M2 can count errors and re-sends per run. */
+export interface SampleFaults {
+  /** `none` on a clean run of a faulted layer, `network` or `timeout` on a faulted one. */
+  readonly mode: 'none' | 'network' | 'timeout';
+  /** True when the model reached `propose_task_change` and the fault could be injected. */
+  readonly attempted: boolean;
+  readonly network_errors: number;
+  readonly timeouts: number;
+  readonly retries: number;
+  readonly proposals: number;
+  /** Extra proposals for a task already covered in this run; the proposal-level twin of a duplicate write. */
+  readonly duplicate_proposals: number;
+  /** Tasks the job named that no successful proposal covered in this run. */
+  readonly incomplete_proposals: number;
+}
+
+/**
+ * The M2 summary of a faulted layer. The assistant drafts proposals and never
+ * presses Gửi, so `duplicate_writes` and `lost_commands` stay 0 by
+ * construction; the proposal counters are the meaningful ones here.
+ */
+export interface AssistantFaults {
+  readonly plan: string;
+  readonly timeout_ms: number;
+  readonly network_runs: number;
+  readonly timeout_runs: number;
+  readonly clean_runs: number;
+  readonly point_missed: number;
+  readonly network_errors: number;
+  readonly timeouts: number;
+  readonly retries: number;
+  readonly duplicate_proposals: number;
+  readonly incomplete_proposals: number;
+  readonly duplicate_writes: number;
+  readonly lost_commands: number;
+  readonly note: string;
+}
+
 /**
  * One run of one job. It carries timings, tokens and the verdict, but never a
  * final answer or a tool result: those can hold a name or a phone number
@@ -39,6 +77,8 @@ export interface AssistantSample {
   readonly usage_reported: boolean;
   readonly tools: readonly string[];
   readonly reason_codes: readonly (string | null)[];
+  /** Present only on a run of a faulted layer. */
+  readonly fault?: SampleFaults;
 }
 
 /** p50 uses nearest rank, the same rule the measure command states. */
@@ -112,6 +152,8 @@ export interface AssistantResult {
   };
   readonly summary: AssistantSummary;
   readonly notes: readonly string[];
+  /** Present only on a faulted layer: how many faults were injected and what they caused. */
+  readonly fault?: AssistantFaults;
 }
 
 export interface WriteAssistantResultOptions {
@@ -128,6 +170,7 @@ export interface WriteAssistantResultOptions {
   readonly balance: AssistantBalance;
   readonly stoppedEarly: StoppedEarly | null;
   readonly notes?: readonly string[];
+  readonly fault?: AssistantFaults;
   readonly force?: boolean;
   readonly now?: Date;
 }
@@ -189,8 +232,8 @@ function checksum(bytes: Buffer): string {
 
 /**
  * Write the small summary and the gzipped samples, named the way issue #101
- * names a measurement result: date, kind, door, job and commit. An existing
- * file stops the run unless `--force` is set.
+ * names a measurement result: date, kind, door, job, an optional fault plan,
+ * and the commit. An existing file stops the run unless `--force` is set.
  */
 export async function writeAssistantResult(
   options: WriteAssistantResultOptions,
@@ -201,6 +244,7 @@ export async function writeAssistantResult(
     'assistant',
     options.door,
     options.job.id,
+    ...(options.fault === undefined ? [] : [options.fault.plan]),
     environment.commit_short,
   ].join('-');
   const file = join(options.outDir, `${prefix}.json`);
@@ -240,6 +284,7 @@ export async function writeAssistantResult(
     },
     summary: buildAssistantSummary(options.samples),
     notes: options.notes ?? [],
+    ...(options.fault === undefined ? {} : { fault: options.fault }),
   };
 
   await mkdir(options.outDir, { recursive: true });

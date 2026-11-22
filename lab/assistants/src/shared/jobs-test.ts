@@ -171,6 +171,17 @@ test('jobs: nam-assign-t12 needs a refusal from the gateway and the person to as
     job.grade(record('Bạn không có quyền chuyển task này.', [NAM_REFUSAL])),
     { correct: false, reason: 'no_person_to_ask' },
   );
+  // A refusal the model guessed without asking the gateway is not evidence that
+  // the permission check ran (issue #140).
+  assert.deepEqual(
+    job.grade(
+      record(
+        'Bạn không có quyền chuyển T-12. Hãy hỏi anh Quang, trưởng nhóm Vận hành.',
+        [FIND_MINH],
+      ),
+    ),
+    { correct: false, reason: 'refusal_not_from_gateway' },
+  );
 });
 
 test('jobs: nam-assign-t12 accepts the refusal wording the real model used', () => {
