@@ -66,7 +66,7 @@ test('command: one run of a job writes a result file with the model and gateway 
   const reports: TurnUsage[] = [];
   const deps: AssistantDependencies = {
     env: {
-      LAB_MODEL_API_KEY: 'sk-test-value',
+      LAB_MODEL_API_KEY: 'model-key-for-tests',
       [TOOL_KEYS_ENV]: JSON.stringify({ hoa: 'lab_test_hoa', nam: 'lab_test_nam' }),
     },
     repoRoot: REPO_ROOT,
