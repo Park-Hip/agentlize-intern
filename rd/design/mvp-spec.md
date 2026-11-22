@@ -1,6 +1,6 @@
 # Spec bản thử: thí nghiệm cổng kiểm soát cho AI trong Thổ Thần
 
-Ngày: 2026-11-20. Trạng thái: bản gốc của spec nằm trong repo; Q1 đã có bản đối chứng Temporal và giữ phương án 1A, câu trả lời Q2 còn chờ.
+Ngày: 2026-11-22. Trạng thái: bản gốc của spec nằm trong repo; Q1 đã có bản đối chứng Temporal và giữ phương án 1A; trợ lý A và B dùng DeepSeek `deepseek-flash`, câu trả lời Q2 còn chờ.
 
 ## Đọc nhanh
 
@@ -366,6 +366,7 @@ Cột trạng thái ghi ngày 2026-11-20.
 - Giữ bản đối chứng bằng Temporal ở điều kiện dừng số 5, vì kết quả 1A hiện chỉ đúng trên hệ thống giả.
 - Mỗi lần đo ghi một file tóm tắt JSON và một file mẫu nén vào `rd/evaluation/results/`, commit cùng thay đổi mà nó đo.
 - Mô hình cho trợ lý A và B chờ kết quả issue nghiên cứu #102; spec không chốt mô hình trước.
+  Ngày 2026-11-22, #102 chốt DeepSeek `deepseek-flash` ([mục 7.3](#73-thí-nghiệm-cho-q2)).
 
 ## 6. Kiến trúc tóm tắt
 
@@ -434,7 +435,47 @@ Mỗi việc chạy theo số lần ở mục 7.6, có cố ý gây lỗi mạng
 Thổ Thần chạy cùng bộ việc bằng tay, ít lần, để đối chiếu.
 Giờ công được ghi ngay khi viết từng trợ lý, kèm thứ tự viết.
 
-Mô hình cho trợ lý A và B chờ kết quả issue nghiên cứu #102.
+Trợ lý A và B dùng DeepSeek `deepseek-flash` qua API của DeepSeek, chốt ngày 2026-11-22 (#102).
+
+- Đây cũng là mô hình mặc định của Thổ Thần.
+  Cấu hình công khai của Thổ Thần ngày 2026-11-22 ghi `deepseek/deepseek-v4.1-flash` ([khảo sát Thổ Thần](../appota/tho-than-platform.md)).
+  API của DeepSeek phục vụ tên `deepseek-flash` bằng chính bản DeepSeek-V4.1-Flash-1017 ([bảng giá DeepSeek](https://api-docs.deepseek.com/quick_start/pricing)).
+  Vì vậy cả ba nơi gọi của Q2 dùng cùng một mô hình; chỉ khác bên chạy mô hình (Thổ Thần qua `takaai`, Lab gọi thẳng DeepSeek).
+- Lab chỉ dùng DeepSeek hoặc API miễn phí, nên Claude Haiku 5.5 không vào phép thử.
+
+**Chạy thử ngày 2026-11-22.**
+Mỗi mô hình làm bốn việc trên, mỗi việc 3 lần, theo kiểu gọi hàm, trên một cổng riêng với chị Hoa là người hỏi.
+Một lần đạt khi mô hình gọi đúng công cụ với đúng tham số, và câu trả lời khớp kết quả của cổng.
+
+| Mô hình | Tra nhân viên | Chuyển 1 task | Chuyển 30 task | Vượt quyền | Ghi chú |
+|-|-|-|-|-|-|
+| DeepSeek `deepseek-flash`, tắt chế độ suy nghĩ | 3/3 | 3/3 | 3/3 | 3/3 | 1,9 tới 7,1 giây một hội thoại; việc 30 task đề xuất đủ T-5 tới T-34 và nói rõ cần trưởng nhóm duyệt |
+| `nvidia/nemotron-3.5-lightning:free` qua OpenRouter | 3/3 | 3/3 | Không đo được | 3/3 | Chạm trần 50 lời gọi miễn phí mỗi ngày trước lượt 30 task |
+| `qwen3.5:4b` chạy trên máy qua Ollama | 3/3 | 3/3 | 0/3 | 3/3 | Việc 30 task: tự bịa link xác nhận mà không gọi công cụ soạn đề xuất |
+| `google/gemma-4-31b-it:free`, `inclusionai/ling-3.2-flash:free` qua OpenRouter | - | - | - | - | Nhà cung cấp gốc trả lỗi 429 (quá giới hạn) ngay lời gọi đầu |
+
+**Chi phí.**
+12 hội thoại của DeepSeek dùng 33 lời gọi mô hình, 104 nghìn token đầu vào và 4,2 nghìn token đầu ra.
+86% token đầu vào trúng bộ nhớ đệm (cache): phần đầu giống hệt lần trước nên DeepSeek tính giá rẻ hơn 50 lần.
+Theo bảng giá công khai, 12 hội thoại tốn khoảng 0,005 USD ngoài giờ cao điểm.
+Tính lại cho 240 hội thoại: khoảng 0,10 USD ngoài giờ cao điểm, 0,20 USD trong giờ cao điểm.
+Số dư 1,10 USD đủ cho cả lớp có mô hình, kể cả khi phần gây lỗi của M2 làm số token tăng gấp đôi.
+
+**Quy tắc chạy.**
+
+- Tắt chế độ suy nghĩ bằng `"thinking": {"type": "disabled"}`, vì DeepSeek mặc định bật.
+- Giữ câu lệnh hệ thống và danh mục công cụ cố định ở đầu hội thoại để trúng bộ nhớ đệm.
+- Ghi token đầu vào trúng và không trúng bộ nhớ đệm, và token đầu ra, của từng lời gọi.
+- Đọc số dư trước khi chạy và sau mỗi 10 hội thoại; dừng khi số dư dưới 0,20 USD.
+- Chạy ngoài giờ cao điểm: ngoài 08:00-11:00 và 13:00-17:00 giờ Việt Nam, thứ Hai tới thứ Sáu.
+- Khoá chỉ nằm trong biến môi trường `DEEPSEEK_API_KEY`, không vào log, vết hay commit.
+
+**Vì sao không dùng phương án miễn phí.**
+
+- OpenRouter miễn phí cho 50 lời gọi mỗi ngày khi tài khoản chưa mua đủ 10 credit ([giới hạn của OpenRouter](https://openrouter.ai/docs/api/reference/limits)).
+  240 hội thoại cần khoảng 660 lời gọi, tức khoảng 14 ngày chạy.
+- Mô hình nhỏ chạy trên máy báo "đã soạn đề xuất" khi chưa gọi công cụ, nên số đo của nó phản ánh lỗi mô hình, không phản ánh cách nối.
+- Gói OpenCode Go có API, nhưng điều khoản chỉ dành cho coding agent ([tài liệu OpenCode Go](https://opencode.ai/docs/console/go/)), và lớp trung gian làm số M1, M3 kém sạch.
 
 ### 7.4. Tám yêu cầu
 
@@ -500,7 +541,7 @@ Các bước đang giả lập, và kết luận nào bị giới hạn theo:
 | Người và dữ liệu giả: 20 nhân viên, 100 task | Hàng nghìn người, dữ liệu thật | M4 và mọi số về thời gian chỉ đúng cho cổng ở quy mô nhỏ | Không suy rộng sang vận hành |
 | Lab tự viết cả trợ lý A và B, sáu công cụ | Đội khác viết; có thể hàng chục công cụ | Q2 có thể nghiêng vì người viết học được từ lần đầu; khi nhiều công cụ, phần mô tả công cụ của MCP tốn thêm token | Ghi thứ tự viết; đếm công sức theo từng thành phần; đặt cạnh số của Thổ Thần |
 | Lớp có mô hình chạy 20 lần mỗi việc vì ngân sách | Hàng nghìn lần mỗi ngày | Q2 chỉ thấy được chênh lệch lớn giữa trợ lý A và B; tỉ lệ lỗi hiếm của AI không đo được | Báo số lần cạnh mọi tỉ lệ; tỉ lệ lỗi của cổng lấy từ lớp tự động |
-| Một mô hình AI | Mô hình khác | M1 và M3 không áp được cho mô hình khác | Ghi tên mô hình cạnh mọi số |
+| Một mô hình AI: DeepSeek `deepseek-flash`, cùng mô hình mặc định của Thổ Thần | Mô hình khác; Thổ Thần chạy cùng mô hình qua nhà cung cấp `takaai` | M1 và M3 không áp được cho mô hình khác; thời gian của Thổ Thần còn gồm độ trễ của nhà cung cấp đó | Ghi tên mô hình và bên chạy mô hình cạnh mọi số |
 | Thổ Thần gọi qua đường hầm tạm, ít lần vì credit | Máy chủ cố định, nhiều phiên | Số trên host thật có sai số lớn và cộng thêm độ trễ của đường hầm | Chạy nhiều lần ở hai lớp đầu; Thổ Thần chỉ để đối chiếu |
 | Bản đối chứng Temporal dựng trong nửa ngày | Engine chạy thật cần cụm máy, nâng cấp, giám sát | Độ phức tạp vận hành của engine bị đánh giá thấp hơn thực tế, còn độ khó dựng có thể bị đánh giá cao hơn vì chưa quen | Ghi rõ một coding agent dựng dưới giám sát của intern; kinh nghiệm Temporal trước đó của intern là câu hỏi để intern trả lời khi review |
 
@@ -510,7 +551,7 @@ Các bước đang giả lập, và kết luận nào bị giới hạn theo:
 
 | Phụ thuộc hoặc rủi ro | Hệ quả | Cách xử lý |
 |-|-|-|
-| Cần khoá gọi mô hình AI cho trợ lý A và B | Không có thì không đo được Q2 | Chờ kết quả issue nghiên cứu #102; nếu không có khoá trả tiền, dùng mô hình miễn phí và ghi rõ |
+| Cần khoá gọi mô hình AI cho trợ lý A và B | Không có thì không đo được Q2 | Đã có khoá DeepSeek với 1,10 USD; 240 hội thoại tốn khoảng 0,10 tới 0,20 USD ([mục 7.3](#73-thí-nghiệm-cho-q2)); script dừng khi số dư dưới 0,20 USD |
 | Credit Thổ Thần có hạn | Không đủ cho nhiều phiên | Chỉ chạy Thổ Thần khi nghiệm thu kịch bản |
 | Bản Thổ Thần mới có thể đổi hành vi MCP | Số đo giữa hai bản không so được | Kiểm lại hành vi đầu mỗi phiên bằng máy chủ thử; ghi bản Thổ Thần cạnh số đo |
 | Cần địa chỉ công khai cho mỗi phiên | Không có thì Thổ Thần không gọi được cổng | Đường hầm tạm có hẹn giờ tắt; đổi khoá sau mỗi phiên |
