@@ -44,6 +44,7 @@ Mở `http://127.0.0.1:8793` để xem trang điều khiển; sân chơi ở đ�
 | `shared` | Mã dùng chung: cổng mạng, mã lý do, sáu nhân vật, kiểm và che khoá dịch vụ | `shared/src/` |
 | `tests` | Phép thử nhiều dịch vụ: phép thử khói, nghiệm thu đọc và ghi, client giả Thổ Thần | `tests/src/` |
 | `measure` | Lệnh đo chạy lại được: dựng cụm riêng, ghi mẫu thô và tóm tắt vào `rd/evaluation/results/` | [measure/README.md](measure/README.md) |
+| `assistants` | Hai trợ lý của Q2: bộ việc, câu lệnh hệ thống, vòng hội thoại, mô hình giả và lệnh chạy | [assistants/README.md](assistants/README.md) |
 | `scripts` | Lệnh `start` và `tunnel` | `scripts/` |
 
 Thư viện nằm ở `package.json` gốc, để mọi gói dùng chung một lần cài và một phiên bản.
