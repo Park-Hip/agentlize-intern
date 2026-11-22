@@ -5,7 +5,7 @@ Ngày: 2026-11-22. Trạng thái: đã chạy 240 hội thoại thật, chọn k
 ## Đọc nhanh
 
 - Lab so hai cách nối một trợ lý với bộ công cụ: theo một chuẩn chung và theo cách gọi hàm thường.
-- Cách theo chuẩn chung viết 127 dòng nối, cách gọi hàm viết 250 dòng vì phải chép lại sáu mô tả công cụ.
+- Cách theo chuẩn chung viết 127 dòng; cách gọi hàm viết 95 dòng nối nhưng phải chép thêm 155 dòng mô tả công cụ, tổng 250 dòng.
 - Phần cổng của cách theo chuẩn chung chậm hơn 5 tới 26 mili giây mỗi hội thoại, còn tổng thời gian do mô hình chi phối nên chênh lệch không theo một chiều.
 - Trong 240 hội thoại, hai cách đúng 231; cả 9 lần sai là mô hình đọc dữ liệu rồi không soạn đề xuất.
 - Kết luận: dùng chuẩn chung khi có từ hai trợ lý trở lên, kể cả cùng một nhóm viết; chuẩn chung chỉ mang lời gọi, không mang an toàn.
@@ -158,6 +158,7 @@ Tiền mỗi lần đúng của cửa MCP cao hơn ở việc chuyển 30 task v
 | Thứ tự viết | Song song sau bộ khung chung `f99add3` | Song song sau bộ khung chung `f99add3` |
 
 Bộ khung chung có 1.925 dòng mã trong 14 tệp ([PR #128](https://github.com/Park-Hip/agentlize-intern/pull/128)); cả hai trợ lý dùng lại, nên không tính vào phần nối của bên nào.
+Cửa gọi hàm có phần nối ngắn hơn (95 dòng so với 127 dòng), nhưng cộng thêm 155 dòng chép danh mục thì tổng dài hơn 250 so với 127.
 Hai trợ lý được viết song song bởi hai agent riêng, cùng bắt đầu sau bộ khung chung, nên không bên nào học được từ bên kia.
 Giờ công của lần dựng đầu gần nhau (16 phút và 13 phút); khác biệt bền vững nằm ở dòng mã và ở chỗ B phải chép lại danh mục công cụ.
 
@@ -172,7 +173,7 @@ Giờ công của lần dựng đầu gần nhau (16 phút và 13 phút); khác 
 Lớp có lỗi thêm 277 dòng dùng chung (206 dòng mã) và 261 dòng phép thử, không sửa cổng ([`faults.ts`](../../lab/assistants/src/shared/faults.ts)).
 Lớp này dùng lại đúng cửa nối của hai trợ lý, nên không làm lệch phép so.
 
-**Kết luận:** MCP tiết kiệm khoảng một nửa dòng nối và toàn bộ phần chép danh mục; giờ công của lần dựng đầu gần nhau, nên khoản tiết kiệm hiện rõ ở trợ lý thứ hai và ở phần bảo trì.
+**Kết luận:** MCP tiết kiệm khoảng một nửa tổng dòng phải viết cho trợ lý, nhờ không phải chép danh mục; giờ công của lần dựng đầu gần nhau, nên khoản tiết kiệm hiện rõ ở trợ lý thứ hai và ở phần bảo trì.
 
 ## 7. Hai điều ảnh hưởng tới so sánh
 

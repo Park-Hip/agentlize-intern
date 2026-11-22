@@ -192,7 +192,7 @@ Trong Thổ Thần, MCP không cho cổng biết chắc ai đang hỏi, không c
 
 **Kết quả đo ngày 2026-11-22.**
 Hai trợ lý chạy 160 hội thoại sạch và 80 hội thoại có lỗi, trên cùng một cổng, cùng mô hình `deepseek-flash`, cùng câu lệnh hệ thống và cùng sáu mô tả công cụ ([báo cáo Q2](../evaluation/q2-assistants.md)).
-Cửa MCP viết 127 dòng, cửa gọi hàm viết 250 dòng vì phải chép tay sáu mô tả công cụ.
+Cửa MCP viết 127 dòng; cửa gọi hàm viết 95 dòng nối và 155 dòng chép tay sáu mô tả công cụ, tổng 250 dòng.
 Phần cổng của cửa MCP chậm hơn 5 tới 26 ms mỗi hội thoại, khoảng 0,3% tới 0,5% tổng thời gian; tiền gần bằng nhau; cả hai cửa có 0 ghi trùng và 0 lệnh mất ở lớp có lỗi.
 Trong 240 hội thoại, hai cửa đúng 231; cả 9 lần sai là mô hình đọc dữ liệu rồi không soạn đề xuất, không phải cửa nối trả sai.
 
