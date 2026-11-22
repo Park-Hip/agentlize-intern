@@ -138,6 +138,7 @@ Lỗi gửi lại không tạo thêm đề xuất vì lần gửi đầu chỉ c
 | Nam chuyển T-12 (bị từ chối) | MCP | 189.915 | 93,1% | 6.357 | 0,006318 | 0,000316 | - |
 | Nam chuyển T-12 (bị từ chối) | Gọi hàm | 192.676 | 93,7% | 5.867 | 0,005891 | 0,000295 | - |
 
+Tám dòng này dùng đúng tám file kết quả ở bảng mục 3.
 Token vào trúng bộ nhớ đệm 82% tới 94% vì câu lệnh hệ thống và danh mục công cụ giữ nguyên ở đầu mỗi hội thoại.
 Việc chuyển 30 task rẻ nhất cho mỗi task đổi vì một đề xuất phủ 30 task, còn việc chuyển T-12 phải trả tiền cho cả hội thoại để đổi một task.
 Tiền mỗi lần đúng của cửa MCP cao hơn ở việc chuyển 30 task vì mẫu có 2 lần sai, và mỗi lần sai vẫn tốn tiền mà không đổi được task nào.
@@ -148,7 +149,7 @@ Tiền mỗi lần đúng của cửa MCP cao hơn ở việc chuyển 30 task v
 
 | Mục | MCP (trợ lý A) | Gọi hàm (trợ lý B) |
 | --- | --- | --- |
-| Dòng mã phần nối | 127 dòng, 92 dòng mã | 250 dòng, 222 dòng mã (cửa 95 dòng/76 mã, khai báo 155 dòng/146 mã) |
+| Dòng mã phần nối | 127 dòng, 92 dòng mã ([`door.ts`](../../lab/assistants/src/mcp/door.ts)) | 250 dòng, 222 dòng mã ([`door.ts`](../../lab/assistants/src/function-calling/door.ts), [`tools.ts`](../../lab/assistants/src/function-calling/tools.ts)) |
 | Phép thử của phần nối | 308 dòng | 331 dòng, thêm phép thử canh lệch danh mục |
 | Giờ công | 16 phút ([PR #131](https://github.com/Park-Hip/agentlize-intern/pull/131)) | 13 phút ([PR #132](https://github.com/Park-Hip/agentlize-intern/pull/132)) |
 | File cổng phải sửa | 0 | 0 |
