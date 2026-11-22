@@ -2,7 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { runConversation } from './conversation.js';
 import { turnCostUsd } from './cost.js';
-import { createFakeModel, createScriptedDoor, type FakeStep, type ScriptedDoorHandler } from './fake-model.js';
+import { ConversationError, ModelHttpError } from './errors.js';
+import {
+  TOOL_SPECS,
+  createFakeModel,
+  createScriptedDoor,
+  type FakeStep,
+  type ScriptedDoorHandler,
+} from './fake-model.js';
 import { LAN_OPEN_TASKS, findJob } from './jobs.js';
 import type { UsageReporter, TurnUsage } from './usage.js';
 
@@ -129,6 +136,8 @@ test('conversation: the fake model and a scripted door pass all four jobs withou
     assert.equal(outcome.gatewayMs, 12 * outcome.toolCalls);
     assert.equal(outcome.turnUsage.turnId, turnId);
     assert.equal(outcome.turnUsage.costUsd, turnCostUsd(outcome.usage, OFF_PEAK()));
+    assert.ok(outcome.usage.cacheHitTokens > 0, `${jobId} must report cache-hit input tokens`);
+    assert.ok(outcome.usage.cacheMissTokens > 0, `${jobId} must report cache-miss input tokens`);
     assert.equal(usage.reports.length, 1);
     assert.deepEqual(usage.reports[0], outcome.turnUsage);
     assert.ok(scripted.calls.every((call) => call.turnId === turnId), `${jobId} must send X-Lab-Turn on every call`);
@@ -179,4 +188,54 @@ test('conversation: a turn with no tool call costs nothing to report and is grad
   assert.equal(outcome.usageReported, false);
   assert.equal(usage.reports.length, 0);
   assert.deepEqual(outcome.verdict, { correct: false, reason: 'missing_find_employee' });
+});
+
+test('conversation: a model failure is tagged with a safe model code', async () => {
+  const job = findJob('lookup-minh-phone');
+  assert.ok(job !== undefined);
+  await assert.rejects(
+    runConversation({
+      job,
+      turnId: 'turn-model-error',
+      model: {
+        name: 'failing-model',
+        async complete() {
+          throw new ModelHttpError(402);
+        },
+      },
+      door: createScriptedDoor(() => ({ text: FIND_MINH_TEXT })).door,
+      usage: recorder().reporter,
+      now: tickClock(),
+      nowDate: OFF_PEAK,
+    }),
+    (error: unknown) =>
+      error instanceof ConversationError && error.stage === 'model' && error.code === 'model_http_402',
+  );
+});
+
+test('conversation: a door failure is tagged door_error', async () => {
+  const job = findJob('lookup-minh-phone');
+  assert.ok(job !== undefined);
+  await assert.rejects(
+    runConversation({
+      job,
+      turnId: 'turn-door-error',
+      model: createFakeModel({
+        steps: [{ toolCalls: [{ name: 'find_employee', arguments: { name: 'Minh' } }] }],
+      }),
+      door: {
+        name: 'failing-door',
+        async listTools() {
+          return TOOL_SPECS;
+        },
+        async callTool() {
+          throw new Error('door down');
+        },
+      },
+      usage: recorder().reporter,
+      now: tickClock(),
+      nowDate: OFF_PEAK,
+    }),
+    (error: unknown) => error instanceof ConversationError && error.stage === 'door' && error.code === 'door_error',
+  );
 });

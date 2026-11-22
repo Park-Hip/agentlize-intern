@@ -2,12 +2,27 @@ import { randomBytes } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PERSONAS } from '@lab/shared';
+import {
+  BALANCE_CHECK_EVERY,
+  MIN_BALANCE_USD,
+  BalanceError,
+  DeepSeekBalanceClient,
+  type BalanceClient,
+} from './balance.js';
 import { DEFAULT_MAX_STEPS, runConversation } from './conversation.js';
+import { isPeakTime } from './cost.js';
 import { DEEPSEEK_MODEL, DeepSeekClient, readModelKey } from './deepseek.js';
 import type { DoorContext, DoorFactory, ToolDoor } from './door.js';
+import { runErrorCode } from './errors.js';
 import { ASSISTANT_JOBS, findJob, type AssistantJob } from './jobs.js';
 import type { ModelClient } from './model.js';
-import { writeAssistantResult, type AssistantSample } from './result.js';
+import {
+  writeAssistantResult,
+  type AssistantBalance,
+  type AssistantSample,
+  type BalanceCheck,
+  type StoppedEarly,
+} from './result.js';
 import { createGatewayUsageReporter, type UsageReporter } from './usage.js';
 
 export const DOOR_NAMES = ['mcp', 'function'] as const;
@@ -40,6 +55,7 @@ export interface ParsedAssistantArguments {
   readonly out: string | undefined;
   readonly maxSteps: number;
   readonly force: boolean;
+  readonly allowPeak: boolean;
   readonly help: boolean;
 }
 
@@ -68,6 +84,7 @@ export function parseAssistantArguments(argv: readonly string[]): ParsedAssistan
   let out: string | undefined;
   let maxSteps = DEFAULT_MAX_STEPS;
   let force = false;
+  let allowPeak = false;
   let help = false;
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -114,21 +131,30 @@ export function parseAssistantArguments(argv: readonly string[]): ParsedAssistan
       force = true;
       continue;
     }
+    if (option === '--allow-peak') {
+      if (inline !== undefined) throw new Error('--allow-peak takes no value');
+      allowPeak = true;
+      continue;
+    }
     if (option.startsWith('-')) throw new Error(`unknown option "${argument}"`);
     throw new Error(`unexpected argument "${argument}"`);
   }
 
-  return { door, job, runs, out, maxSteps, force, help };
+  return { door, job, runs, out, maxSteps, force, allowPeak, help };
 }
 
 export function usageText(): string {
   const jobLines = ASSISTANT_JOBS.map((job) => `  ${job.id.padEnd(22)} ${job.label}`).join('\n');
   return [
-    'Usage: npm run assistant -- --door <mcp|function> --job <việc> --runs N [--max-steps N] [--out <folder>] [--force]',
+    'Usage: npm run assistant -- --door <mcp|function> --job <việc> --runs N [--max-steps N] [--out <folder>] [--force] [--allow-peak]',
     '',
     'Runs one Q2 job through one tool door and writes a result under rd/evaluation/results/.',
     `--runs defaults to ${DEFAULT_RUNS}; --max-steps defaults to ${DEFAULT_MAX_STEPS}.`,
     'The model key is read only from LAB_MODEL_API_KEY; the tool key from LAB_TOOL_KEYS or LAB_TOOL_KEY.',
+    `The DeepSeek USD balance is read before the first run and after every ${BALANCE_CHECK_EVERY} runs;`,
+    `the command stops when it is under $${MIN_BALANCE_USD.toFixed(2)}.`,
+    'DeepSeek charges double from 08:00-11:00 and 13:00-17:00 Vietnam time, Monday to Friday;',
+    'the command refuses to start in those windows unless --allow-peak is passed.',
     'The mcp and function doors live in src/mcp/ (#108) and src/function-calling/ (#109).',
     '',
     'Jobs:',
@@ -191,16 +217,15 @@ function newTurnId(run: number): string {
   return `turn-${Date.now().toString(36)}-${run}-${randomBytes(4).toString('hex')}`;
 }
 
-/** Mask key-shaped tokens before an error reaches a log. */
-function safeMessage(error: unknown): string {
-  const text = error instanceof Error ? error.message : String(error);
-  return text.replace(/\b(?:lab_|sk-)[A-Za-z0-9_-]{6,}/g, '***');
+function balanceErrorCode(error: unknown): string {
+  return error instanceof BalanceError ? error.code : 'balance_unavailable';
 }
 
 export interface AssistantFactories {
   readonly createModel?: (options: { readonly apiKey: string; readonly model: string }) => ModelClient;
   readonly createDoor?: (name: DoorName, context: DoorContext) => Promise<ToolDoor>;
   readonly createUsage?: (options: { readonly baseUrl: string; readonly apiKey: string }) => UsageReporter;
+  readonly createBalance?: (options: { readonly apiKey: string }) => BalanceClient;
 }
 
 export interface AssistantDependencies extends AssistantFactories {
@@ -211,7 +236,13 @@ export interface AssistantDependencies extends AssistantFactories {
   readonly clock?: () => number;
 }
 
-function emptySample(run: number, job: AssistantJob, door: DoorName, turnId: string): AssistantSample {
+function emptySample(
+  run: number,
+  job: AssistantJob,
+  door: DoorName,
+  turnId: string,
+  errorCode: string,
+): AssistantSample {
   return {
     run,
     job: job.id,
@@ -221,12 +252,15 @@ function emptySample(run: number, job: AssistantJob, door: DoorName, turnId: str
     correct: false,
     grade_reason: 'run_error',
     stop_reason: 'error',
+    error_code: errorCode,
     model_ms: 0,
     gateway_ms: 0,
     total_ms: 0,
     model_calls: 0,
     tool_calls: 0,
     input_tokens: 0,
+    cache_hit_tokens: 0,
+    cache_miss_tokens: 0,
     output_tokens: 0,
     cost_usd: 0,
     usage_reported: false,
@@ -238,6 +272,8 @@ function emptySample(run: number, job: AssistantJob, door: DoorName, turnId: str
 /**
  * Run one job N times and write the result. Every run is one conversation turn
  * with its own turn code, so the gateway can join the cost to the tool calls.
+ * The command refuses to start in a peak price window unless `--allow-peak`,
+ * and stops when the DeepSeek USD balance falls under the guard.
  */
 export async function main(argv: readonly string[], dependencies: AssistantDependencies = {}): Promise<number> {
   const env = dependencies.env ?? process.env;
@@ -253,6 +289,15 @@ export async function main(argv: readonly string[], dependencies: AssistantDepen
     throw new Error(`unknown job "${args.job}"; available: ${ASSISTANT_JOBS.map((candidate) => candidate.id).join(', ')}`);
   }
 
+  const nowDate = dependencies.now ?? (() => new Date());
+  const peak = isPeakTime(nowDate());
+  if (peak && !args.allowPeak) {
+    throw new Error(
+      'DeepSeek charges double from 08:00-11:00 and 13:00-17:00 Vietnam time, Monday to Friday; '
+        + 'run outside those windows or pass --allow-peak to run anyway',
+    );
+  }
+
   const persona = PERSONAS[job.persona];
   const toolKey = readToolKey(env, job.persona);
   const modelKey = readModelKey(env);
@@ -263,7 +308,7 @@ export async function main(argv: readonly string[], dependencies: AssistantDepen
   const createModel = dependencies.createModel ?? ((options) => new DeepSeekClient(options));
   const createDoor = dependencies.createDoor ?? loadDoor;
   const createUsage = dependencies.createUsage ?? ((options) => createGatewayUsageReporter(options));
-  const nowDate = dependencies.now ?? (() => new Date());
+  const createBalance = dependencies.createBalance ?? ((options) => new DeepSeekBalanceClient(options));
   const clock = dependencies.clock ?? (() => performance.now());
 
   const command = [
@@ -277,14 +322,39 @@ export async function main(argv: readonly string[], dependencies: AssistantDepen
     ...(args.maxSteps === DEFAULT_MAX_STEPS ? [] : ['--max-steps', String(args.maxSteps)]),
     ...(args.out === undefined ? [] : ['--out', args.out]),
     ...(args.force ? ['--force'] : []),
+    ...(args.allowPeak ? ['--allow-peak'] : []),
   ].join(' ');
 
-  const samples: AssistantSample[] = [];
-  // The door is built once, before any run: a missing door module must fail the
-  // command instead of writing a result full of error samples.
+  // The door is built before the balance read, so a missing door module fails
+  // the command before it touches the model provider.
   const door = await createDoor(args.door, { baseUrl, employeeId: persona.employeeId, toolKey });
   const usage = createUsage({ baseUrl, apiKey: toolKey });
-  for (let run = 1; run <= args.runs; run += 1) {
+  const balanceClient = createBalance({ apiKey: modelKey });
+  const checks: BalanceCheck[] = [];
+  const readBalance = async (afterRun: number): Promise<number> => {
+    const usd = await balanceClient.read();
+    checks.push({ after_run: afterRun, usd, at: nowDate().toISOString() });
+    return usd;
+  };
+
+  let balanceBefore: number;
+  try {
+    balanceBefore = await readBalance(0);
+  } catch (cause) {
+    // No guard, no run: fail before spending anything.
+    throw new Error(`cannot read the DeepSeek balance before the first run (${balanceErrorCode(cause)})`);
+  }
+
+  let balanceAfter: number | null = balanceBefore;
+  let balanceError: string | null = null;
+  let stoppedEarly: StoppedEarly | null = null;
+  if (balanceBefore < MIN_BALANCE_USD) {
+    stoppedEarly = { reason: 'balance_low', at_run: 0 };
+    log(`[assistant] balance $${balanceBefore} is under $${MIN_BALANCE_USD.toFixed(2)}; no run started`);
+  }
+
+  const samples: AssistantSample[] = [];
+  for (let run = 1; run <= args.runs && stoppedEarly === null; run += 1) {
     const turnId = newTurnId(run);
     log(`[assistant] run ${run}/${args.runs} ${args.door}/${job.id} for ${job.persona}, turn ${turnId}`);
     try {
@@ -308,12 +378,15 @@ export async function main(argv: readonly string[], dependencies: AssistantDepen
         correct: outcome.verdict.correct,
         grade_reason: outcome.verdict.reason,
         stop_reason: outcome.record.stopReason,
+        error_code: null,
         model_ms: outcome.modelMs,
         gateway_ms: outcome.gatewayMs,
         total_ms: outcome.totalMs,
         model_calls: outcome.modelCalls,
         tool_calls: outcome.toolCalls,
         input_tokens: outcome.usage.inputTokens,
+        cache_hit_tokens: outcome.usage.cacheHitTokens,
+        cache_miss_tokens: outcome.usage.cacheMissTokens,
         output_tokens: outcome.usage.outputTokens,
         cost_usd: outcome.turnUsage.costUsd,
         usage_reported: outcome.usageReported,
@@ -326,10 +399,38 @@ export async function main(argv: readonly string[], dependencies: AssistantDepen
           + `${outcome.usage.inputTokens} in / ${outcome.usage.outputTokens} out tokens, $${outcome.turnUsage.costUsd}`,
       );
     } catch (cause) {
-      samples.push(emptySample(run, job, args.door, turnId));
-      log(`[assistant] run ${run}: error: ${safeMessage(cause)}`);
+      const code = runErrorCode(cause);
+      samples.push(emptySample(run, job, args.door, turnId, code));
+      log(`[assistant] run ${run}: error (${code})`);
+    }
+
+    const isLast = run === args.runs;
+    if (run % BALANCE_CHECK_EVERY === 0 || isLast) {
+      try {
+        const usd = await readBalance(run);
+        balanceAfter = usd;
+        if (usd < MIN_BALANCE_USD && !isLast) {
+          stoppedEarly = { reason: 'balance_low', at_run: run };
+          log(`[assistant] balance $${usd} is under $${MIN_BALANCE_USD.toFixed(2)}; stopping before run ${run + 1}`);
+        }
+      } catch (cause) {
+        balanceAfter = null;
+        balanceError = balanceErrorCode(cause);
+        if (!isLast) {
+          stoppedEarly = { reason: 'balance_unavailable', at_run: run };
+          log(`[assistant] balance read failed after run ${run} (${balanceError}); stopping`);
+        }
+      }
     }
   }
+
+  const balance: AssistantBalance = {
+    threshold_usd: MIN_BALANCE_USD,
+    before_usd: balanceBefore,
+    after_usd: balanceAfter,
+    checks,
+    error: balanceError,
+  };
 
   const written = await writeAssistantResult({
     outDir,
@@ -340,12 +441,18 @@ export async function main(argv: readonly string[], dependencies: AssistantDepen
     job,
     runs: args.runs,
     samples,
+    peak,
+    allowPeak: args.allowPeak,
+    balance,
+    stoppedEarly,
     force: args.force,
     now: nowDate(),
     notes: [
       `Mô hình: ${modelName}. Cửa: ${args.door}. Mỗi lần chạy là một lượt hội thoại có mã lượt riêng.`,
-      'Chi phí báo qua POST /v1/usage; token vào, token ra và tiền lấy từ phản hồi của mô hình.',
-      'File mẫu không giữ câu trả lời hay nội dung tool, chỉ giữ số đo và mã lý do.',
+      `Số dư DeepSeek đọc trước khi chạy và sau mỗi ${BALANCE_CHECK_EVERY} lượt; ngưỡng dừng ${MIN_BALANCE_USD.toFixed(2)} USD.`,
+      `Giờ cao điểm: ${peak ? 'có' : 'không'}${args.allowPeak ? ' (đã cho phép)' : ''}.`,
+      'Chi phí báo qua POST /v1/usage; token vào, token ra, token trúng bộ nhớ đệm và tiền lấy từ phản hồi của mô hình.',
+      'File mẫu không giữ câu trả lời hay nội dung tool, chỉ giữ số đo, mã lý do và mã lỗi ngắn.',
       'Kết quả đúng hay sai do hàm chấm của việc quyết định, không do người đọc file.',
     ],
   });
@@ -356,7 +463,8 @@ export async function main(argv: readonly string[], dependencies: AssistantDepen
       + `$${written.result.summary.cost_usd}`,
   );
   log(`[assistant] wrote ${written.shownFile}`);
-  // Keep the evidence file of a failed measurement, but exit non-zero so a
-  // script notices that no run produced a usable answer.
-  return samples.every((sample) => sample.stop_reason === 'error') ? 1 : 0;
+  // Keep the evidence file of a stopped or failed measurement, but exit non-zero
+  // so a script notices that the requested runs did not all produce an answer.
+  if (stoppedEarly !== null) return 1;
+  return samples.length > 0 && samples.every((sample) => sample.stop_reason === 'error') ? 1 : 0;
 }

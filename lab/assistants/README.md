@@ -6,7 +6,7 @@ Ngày: 2026-11-22. Trạng thái: phần dùng chung đã chạy với mô hình
 
 - Lab so sánh hai cách nối một trợ lý với cổng: theo một chuẩn chung và theo cách gọi hàm thường.
 - Để so công bằng, hai trợ lý dùng cùng mô hình, cùng câu lệnh hệ thống, cùng bốn việc và cùng vòng hội thoại.
-- Gói này dựng phần dùng chung đó; mỗi trợ lý chỉ viết phần nối với cổng.
+- Gói này dựng phần dùng chung đó, kèm kiểm số dư trước khi chạy và chặn giờ giá cao.
 - `npm test` chạy cả bốn việc bằng một mô hình giả, không cần khoá và không gọi mạng.
 - Việc còn lại là viết hai cửa nối với cổng.
 
@@ -51,6 +51,11 @@ Khoá chỉ đọc từ biến môi trường `LAB_MODEL_API_KEY`; client không
 `src/shared/cost.ts` tính tiền theo bảng giá công khai: 0,003 USD mỗi triệu token vào trúng bộ nhớ đệm, 0,15 USD mỗi triệu token vào không trúng, 0,60 USD mỗi triệu token ra.
 Giờ cao điểm 08:00-11:00 và 13:00-17:00 giờ Việt Nam, thứ Hai tới thứ Sáu, nhân đôi giá.
 
+`src/shared/balance.ts` đọc số dư USD của DeepSeek qua `GET https://api.deepseek.com/user/balance` bằng đúng khoá mô hình.
+Lệnh đọc số dư trước lượt đầu và sau mỗi 10 lượt, rồi dừng khi số dư dưới 0,20 USD.
+Chỉ mục `USD` được dùng; tài khoản không có mục USD thì lệnh dừng với mã `balance_currency_missing` thay vì đoán tỷ giá.
+Lệnh từ chối chạy trong giờ cao điểm trừ khi có `--allow-peak`, và ghi `peak` vào file kết quả.
+
 ## 5. Vòng hội thoại
 
 `src/shared/conversation.ts` chạy một lượt hội thoại:
@@ -62,6 +67,9 @@ Giờ cao điểm 08:00-11:00 và 13:00-17:00 giờ Việt Nam, thứ Hai tới 
 
 Một lần chạy là một lượt, nên một lần báo chi phí.
 Lượt không có lời gọi công cụ thì cổng không có dòng vết để gắn chi phí; lần chạy vẫn được chấm nhưng ghi `usage_reported: false`.
+
+Lệnh đọc số dư trước lượt đầu và sau mỗi 10 lượt; dừng trước lượt kế tiếp khi số dư dưới ngưỡng hoặc khi không đọc được số dư.
+Lý do dừng nằm ở `stopped_early` của file kết quả, gồm `balance_low` và `balance_unavailable`.
 
 ## 6. Lệnh và file kết quả
 
@@ -79,6 +87,8 @@ npm run assistant -- --door function --job nam-assign-t12 --runs 1 --out ../rd/e
 | `LAB_GATEWAY_URL` | `http://127.0.0.1:8790` | Địa chỉ cổng |
 | `LAB_MODEL_NAME` | `deepseek-flash` | Đổi tên mô hình khi cần đối chiếu |
 
+`--allow-peak` cho phép chạy trong giờ cao điểm; thiếu cờ này thì lệnh dừng trước khi đọc số dư.
+
 Lệnh ghi hai file cạnh nhau trong `rd/evaluation/results/`, theo cách đặt tên của #101:
 
 - `<YYYY-MM-DD>-assistant-<door>-<job>-<commit 7>.json`: bản tóm tắt nhỏ, đọc được trên GitHub.
@@ -87,23 +97,25 @@ Lệnh ghi hai file cạnh nhau trong `rd/evaluation/results/`, theo cách đặ
 Tên việc đứng ở vị trí biến thể của mẫu tên #101, nên hai việc khác nhau không ghi đè nhau.
 Cùng một việc chạy hai lần trong ngày trên cùng một commit thì lần sau cần `--force`.
 
-Bản tóm tắt ghi số lần chạy, số lần đúng, p50 và lần chậm nhất của phần mô hình và phần cổng, token và tiền.
-Mỗi mẫu ghi mã lượt, thời gian mô hình, thời gian cổng, số lời gọi, token, tiền, mã lý do và tên công cụ đã gọi.
+Bản tóm tắt ghi số lần chạy, số lần đúng, p50 và lần chậm nhất của phần mô hình và phần cổng, token vào trúng và không trúng bộ nhớ đệm, token ra, tiền, giờ cao điểm, số dư trước và sau, và lý do dừng sớm nếu có.
+Mỗi mẫu ghi mã lượt, thời gian mô hình, thời gian cổng, số lời gọi, token vào trúng/không trúng, token ra, tiền, mã lý do, mã lỗi ngắn và tên công cụ đã gọi.
+Mã lỗi chỉ là một trong các dạng ngắn như `model_http_402`, `model_timeout`, `model_network`, `door_error`; không bao giờ là câu thông báo hay khoá.
 File không giữ câu trả lời hay nội dung công cụ, vì hai thứ đó có thể chứa tên, email hay số điện thoại.
 
 Lệnh trả 0 sau khi ghi file khi có ít nhất một lần chạy ra kết quả, kể cả khi kết quả sai.
-Nếu mọi lần chạy đều lỗi thì lệnh trả 1 và vẫn giữ file để điều tra.
+Lệnh trả 1 khi dừng sớm vì số dư, hoặc khi mọi lần chạy đều lỗi; file vẫn được giữ để điều tra.
 Một file đã có thì lệnh dừng trước khi chạy; `--force` là cách duy nhất ghi đè.
 
 ## 7. Mô hình giả và phép thử
 
-`src/shared/fake-model.ts` có hai thứ cho phép thử:
+`src/shared/fake-model.ts` và `src/shared/balance.ts` có ba thứ cho phép thử:
 
 - `createFakeModel({ steps })` trả lời theo kịch bản, không gọi mạng và không cần khoá.
 - `createScriptedDoor(handler)` giả lập cửa nối, trả sẵn kết quả công cụ và ghi lại mã lượt của từng lời gọi.
+- `createFakeBalance(readings)` trả số dư theo kịch bản, nên phép thử không gọi mạng.
 
 `npm test` chạy bốn việc với mô hình giả, kiểm thêm các trường hợp sai: trợ lý bịa số điện thoại, trợ lý nói đã đổi task khi mới soạn đề xuất, và vòng lặp chạm số bước.
-Phép thử cũng kiểm khoá không lọt vào lỗi, cách tính tiền giờ cao điểm, và file kết quả đọc lại được.
+Phép thử cũng kiểm khoá không lọt vào lỗi, cách tính tiền giờ cao điểm, ngưỡng số dư 0,20 USD, việc từ chối giờ cao điểm, mã lỗi ngắn, và file kết quả đọc lại được.
 
 ## 8. Thêm một việc
 

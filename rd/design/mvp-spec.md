@@ -468,7 +468,7 @@ Số dư 1,10 USD đủ cho cả lớp có mô hình, kể cả khi phần gây 
 - Ghi token đầu vào trúng và không trúng bộ nhớ đệm, và token đầu ra, của từng lời gọi.
 - Đọc số dư trước khi chạy và sau mỗi 10 hội thoại; dừng khi số dư dưới 0,20 USD.
 - Chạy ngoài giờ cao điểm: ngoài 08:00-11:00 và 13:00-17:00 giờ Việt Nam, thứ Hai tới thứ Sáu.
-- Khoá chỉ nằm trong biến môi trường `DEEPSEEK_API_KEY`, không vào log, vết hay commit.
+- Khoá chỉ nằm trong biến môi trường `LAB_MODEL_API_KEY`, không vào log, vết hay commit.
 
 **Vì sao không dùng phương án miễn phí.**
 

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DEEPSEEK_MODEL, MODEL_KEY_ENV, DeepSeekClient, readModelKey } from './deepseek.js';
+import { ModelHttpError, ModelNetworkError, ModelTimeoutError } from './errors.js';
 
 interface SeenRequest {
   readonly url: string;
@@ -133,7 +134,27 @@ test('deepseek: a failed call never puts the key in the error', async () => {
   await assert.rejects(
     client.complete({ messages: [], tools: [] }),
     (error: unknown) =>
-      error instanceof Error && error.message.includes('503') && !error.message.includes('model-key-for-tests'),
+      error instanceof ModelHttpError && error.status === 503 && !error.message.includes('model-key-for-tests'),
+  );
+});
+
+test('deepseek: a timeout and a network failure get their own error classes', async () => {
+  const timeoutFetch = (async () => {
+    throw new DOMException('aborted', 'AbortError');
+  }) as unknown as typeof fetch;
+  const timeoutClient = new DeepSeekClient({ apiKey: 'model-key-for-tests', fetchImpl: timeoutFetch });
+  await assert.rejects(
+    timeoutClient.complete({ messages: [], tools: [] }),
+    (error: unknown) => error instanceof ModelTimeoutError,
+  );
+
+  const networkFetch = (async () => {
+    throw new TypeError('fetch failed');
+  }) as unknown as typeof fetch;
+  const networkClient = new DeepSeekClient({ apiKey: 'model-key-for-tests', fetchImpl: networkFetch });
+  await assert.rejects(
+    networkClient.complete({ messages: [], tools: [] }),
+    (error: unknown) => error instanceof ModelNetworkError,
   );
 });
 

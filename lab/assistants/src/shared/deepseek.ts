@@ -1,4 +1,5 @@
 import type { ToolSpec } from './door.js';
+import { ModelHttpError, ModelNetworkError, ModelTimeoutError, isTimeoutError } from './errors.js';
 import type { ModelClient, ModelMessage, ModelReply, ModelRequest, ModelToolCall, ModelUsage } from './model.js';
 
 /** The one environment variable a model key may come from. It is never logged. */
@@ -164,19 +165,25 @@ export class DeepSeekClient implements ModelClient {
       stream: false,
     };
 
-    const response = await this.fetchImpl(this.url, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${this.apiKey}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(this.timeoutMs),
-    });
+    let response: Response;
+    try {
+      response = await this.fetchImpl(this.url, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${this.apiKey}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+    } catch (cause) {
+      // A timeout and a dead endpoint get different codes; neither carries the key.
+      throw isTimeoutError(cause) ? new ModelTimeoutError() : new ModelNetworkError();
+    }
 
     if (!response.ok) {
       // Never put the key or the request body in the error: both can reach a log.
-      throw new Error(`DeepSeek answered HTTP ${response.status}`);
+      throw new ModelHttpError(response.status);
     }
 
     const payload = (await response.json()) as DeepSeekResponse;

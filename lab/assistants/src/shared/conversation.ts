@@ -1,7 +1,8 @@
 import { turnCostUsd } from './cost.js';
-import type { ToolDoor } from './door.js';
+import type { ToolCallResult, ToolDoor, ToolSpec } from './door.js';
+import { ConversationError, modelErrorCode } from './errors.js';
 import type { AssistantJob, ConversationRecord, JobVerdict, ToolCallRecord } from './jobs.js';
-import { addUsage, EMPTY_USAGE, type ModelClient, type ModelMessage, type ModelUsage } from './model.js';
+import { addUsage, EMPTY_USAGE, type ModelClient, type ModelMessage, type ModelReply, type ModelUsage } from './model.js';
 import { SYSTEM_PROMPT } from './system-prompt.js';
 import type { TurnUsage, UsageReporter } from './usage.js';
 
@@ -44,7 +45,12 @@ export async function runConversation(options: ConversationOptions): Promise<Con
   const nowDate = options.nowDate ?? (() => new Date());
   const maxSteps = options.maxSteps ?? DEFAULT_MAX_STEPS;
   const startedAt = clock();
-  const tools = await options.door.listTools();
+  let tools: readonly ToolSpec[];
+  try {
+    tools = await options.door.listTools();
+  } catch (cause) {
+    throw new ConversationError('door', 'door_error', cause);
+  }
   const messages: ModelMessage[] = [
     { role: 'system', content: SYSTEM_PROMPT },
     { role: 'user', content: options.job.userMessage },
@@ -59,7 +65,12 @@ export async function runConversation(options: ConversationOptions): Promise<Con
 
   for (let step = 0; step < maxSteps; step += 1) {
     const modelStarted = clock();
-    const reply = await options.model.complete({ messages, tools });
+    let reply: ModelReply;
+    try {
+      reply = await options.model.complete({ messages, tools });
+    } catch (cause) {
+      throw new ConversationError('model', modelErrorCode(cause), cause);
+    }
     modelMs += clock() - modelStarted;
     modelCalls += 1;
     usage = addUsage(usage, reply.usage);
@@ -73,11 +84,16 @@ export async function runConversation(options: ConversationOptions): Promise<Con
     }
 
     for (const call of reply.toolCalls) {
-      const result = await options.door.callTool({
-        name: call.name,
-        args: call.arguments,
-        turnId: options.turnId,
-      });
+      let result: ToolCallResult;
+      try {
+        result = await options.door.callTool({
+          name: call.name,
+          args: call.arguments,
+          turnId: options.turnId,
+        });
+      } catch (cause) {
+        throw new ConversationError('door', 'door_error', cause);
+      }
       gatewayMs += Math.max(0, result.durationMs);
       calls.push({
         name: call.name,

@@ -22,12 +22,18 @@ export interface AssistantSample {
   /** A short code such as `proposal_drafted`, never free text with data. */
   readonly grade_reason: string;
   readonly stop_reason: 'answer' | 'max_steps' | 'error';
+  /** A short code such as `model_http_402`, never the error message. Null on a normal run. */
+  readonly error_code: string | null;
   readonly model_ms: number;
   readonly gateway_ms: number;
   readonly total_ms: number;
   readonly model_calls: number;
   readonly tool_calls: number;
   readonly input_tokens: number;
+  /** Input tokens served from DeepSeek's prefix cache. */
+  readonly cache_hit_tokens: number;
+  /** Input tokens that were not in the cache. */
+  readonly cache_miss_tokens: number;
   readonly output_tokens: number;
   readonly cost_usd: number;
   readonly usage_reported: boolean;
@@ -50,8 +56,34 @@ export interface AssistantSummary {
   readonly gateway_ms: Metric;
   readonly total_ms: Metric;
   readonly input_tokens: number;
+  readonly cache_hit_tokens: number;
+  readonly cache_miss_tokens: number;
   readonly output_tokens: number;
   readonly cost_usd: number;
+}
+
+/** One balance reading. `after_run` is 0 for the reading taken before the first run. */
+export interface BalanceCheck {
+  readonly after_run: number;
+  readonly usd: number;
+  readonly at: string;
+}
+
+export interface AssistantBalance {
+  readonly threshold_usd: number;
+  readonly before_usd: number;
+  /** The last reading, or null when the last read failed. */
+  readonly after_usd: number | null;
+  readonly checks: readonly BalanceCheck[];
+  /** The safe code of the last failed read, or null when every read succeeded. */
+  readonly error: string | null;
+}
+
+/** Why the command stopped before finishing the requested runs. */
+export interface StoppedEarly {
+  readonly reason: 'balance_low' | 'balance_unavailable';
+  /** How many runs completed before the stop; 0 when no run started. */
+  readonly at_run: number;
 }
 
 export interface AssistantResult {
@@ -61,6 +93,8 @@ export interface AssistantResult {
   readonly command: string;
   readonly model: string;
   readonly door: string;
+  readonly peak: boolean;
+  readonly allow_peak: boolean;
   readonly job: {
     readonly id: string;
     readonly label: string;
@@ -68,6 +102,8 @@ export interface AssistantResult {
     readonly user_message: string;
   };
   readonly runs: number;
+  readonly balance: AssistantBalance;
+  readonly stopped_early: StoppedEarly | null;
   readonly environment: AssistantEnvironment;
   readonly samples_file: {
     readonly name: string;
@@ -87,6 +123,10 @@ export interface WriteAssistantResultOptions {
   readonly job: AssistantJob;
   readonly runs: number;
   readonly samples: readonly AssistantSample[];
+  readonly peak: boolean;
+  readonly allowPeak: boolean;
+  readonly balance: AssistantBalance;
+  readonly stoppedEarly: StoppedEarly | null;
   readonly notes?: readonly string[];
   readonly force?: boolean;
   readonly now?: Date;
@@ -131,6 +171,8 @@ export function buildAssistantSummary(samples: readonly AssistantSample[]): Assi
     gateway_ms: metricOf(samples.map((sample) => sample.gateway_ms)),
     total_ms: metricOf(samples.map((sample) => sample.total_ms)),
     input_tokens: samples.reduce((total, sample) => total + sample.input_tokens, 0),
+    cache_hit_tokens: samples.reduce((total, sample) => total + sample.cache_hit_tokens, 0),
+    cache_miss_tokens: samples.reduce((total, sample) => total + sample.cache_miss_tokens, 0),
     output_tokens: samples.reduce((total, sample) => total + sample.output_tokens, 0),
     cost_usd: roundUsd(samples.reduce((total, sample) => total + sample.cost_usd, 0)),
   };
@@ -179,6 +221,8 @@ export async function writeAssistantResult(
     command: options.command,
     model: options.model,
     door: options.door,
+    peak: options.peak,
+    allow_peak: options.allowPeak,
     job: {
       id: options.job.id,
       label: options.job.label,
@@ -186,6 +230,8 @@ export async function writeAssistantResult(
       user_message: options.job.userMessage,
     },
     runs: options.runs,
+    balance: options.balance,
+    stopped_early: options.stoppedEarly,
     environment,
     samples_file: {
       name: basename(samplesFile),
