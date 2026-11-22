@@ -18,7 +18,10 @@ Mọi người và dữ liệu trong ví dụ đều là giả lập.
 - Bản thử đã chạy trong Thổ Thần bản cài trên máy: chị Hoa tra cứu chỉ thấy đúng phần được xem, và chuyển được một việc sau khi bấm duyệt; Nam bị từ chối.
 - Đọc lại mã cho thấy cổng mới chỉ biết sửa từng việc một; Lab dựng lại phần lõi để nối thêm hệ thống không phải sửa lõi, và để chuyển nhiều việc dùng chung một công cụ.
 - Phần lõi đã dựng lại; hàng đợi ghi tự chạy tiếp và bản đối chứng Temporal cùng đạt 300/300 lần, không ghi trùng, không mất lệnh, nên Q1 giữ phương án 1A; engine chỉ đáng dùng khi quy trình nhiều bước.
-- Tiếp theo: chạy kịch bản C trong Thổ Thần desktop để xác nhận trên host thật, rồi mới đóng mốc 3.
+- Ngày 2026-11-22, việc chuyển 30 task chạy trong Thổ Thần desktop: việc dừng chờ trưởng nhóm duyệt, rồi cổng ghi đủ 30 task, mỗi task một lần.
+  AI đếm sai số task trong câu chat, nhưng trang duyệt của cổng vẫn đúng.
+- Cùng ngày, ba việc cũ chạy lại vẫn đúng: người không có quyền bị từ chối, một việc nhỏ ghi ngay sau khi bấm Gửi, và số điện thoại cá nhân không lộ.
+- Tiếp theo: đo hai trợ lý, một nối qua MCP và một gọi hàm trực tiếp, để trả lời câu hỏi MCP tiết kiệm bao nhiêu công.
 
 ## 1. Vấn đề
 
@@ -154,7 +157,7 @@ Chuyển 30 task cần anh Quang duyệt là kịch bản thứ tư, làm khi ba
 | Khoá là riêng từng người hay cả tổ chức dùng chung? | Chưa biết, vì phép đo chỉ dùng một tài khoản và một skill | Hỏi Kevin; thử hai tài khoản cùng một skill | Tuần 2, không chặn mốc 1 |
 | Máy chủ Thổ Thần có ký header danh tính và gọi ra từ dải IP cố định không? | Chưa biết; header `x-user-id` hiện có thể do người gọi tự đặt | Hỏi Kevin; thử gửi header giả và so IP gọi ra | Tuần 2, quyết định cách dùng `x-user-id` |
 | Hai tài khoản có trông giống nhau ở phía server không? | Giống nhau | Chạy lại `whoami` bằng tài khoản thứ hai | Khi có tài khoản thứ hai |
-| Q1. Sập giữa lúc chuyển 30 task: chạy lại có đủ, không trùng? | Cổng tự viết làm được, nếu mỗi task có mã riêng và tiến độ lưu sau mỗi task | Đã đạt trên phép thử tự động và bản đối chứng Temporal: mỗi bản 300/300 lần, 0 ghi trùng, 0 lệnh mất; xem [Q1 tự viết](evaluation/results/2026-11-20-q1-outbox-gateway-7b7ae94.json) và [Q1 Temporal](evaluation/results/2026-11-20-q1-outbox-temporal-87d50f9.json) | Xong phần máy 2026-11-20; phiên kịch bản C trong Thổ Thần desktop còn chờ |
+| Q1. Sập giữa lúc chuyển 30 task: chạy lại có đủ, không trùng? | Cổng tự viết làm được, nếu mỗi task có mã riêng và tiến độ lưu sau mỗi task | Đã đạt trên phép thử tự động và bản đối chứng Temporal: mỗi bản 300/300 lần, 0 ghi trùng, 0 lệnh mất; xem [Q1 tự viết](evaluation/results/2026-11-20-q1-outbox-gateway-7b7ae94.json) và [Q1 Temporal](evaluation/results/2026-11-20-q1-outbox-temporal-87d50f9.json) | Xong phần máy 2026-11-20; kịch bản C trong Thổ Thần desktop đạt 2026-11-22, chưa tắt cổng giữa chừng trên host |
 | Q2. MCP tiết kiệm bao nhiêu công so với gọi hàm? | Gần bằng nhau khi Lab viết cả hai nơi gọi | Thêm trợ lý AI thứ hai cho từng cách, đếm giờ công | Bước đánh giá |
 | Nhân viên thật dùng Thổ Thần trên điện thoại, web hay desktop? | Điện thoại hoặc web, vì PRD Skill Studio thiết kế cho điện thoại trước; khi đó stdio không tới được người dùng thật | Hỏi Kevin; mở thử app điện thoại | Tuần 2, quyết định cách nối từ mốc 2 |
 | Danh tính người dùng đi tiếp tới cổng thế nào? | Quyền quyết ở cổng, vì ai có khoá cũng gọi thẳng được cổng. Mã LobeHub 2.1.56 không gắn danh tính vào lời gọi MCP, nhưng Thổ Thần có gắn header ở đường HTTPS | Hỏi Kevin; mã LobeHub đã đọc ([mục 6.2](appota/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt)), phần còn lại là H9 | Tuần 2, không chặn mốc 1 |
@@ -167,7 +170,8 @@ Q1 đã có bằng chứng tự động trong [nghiệm thu mốc 3, mục 2](ev
 Hai bản cùng đạt 300/300 lần đúng kết quả cuối, 0 ghi trùng, 0 lệnh mất.
 Bản tự viết có 2 file và 3 dịch vụ cần cho đường ghi, 1 bước sau khi sập; bản Temporal có 4 file, 5 dịch vụ và 2 bước sau khi sập ([M5 tự viết](evaluation/results/2026-11-20-m5-complexity-gateway-62e309e.json), [M5 Temporal](evaluation/results/2026-11-20-m5-complexity-temporal-87d50f9.json)).
 Vì vậy giữ 1A cho lệnh hàng loạt một bước; engine chỉ đáng dùng khi quy trình có nhiều bước nối nhau, chờ duyệt nhiều ngày, nhiều hệ thống hoặc cần hoàn tác.
-Kết luận này chỉ nói về hàng đợi lệnh ghi trên hệ thống giả, một máy; phiên kịch bản C trong Thổ Thần desktop chưa chạy, nên chưa nói gì về host thật.
+Kết luận này chỉ nói về hàng đợi lệnh ghi trên hệ thống giả, một máy.
+Trên host thật, kịch bản C ngày 2026-11-22 ghi đủ 30 task, mỗi task một lần ([nghiệm thu mốc 3, mục 14](evaluation/milestone-3-tho-than.md#14-chỗ-điền-bằng-chứng)); phiên đó không tắt cổng giữa chừng, nên phần sập vẫn chỉ có bằng chứng trên máy.
 
 Q1 và Q2 chi tiết ở [spec bản thử, mục 2.1](design/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không).
 Bốn câu H9 tới H12 chi tiết ở [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được).
@@ -175,7 +179,7 @@ Câu về thiết bị, cùng mọi mối nối giữa Appota, AgentLize, Thổ 
 
 Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã có lời đáp ở mục 4; câu khoá riêng hay dùng chung vẫn mở.
 
-**Kết luận:** Q1 giữ phương án 1A trên hệ thống giả sau khi so với bản Temporal: cả hai đều 0 sót, 0 trùng, còn bản tự viết ít dịch vụ và ít bước vận hành hơn; kết luận cuối vẫn chờ phiên host thật, và không câu nào còn chặn việc viết ADR; câu chia sẻ khoá quyết định mô hình khoá có dùng được trong thực tế không, còn câu nguồn header quyết định có bật lớp kiểm thứ hai không.
+**Kết luận:** Q1 giữ phương án 1A trên hệ thống giả sau khi so với bản Temporal: cả hai đều 0 sót, 0 trùng, còn bản tự viết ít dịch vụ và ít bước vận hành hơn; phiên host thật đã ghi đủ 30 task, và không câu nào còn chặn việc viết ADR; câu chia sẻ khoá quyết định mô hình khoá có dùng được trong thực tế không, còn câu nguồn header quyết định có bật lớp kiểm thứ hai không.
 
 ## 7. Đo thế nào là thành công
 
@@ -200,7 +204,8 @@ Hai câu chặn thiết kế ở bản trước (danh tính, kênh duyệt) đã
 | Hoãn H12 theo #73; phiên đường hầm sau | Chạy lại #63 và #64 trong Thổ Thần; rồi H9 và H10 trước khi bật lớp kiểm thứ hai của ADR-0005; H11 phục vụ kênh duyệt (mục 6) | Kết quả ghi vào cột cuối của bảng H trong [khảo sát Thổ Thần, mục 9](appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được) |
 | Tuần 3 | Dựng lại lõi theo [ADR-0007](../docs/adr/adr-0007-system-adapters-and-change-sets.md) (bộ tiếp hợp theo hệ thống, luật dạng dữ liệu, đề xuất nhiều mục, hàng đợi lệnh ghi, chặn tách nhỏ) và [ADR-0008](../docs/adr/adr-0008-approval-page-login.md) (mật khẩu trang riêng, hộp chờ duyệt, hạn duyệt 2 giờ) | Phép thử ở ADR-0007 mục 5 đạt; sửa danh bạ đi qua đường ghi chung |
 | Xong phần máy 2026-11-19 | Phép thử sập và ngắt 20 giây cho hàng đợi lệnh ghi; Q1 giữ 1A | [Nghiệm thu mốc 3, mục 2](evaluation/milestone-3-tho-than.md#2-phần-đã-chạy-bằng-máy) |
-| Đầu tuần 4, còn phiên host | Hai phiên trong Thổ Thần desktop: kịch bản 30 task, rồi chạy lại A, B, D; điền bằng chứng và đóng #84 | [Nghiệm thu mốc 3, mục 14](evaluation/milestone-3-tho-than.md#14-chỗ-điền-bằng-chứng) |
+| Xong phiên 1 2026-11-22 | Kịch bản 30 task trong Thổ Thần desktop: chờ duyệt, rồi ghi đủ 30 task, mỗi task một lần | [Nghiệm thu mốc 3, mục 14](evaluation/milestone-3-tho-than.md#14-chỗ-điền-bằng-chứng) |
+| Xong phiên 2 2026-11-22 | Chạy lại A, B, D trong Thổ Thần desktop trên bản hiện tại; cả ba vẫn đạt | [Nghiệm thu mốc 3, mục 14](evaluation/milestone-3-tho-than.md#14-chỗ-điền-bằng-chứng) |
 | Cuối tuần 3 | Hỏi Kevin ba câu về eve: trợ lý trong Lark, ứng dụng Lark thử và khoá mô hình (#92) | Câu trả lời ghi vào [eve](research/eve.md) |
 | Tuần 4 | Thêm cửa gọi hàm, đo lần đầu; viết ADR chọn nơi gọi thứ hai | Số đo baseline |
 | Tuần 5-6 | Đánh giá, trả lời Q2, chạy thử sản phẩm làm cột "mua" | Báo cáo có mục "khi nào không nên dùng MCP" |

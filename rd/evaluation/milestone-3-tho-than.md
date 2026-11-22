@@ -1,14 +1,15 @@
 # Nghiệm thu mốc 3 trong Thổ Thần
 
-Ngày: 2026-11-22. Trạng thái: bản nháp; phần chạy máy đã xong, hai phiên trong Thổ Thần desktop (kịch bản C, rồi A, B, D) chưa chạy.
+Ngày: 2026-11-22. Trạng thái: hai phiên đã chạy và đạt trong Thổ Thần desktop; mốc 3 đã đủ bằng chứng.
 
 ## Đọc nhanh
 
 - Vấn đề: chị Hoa cần chuyển 30 task của chị Lan sang anh Minh; việc này phải chờ anh Quang duyệt, và cổng phải ghi đủ 30 task dù bị tắt giữa chừng.
-- Cách kiểm: chạy kịch bản C trong Thổ Thần desktop qua một đường hầm tạm, rồi đọc trang xác nhận, hộp chờ duyệt, tiến độ và vết.
-- Ba kịch bản cũ (chị Hoa chuyển T-12, Nam bị từ chối, tra số điện thoại anh Minh) chạy lại ở phiên thứ hai, vì cách xác nhận đã đổi sau ngày 2026-11-18.
-- Phần đã xong: 420 phép thử tự động đều qua, gồm ba lần tắt cổng và một lần danh sách task tắt 20 giây; Q1 giữ phương án 1A (cổng tự giữ hàng đợi lệnh ghi).
-- Tiếp theo: người thực tập chạy mục 3 tới mục 13, điền các ô "Chưa chạy: điền sau phiên" ở mục 14, rồi đóng #84.
+- Kết quả ngày 2026-11-22: chị Hoa nhờ AI trong Thổ Thần desktop chuyển 30 task; việc dừng chờ anh Quang duyệt, rồi cổng ghi đủ 30 task, mỗi task một lần.
+- AI đếm sai số task theo trạng thái hai lần, nhưng cổng tự đọc lại dữ liệu, nên trang duyệt vẫn đúng 30 task.
+- Phần máy: 442 phép thử tự động đều qua, gồm ba lần tắt cổng và một lần danh sách task tắt 20 giây; cổng tiếp tục tự giữ hàng đợi lệnh ghi.
+- Phiên thứ hai chạy lại ba kịch bản cũ, và cả ba vẫn đạt: Nam bị từ chối, chị Hoa tự chuyển được T-12, và số điện thoại anh Minh không lộ.
+- Tiếp theo: đóng #84, rồi sửa trang duyệt để người duyệt có chỗ ghi chú khi đồng ý.
 
 ## 1. Mốc 3 cần chứng minh gì
 
@@ -36,11 +37,11 @@ npm run lint
 npm test
 ```
 
-Kết quả ngày 2026-11-19:
+Kết quả ngày 2026-11-22, chạy lại ngay trước phiên 1:
 
 - `npm run lint`: không lỗi.
-- `npm test`: build xong, in `# tests 420`, `# pass 420`, `# fail 0`, khoảng 45 giây (44,8 giây lần đầu, 46,5 giây lần chạy lại).
-- Con số 420 gồm 337 nhóm cấp một và các phép thử con bên trong.
+- `npm test`: build xong, in `# tests 442`, `# pass 442`, `# fail 0`, khoảng 47 giây.
+- Lần chạy ngày 2026-11-19 in 420; 22 phép thử thêm đến từ các PR gộp sau ngày đó.
 
 **Kết luận:** bộ phép thử của Lab đang xanh, nên mọi số dưới đây không phải một phép thử lẻ chưa từng chạy chung.
 
@@ -283,12 +284,12 @@ Phần cần ghi lại, không được đoán:
 
 | Việc | Giá trị |
 | --- | --- |
-| Số lần gọi `propose_task_change` | Chưa chạy: điền sau phiên |
-| Nếu một lần: có đủ 30 mã T-5 tới T-34 không | Chưa chạy: điền sau phiên |
-| Nếu nhiều lần: mỗi lần bao nhiêu mã, và lần đầu tiên chạm ngưỡng 5 là lần nào | Chưa chạy: điền sau phiên |
-| Mã luật của lần soạn (`...staff.bulk` hay `...staff.cumulative`) | Chưa chạy: điền sau phiên |
-| Bộ đếm tách nhỏ có bật không | Chưa chạy: điền sau phiên |
-| Mã đề xuất `dx-...` | Chưa chạy: điền sau phiên |
+| Số lần gọi `propose_task_change` | 1 lần |
+| Nếu một lần: có đủ 30 mã T-5 tới T-34 không | Có, đủ 30 mã |
+| Nếu nhiều lần: mỗi lần bao nhiêu mã, và lần đầu tiên chạm ngưỡng 5 là lần nào | Không áp dụng |
+| Mã luật của lần soạn (`...staff.bulk` hay `...staff.cumulative`) | `task.change_task_assignee_or_due.staff.bulk` |
+| Bộ đếm tách nhỏ có bật không | Không cần bật: một lần gọi đã chạm ngưỡng duyệt hàng loạt |
+| Mã đề xuất `dx-...` | `dx-e74baed0d1333996` |
 
 Bộ đếm tách nhỏ (cumulative) là phép cộng các mục cùng loại việc, cùng người yêu cầu, trong 60 phút, để AI chia nhỏ thành nhiều lần gọi thì từ lần chạm ngưỡng vẫn phải chờ duyệt ([ADR-0007, mục 3.4](../../docs/adr/adr-0007-system-adapters-and-change-sets.md#34-chặn-tách-nhỏ-để-né-duyệt)).
 Nếu trợ lý gọi một lần với 30 mã, mã luật trong vết là `task.change_task_assignee_or_due.staff.bulk`.
@@ -298,6 +299,15 @@ Nếu trợ lý gọi nhiều lần, bộ đếm tách nhỏ cộng các mục c
 Số lần gọi và mã luật của từng lần được ghi ở mục 14.
 
 Chụp toàn bộ khung trả lời, che email thật của tài khoản ở góc trên và che mọi khoá nếu tình cờ lọt vào khung.
+
+Phiên 1 ngày 2026-11-22: câu trên làm trợ lý hỏi lại thay vì soạn đề xuất, vì chị Lan có 34 task, trong đó 4 task đã xong.
+Người thực tập trả lời trong cùng cuộc trò chuyện bằng câu:
+
+```
+Chuyển 30 task chưa xong (todo và doing) của chị Lan sang anh Minh, giữ nguyên 4 task đã done.
+```
+
+Lần chạy sau gõ thẳng câu thứ hai, để trợ lý không phải đoán 30 task nào.
 
 **Kết luận:** dù trợ lý gọi một lần hay chia nhỏ, cả 30 mục phải dừng ở bước duyệt trước khi ghi; câu trả lời phải để link xác nhận trên một dòng riêng, và số lần gọi được ghi lại ở mục 14.
 
@@ -378,10 +388,12 @@ Vết đạt khi có đủ chuỗi sau:
 | Bước | Tool | Cửa vào | Kết quả | Mã luật |
 | --- | --- | --- | --- | --- |
 | Soạn đề xuất | `propose_task_change` | `mcp` | `ok`, lý do `NEEDS_APPROVAL` | `task.change_task_assignee_or_due.staff.bulk` hoặc `.cumulative` |
-| Chị Hoa bấm Gửi | `proposal_send` | `web` | `ok` | `WEB.CONFIRM` |
+| Chị Hoa bấm Gửi | `proposal_send` | `web` | `ok` | Cùng mã luật với dòng soạn |
 | Anh Quang bấm Duyệt | `proposal_approve` | `web` | `ok` | `WEB.APPROVE` |
 | 30 lệnh ghi | `write_command` | `web` | `ok` | `WRITE.SEND` |
 
+Dòng gửi mang mã luật của dòng soạn, vì lúc chị Hoa bấm Gửi cổng hỏi lại luật một lần nữa rồi ghi luật đã quyết định đường đi ([`routes.ts`](../../lab/gateway/src/web/routes.ts)).
+Nay chỉ dòng huỷ đề xuất (`proposal_cancel`) còn mang `WEB.CONFIRM`; mốc 2 ghi `WEB.CONFIRM` ở dòng gửi vì khi đó cổng chưa hỏi lại luật lúc Gửi.
 Ba dòng đầu là ba bước của một đề xuất; 30 dòng cuối là một dòng cho mỗi task T-5 tới T-34.
 Mỗi dòng ghi có mã chống ghi trùng `<mã đề xuất>:<vị trí>`, cột `tries` bằng 1, và cột `object` là mã task.
 Tổng cộng 33 dòng cho một đề xuất đã ghi xong.
@@ -508,7 +520,7 @@ Vết đạt khi `npm run trace -- --proposal <mã đề xuất>` có đúng ba 
 | Bước | Tool | Cửa vào | Kết quả | Mã luật |
 | --- | --- | --- | --- | --- |
 | Soạn đề xuất | `propose_task_change` | `mcp` | `ok` | `task.change_task_assignee_or_due.staff` |
-| Chị Hoa bấm Gửi | `proposal_send` | `web` | `ok` | `WEB.CONFIRM` |
+| Chị Hoa bấm Gửi | `proposal_send` | `web` | `ok` | `task.change_task_assignee_or_due.staff` |
 | Lệnh ghi T-12 | `write_command` | `web` | `ok`, `tries` bằng 1 | `WRITE.SEND` |
 
 Mã luật của dòng soạn không có đuôi `.bulk` hay `.cumulative`.
@@ -553,54 +565,111 @@ Không điền khoá, mật khẩu trang, địa chỉ đường hầm còn số
 
 | Bằng chứng | Giá trị | Nơi lưu |
 | --- | --- | --- |
-| Giờ mở phiên | Chưa chạy: điền sau phiên | `gateway.sqlite`, bảng `trace` |
-| Bản Thổ Thần desktop đã dùng | Chưa chạy: điền sau phiên | Ảnh hoặc ghi chú trong `scratch/milestone-3/` |
-| Credit trước phiên | Chưa chạy: điền sau phiên | Trang tài khoản Thổ Thần |
-| Tên skill đã thêm (không chép địa chỉ đường hầm) | Chưa chạy: điền sau phiên | - |
-| Ảnh câu trả lời của AI, đã che email thật | Chưa chạy: điền sau phiên | `milestone-3-ai-answer.png` |
-| Số lần gọi `propose_task_change` và số mã mỗi lần | Chưa chạy: điền sau phiên | Bảng vết |
-| Bộ đếm tách nhỏ có bật không, mã luật `.bulk` hay `.cumulative`, và từ lần gọi thứ mấy | Chưa chạy: điền sau phiên | Bảng vết |
-| Mã đề xuất `dx-...` | Chưa chạy: điền sau phiên | - |
-| Ảnh trang xác nhận của chị Hoa sau khi bấm Gửi | Chưa chạy: điền sau phiên | `milestone-3-hoa-confirm.png` |
-| Ảnh hộp "Chờ tôi duyệt" của anh Quang | Chưa chạy: điền sau phiên | `milestone-3-cho-duyet.png` |
-| Ảnh trang duyệt 30 mục trước khi bấm Duyệt | Chưa chạy: điền sau phiên | `milestone-3-quang-approval.png` |
-| Ảnh tiến độ lúc còn dở và lúc 30 trên 30 | Chưa chạy: điền sau phiên | `milestone-3-progress.png` |
-| Ảnh bảng vết theo `--proposal` | Chưa chạy: điền sau phiên | `milestone-3-trace.png` |
-| Số dòng vết của đề xuất | Chưa chạy: điền sau phiên | `scratch/milestone-3/trace.txt` |
-| Kết quả đối chiếu 30 task: `NV-04`, phiên bản 2, 30 lần ghi | Chưa chạy: điền sau phiên | `tasks.sqlite` |
-| Credit sau phiên và số credit đã dùng | Chưa chạy: điền sau phiên | Trang tài khoản Thổ Thần |
-| Giờ tắt phiên và số phút đã chạy | Chưa chạy: điền sau phiên | - |
-| Kiểm tra sau khi tắt: `curl.exe` hỏng, không còn `cloudflared` | Chưa chạy: điền sau phiên | - |
-| Xoay khoá và kiểm `npm run keys -- list` | Chưa chạy: điền sau phiên | - |
-| Dữ liệu phiên 1 đã chép sang `scratch/milestone-3/phien-1-data/` | Chưa chạy: điền sau phiên | - |
+| Giờ mở phiên | 2026-11-22 14:57 giờ Việt Nam; lời gọi kiểm 401 lúc 07:57:36Z | `gateway.sqlite`, bảng `trace` |
+| Bản Thổ Thần desktop đã dùng | Không tìm thấy số bản dựng trong ứng dụng; câu trả lời ghi mô hình `deepseek/deepseek-v4.1-flash` | Ảnh ở mục 14.2 |
+| Credit trước phiên | Nạp thêm 492; ô đăng ký "8 / 500". Số này chụp lúc gửi ảnh câu trả lời đầu, nên có thể đã trừ câu hỏi đầu | Trang tài khoản Thổ Thần |
+| Tên skill đã thêm (không chép địa chỉ đường hầm) | `lab-gateway` | - |
+| Ảnh câu trả lời của AI, đã che email thật | Có; khung trả lời không có email, và địa chỉ đường hầm trong ảnh đã chết từ 15:16 | `milestone-3-ai-answer.png`, `milestone-3-ai-hoi-lai.png` |
+| Số lần gọi `propose_task_change` và số mã mỗi lần | 1 lần, 30 mã T-5 tới T-34 | Bảng vết |
+| Bộ đếm tách nhỏ có bật không, mã luật `.bulk` hay `.cumulative`, và từ lần gọi thứ mấy | Không bật; `.bulk` ngay lần gọi thứ nhất, lý do `NEEDS_APPROVAL` | Bảng vết |
+| Mã đề xuất `dx-...` | `dx-e74baed0d1333996` | - |
+| Ảnh trang xác nhận của chị Hoa sau khi bấm Gửi | Có; băng "Đang chờ Trần Văn Quang duyệt, hạn 17:14. Chưa có gì được ghi vào hệ thống." | `milestone-3-hoa-confirm.png` |
+| Ảnh hộp "Chờ tôi duyệt" của anh Quang | Có; đúng một dòng, 30 task, hạn 17:14, đang chờ | `milestone-3-cho-duyet.png` |
+| Ảnh trang duyệt 30 mục trước khi bấm Duyệt | Có | `milestone-3-quang-approval.png` |
+| Ảnh tiến độ lúc còn dở và lúc 30 trên 30 | Chỉ có ảnh 30 trên 30: 30 lệnh ghi xong trong khoảng 0,2 giây sau khi bấm Duyệt | `milestone-3-progress.png` |
+| Ảnh bảng vết theo `--proposal` | Thay bằng bảng vết dạng chữ ở mục 14.3 | `scratch/milestone-3/trace.txt` |
+| Số dòng vết của đề xuất | 33: soạn, gửi, duyệt và 30 lệnh ghi; cả 30 lệnh ghi có `tries` bằng 1 | `scratch/milestone-3/trace.txt` |
+| Kết quả đối chiếu 30 task: `NV-04`, phiên bản 2, 30 lần ghi | `dung nguoi va phien ban: 30/30`, `so lan ghi that: 30`; T-1 tới T-4 vẫn `NV-03`, phiên bản 1 | `tasks.sqlite` |
+| Credit sau phiên và số credit đã dùng | Nạp thêm 490, giảm 2; ô đăng ký "10 / 500". Chưa rõ cách đọc ô đăng ký, nên chỉ chắc phần nạp thêm giảm 2 | Trang tài khoản Thổ Thần |
+| Giờ tắt phiên và số phút đã chạy | 15:16:22, khoảng 19 phút | - |
+| Kiểm tra sau khi tắt: `curl.exe` hỏng, không còn `cloudflared` | `curl.exe` thoát mã 7 (không kết nối được); 0 tiến trình `cloudflared` | - |
+| Xoay khoá và kiểm `npm run keys -- list` | `seed-keys --rotate` lúc 08:16:36Z; 7 khoá của phiên đều có giờ thu hồi | - |
+| Dữ liệu phiên 1 đã chép sang `scratch/milestone-3/phien-1-data/` | Có | - |
 | H12 (#73) có được kiểm lại không | Không kiểm lại trong phiên này; #73 tạm hoãn | - |
 
 ### 14.2. Phiên 2: kịch bản A, B, D
 
 | Bằng chứng | Giá trị | Nơi lưu |
 | --- | --- | --- |
-| Giờ mở và giờ tắt phiên, số phút đã chạy | Chưa chạy: điền sau phiên | - |
-| Bản Thổ Thần desktop đã dùng, nếu khác phiên 1 | Chưa chạy: điền sau phiên | - |
-| B: credit trước và sau | Chưa chạy: điền sau phiên | Trang tài khoản Thổ Thần |
-| B: lý do và mã luật trong vết | Chưa chạy: điền sau phiên | Bảng vết |
-| B: ảnh câu trả lời của Nam, không có link | Chưa chạy: điền sau phiên | `milestone-3-refused-nam.png` |
-| A: credit trước và sau | Chưa chạy: điền sau phiên | Trang tài khoản Thổ Thần |
-| A: mã đề xuất `dx-...` và mã luật của lần soạn | Chưa chạy: điền sau phiên | Bảng vết |
-| A: ảnh câu trả lời có link | Chưa chạy: điền sau phiên | `milestone-3-proposal-t12.png` |
-| A: ảnh trang xác nhận sau khi ghi | Chưa chạy: điền sau phiên | `milestone-3-confirm-t12.png` |
-| A: T-12 sau khi ghi (người phụ trách, hạn, phiên bản) và số lần ghi | Chưa chạy: điền sau phiên | `tasks.sqlite` |
-| A: số dòng vết theo `--proposal` | Chưa chạy: điền sau phiên | `scratch/milestone-3/trace-a.txt` |
-| D: credit trước và sau | Chưa chạy: điền sau phiên | Trang tài khoản Thổ Thần |
-| D: trợ lý giữ nguyên hay viết lại câu nêu trường bị ẩn | Chưa chạy: điền sau phiên | - |
-| D: ảnh câu trả lời, chỉ có email công việc | Chưa chạy: điền sau phiên | `milestone-3-phone-minh.png` |
-| D: mã luật trong vết | Chưa chạy: điền sau phiên | Bảng vết |
-| Kiểm tra sau khi tắt, xoay khoá, skill đã xoá | Chưa chạy: điền sau phiên | - |
+| Giờ mở và giờ tắt phiên, số phút đã chạy | Mở 15:30 (lời gọi kiểm 401 lúc 08:30:54Z), tắt 15:38:30, khoảng 8 phút | `gateway.sqlite`, bảng `trace` |
+| Bản Thổ Thần desktop đã dùng, nếu khác phiên 1 | Như phiên 1: không tìm thấy số bản dựng; mô hình `deepseek/deepseek-v4.1-flash` | Ảnh ở mục này |
+| B: credit trước và sau | Trước: nạp thêm 490, ô đăng ký "10 / 500". Sau: nạp thêm 487, ô đăng ký "13 / 500". Phần nạp thêm giảm 3 | Trang tài khoản Thổ Thần |
+| B: lý do và mã luật trong vết | `propose_task_change` T-12 `refused`, `NOT_PERMITTED`, `task.change_task_assignee_or_due.intern` lúc 08:35:42Z | Bảng vết |
+| B: ảnh câu trả lời của Nam, không có link | Có; không link, chỉ tới anh Quang, không nói đã chuyển | `milestone-3-refused-nam.png` |
+| A: credit trước và sau | Trước: bằng số sau B. Sau: không đọc riêng; xem dòng D cho tổng của A và D | Trang tài khoản Thổ Thần |
+| A: mã đề xuất `dx-...` và mã luật của lần soạn | `dx-da7e55db7cdaa5c0`, `task.change_task_assignee_or_due.staff`; câu trả lời không nói cần duyệt | Bảng vết |
+| A: ảnh câu trả lời có link | Có; địa chỉ đường hầm trong ảnh đã chết từ 15:38 | `milestone-3-proposal-t12.png` |
+| A: ảnh trang xác nhận sau khi ghi | Có; băng "Đã ghi thay đổi vào T-12 ở lần gửi thứ 1." | `milestone-3-confirm-t12.png` |
+| A: T-12 sau khi ghi (người phụ trách, hạn, phiên bản) và số lần ghi | `NV-04`, hạn 2026-11-27, phiên bản 2, `so lan ghi that: 1`; trợ lý hiểu "thứ Sáu" là thứ Sáu tuần này, 27/11, và tự nói hạn mới sớm hơn hạn cũ 2/12 | `tasks.sqlite` |
+| A: số dòng vết theo `--proposal` | 3: soạn và gửi cùng mang `task.change_task_assignee_or_due.staff`, lệnh ghi `WRITE.SEND` với `tries` bằng 1; Gửi lúc 08:37:20.938Z, ghi xong 11 mili giây sau | `scratch/milestone-3/trace-a.txt` |
+| D: credit trước và sau | Sau cả A và D: nạp thêm 481, ô đăng ký "19 / 500". Từ sau B tới đây phần nạp thêm giảm 6, là tổng của A và D | Trang tài khoản Thổ Thần |
+| D: trợ lý giữ nguyên hay viết lại câu nêu trường bị ẩn | Viết lại: "số điện thoại cá nhân không hiển thị với quyền của bạn, cùng với địa chỉ nhà" | - |
+| D: ảnh câu trả lời, chỉ có email công việc | Có; chỉ `minh.vu@lab.example`, không chữ số nào của số điện thoại | `milestone-3-phone-minh.png` |
+| D: mã luật trong vết | `find_employee` `ok`, `employee.fields.staff` lúc 08:37:47Z | Bảng vết |
+| Kiểm tra sau khi tắt, xoay khoá, skill đã xoá | `curl.exe` thoát mã 7, 0 tiến trình `cloudflared`; `seed-keys --rotate` lúc 08:38:44Z và hai khoá của phiên có giờ thu hồi; người thực tập đã xoá skill | - |
 
-Sau khi chạy, dán mười ảnh đã che vào cuối mục này bằng `![Mô tả](tên-ảnh.png)`: sáu ảnh của phiên 1 và bốn ảnh của phiên 2.
+Credit cả hai phiên: phần nạp thêm giảm 2 ở kịch bản C (có thể chưa tính câu hỏi đầu), 3 ở B, và 6 cho A cộng D.
+Ở cả bốn lần đọc, số bên trái của ô đăng ký tăng đúng bằng số nạp thêm giảm, nên tổng hai số luôn là 500.
+
+Phiên 2 cho thấy hai điều nhỏ:
+
+- Ở kịch bản B, trợ lý tự gọi `get_task` và `find_employee` trước khi soạn, nên Nam vẫn thấy thông tin T-12 mà vai thực tập được đọc; chỉ việc đổi bị chặn.
+  Trợ lý còn đề nghị soạn đề xuất cho trường khác, đúng với bộ luật nhưng là gợi ý mà kịch bản không đòi.
+- Ở kịch bản A, chị Hoa bấm Gửi và lệnh ghi xong 11 mili giây sau, nên băng "Cổng chưa gửi lệnh ghi" không kịp hiện.
+
+![Kịch bản B: Nam bị từ chối, không có link](milestone-3-refused-nam.png)
+
+![Kịch bản A: trợ lý soạn đề xuất cho T-12 và trả link xác nhận](milestone-3-proposal-t12.png)
+
+![Kịch bản A: trang xác nhận sau khi ghi](milestone-3-confirm-t12.png)
+
+![Kịch bản D: chỉ có email công việc, số điện thoại bị ẩn](milestone-3-phone-minh.png)
+
+Ảnh của phiên 1 nằm ở mục 14.3, cùng bảng vết dạng chữ thay cho ảnh vết.
 Ảnh nằm cạnh tài liệu và đi cùng commit; log thô ở `scratch/milestone-3/` thì không.
 Kiểm tra lại từng ảnh trước khi `git add`: không có khoá, không có email thật, không có địa chỉ đường hầm còn sống.
 
-**Kết luận:** hai bảng này là nơi duy nhất giữ bằng chứng của hai phiên; tài liệu chỉ giữ số, ảnh đã che và đường dẫn, không giữ khoá hay địa chỉ đường hầm.
+### 14.3. Điều phiên 1 cho thấy
+
+Vết của đề xuất, lấy bằng `npm run trace -- --proposal dx-e74baed0d1333996` (giờ UTC, rút gọn cột):
+
+```
+08:12:42.496Z  mcp  propose_task_change  T-5  ok  NEEDS_APPROVAL  task.change_task_assignee_or_due.staff.bulk
+08:14:06.961Z  web  proposal_send        T-5  ok  -               task.change_task_assignee_or_due.staff.bulk
+08:15:26.830Z  web  proposal_approve     T-5  ok  -               WEB.APPROVE
+08:15:27.0..Z  web  write_command        30 dòng T-5 tới T-34, ok, WRITE.SEND, tries 1
+```
+
+Năm điều phiên này cho thấy:
+
+1. Trợ lý đếm sai cả hai lần, dù `list_tasks` trả đúng dữ liệu.
+   Lần đầu nó nói 8 task đã xong, 9 đang làm, 17 chưa làm; dữ liệu thật là 4, 10 và 20.
+   Lần sau nó nói 9 đang làm và 21 chưa làm; dữ liệu thật là 10 và 20.
+   Đề xuất vẫn đúng 30 task, vì trợ lý chỉ gửi mã task, còn cổng tự đọc lại giá trị hiện tại của từng task để dựng trang xác nhận và trang duyệt.
+   Vì vậy người dùng phải tin số trên trang của cổng, không tin số trong câu chat.
+2. Câu mẫu "chuyển hết 30 task" làm trợ lý hỏi lại, vì chị Lan có 34 task; câu thứ hai ở mục 7 là câu cho lần chạy sau.
+3. Một lần gọi 30 mã đã chạm ngưỡng duyệt hàng loạt, nên bộ đếm tách nhỏ chưa được thử trên host thật.
+4. Hàng đợi ghi chạy 30 lệnh trong khoảng 0,2 giây, nên không ai kịp thấy tiến độ dở trên hệ thống giả.
+   Băng tiến độ chỉ có ích khi hệ thống đích chậm; phép thử ngắt 20 giây ở mục 2.2 mới là bằng chứng cho phần đó.
+5. Trang duyệt chỉ có một ô chữ, là lý do từ chối.
+   Người thực tập trong vai anh Quang gõ "ok luon em" vào ô đó rồi bấm Duyệt, vì không có chỗ ghi chú khi duyệt.
+   Ô đó nằm trong form Từ chối, nên bấm Duyệt không gửi nó đi và dữ liệu không sai, nhưng giao diện dễ làm người duyệt hiểu nhầm.
+
+Phiên này không tắt cổng giữa chừng, nên phần sập giữa chừng vẫn chỉ có bằng chứng ở mục 2.2.
+
+![Câu hỏi đầu: trợ lý hỏi lại vì chị Lan có 34 task](milestone-3-ai-hoi-lai.png)
+
+![Câu thứ hai: trợ lý soạn đề xuất 30 mục và trả link xác nhận](milestone-3-ai-answer.png)
+
+![Trang xác nhận của chị Hoa sau khi bấm Gửi](milestone-3-hoa-confirm.png)
+
+![Hộp Chờ tôi duyệt của anh Quang](milestone-3-cho-duyet.png)
+
+![Trang duyệt 30 mục trước khi bấm Duyệt](milestone-3-quang-approval.png)
+
+![Trang duyệt sau khi ghi xong 30 trên 30](milestone-3-progress.png)
+
+**Kết luận:** hai bảng ở mục 14.1 và 14.2 là nơi duy nhất giữ bằng chứng của hai phiên, còn mục này giữ vết và ảnh của phiên 1; tài liệu không giữ khoá hay địa chỉ đường hầm còn sống.
 
 ## 15. Điều kiện đạt của mốc 3
 
@@ -608,7 +677,7 @@ Kiểm tra lại từng ảnh trước khi `git add`: không có khoá, không c
 
 Phần máy:
 
-- [x] `npm test` chạy 420 phép thử, 420 qua, 0 hỏng.
+- [x] `npm test` chạy 442 phép thử, 442 qua, 0 hỏng.
 - [x] Ba lần tắt cổng ở ba thời điểm đều cho đủ 30 task, mỗi task đúng một lần ghi.
 - [x] Danh sách task tắt 20 giây không làm cổng cần khởi động lại.
 - [x] M5 của lõi `outbox.ts` là 267 dòng mã trên 319 dòng vật lý, đã ghi cách đếm.
@@ -616,25 +685,25 @@ Phần máy:
 
 Phiên 1, kịch bản C:
 
-- [ ] Kịch bản C chạy trong Thổ Thần desktop: chị Hoa nhận đề xuất 30 mục và link xác nhận.
-- [ ] Đề xuất 30 mục dừng chờ duyệt, dù trợ lý gọi một lần hay chia nhỏ, và chưa có task nào bị ghi trước khi anh Quang bấm Duyệt.
-- [ ] Anh Quang thấy đề xuất trong hộp "Chờ tôi duyệt" và bấm Duyệt được.
-- [ ] Tiến độ kết thúc ở 30 trên 30; 30 task T-5 tới T-34 có `NV-04`, phiên bản 2, mỗi task một lần ghi.
-- [ ] Vết theo `--proposal` có đủ 33 dòng: soạn, gửi, duyệt và 30 lệnh ghi.
+- [x] Kịch bản C chạy trong Thổ Thần desktop: chị Hoa nhận đề xuất 30 mục và link xác nhận.
+- [x] Đề xuất 30 mục dừng chờ duyệt, dù trợ lý gọi một lần hay chia nhỏ, và chưa có task nào bị ghi trước khi anh Quang bấm Duyệt.
+- [x] Anh Quang thấy đề xuất trong hộp "Chờ tôi duyệt" và bấm Duyệt được.
+- [x] Tiến độ kết thúc ở 30 trên 30; 30 task T-5 tới T-34 có `NV-04`, phiên bản 2, mỗi task một lần ghi.
+- [x] Vết theo `--proposal` có đủ 33 dòng: soạn, gửi, duyệt và 30 lệnh ghi.
 
 Phiên 2, kịch bản A, B, D:
 
-- [ ] B: Nam bị từ chối với `NOT_PERMITTED`, được chỉ tới anh Quang, và không có link.
-- [ ] A: chị Hoa nhận đề xuất và link, bấm Gửi mà không cần duyệt, và T-12 có `NV-04`, phiên bản 2, đúng một lần ghi.
-- [ ] A: vết theo `--proposal` có đủ ba dòng: soạn, gửi và một lệnh ghi.
-- [ ] D: câu trả lời chỉ có email công việc, nói rõ số điện thoại cá nhân bị ẩn, và không có chữ số nào của số điện thoại.
+- [x] B: Nam bị từ chối với `NOT_PERMITTED`, được chỉ tới anh Quang, và không có link.
+- [x] A: chị Hoa nhận đề xuất và link, bấm Gửi mà không cần duyệt, và T-12 có `NV-04`, phiên bản 2, đúng một lần ghi.
+- [x] A: vết theo `--proposal` có đủ ba dòng: soạn, gửi và một lệnh ghi.
+- [x] D: câu trả lời chỉ có email công việc, nói rõ số điện thoại cá nhân bị ẩn, và không có chữ số nào của số điện thoại.
 
 Cả hai phiên:
 
-- [ ] Credit trước và sau từng kịch bản đã ghi; không lúc nào còn dưới 100 credit.
-- [ ] Mười ảnh đã che khoá và email thật, nằm cạnh tài liệu.
-- [ ] Sau mỗi phiên, đường hầm đã tắt, ba dịch vụ đã tắt, skill đã xoá và khoá đã xoay.
-- [ ] Mục 14 ghi rõ H12 (#73) không được kiểm lại.
+- [x] Credit trước và sau từng kịch bản đã ghi, riêng A và D chỉ có tổng vì không đọc credit giữa hai kịch bản; không lúc nào còn dưới 100 credit.
+- [x] Mười ảnh đã che khoá và email thật, nằm cạnh tài liệu.
+- [x] Sau mỗi phiên, đường hầm đã tắt, ba dịch vụ đã tắt, skill đã xoá và khoá đã xoay.
+- [x] Mục 14 ghi rõ H12 (#73) không được kiểm lại.
 
 Nếu một dòng không đánh dấu được, #84 vẫn mở và ghi lý do vào phần cuối tài liệu này.
 Sau khi đủ, cập nhật dòng mốc 3 ở [tổng hợp, mục 8](../findings.md#8-bước-tiếp-theo) và tick các ô trong #84.
@@ -664,9 +733,9 @@ Sau khi đủ, cập nhật dòng mốc 3 ở [tổng hợp, mục 8](../finding
 
 | Việc | Vì sao | Cách kiểm |
 | --- | --- | --- |
-| Chạy phiên 1 (kịch bản C) và phiên 2 (A, B, D) trong Thổ Thần desktop, rồi điền mục 14 | Đây là phần còn lại của mốc 3 | Ảnh, vết và số credit như mục 7 tới mục 13 |
-| Đóng [#84](https://github.com/Park-Hip/agentlize-intern/issues/84) sau khi mục 14 đủ | Issue chỉ đóng khi có bằng chứng phiên thật | Tick mọi dòng ở mục 15 |
+| Thêm ô ghi chú khi duyệt, hoặc ghi rõ ô lý do chỉ dùng khi từ chối | Người duyệt gõ lời đồng ý vào ô lý do từ chối (mục 14.3) | Phép thử trang duyệt; người duyệt không còn gõ nhầm ô |
+| Đóng [#84](https://github.com/Park-Hip/agentlize-intern/issues/84) | Mục 14 đã đủ và mục 15 đã tick mọi dòng | PR ghi `Closes #84` được merge |
 | Chạy lại H12 (#73) trước lần nghiệm thu sau | Bản Thổ Thần 2026-11-18 có thể đổi hành vi MCP | Cắm probe qua đường hầm, gọi `whoami` và `fake_write` |
 | Đo M5 đầy đủ khi thêm hệ thống thứ ba | M5 không chỉ là dòng mã của một tệp | Đếm tiến trình, file cấu hình, bước cài và chỗ sửa luật |
 
-**Kết luận:** mốc 3 còn hai phiên Thổ Thần desktop; phần máy và câu trả lời Q1 đã sẵn sàng để đối chiếu.
+**Kết luận:** bốn kịch bản đã đạt trong Thổ Thần desktop trên bản hiện tại, nên mốc 3 đóng; việc còn lại là sửa giao diện trang duyệt và kiểm lại H12.
