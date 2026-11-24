@@ -106,7 +106,7 @@ Tám hồ sơ là tám tổ hợp đặt tên sẵn:
 | Hồ sơ | Công tắc | Giống hệ thống nào | Vấn đề kiểm |
 | --- | --- | --- | --- |
 | `standard` | Nhớ mãi, trả kết quả cũ, kiểm phiên bản, kết quả ngay, có lịch sử | Hệ thống giả hôm nay | Mốc so sánh |
-| `lark-task` | Tạo: nhớ 300 giây theo từng token, token hết hạn, trả 409 khi cùng mã còn chạy; sửa: không nhớ, không kiểm phiên bản; thông báo mỗi lần ghi | Lark Task, theo tài liệu | P1, P2, P27, P28, P29 |
+| `lark-task` | Tạo: nhớ 300 giây theo từng token, token hết hạn, trả 1470422 (HTTP 500) khi cùng mã còn chạy; sửa: không nhớ, không kiểm phiên bản; thông báo mỗi lần ghi | Lark Task, theo tài liệu | P1, P2, P27, P28, P29 |
 | `lark-approval` | Tạo: nhớ mãi, báo lỗi trùng | Lark Approval, theo tài liệu | P1 dạng báo lỗi |
 | `no-dedup` | Không nhớ; sửa vẫn kiểm phiên bản; không có lịch sử | Công cụ quản trị game, theo giả định | P1, lỗi báo thất bại dù đã ghi, kết luận sai sau xung đột |
 | `short-memory` | Nhớ N giây, rút từ 24 giờ xuống vài giây khi đo | Cổng thanh toán nhớ mã 24 giờ như Stripe | P2 |

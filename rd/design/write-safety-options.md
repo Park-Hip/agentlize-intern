@@ -51,20 +51,20 @@ Hôm nay bộ tiếp hợp khai trường, phòng sở hữu và hành động (
 
 | Dòng | Giá trị | Lark Task, tạo | Lark Task, sửa | Lark Approval, tạo phiếu |
 | --- | --- | --- | --- | --- |
-| Nhớ mã chống ghi trùng | Không; trong N giây; không hết hạn | 300 giây sau khi thành công | Không | Tài liệu không nêu hạn |
+| Nhớ mã chống ghi trùng | Không; trong N giây; không hết hạn | 300 giây sau khi thành công, chỉ khi cùng token | Không | Tài liệu không nêu hạn |
 | Phạm vi nhớ mã | Theo khoá dịch vụ; theo từng chuỗi token, kèm tuổi thọ token; toàn doanh nghiệp | Theo từng chuỗi token; token sống khoảng 2 giờ | Không áp dụng | Toàn doanh nghiệp |
-| Gặp lại mã | Trả kết quả cũ; báo lỗi trùng kèm mã lỗi; ghi mới | Trả kết quả cũ | Không áp dụng | Lỗi 60012 |
-| Tạo theo khoá ngoài (upsert) | Có, theo trường nào; không | Chưa kiểm | Không áp dụng | Chưa kiểm |
+| Gặp lại mã | Trả kết quả cũ; báo lỗi trùng kèm mã lỗi; ghi mới | Chỉ tạo một task; không nói trả kết quả cũ | Không áp dụng | Lỗi 60012 |
+| Tạo theo khoá ngoài (upsert) | Có, theo trường nào; không | Không | Không áp dụng | Chưa kiểm |
 | Kiểm số phiên bản | Có; không | Không áp dụng | Không | Không áp dụng |
-| Bảng mã trả về | Mỗi mã của đích xếp vào một loại: đã ghi, chưa làm, bị từ chối, đang chạy cùng mã, chưa rõ | 1470422 là đang chạy cùng mã; phần còn lại chưa kiểm | Chưa kiểm | 60012 là đã ghi; phần còn lại chưa kiểm |
-| Tra kết quả | Theo mã; theo dấu gắn trong bản ghi; theo bản ghi; không | Chưa kiểm | Theo bản ghi | Chưa kiểm |
+| Bảng mã trả về | Mỗi mã của đích xếp vào một loại: đã ghi, chưa làm, bị từ chối, đang chạy cùng mã, chưa rõ | 0 đã ghi; 1470422 không biết; 1470400/1470403/1470404 chưa làm; 1470500 không biết; 99991400 chưa làm | 0 đã ghi; 1470400/1470403/1470404 chưa làm; 1470500 không biết; 99991400 chưa làm | 60012 là đã ghi; phần còn lại chưa kiểm |
+| Tra kết quả | Theo mã; theo dấu gắn trong bản ghi; theo bản ghi; không | Theo bản ghi nếu biết guid; không có API tìm theo dấu hay client_token | Theo bản ghi | Chưa kiểm |
 | Đọc nhất quán sau khi ghi | Ngay; sau N giây; không biết | Chưa kiểm | Chưa kiểm | Chưa kiểm |
 | Lịch sử ghi theo người ghi | Có; không | Chưa kiểm | Chưa kiểm | Không áp dụng |
 | Thời gian xử lý tối đa | Số giây, hoặc không biết | Chưa kiểm | Chưa kiểm | Chưa kiểm |
 | Kết quả cuối | Ngay khi trả lời; đến sau, chờ tối đa N giờ | Ngay | Ngay | Ngay |
-| Thu hồi được | Đảo ngược; bù trừ; không thu hồi được | Chưa kiểm | Đảo ngược | Chưa kiểm |
+| Thu hồi được | Đảo ngược; bù trừ; không thu hồi được | Bù trừ (xoá task) | Đảo ngược | Chưa kiểm |
 | Việc kéo theo | Không; thông báo, cho ai; quy trình tự động | Thông báo cho người theo dõi | Thông báo cho người theo dõi | Chưa kiểm |
-| Giới hạn tốc độ | Số lệnh, và cách báo thời gian chờ: `Retry-After`, header riêng, không báo | Chưa kiểm | Chưa kiểm | 100 lần mỗi phút |
+| Giới hạn tốc độ | Số lệnh, và cách báo thời gian chờ: `Retry-After`, header riêng, không báo | 10 lệnh/giây mỗi ứng dụng và tenant; header `x-ogw-ratelimit-reset` | 10 lệnh/giây mỗi ứng dụng và tenant; header `x-ogw-ratelimit-reset` | 100 lần mỗi phút |
 
 Năm dòng cần giải thích thêm:
 
@@ -85,7 +85,9 @@ Luật dạng dữ liệu đọc được dòng "Thu hồi được", nên có t
 **Chưa biết:**
 
 - Mười bốn dòng có đủ để mô tả mọi đích không; mới thử trên ba thao tác của Lark và trên Stripe, Meta qua tài liệu.
-- Các ô "Chưa kiểm" của Lark Task, cần tài liệu và một lần thử trên ứng dụng Lark thử.
+- Các ô "Chưa kiểm" còn lại của Lark Task là đọc nhất quán sau khi ghi, lịch sử ghi theo người ghi và thời gian xử lý tối đa.
+  Tài liệu không nêu ba điều này, nên R3 kiểm bằng một lần tạo rồi đọc ngay 100 lần.
+  R3 cũng sửa task bằng người khác rồi đọc chi tiết và sự kiện, và đo thời gian từ lúc gửi tới lúc task đổi.
 - Lời khai sai gây hại tới đâu, và phép thử hợp đồng bắt được loại sai nào.
 
 **Cách quyết định:** điền bản khai cho Lark Task, Lark Approval và hai đích ngoài nhóm Lark (một cổng thanh toán, một API quảng cáo) chỉ từ tài liệu.
