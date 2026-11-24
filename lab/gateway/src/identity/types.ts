@@ -6,7 +6,14 @@
 export const CONSOLE_CALLER = 'lab-console';
 
 /** Where a call comes from. The key is bound to one of these when issued. */
-export const CALLERS = ['tho-than-desktop', 'fc-assistant', CONSOLE_CALLER, 'test'] as const;
+export const CALLERS = [
+  'tho-than-desktop',
+  'tho-than-web',
+  'fc-assistant',
+  CONSOLE_CALLER,
+  'test',
+  'user_device',
+] as const;
 export type Caller = (typeof CALLERS)[number];
 
 /** What the key owner declared up front. `read_only` keys never write. */

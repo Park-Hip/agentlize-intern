@@ -246,6 +246,7 @@ export function rulesFromForm(
       bulk_threshold: number;
       read: Record<string, ReadScope>;
       fields: Record<string, string[]>;
+      data_classes: Record<string, string>;
       actions: Record<string, Record<string, ActionCell>>;
     }
   > = {};
@@ -323,7 +324,15 @@ export function rulesFromForm(
       actions[action] = cells;
     }
 
-    resources[type] = { bulk_threshold: threshold, read, fields: fieldLists, actions };
+    // The screen does not edit data classes yet, so it copies the block it read
+    // instead of rebuilding it. A save must never drop a key it did not show.
+    resources[type] = {
+      bulk_threshold: threshold,
+      read,
+      fields: fieldLists,
+      data_classes: current.resources[type]?.data_classes ?? {},
+      actions,
+    };
   }
 
   const wantedApprovers = form.getAll('approver_roles');
@@ -350,6 +359,7 @@ export function rulesFromForm(
       wait_minutes: waitMinutes,
     },
     cumulative_window_minutes: windowMinutes,
+    clients: current.clients,
     resources,
   });
   if (!parsed.success) {

@@ -47,8 +47,13 @@ export function pagePasswordOf(table: string, persona: string): SeededPagePasswo
 }
 
 /** A key the identity CLI just issued, for the revocation and read-only cases. */
-export function issueKey(env: NodeJS.ProcessEnv, employee: string, scope?: 'full' | 'read_only'): SeededKey {
-  const args = ['issue', '--employee', employee, '--caller', 'tho-than-desktop'];
+export function issueKey(
+  env: NodeJS.ProcessEnv,
+  employee: string,
+  scope?: 'full' | 'read_only',
+  caller = 'tho-than-desktop',
+): SeededKey {
+  const args = ['issue', '--employee', employee, '--caller', caller];
   if (scope !== undefined) args.push('--scope', scope);
   const output = runCli('keys-main.js', args, env);
   const keyId = /^key_id:\s+(\S+)\r?$/m.exec(output)?.[1];

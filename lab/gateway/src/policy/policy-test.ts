@@ -73,6 +73,7 @@ interface RulesJson {
     wait_minutes?: number;
   };
   cumulative_window_minutes?: number;
+  clients?: Record<string, { class?: string; ceiling?: string }>;
   resources?: Record<string, ResourceJson>;
 }
 
@@ -80,6 +81,7 @@ interface ResourceJson {
   bulk_threshold?: number;
   read?: Record<string, string>;
   fields?: Record<string, string[]>;
+  data_classes?: Record<string, string>;
   actions?: Record<string, Record<string, { effect?: string; scope?: string; bulk?: string }>>;
 }
 
@@ -300,7 +302,7 @@ test('policy read: a record type the file does not declare is refused with .unde
 test('policy fields: every role sees id, name, department, role and work email; only hr sees phone and address', () => {
   const common = ['id', 'name', 'department', 'role', 'work_email'];
   for (const role of ROLES) {
-    const result = shipped.allowedFields(role);
+    const result = shipped.allowedFields(role, 'employee', 'tho-than-desktop');
     assert.equal(result.effect, 'allow');
     assert.equal(result.policyVersion, 1);
     assert.equal(result.ruleId, `employee.fields.${role}`);
@@ -311,25 +313,70 @@ test('policy fields: every role sees id, name, department, role and work email; 
 
 test('policy fields: task fields use only the fields the rule file declares', () => {
   for (const role of ROLES) {
-    const result = shipped.allowedFields(role, 'task');
+    const result = shipped.allowedFields(role, 'task', 'tho-than-desktop');
     assert.equal(result.effect, 'allow');
     assert.equal(result.ruleId, `task.fields.${role}`);
     assert.deepEqual([...result.fields].sort(), ['assignee', 'department', 'description', 'due', 'id', 'status', 'title']);
   }
 });
 
+test('policy fields: the client ceiling removes only the fields above it, and keeps the reason apart', () => {
+  const common = ['id', 'name', 'department', 'role', 'work_email'];
+  const desktop = shipped.allowedFields('hr', 'employee', 'tho-than-desktop');
+  assert.equal(desktop.droppedByClient.length, 0);
+  assert.equal(desktop.droppedUnclassified.length, 0);
+  assert.equal(desktop.clientDeclared, true);
+  assert.equal(desktop.ceiling, 'employee_personal');
+
+  const device = shipped.allowedFields('hr', 'employee', 'user_device');
+  assert.deepEqual([...device.fields].sort(), [...common].sort());
+  assert.deepEqual([...device.droppedByClient].sort(), ['home_address', 'personal_phone']);
+  assert.deepEqual(device.droppedUnclassified, []);
+  assert.equal(device.clientClass, 'user_device');
+  assert.equal(device.ceiling, 'internal_general');
+
+  const unlisted = shipped.allowedFields('hr', 'employee', 'unlisted-client');
+  assert.deepEqual(unlisted.fields, []);
+  assert.deepEqual([...unlisted.droppedByClient].sort(), [...common, 'home_address', 'personal_phone'].sort());
+  assert.equal(unlisted.clientDeclared, false);
+  assert.equal(unlisted.ceiling, 'aggregate_anonymous');
+});
+
+test('policy fields: a field without a class is dropped, and an unlisted client gets nothing', () => {
+  withRulesFile((path, engine) => {
+    const rules = shippedRules();
+    const employee = rules.resources?.['employee'];
+    assert.ok(employee !== undefined);
+    if (employee.data_classes !== undefined) delete employee.data_classes['work_email'];
+    writeRules(path, rules);
+
+    const result = engine.allowedFields('staff', 'employee', 'tho-than-desktop');
+    assert.equal(result.fields.includes('work_email'), false, 'the unclassified field is not returned');
+    assert.deepEqual(result.droppedUnclassified, ['work_email']);
+    assert.equal(result.fields.includes('name'), true, 'the other fields still come out');
+    assert.deepEqual(result.droppedByClient, []);
+
+    delete rules.clients;
+    writeRules(path, rules);
+    const unlisted = engine.allowedFields('staff', 'employee', 'tho-than-desktop');
+    assert.deepEqual(unlisted.fields, []);
+    assert.deepEqual([...unlisted.droppedByClient].sort(), ['department', 'id', 'name', 'role'], 'no client profile hides every classified field');
+    assert.deepEqual(unlisted.droppedUnclassified, ['work_email']);
+  });
+});
+
 test('policy fields: an unknown role gets no field at all', () => {
   for (const role of ['guest', '', 'constructor', '__proto__']) {
-    const result = shipped.allowedFields(role);
+    const result = shipped.allowedFields(role, 'employee', 'tho-than-desktop');
     assert.equal(result.effect, 'deny');
     assert.deepEqual(result.fields, []);
   }
 });
 
 test('policy fields: the list handed out cannot be used to change the rules', () => {
-  const first = shipped.allowedFields('intern');
+  const first = shipped.allowedFields('intern', 'employee', 'tho-than-desktop');
   (first.fields as string[]).push('personal_phone');
-  assert.equal(shipped.allowedFields('intern').fields.includes('personal_phone'), false);
+  assert.equal(shipped.allowedFields('intern', 'employee', 'tho-than-desktop').fields.includes('personal_phone'), false);
 });
 
 test('policy window: the file names the 60-minute look-back, and a missing file gives no window', () => {
@@ -448,12 +495,47 @@ test('policy scope: a read_only key still reads what the role may read, and noth
   assert.equal(shipped.decide(phone).effect, 'deny');
 });
 
-test('policy scope: the caller carries no rights of its own', () => {
-  for (const caller of ['tho-than-desktop', 'tho-than-web', 'function-calling-assistant', 'unknown-caller']) {
-    const decision = shipped.decide(inputOf('intern', 'change_task_assignee_or_due', ownTask(1), { caller }));
-    assert.equal(decision.effect, 'deny', caller);
-    assert.equal(shipped.decide(inputOf('staff', 'change_task_assignee_or_due', ownTask(1), { caller })).effect, 'allow', caller);
+test('policy scope: a client never adds a right and lowers the ceiling like the table', () => {
+  const clients = Object.keys(shippedRules().clients ?? {}).sort();
+  assert.deepEqual(clients, [
+    'fc-assistant',
+    'lab-console',
+    'test',
+    'tho-than-desktop',
+    'tho-than-web',
+    'user_device',
+  ]);
+
+  for (const caller of clients) {
+    const intern = shipped.decide(inputOf('intern', 'change_task_assignee_or_due', ownTask(1), { caller }));
+    assert.equal(intern.effect, 'deny', caller);
+    assert.equal(intern.ruleId, 'task.change_task_assignee_or_due.intern', caller);
+
+    const staff = shipped.decide(inputOf('staff', 'change_task_assignee_or_due', ownTask(1), { caller }));
+    assert.equal(staff.effect, 'allow', caller);
+    assert.equal(staff.denyReason, null, caller);
   }
+
+  const noProfile = shipped.decide(
+    inputOf('staff', 'change_task_assignee_or_due', ownTask(1), { caller: 'unlisted-client' }),
+  );
+  assert.equal(noProfile.effect, 'deny');
+  assert.equal(noProfile.ruleId, 'task.change_task_assignee_or_due.staff.data_class');
+  assert.equal(noProfile.reasonCode, 'NOT_PERMITTED');
+  assert.equal(noProfile.denyReason, 'data_class_exceeds_client');
+
+  const desktopPhone = shipped.decide(
+    inputOf('hr', 'read_employee_field', { kind: 'employee', field: 'personal_phone' }, { caller: 'tho-than-desktop' }),
+  );
+  assert.equal(desktopPhone.effect, 'allow');
+  assert.equal(desktopPhone.denyReason, null);
+
+  const devicePhone = shipped.decide(
+    inputOf('hr', 'read_employee_field', { kind: 'employee', field: 'personal_phone' }, { caller: 'user_device' }),
+  );
+  assert.equal(devicePhone.effect, 'deny');
+  assert.equal(devicePhone.ruleId, 'employee.fields.hr.data_class');
+  assert.equal(devicePhone.denyReason, 'data_class_exceeds_client');
 });
 
 test('policy undeclared: a deleted cell refuses only that action, with .undeclared', () => {
@@ -483,7 +565,7 @@ test('policy undeclared: a record type the file omits is refused, while the decl
     assert.equal(task.effect, 'deny');
     assert.equal(task.ruleId, 'task.change_task_status.staff.undeclared');
     assert.equal(engine.readScope('staff', 'task').ruleId, 'task.read.staff.undeclared');
-    assert.equal(engine.allowedFields('staff', 'task').ruleId, 'task.fields.staff.undeclared');
+    assert.equal(engine.allowedFields('staff', 'task', 'tho-than-desktop').ruleId, 'task.fields.staff.undeclared');
     assert.equal(engine.decide(inputOf('hr', 'edit_work_email', ownEmployee())).effect, 'allow');
   });
 });
@@ -495,7 +577,7 @@ test('policy unavailable: a missing file refuses everything', () => {
   assert.equal(decision.reasonCode, 'POLICY_UNAVAILABLE');
   assert.equal(decision.ruleId, RULE_IDS.unavailable);
   assert.equal(decision.policyVersion, null);
-  const fields = engine.allowedFields('lead');
+  const fields = engine.allowedFields('lead', 'employee', 'tho-than-desktop');
   assert.equal(fields.reasonCode, 'POLICY_UNAVAILABLE');
   assert.deepEqual(fields.fields, []);
   assert.equal(engine.readScope('lead', 'task').reasonCode, 'POLICY_UNAVAILABLE');
@@ -550,6 +632,18 @@ test('policy unavailable: an old file without schema 2, a typo and a bad value r
   if (zeroBulk.resources?.['task'] !== undefined) zeroBulk.resources['task'].bulk_threshold = 0;
   const roleMismatch = structuredClone(rules);
   if (roleMismatch.resources?.['employee']?.read !== undefined) delete roleMismatch.resources['employee'].read['intern'];
+  const unknownClassField = structuredClone(rules);
+  if (unknownClassField.resources?.['employee']?.data_classes !== undefined) {
+    unknownClassField.resources['employee'].data_classes['salary'] = 'internal_general';
+  }
+  const badClassName = structuredClone(rules);
+  if (badClassName.resources?.['employee']?.data_classes !== undefined) {
+    badClassName.resources['employee'].data_classes['personal_phone'] = 'secret';
+  }
+  const badClient = structuredClone(rules);
+  if (badClient.clients !== undefined) {
+    badClient.clients['user_device'] = { class: 'somewhere', ceiling: 'internal_general' };
+  }
 
   const broken: Record<string, string> = {
     'empty file': '',
@@ -575,6 +669,9 @@ test('policy unavailable: an old file without schema 2, a typo and a bad value r
     'no resources': JSON.stringify(noResources),
     'bulk threshold zero': JSON.stringify(zeroBulk),
     'role lists differ between record types': JSON.stringify(roleMismatch),
+    'data class names a field the adapter does not declare': JSON.stringify(unknownClassField),
+    'unknown data class name': JSON.stringify(badClassName),
+    'unknown client class': JSON.stringify(badClient),
     'unknown top-level key': JSON.stringify({ ...rules, note: 'x' }),
   };
 
@@ -586,7 +683,7 @@ test('policy unavailable: an old file without schema 2, a typo and a bad value r
       assert.equal(decision.effect, 'deny', name);
       assert.equal(decision.reasonCode, 'POLICY_UNAVAILABLE', name);
       assert.equal(decision.policyVersion, null, name);
-      assert.equal(engine.allowedFields('lead').reasonCode, 'POLICY_UNAVAILABLE', name);
+      assert.equal(engine.allowedFields('lead', 'employee', 'tho-than-desktop').reasonCode, 'POLICY_UNAVAILABLE', name);
       assert.equal(engine.readScope('lead', 'task').reasonCode, 'POLICY_UNAVAILABLE', name);
     }
   });
@@ -607,7 +704,7 @@ test('policy unavailable: a module that throws refuses instead of throwing', () 
   });
   const decision = readFails.decide(inputOf('lead', 'edit_task_description', ownTask(1)));
   assert.equal(decision.reasonCode, 'POLICY_UNAVAILABLE');
-  assert.equal(readFails.allowedFields('lead').reasonCode, 'POLICY_UNAVAILABLE');
+  assert.equal(readFails.allowedFields('lead', 'employee', 'tho-than-desktop').reasonCode, 'POLICY_UNAVAILABLE');
 
   const hostile = {
     get actor(): never {
@@ -652,4 +749,21 @@ test('policy rules file: the shipped file is valid, schema 2 and has the PRD thr
   assert.equal(rules.resources?.['task']?.bulk_threshold, 5);
   assert.equal(rules.cumulative_window_minutes, 60);
   assert.deepEqual(rules.approval, { approver_roles: ['lead'], same_department: true, wait_minutes: 120 });
+
+  assert.deepEqual(rules.clients, {
+    'tho-than-desktop': { class: 'appota_hosted', ceiling: 'employee_personal' },
+    'tho-than-web': { class: 'appota_hosted', ceiling: 'employee_personal' },
+    'fc-assistant': { class: 'appota_hosted', ceiling: 'employee_personal' },
+    'lab-console': { class: 'appota_hosted', ceiling: 'employee_personal' },
+    test: { class: 'appota_hosted', ceiling: 'employee_personal' },
+    user_device: { class: 'user_device', ceiling: 'internal_general' },
+  });
+
+  for (const [type, resource] of Object.entries(rules.resources ?? {})) {
+    const declared = new Set(Object.values(resource.fields ?? {}).flat());
+    for (const field of declared) {
+      const dataClass = resource.data_classes?.[field];
+      assert.ok(dataClass !== undefined, `${type}.${field} needs a data class`);
+    }
+  }
 });

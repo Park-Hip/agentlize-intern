@@ -7,6 +7,14 @@
     "wait_minutes": 120
   },
   "cumulative_window_minutes": 60,
+  "clients": {
+    "tho-than-desktop": { "class": "appota_hosted", "ceiling": "employee_personal" },
+    "tho-than-web": { "class": "appota_hosted", "ceiling": "employee_personal" },
+    "fc-assistant": { "class": "appota_hosted", "ceiling": "employee_personal" },
+    "lab-console": { "class": "appota_hosted", "ceiling": "employee_personal" },
+    "test": { "class": "appota_hosted", "ceiling": "employee_personal" },
+    "user_device": { "class": "user_device", "ceiling": "internal_general" }
+  },
   "resources": {
     "task": {
       "bulk_threshold": 5,
@@ -21,6 +29,16 @@
         "staff": ["id", "title", "description", "department", "assignee", "status", "due"],
         "lead": ["id", "title", "description", "department", "assignee", "status", "due"],
         "hr": ["id", "title", "description", "department", "assignee", "status", "due"]
+      },
+      "data_classes": {
+        "id": "internal_general",
+        "title": "internal_general",
+        "description": "internal_general",
+        "department": "internal_general",
+        "assignee": "internal_general",
+        "status": "internal_general",
+        "due": "internal_general",
+        "version": "internal_general"
       },
       "actions": {
         "edit_task_description": {
@@ -56,6 +74,15 @@
         "staff": ["id", "name", "department", "role", "work_email"],
         "lead": ["id", "name", "department", "role", "work_email"],
         "hr": ["id", "name", "department", "role", "work_email", "personal_phone", "home_address"]
+      },
+      "data_classes": {
+        "id": "internal_general",
+        "name": "internal_general",
+        "department": "internal_general",
+        "role": "internal_general",
+        "work_email": "internal_general",
+        "personal_phone": "employee_personal",
+        "home_address": "employee_personal"
       },
       "actions": {
         "edit_work_email": {

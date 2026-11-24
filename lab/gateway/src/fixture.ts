@@ -311,8 +311,8 @@ export interface GatewayFixture {
   readonly dir: string;
   readonly gateway: RunningGateway;
   readonly systems: StubSystems;
-  /** Issue a key for an employee code and return the raw key. */
-  keyFor(employeeId: string, scope?: string): string;
+  /** Issue a key for an employee code and return the raw key. The caller defaults to the test client. */
+  keyFor(employeeId: string, scope?: string, caller?: string): string;
   /** Issue a page password for an employee code and return the raw password. */
   pagePasswordFor(employeeId: string): string;
   call(tool: string, args: unknown, key?: string): Promise<{ status: number; body: ToolResponse }>;
@@ -349,8 +349,8 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Gatewa
     dir,
     gateway,
     systems,
-    keyFor: (employeeId, scope) =>
-      gateway.keys.issue({ employeeId, caller: 'test', ...(scope === undefined ? {} : { scope }) }).rawKey,
+    keyFor: (employeeId, scope, caller) =>
+      gateway.keys.issue({ employeeId, caller: caller ?? 'test', ...(scope === undefined ? {} : { scope }) }).rawKey,
     pagePasswordFor: (employeeId) => gateway.pagePasswords.issue({ employeeId }).rawPassword,
     async call(tool, args, key) {
       const response = await fetch(`${gateway.url}/v1/tools/${tool}`, {

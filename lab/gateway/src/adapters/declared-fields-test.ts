@@ -51,6 +51,7 @@ function badgeSystems(): StubSystems {
 interface RuleResource {
   read: Record<string, string>;
   fields: Record<string, string[]>;
+  data_classes: Record<string, string>;
   actions: Record<string, Record<string, unknown>>;
 }
 
@@ -65,6 +66,8 @@ function rulesWithBadge(version = 2): string {
   for (const role of Object.keys(employee.read)) {
     employee.fields[role] = [...(employee.fields[role] ?? []), BADGE_FIELD.name];
   }
+  // A field added to the adapter also needs its data class, or the ceiling gate drops it.
+  employee.data_classes[BADGE_FIELD.name] = 'internal_general';
   employee.actions[BADGE_ACTION.name] = {
     intern: { effect: 'deny', scope: 'any' },
     staff: { effect: 'deny', scope: 'any' },

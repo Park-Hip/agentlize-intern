@@ -16,7 +16,12 @@ async function handleToolCall(deps: GatewayDeps, req: IncomingMessage, res: Serv
   const authenticated = await deps.identity.authenticate(req.headers);
   try {
     const { result, traceId } = await performCall(deps, 'http', req.headers, authenticated, name, () => readJsonBody(req));
-    const body: ToolResponse = { text: result.text, reason_code: result.reasonCode, trace_id: traceId };
+    const body: ToolResponse = {
+      text: result.text,
+      reason_code: result.reasonCode,
+      deny_reason: result.denyReason ?? null,
+      trace_id: traceId,
+    };
     sendJson(res, result.status, body);
   } catch (error) {
     if (!(error instanceof TraceUnavailableError)) throw error;

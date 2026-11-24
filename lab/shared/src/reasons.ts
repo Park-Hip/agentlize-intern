@@ -24,6 +24,15 @@ export type PolicyReasonCode = (typeof POLICY_REASON_CODES)[number];
 
 export type ReasonCode = (typeof REASON_CODES)[number];
 
+/**
+ * The three denial names the AgentLize gateway puts on a refusal (ADR-0010
+ * section 3.5). They are a second name at the edge: the internal `reason_code`
+ * keeps the precise cause.
+ */
+export const DENY_REASONS = ['no_permission', 'data_class_exceeds_client', 'stale_target'] as const;
+
+export type DenyReason = (typeof DENY_REASONS)[number];
+
 /** Fixed prefix for every refusal, so a host can recognise it without parsing. */
 export const REFUSAL_PREFIX = 'CHƯA THỰC HIỆN' as const;
 

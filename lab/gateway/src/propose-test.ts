@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import Database from 'better-sqlite3';
@@ -11,6 +12,7 @@ import type { Proposal, ProposalExecutor } from './proposals/index.js';
 
 const HOA = 'NV-02';
 const NAM = 'NV-05';
+const NHUNG = 'NV-06';
 const QUANG = 'NV-01';
 const MINUTE = 60_000;
 
@@ -147,6 +149,7 @@ test('propose: the same words from Nam are refused with the reason and the lead 
     const answer = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { assignee: 'NV-04' } }, f.keyFor(NAM));
     assert.equal(answer.status, 403);
     assert.equal(answer.body.reason_code, 'NOT_PERMITTED');
+    assert.equal(answer.body.deny_reason, 'no_permission');
     assert.match(answer.body.text, /^CHƯA THỰC HIỆN \[NOT_PERMITTED\] /);
     assert.ok(answer.body.text.includes('Trần Văn Quang'), 'names the lead of the department, read from the directory');
     assert.doesNotMatch(answer.body.text, /xac-nhan|http/);
@@ -156,6 +159,39 @@ test('propose: the same words from Nam are refused with the reason and the lead 
     assert.equal(line?.reasonCode, 'NOT_PERMITTED');
     assert.equal(line?.ruleId, 'task.change_task_assignee_or_due.intern');
     assert.equal(line?.proposalId, null);
+  });
+});
+
+test('propose: a field above the client ceiling is refused before a proposal exists', async () => {
+  await withGateway(async (f, h) => {
+    const path = join(f.dir, 'rules.json');
+    const rules = JSON.parse(readFileSync(path, 'utf8')) as {
+      resources: { employee: { data_classes: Record<string, string> } };
+    };
+    rules.resources.employee.data_classes['work_email'] = 'employee_personal';
+    writeFileSync(path, JSON.stringify(rules, null, 2));
+
+    const device = await f.call(
+      'propose_employee_change',
+      { employee_id: 'NV-04', work_email: 'minh.device@lab.example' },
+      f.keyFor(NHUNG, undefined, 'user_device'),
+    );
+    assert.equal(device.status, 403);
+    assert.equal(device.body.reason_code, 'NOT_PERMITTED');
+    assert.equal(device.body.deny_reason, 'data_class_exceeds_client');
+    assert.doesNotMatch(device.body.text, /xac-nhan|http/);
+    assert.equal(f.gateway.trace.list()[0]?.ruleId, 'employee.edit_work_email.hr.data_class');
+    assert.equal(f.gateway.trace.list()[0]?.proposalId, null);
+    assert.equal(h.executed.length, 0, 'nothing was sent to the write path');
+
+    const desktop = await f.call(
+      'propose_employee_change',
+      { employee_id: 'NV-04', work_email: 'minh.desktop@lab.example' },
+      f.keyFor(NHUNG, undefined, 'tho-than-desktop'),
+    );
+    assert.equal(desktop.status, 200, 'the same role through a higher ceiling may draft');
+    assert.match(desktop.body.text, /xac-nhan/);
+    assert.equal(desktop.body.deny_reason, null);
   });
 });
 

@@ -343,6 +343,7 @@ const proposeTaskChange = defineTool(
         reasonCode: 'NOT_PERMITTED',
         ruleId: RULE_IDS.inputInvalid,
         policyVersion: null,
+        denyReason: 'no_permission',
       };
       return refusalForDecision(refused, actions, context, built[0]?.recordId ?? '', tasks);
     }

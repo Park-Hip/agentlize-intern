@@ -1,5 +1,5 @@
 import { performance } from 'node:perf_hooks';
-import { BodyError, maskKey, refusalMessage, type ReasonCode, type ToolKind } from '@lab/shared';
+import { BodyError, maskKey, refusalMessage, type DenyReason, type ReasonCode, type ToolKind } from '@lab/shared';
 import { z } from 'zod';
 import { adapterOf, SystemUnavailableError, type ResourceAdapter } from './adapters/index.js';
 import type {
@@ -78,6 +78,18 @@ const REFUSAL_SENTENCE: Readonly<Partial<Record<ReasonCode, string>>> = {
   GATEWAY_UNAVAILABLE: 'Cổng không nối được với danh bạ hoặc danh sách task. Hãy thử lại sau, hoặc báo người vận hành Lab.',
 };
 
+/**
+ * The gateway's name for one refusal (ADR-0010 section 3.5). The two specific
+ * causes keep their own name; everything else is the catch-all, because the
+ * company vocabulary has exactly three names and `reason_code` keeps the
+ * precise internal cause.
+ */
+export function denyReasonOf(code: ReasonCode, ruleId: string): DenyReason {
+  if (ruleId.endsWith('.data_class')) return 'data_class_exceeds_client';
+  if (code === 'TARGET_CHANGED') return 'stale_target';
+  return 'no_permission';
+}
+
 /** `sentence` replaces the default one when the caller can say more, such as who to ask. */
 export function refuse(code: ReasonCode, ruleId: string, sentence?: string): ToolResult {
   return {
@@ -86,12 +98,29 @@ export function refuse(code: ReasonCode, ruleId: string, sentence?: string): Too
     reasonCode: code,
     outcome: 'refused',
     ruleId,
+    denyReason: denyReasonOf(code, ruleId),
   };
 }
 
 /** A bad request is not a refusal of policy: no reason code, and the sentence says what to fix. */
 export function badRequest(status: number, sentence: string): ToolResult {
-  return { status, text: sentence, reasonCode: null, outcome: 'error' };
+  return { status, text: sentence, reasonCode: null, outcome: 'error', denyReason: null };
+}
+
+/**
+ * Attach the gateway name to a tool answer that carries a reason code but did
+ * not build the name itself, such as a write status read. A tool that already
+ * decided its `denyReason` keeps it.
+ */
+function withDenyReason(result: ToolResult): ToolResult {
+  if (result.denyReason !== undefined) return result;
+  if (result.reasonCode === null || result.reasonCode === 'NEEDS_APPROVAL') {
+    return { ...result, denyReason: null };
+  }
+  if (result.reasonCode === 'TARGET_CHANGED') return { ...result, denyReason: 'stale_target' };
+  if ((result.ruleId ?? '').endsWith('.data_class')) return { ...result, denyReason: 'data_class_exceeds_client' };
+  if (result.outcome === 'not_found' && result.outOfScope !== true) return { ...result, denyReason: null };
+  return { ...result, denyReason: 'no_permission' };
 }
 
 function describeInputProblem(error: z.ZodError): string {
@@ -153,7 +182,8 @@ async function answerCall(
   }
 
   // Also the gate for task reads: no readable rule file or no entry for the role means no answer at all.
-  const rules = deps.policy.allowedFields(role);
+  // The caller comes from the key record, never from the request (ADR-0010 section 3.4).
+  const rules = deps.policy.allowedFields(role, 'employee', identity.caller);
   if (rules.effect !== 'allow') {
     const code = rules.reasonCode === 'POLICY_UNAVAILABLE' ? 'POLICY_UNAVAILABLE' : 'NOT_PERMITTED';
     return { ...refuse(code, rules.ruleId), policyVersion: rules.policyVersion };
@@ -182,7 +212,7 @@ async function answerSafely(
   trail: Trail,
 ): Promise<ToolResult> {
   try {
-    return await answerCall(deps, authenticated, toolName, readArgs, trail);
+    return withDenyReason(await answerCall(deps, authenticated, toolName, readArgs, trail));
   } catch (error) {
     if (error instanceof SystemUnavailableError) return refuse('GATEWAY_UNAVAILABLE', `SYSTEM.${error.system}`);
     console.error(`[gateway] tool call failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -235,6 +265,7 @@ export function writeTrace(
       hostUser,
       turnId: trail.turnId,
       proposalId: result.proposalId ?? null,
+      droppedFields: result.droppedFields ?? 0,
       durationMs: performance.now() - startedAt,
     });
   } catch (error) {

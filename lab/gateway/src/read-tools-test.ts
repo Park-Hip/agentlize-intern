@@ -150,6 +150,87 @@ test('read: find_employee names the labelled fields hidden from the asker, outsi
   });
 });
 
+test('read: the client ceiling removes the personal fields, names the reason and counts them in the trace', async () => {
+  await withGateway(async (f) => {
+    const desktop = await f.call('find_employee', { name: 'Minh' }, f.keyFor(NHUNG, undefined, 'tho-than-desktop'));
+    assert.equal(desktop.status, 200);
+    assert.ok(desktop.body.text.includes(SECRETS.phone));
+    assert.ok(desktop.body.text.includes(SECRETS.address));
+    assert.equal(desktop.body.deny_reason, null, 'a full answer withholds nothing');
+    const desktopLine = f.gateway.trace.list({ employee: NHUNG })[0];
+    assert.equal(desktopLine?.caller, 'tho-than-desktop');
+    assert.equal(desktopLine?.droppedFields, 0);
+
+    const device = await f.call('find_employee', { name: 'Minh' }, f.keyFor(NHUNG, undefined, 'user_device'));
+    assert.equal(device.status, 200);
+    assert.equal(device.body.reason_code, null, 'the call succeeds; only the fields above the ceiling are gone');
+    assert.equal(device.body.deny_reason, 'data_class_exceeds_client');
+    assert.ok(device.body.text.includes('Vũ Quốc Minh'), 'the internal fields still come out');
+    assert.ok(!device.body.text.includes(SECRETS.phone));
+    assert.ok(!device.body.text.includes(SECRETS.address));
+    assert.match(
+      device.body.text,
+      /Không hiện vì vượt mức dữ liệu của client \(data_class_exceeds_client\): Số điện thoại cá nhân, Địa chỉ nhà\./,
+    );
+    assert.doesNotMatch(device.body.text, /Không hiện theo quyền của bạn/, 'the two reasons stay apart');
+
+    const deviceLine = f.gateway.trace.list({ employee: NHUNG })[0];
+    assert.equal(deviceLine?.caller, 'user_device');
+    assert.equal(deviceLine?.droppedFields, 2);
+  });
+});
+
+test('read: a client with no profile gets no field, and the trace counts every field of the role', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lab-unlisted-client-'));
+  const rulesPath = join(dir, 'rules.json');
+  writeFileSync(rulesPath, readFileSync(new URL('../policy/rules.json', import.meta.url), 'utf8'));
+  const f = await startFixture({ rulesPath });
+  try {
+    const key = f.keyFor(NHUNG, undefined, 'user_device');
+    const rules = JSON.parse(readFileSync(rulesPath, 'utf8')) as {
+      clients?: Record<string, unknown>;
+    };
+    if (rules.clients !== undefined) delete rules.clients['user_device'];
+    writeFileSync(rulesPath, JSON.stringify(rules, null, 2));
+
+    const answer = await f.call('find_employee', { name: 'Minh' }, key);
+    assert.equal(answer.status, 200);
+    assert.ok(!answer.body.text.includes('Vũ Quốc Minh'), 'no field value leaves the gateway');
+    assert.match(answer.body.text, /Không hiện vì vượt mức dữ liệu của client \(data_class_exceeds_client\): /);
+    assert.equal(answer.body.deny_reason, 'data_class_exceeds_client');
+    assert.equal(f.gateway.trace.list({ employee: NHUNG })[0]?.droppedFields, 7, 'every field of the hr role is counted once');
+  } finally {
+    await f.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('read: a field with no data class is dropped and counted, and the other fields still come out', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lab-missing-class-'));
+  const rulesPath = join(dir, 'rules.json');
+  const base = JSON.parse(readFileSync(new URL('../policy/rules.json', import.meta.url), 'utf8')) as {
+    resources: { employee: { data_classes?: Record<string, string> } };
+  };
+  if (base.resources.employee.data_classes !== undefined) {
+    delete base.resources.employee.data_classes['personal_phone'];
+  }
+  writeFileSync(rulesPath, JSON.stringify(base, null, 2));
+
+  const f = await startFixture({ rulesPath });
+  try {
+    const answer = await f.call('find_employee', { name: 'Minh' }, f.keyFor(NHUNG));
+    assert.equal(answer.status, 200);
+    assert.ok(answer.body.text.includes('Vũ Quốc Minh'), 'the other fields still come out');
+    assert.ok(!answer.body.text.includes(SECRETS.phone));
+    assert.match(answer.body.text, /Không hiện vì chưa khai mức dữ liệu: Số điện thoại cá nhân\./);
+    assert.equal(answer.body.deny_reason, 'no_permission', 'an unknown class is fail-closed, not a ceiling answer');
+    assert.equal(f.gateway.trace.list({ employee: NHUNG })[0]?.droppedFields, 1);
+  } finally {
+    await f.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('read: removing work_email from staff changes the hidden line on the next call, without a restart', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'lab-hidden-line-'));
   const rulesPath = join(dir, 'rules.json');

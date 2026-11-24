@@ -85,6 +85,27 @@ for (const door of DOORS) {
       assert.ok(answer.text.includes('Số điện thoại cá nhân: 0900 555 004'));
       assert.ok(answer.text.includes('Địa chỉ nhà: Số 04 Đường Giả Định'));
       assert.ok(!answer.text.includes('Không hiện theo quyền của bạn'), 'hr sees every labelled field');
+      assert.equal(answer.denyReason, null);
+    });
+
+    await t.test('SR8: two callers with the same ceiling get the same fields', async () => {
+      const web = issueKey(env, 'NV-02', undefined, 'tho-than-web');
+      const desktopAnswer = await call('find_employee', { name: 'Minh' }, hoa.key);
+      const webAnswer = await call('find_employee', { name: 'Minh' }, web.key);
+      assert.equal(webAnswer.status, desktopAnswer.status);
+      assert.equal(webAnswer.text, desktopAnswer.text, 'the caller name does not change the answer when the ceiling matches');
+      assert.equal(webAnswer.denyReason, desktopAnswer.denyReason);
+    });
+
+    await t.test('SR8: a lower client ceiling removes fields and names the reason on this door', async () => {
+      const device = issueKey(env, 'NV-06', undefined, 'user_device');
+      const answer = await call('find_employee', { name: 'Minh' }, device.key);
+      assert.equal(answer.status, 200);
+      assert.equal(answer.reasonCode, null);
+      assert.equal(answer.denyReason, 'data_class_exceeds_client');
+      assert.ok(!answer.text.includes('0900 555 004'), 'the personal phone is above the client ceiling');
+      assert.ok(!answer.text.includes('Số 04 Đường Giả Định'), 'the home address is above the client ceiling');
+      assert.match(answer.text, /data_class_exceeds_client/);
     });
 
     await t.test('a field added to the directory after the rule file never leaves the gateway', async () => {

@@ -246,6 +246,7 @@ test('trace: the task filter leaves no duplicate approval rows and the table sti
       'proposal_id',
       'idempotency_key',
       'attempts',
+      'dropped_fields',
       'duration_ms',
     ]);
 
