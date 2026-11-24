@@ -1,6 +1,6 @@
 # Bảng thuật ngữ
 
-Ngày: 2026-11-19. Trạng thái: bảng thuật ngữ dùng chung, cập nhật khi có thuật ngữ mới.
+Ngày: 2026-11-24. Trạng thái: bảng thuật ngữ dùng chung, cập nhật khi có thuật ngữ mới.
 
 Thuật ngữ dùng chung cho mọi tài liệu trong repo.
 Trong bài viết, ưu tiên tên tiếng Việt; tên tiếng Anh để trong ngoặc ở lần dùng đầu.
@@ -34,3 +34,6 @@ Trong bài viết, ưu tiên tên tiếng Việt; tên tiếng Anh để trong n
 | Nơi gọi                     | Host                               | Phần mềm người dùng mở để nói chuyện với agent, ví dụ khung chat Thổ Thần hay một công cụ lập trình.  |
 | Trang điều khiển            | Console                            | Trang chỉ mở trên máy chạy cổng, để người vận hành xem tool, sửa quyền, gọi thử và xem vết.          |
 | Sân chơi                    | Playground                         | Màn hình của trang điều khiển để chọn một nhân vật, gọi thử một tool và xem đúng câu trả lời AI nhận. |
+| Lớp dữ liệu                 | Data class                         | Mức nhạy cảm của dữ liệu, năm mức từ số liệu tổng hợp ẩn danh tới dữ liệu thanh toán.                  |
+| Hồ sơ ứng dụng              | Client profile                     | Bản khai một loại ứng dụng AI được nối thế nào, gồm mức dữ liệu cao nhất nó được nhận.                 |
+| Chủ dữ liệu                 | Data owner                         | Người, thường là trưởng phòng, chịu trách nhiệm về một nguồn dữ liệu và duyệt thay đổi lên nó.         |
