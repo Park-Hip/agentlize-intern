@@ -1,97 +1,37 @@
 import assert from 'node:assert/strict';
-import { randomBytes } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import test, { type TestContext } from 'node:test';
-import { DATA_DIR_ENV, SERVICE_KEY_ENV, TEST_HOOKS_ENV } from '@lab/shared';
+import test from 'node:test';
 import { EMPLOYEE, FAKE_BLOCK_END } from './seed.js';
-import { startTasksServer, type RunningTasksServer } from './server.js';
+import {
+  appliedCount,
+  createTask,
+  getTask,
+  harness,
+  notificationCount,
+  otherWrite,
+  patch,
+  writeCount,
+  writeList,
+} from './test-support.js';
 import type { Task } from './types.js';
-
-interface Harness {
-  readonly server: RunningTasksServer;
-  readonly key: string;
-  readonly dataDir: string;
-  call(method: string, path: string, options?: CallOptions): Promise<Response>;
-  restart(): Promise<void>;
-}
-
-interface CallOptions {
-  readonly body?: unknown;
-  readonly idempotencyKey?: string;
-  /** Send this value instead of the service key. `null` sends no Authorization header. */
-  readonly authorization?: string | null;
-}
-
-async function harness(t: TestContext, hooks = true): Promise<Harness> {
-  const key = randomBytes(32).toString('base64url');
-  const dataDir = await mkdtemp(join(tmpdir(), 'agentlize-tasks-'));
-  const env: NodeJS.ProcessEnv = {
-    [SERVICE_KEY_ENV]: key,
-    [DATA_DIR_ENV]: dataDir,
-    ...(hooks ? { [TEST_HOOKS_ENV]: '1' } : {}),
-  };
-
-  const state = { server: await startTasksServer({ env, port: 0 }) };
-  t.after(async () => {
-    await state.server.close();
-    await rm(dataDir, { recursive: true, force: true });
-  });
-
-  return {
-    get server() {
-      return state.server;
-    },
-    key,
-    dataDir,
-    call(method, path, options = {}) {
-      const headers: Record<string, string> = {};
-      if (options.authorization !== null) headers.authorization = options.authorization ?? `Bearer ${key}`;
-      if (options.idempotencyKey !== undefined) headers['idempotency-key'] = options.idempotencyKey;
-      if (options.body !== undefined) headers['content-type'] = 'application/json';
-      return fetch(`${state.server.url}${path}`, {
-        method,
-        headers,
-        ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
-      });
-    },
-    async restart() {
-      await state.server.close();
-      state.server = await startTasksServer({ env, port: 0 });
-    },
-  };
-}
-
-async function getTask(h: Harness, id: string): Promise<Task> {
-  const response = await h.call('GET', `/tasks/${id}`);
-  assert.equal(response.status, 200);
-  return (await response.json()) as Task;
-}
-
-async function writeCount(h: Harness, id: string): Promise<number> {
-  const response = await h.call('GET', `/admin/write-count?task=${id}`);
-  assert.equal(response.status, 200);
-  return ((await response.json()) as { count: number }).count;
-}
-
-function patch(h: Harness, id: string, key: string, changes: object, expectedVersion: number): Promise<Response> {
-  return h.call('PATCH', `/tasks/${id}`, {
-    idempotencyKey: key,
-    body: { changes, expected_version: expectedVersion },
-  });
-}
+import { startTasksServer } from './server.js';
 
 test('auth: every path answers 401 without the service key', async (t) => {
   const h = await harness(t);
   const paths: ReadonlyArray<[string, string]> = [
     ['GET', '/health'],
     ['GET', '/tasks'],
+    ['POST', '/tasks'],
     ['GET', '/tasks/T-12'],
     ['PATCH', '/tasks/T-12'],
     ['POST', '/admin/reset'],
     ['POST', '/admin/faults'],
     ['GET', '/admin/write-count?task=T-12'],
+    ['GET', '/admin/applied-count?task=T-12'],
+    ['GET', '/admin/notification-count?task=T-12'],
+    ['GET', '/admin/writes?task=T-12'],
+    ['GET', '/admin/profile'],
+    ['POST', '/admin/tokens'],
+    ['POST', '/admin/other-write'],
     ['GET', '/does-not-exist'],
   ];
 
@@ -388,10 +328,89 @@ test('write: bad requests answer 4xx and write nothing', async (t) => {
   assert.equal(unknownTask.status, 404);
 
   assert.equal((await h.call('DELETE', '/tasks/T-12')).status, 405);
-  assert.equal((await h.call('POST', '/tasks')).status, 405);
+  assert.equal((await h.call('PUT', '/tasks')).status, 405);
 
   assert.equal(await writeCount(h, 'T-12'), 0);
   assert.equal((await getTask(h, 'T-12')).version, 1);
+});
+
+test('write: create makes a task, counts one write and replays the same key', async (t) => {
+  const h = await harness(t);
+  const body = {
+    title: 'Soạn báo cáo quý',
+    description: 'Tổng hợp số liệu quý cho phòng Vận hành.',
+    assignee: EMPLOYEE.minh,
+    department: 'Vận hành' as const,
+    due: '2026-12-05',
+  };
+
+  const first = await createTask(h, 'create-1', body);
+  assert.equal(first.status, 201);
+  const firstText = await first.text();
+  const created = (JSON.parse(firstText) as { task: Task }).task;
+  assert.equal(created.id, 'T-101');
+  assert.equal(created.version, 1);
+  assert.equal(created.status, 'todo');
+  assert.equal(created.title, body.title);
+  assert.equal((await getTask(h, 'T-101')).assignee, EMPLOYEE.minh);
+  assert.equal(await writeCount(h, 'T-101'), 1);
+
+  const retry = await createTask(h, 'create-1', body);
+  assert.equal(retry.status, 201);
+  assert.equal(retry.headers.get('idempotent-replayed'), 'true');
+  assert.equal(await retry.text(), firstText);
+  assert.equal(await writeCount(h, 'T-101'), 1);
+
+  const reused = await createTask(h, 'create-1', { ...body, title: 'Việc khác' });
+  assert.equal(reused.status, 422);
+  assert.equal(((await reused.json()) as { error: string }).error, 'idempotency_key_reused');
+
+  const noKey = await h.call('POST', '/tasks', { body });
+  assert.equal(noKey.status, 400);
+  assert.equal(((await noKey.json()) as { error: string }).error, 'invalid_idempotency_key');
+
+  for (const bad of [
+    {},
+    { ...body, title: '' },
+    { ...body, assignee: 'Minh' },
+    { ...body, department: 'Marketing' },
+    { ...body, due: '2026-02-31' },
+    { ...body, extra: true },
+  ]) {
+    assert.equal((await h.call('POST', '/tasks', { body: bad, idempotencyKey: 'create-bad' })).status, 400);
+  }
+
+  const all = ((await (await h.call('GET', '/tasks')).json()) as { tasks: Task[] }).tasks;
+  assert.equal(all.length, 101, 'a rejected body must not create a task');
+});
+
+test('admin: another user edits a task and the counters name both writers', async (t) => {
+  const h = await harness(t);
+
+  assert.equal((await patch(h, 'T-12', 'counter-1', { assignee: EMPLOYEE.minh }, 1)).status, 200);
+  const other = await otherWrite(h, 'T-12', { status: 'done' }, 2);
+  assert.equal(other.status, 200);
+  const final = (await other.json()) as { task: Task };
+  assert.equal(final.task.version, 3);
+  assert.equal(final.task.assignee, EMPLOYEE.minh);
+  assert.equal(final.task.status, 'done');
+
+  assert.equal((await otherWrite(h, 'T-12', { status: 'todo' }, 1)).status, 409);
+  assert.equal((await otherWrite(h, 'T-9999', { status: 'todo' }, 1)).status, 404);
+
+  const list = await writeList(h, 'T-12');
+  assert.equal(list.history, true);
+  assert.equal(list.writes.length, 2);
+  assert.equal(list.writes[0]?.actor, 'gateway');
+  assert.equal(list.writes[0]?.kind, 'patch');
+  assert.equal(list.writes[1]?.actor, EMPLOYEE.quang);
+  assert.equal(list.writes[1]?.kind, 'other');
+  assert.ok(list.writes.every((write) => write.state === 'applied'));
+  assert.ok(list.writes.every((write) => write.notifications === 0));
+
+  assert.equal(await appliedCount(h, 'T-12'), 2);
+  assert.equal(await writeCount(h, 'T-12'), 2);
+  assert.equal(await notificationCount(h, 'T-12'), 0);
 });
 
 test('persistence: a saved key still answers after the service restarts', async (t) => {
@@ -442,14 +461,37 @@ test('hooks: bad fault and write-count requests are rejected', async (t) => {
   }
   assert.equal((await h.call('GET', '/admin/write-count')).status, 400);
   assert.equal((await h.call('GET', '/admin/write-count?task=x')).status, 400);
+  assert.equal((await h.call('GET', '/admin/applied-count')).status, 400);
+  assert.equal((await h.call('GET', '/admin/notification-count')).status, 400);
+  assert.equal((await h.call('GET', '/admin/writes')).status, 400);
+  assert.equal((await h.call('POST', '/admin/tokens', { body: { ttl_ms: 0 } })).status, 400);
+  assert.equal((await h.call('POST', '/admin/other-write', { body: { task_id: 'x', changes: { status: 'done' } } })).status, 400);
 });
 
 test('hooks: /admin routes answer 404 when LAB_TEST_HOOKS is not 1', async (t) => {
-  const h = await harness(t, false);
+  const h = await harness(t, { hooks: false });
   assert.equal((await h.call('POST', '/admin/reset')).status, 404);
   assert.equal((await h.call('POST', '/admin/faults', { body: { mode: 'drop_response_after_commit', count: 1 } })).status, 404);
   assert.equal((await h.call('GET', '/admin/write-count?task=T-12')).status, 404);
+  assert.equal((await h.call('GET', '/admin/applied-count?task=T-12')).status, 404);
+  assert.equal((await h.call('GET', '/admin/notification-count?task=T-12')).status, 404);
+  assert.equal((await h.call('GET', '/admin/writes?task=T-12')).status, 404);
+  assert.equal((await h.call('GET', '/admin/profile')).status, 404);
+  assert.equal((await h.call('POST', '/admin/tokens', { body: {} })).status, 404);
+  assert.equal((await otherWrite(h, 'T-12', { status: 'doing' })).status, 404);
 
-  // The same service still serves normal traffic.
+  // The same service still serves normal traffic, including create.
   assert.equal((await patch(h, 'T-12', 'no-hooks', { status: 'doing' }, 1)).status, 200);
+  assert.equal(
+    (
+      await createTask(h, 'no-hooks-create', {
+        title: 'Việc mới',
+        description: 'Tạo khi móc phép thử tắt.',
+        assignee: EMPLOYEE.minh,
+        department: 'Vận hành',
+        due: '2026-12-10',
+      })
+    ).status,
+    201,
+  );
 });

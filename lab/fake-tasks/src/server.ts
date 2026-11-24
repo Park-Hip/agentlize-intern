@@ -1,22 +1,33 @@
+import { randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import { z } from 'zod';
 import {
   LOOPBACK_HOST,
+  PERSONAS,
   hasValidServiceKey,
   readServiceKey,
   resolveDataDir,
   resolvePort,
   testHooksEnabled,
 } from '@lab/shared';
-import { TaskStore, type PatchInput, type StoredResponse, type TaskFilter } from './store.js';
+import { readTargetConfig, type IdempotencySwitch, type RateLimitMode, type RepeatMode } from './config.js';
+import {
+  TaskStore,
+  type LateJob,
+  type PatchInput,
+  type StoredResponse,
+  type TaskFilter,
+} from './store.js';
 import { DEPARTMENTS, TASK_STATUSES, type Department, type TaskChanges, type TaskStatus } from './types.js';
 
 const MAX_BODY_BYTES = 64 * 1024;
 const TASK_ID = /^T-[1-9][0-9]*$/;
 const KEY_PATTERN = /^[A-Za-z0-9._:-]{1,200}$/;
 const EMPLOYEE_CODE = /^NV-[0-9]{2}$/;
+const ACTOR_PATTERN = /^[A-Za-z0-9._:-]{1,100}$/;
+const MAX_TOKEN_MS = 86_400_000;
 
 const dateSchema = z
   .string()
@@ -33,9 +44,28 @@ const changesSchema = z
   .partial()
   .refine((changes) => Object.keys(changes).length > 0, 'changes must name at least one field');
 
-const patchBodySchema = z.strictObject({
+const createBodySchema = z.strictObject({
+  title: z.string().min(1).max(500),
+  description: z.string().max(2_000),
+  assignee: z.string().regex(EMPLOYEE_CODE),
+  department: z.enum(DEPARTMENTS),
+  status: z.enum(TASK_STATUSES).optional(),
+  due: dateSchema,
+});
+
+function patchBodySchema(versionCheck: boolean) {
+  const expectedVersion = versionCheck ? z.number().int().min(1) : z.number().int().min(1).optional();
+  return z.strictObject({ changes: changesSchema, expected_version: expectedVersion });
+}
+
+const tokenBodySchema = z.strictObject({
+  ttl_ms: z.number().int().min(1).max(MAX_TOKEN_MS).optional(),
+});
+
+const otherWriteBodySchema = z.strictObject({
+  task_id: z.string().regex(TASK_ID),
   changes: changesSchema,
-  expected_version: z.number().int().min(1),
+  expected_version: z.number().int().min(1).optional(),
 });
 
 const faultBodySchema = z.discriminatedUnion('mode', [
@@ -90,6 +120,8 @@ class HttpError extends Error {
     readonly status: number,
     readonly code: string,
     readonly detail?: string,
+    readonly headers: Record<string, string> = {},
+    readonly responseBody?: unknown,
   ) {
     super(code);
   }
@@ -163,16 +195,43 @@ function parseFilter(params: URLSearchParams): TaskFilter {
   return filter;
 }
 
+function actorOf(req: IncomingMessage): string {
+  const raw = req.headers['x-lab-actor'];
+  if (raw === undefined) return 'gateway';
+  if (typeof raw !== 'string' || !ACTOR_PATTERN.test(raw)) throw new HttpError(400, 'invalid_actor');
+  return raw;
+}
+
+function rateLimitHeaders(mode: RateLimitMode, waitMs: number): Record<string, string> {
+  const seconds = String(Math.max(1, Math.ceil(waitMs / 1_000)));
+  if (mode === 'retry_after') return { 'retry-after': seconds };
+  if (mode === 'custom_header') return { 'x-ogw-ratelimit-reset': seconds };
+  return {};
+}
+
+function rateLimitBody(mode: RateLimitMode): unknown {
+  if (mode === 'custom_header') {
+    return { code: 99991400, msg: 'request trigger frequency limit' };
+  }
+  return undefined;
+}
+
+interface Waiting {
+  readonly promise: Promise<void>;
+  readonly resolve: () => void;
+}
+
 /**
  * Start the fake task list: loopback only, every route behind the service key.
- * The key is read before the socket opens, so a misconfigured process never
- * answers a request.
+ * The key and the target profile are read before the socket opens, so a
+ * misconfigured process never answers a request.
  */
 export async function startTasksServer(options: TasksServerOptions = {}): Promise<RunningTasksServer> {
   const env = options.env ?? process.env;
   const serviceKey = readServiceKey(env);
   const hooks = testHooksEnabled(env);
   const port = options.port ?? resolvePort('tasks', env);
+  const { profile, config } = readTargetConfig(env);
 
   let dbPath = options.dbPath;
   if (dbPath === undefined) {
@@ -180,7 +239,8 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
     mkdirSync(dataDir, { recursive: true });
     dbPath = join(dataDir, 'tasks.sqlite');
   }
-  const store = new TaskStore(dbPath);
+  const store = new TaskStore(dbPath, config);
+  const bodySchema = patchBodySchema(config.versionCheck);
 
   /** Committed writes whose response is still to be dropped (test hook). */
   let dropsLeft = 0;
@@ -191,6 +251,119 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
   let heldPosition: number | null = null;
   let heldMs = 0;
   let heldBeforeCommit = false;
+
+  /** Access tokens for the `token` idempotency scope. Never written to the database. */
+  const tokens = new Map<string, { readonly id: string; readonly expiresAt: number }>();
+  const inFlight = new Map<string, Waiting>();
+  const pendingTimers = new Set<NodeJS.Timeout>();
+  let generation = 0;
+  let closed = false;
+
+  const limiter = (() => {
+    const setting = config.rateLimit;
+    let timestamps: number[] = [];
+    let blockedUntil = 0;
+    return {
+      enforce(now: number): void {
+        if (setting.mode === 'none') return;
+        const wait = (): never => {
+          const waitMs = Math.max(1, blockedUntil - now);
+          throw new HttpError(
+            429,
+            'rate_limited',
+            undefined,
+            rateLimitHeaders(setting.mode, waitMs),
+            rateLimitBody(setting.mode),
+          );
+        };
+        if (blockedUntil > now) {
+          if (setting.mode === 'silent') blockedUntil = now + setting.extraBlockSeconds * 1_000;
+          wait();
+        }
+        timestamps = timestamps.filter((stamp) => now - stamp < setting.windowMs);
+        if (timestamps.length >= setting.maxRequests) {
+          blockedUntil = now + setting.retryAfterSeconds * 1_000;
+          wait();
+        }
+        timestamps.push(now);
+      },
+      reset(): void {
+        timestamps = [];
+        blockedUntil = 0;
+      },
+    };
+  })();
+
+  function tokenSeconds(): number {
+    if (config.idempotency.create.scope === 'token') return config.idempotency.create.tokenSeconds;
+    if (config.idempotency.update.scope === 'token') return config.idempotency.update.tokenSeconds;
+    return 7_200;
+  }
+
+  function scopeOf(open: IdempotencySwitch, req: IncomingMessage, now: number): string {
+    if (open.scope === 'service_key') return '';
+    const raw = req.headers['x-lab-token'];
+    if (typeof raw !== 'string' || raw === '') throw new HttpError(401, 'invalid_token');
+    const token = tokens.get(raw);
+    if (token === undefined) throw new HttpError(401, 'invalid_token');
+    if (token.expiresAt <= now) {
+      tokens.delete(raw);
+      throw new HttpError(401, 'token_expired');
+    }
+    return token.id;
+  }
+
+  function scopedKey(scope: string, key: string): string {
+    return scope === '' ? key : `${scope}:${key}`;
+  }
+
+  async function enterInFlight(key: string, repeat: RepeatMode): Promise<Waiting | undefined> {
+    if (repeat === 'replay') return undefined;
+    const existing = inFlight.get(key);
+    if (existing !== undefined) {
+      if (repeat === 'wait') {
+        await existing.promise;
+        return undefined;
+      }
+      if (repeat === 'conflict') throw new HttpError(409, 'write_in_progress');
+      if (repeat === 'conflict_1470422') {
+        throw new HttpError(500, 'client_token_conflict', undefined, {}, {
+          code: 1470422,
+          msg: 'concurrent requests with the same client_token',
+        });
+      }
+      throw new HttpError(409, 'duplicate_idempotency_key');
+    }
+
+    let resolve!: () => void;
+    const promise = new Promise<void>((done) => {
+      resolve = done;
+    });
+    const entry: Waiting = { promise, resolve };
+    inFlight.set(key, entry);
+    return entry;
+  }
+
+  function leaveInFlight(key: string, entry: Waiting | undefined): void {
+    if (entry === undefined) return;
+    inFlight.delete(key);
+    entry.resolve();
+  }
+
+  function scheduleLate(job: LateJob): void {
+    const startedAt = generation;
+    const timer = setTimeout(() => {
+      pendingTimers.delete(timer);
+      if (closed || startedAt !== generation) return;
+      try {
+        store.finishLate(job);
+      } catch (error) {
+        console.error(`[fake-tasks] late write failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }, config.finalResult.delayMs);
+    timer.unref();
+    pendingTimers.add(timer);
+  }
 
   /** The position part of `<proposal>:<position>`, or null for a key from another caller. */
   function positionOfKey(key: string): number | null {
@@ -210,62 +383,140 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
     timer.unref();
   }
 
+  async function holdBeforeCommit(key: string): Promise<void> {
+    if (!heldBeforeCommit || heldPosition === null || positionOfKey(key) !== heldPosition) return;
+    const afterMs = heldMs;
+    heldPosition = null;
+    // The caller can be stopped before the write; nothing is committed yet.
+    await new Promise<void>((resolveWait) => {
+      const timer = setTimeout(resolveWait, afterMs);
+      timer.unref();
+    });
+  }
+
+  function sendCommitted(
+    req: IncomingMessage,
+    res: ServerResponse,
+    key: string,
+    response: StoredResponse,
+  ): void {
+    if (!heldBeforeCommit && heldPosition !== null && positionOfKey(key) === heldPosition) {
+      const afterMs = heldMs;
+      heldPosition = null;
+      answerLater(res, response, afterMs);
+      return;
+    }
+    if (dropsLeft > 0) {
+      // The write is committed; the caller never hears about it.
+      dropsLeft -= 1;
+      req.socket.destroy();
+      return;
+    }
+    if (delaysLeft > 0) {
+      // The write is committed; the answer is held so a caller can be stopped before reading it.
+      delaysLeft -= 1;
+      answerLater(res, response, delayMs);
+      return;
+    }
+    sendRaw(res, response);
+  }
+
   async function handlePatch(req: IncomingMessage, res: ServerResponse, taskId: string, body: unknown): Promise<void> {
     const key = req.headers['idempotency-key'];
     if (typeof key !== 'string' || !KEY_PATTERN.test(key)) {
       throw new HttpError(400, 'invalid_idempotency_key', 'Idempotency-Key header is required');
     }
-    const parsed = parseBody(patchBodySchema, body);
-    const input: PatchInput = {
-      taskId,
-      idempotencyKey: key,
-      expectedVersion: parsed.expected_version,
-      changes: definedOnly(parsed.changes),
-    };
+    const parsed = parseBody(bodySchema, body);
+    const sw = config.idempotency.update;
+    const now = Date.now();
+    const scope = scopeOf(sw, req, now);
+    const storedKey = scopedKey(scope, key);
+    const actor = actorOf(req);
+    limiter.enforce(now);
 
-    if (heldBeforeCommit && heldPosition !== null && positionOfKey(key) === heldPosition) {
-      const afterMs = heldMs;
-      heldPosition = null;
-      // The caller can be stopped before the write; nothing is committed yet.
-      await new Promise<void>((resolveWait) => {
-        const timer = setTimeout(resolveWait, afterMs);
-        timer.unref();
-      });
+    const entry = await enterInFlight(storedKey, sw.repeat);
+    try {
+      await holdBeforeCommit(storedKey);
+      const input: PatchInput = {
+        taskId,
+        idempotencyKey: storedKey,
+        expectedVersion: parsed.expected_version ?? null,
+        changes: definedOnly(parsed.changes),
+        actor,
+        now,
+      };
+      const outcome = store.patch(input);
+      switch (outcome.kind) {
+        case 'replayed':
+          sendRaw(res, outcome.response, { 'idempotent-replayed': 'true' });
+          return;
+        case 'key_reused':
+          throw new HttpError(422, 'idempotency_key_reused', 'This key was used with different content');
+        case 'duplicate':
+          throw new HttpError(409, 'duplicate_idempotency_key', 'This key was used before');
+        case 'not_found':
+          throw new HttpError(404, 'task_not_found');
+        case 'conflict':
+          sendJson(res, 409, { error: 'version_conflict', current_version: outcome.currentVersion });
+          return;
+        case 'written':
+          sendCommitted(req, res, storedKey, outcome.response);
+          return;
+        case 'accepted':
+          scheduleLate(outcome.job);
+          sendRaw(res, outcome.response, { 'write-state': 'processing' });
+          return;
+      }
+    } finally {
+      leaveInFlight(storedKey, entry);
     }
+  }
 
-    const outcome = store.patch(input);
-    switch (outcome.kind) {
-      case 'replayed':
-        sendRaw(res, outcome.response, { 'idempotent-replayed': 'true' });
-        return;
-      case 'key_reused':
-        throw new HttpError(422, 'idempotency_key_reused', 'This key was used with different content');
-      case 'not_found':
-        throw new HttpError(404, 'task_not_found');
-      case 'conflict':
-        sendJson(res, 409, { error: 'version_conflict', current_version: outcome.currentVersion });
-        return;
-      case 'written':
-        if (!heldBeforeCommit && heldPosition !== null && positionOfKey(key) === heldPosition) {
-          const afterMs = heldMs;
-          heldPosition = null;
-          answerLater(res, outcome.response, afterMs);
+  async function handleCreate(req: IncomingMessage, res: ServerResponse, body: unknown): Promise<void> {
+    const key = req.headers['idempotency-key'];
+    if (typeof key !== 'string' || !KEY_PATTERN.test(key)) {
+      throw new HttpError(400, 'invalid_idempotency_key', 'Idempotency-Key header is required');
+    }
+    const parsed = parseBody(createBodySchema, body);
+    const sw = config.idempotency.create;
+    const now = Date.now();
+    const scope = scopeOf(sw, req, now);
+    const storedKey = scopedKey(scope, key);
+    const actor = actorOf(req);
+    limiter.enforce(now);
+
+    const entry = await enterInFlight(storedKey, sw.repeat);
+    try {
+      await holdBeforeCommit(storedKey);
+      const outcome = store.create({
+        idempotencyKey: storedKey,
+        title: parsed.title,
+        description: parsed.description,
+        assignee: parsed.assignee,
+        department: parsed.department,
+        status: parsed.status ?? 'todo',
+        due: parsed.due,
+        actor,
+        now,
+      });
+      switch (outcome.kind) {
+        case 'replayed':
+          sendRaw(res, outcome.response, { 'idempotent-replayed': 'true' });
           return;
-        }
-        if (dropsLeft > 0) {
-          // The write is committed; the caller never hears about it.
-          dropsLeft -= 1;
-          req.socket.destroy();
+        case 'key_reused':
+          throw new HttpError(422, 'idempotency_key_reused', 'This key was used with different content');
+        case 'duplicate':
+          throw new HttpError(409, 'duplicate_idempotency_key', 'This key was used before');
+        case 'written':
+          sendCommitted(req, res, storedKey, outcome.response);
           return;
-        }
-        if (delaysLeft > 0) {
-          // The write is committed; the answer is held so a caller can be stopped before reading it.
-          delaysLeft -= 1;
-          answerLater(res, outcome.response, delayMs);
+        case 'accepted':
+          scheduleLate(outcome.job);
+          sendRaw(res, outcome.response, { 'write-state': 'processing' });
           return;
-        }
-        sendRaw(res, outcome.response);
-        return;
+      }
+    } finally {
+      leaveInFlight(storedKey, entry);
     }
   }
 
@@ -286,9 +537,15 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
     }
 
     if (path === '/tasks') {
-      if (method !== 'GET') throw new HttpError(405, 'method_not_allowed');
-      sendJson(res, 200, { tasks: store.list(parseFilter(url.searchParams)) });
-      return;
+      if (method === 'GET') {
+        sendJson(res, 200, { tasks: store.list(parseFilter(url.searchParams)) });
+        return;
+      }
+      if (method === 'POST') {
+        await handleCreate(req, res, await readJson(req));
+        return;
+      }
+      throw new HttpError(405, 'method_not_allowed');
     }
 
     const taskMatch = /^\/tasks\/([^/]+)$/.exec(path);
@@ -310,6 +567,11 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
 
     if (hooks) {
       if (path === '/admin/reset' && method === 'POST') {
+        generation += 1;
+        for (const timer of pendingTimers) clearTimeout(timer);
+        pendingTimers.clear();
+        tokens.clear();
+        limiter.reset();
         store.reset();
         dropsLeft = 0;
         delaysLeft = 0;
@@ -354,6 +616,68 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
         sendJson(res, 200, { task, count: store.writeCount(task) });
         return;
       }
+      if (path === '/admin/applied-count' && method === 'GET') {
+        const task = url.searchParams.get('task');
+        if (task === null || !TASK_ID.test(task)) throw new HttpError(400, 'invalid_query', 'task');
+        sendJson(res, 200, { task, count: store.appliedCount(task) });
+        return;
+      }
+      if (path === '/admin/notification-count' && method === 'GET') {
+        const task = url.searchParams.get('task');
+        if (task === null || !TASK_ID.test(task)) throw new HttpError(400, 'invalid_query', 'task');
+        sendJson(res, 200, { task, count: store.notificationCount(task) });
+        return;
+      }
+      if (path === '/admin/writes' && method === 'GET') {
+        const task = url.searchParams.get('task');
+        if (task === null || !TASK_ID.test(task)) throw new HttpError(400, 'invalid_query', 'task');
+        sendJson(res, 200, {
+          task,
+          history: config.writeHistory,
+          writes: store.writes(task).map((write) => ({
+            id: write.id,
+            key: write.key,
+            actor: write.actor,
+            kind: write.kind,
+            fields: write.fields,
+            state: write.state,
+            notifications: write.notifications,
+            at: new Date(write.at).toISOString(),
+            applied_at: write.appliedAt === null ? null : new Date(write.appliedAt).toISOString(),
+          })),
+        });
+        return;
+      }
+      if (path === '/admin/profile' && method === 'GET') {
+        sendJson(res, 200, { profile, switches: config });
+        return;
+      }
+      if (path === '/admin/tokens' && method === 'POST') {
+        const body = parseBody(tokenBodySchema, await readJson(req));
+        const ttlMs = body.ttl_ms ?? tokenSeconds() * 1_000;
+        const token = randomBytes(24).toString('base64url');
+        const expiresAt = Date.now() + ttlMs;
+        tokens.set(token, { id: randomBytes(8).toString('hex'), expiresAt });
+        sendJson(res, 200, { token, expires_at: new Date(expiresAt).toISOString(), expires_in_ms: ttlMs });
+        return;
+      }
+      if (path === '/admin/other-write' && method === 'POST') {
+        const body = parseBody(otherWriteBodySchema, await readJson(req));
+        const outcome = store.otherWrite({
+          taskId: body.task_id,
+          changes: definedOnly(body.changes),
+          expectedVersion: body.expected_version ?? null,
+          actor: PERSONAS.quang.employeeId,
+          now: Date.now(),
+        });
+        if (outcome.kind === 'not_found') throw new HttpError(404, 'task_not_found');
+        if (outcome.kind === 'conflict') {
+          sendJson(res, 409, { error: 'version_conflict', current_version: outcome.currentVersion });
+          return;
+        }
+        sendJson(res, 200, { task: outcome.task });
+        return;
+      }
     }
 
     throw new HttpError(404, 'not_found');
@@ -366,8 +690,18 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
         return;
       }
       if (error instanceof HttpError) {
-        const body = error.detail === undefined ? { error: error.code } : { error: error.code, detail: error.detail };
-        sendJson(res, error.status, body, error.status === 405 ? { allow: 'GET, PATCH, POST' } : {});
+        const body =
+          error.responseBody !== undefined
+            ? error.responseBody
+            : error.detail === undefined
+              ? { error: error.code }
+              : { error: error.code, detail: error.detail };
+        sendJson(
+          res,
+          error.status,
+          body,
+          error.status === 405 ? { ...error.headers, allow: 'GET, PATCH, POST' } : error.headers,
+        );
         return;
       }
       console.error(`[fake-tasks] request failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -395,13 +729,16 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
     throw new Error('tasks did not report a listening address');
   }
 
-  let closed = false;
+  let closedOnce = false;
   return {
     port: address.port,
     url: `http://${LOOPBACK_HOST}:${address.port}`,
     async close(): Promise<void> {
-      if (closed) return;
+      if (closedOnce) return;
+      closedOnce = true;
       closed = true;
+      for (const timer of pendingTimers) clearTimeout(timer);
+      pendingTimers.clear();
       server.closeAllConnections();
       await new Promise<void>((resolve, reject) => {
         server.close((error) => (error === undefined ? resolve() : reject(error)));
