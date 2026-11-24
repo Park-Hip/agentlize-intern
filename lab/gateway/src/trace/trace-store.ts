@@ -173,7 +173,7 @@ function toRow(row: Row): TraceRow {
     proposalId: row.proposal_id,
     idempotencyKey: row.idempotency_key,
     attempts: row.attempts,
-    droppedFields: row.dropped_fields,
+    droppedFields: row.dropped_fields ?? 0,
     durationMs: row.duration_ms,
     usage: null,
   };
