@@ -1,13 +1,15 @@
 # Các phương án thiết kế cho việc ghi vào hệ thống thật
 
-Ngày: 2026-11-24. Trạng thái: đề xuất, chưa chốt; đã đọc các nguồn công khai ở mục 11 cho mục 2 tới 10, mục 3 và mục 8 phải sửa cách làm, chọn sau khi đo rồi mới viết ADR-0009.
+Ngày: 2026-11-24. Trạng thái: đề xuất, chưa chốt; đã đọc nguồn công khai, hai chỗ phải sửa, chọn sau khi đo rồi mới viết ADR-0009.
 
 ## Đọc nhanh
 
-- Để ghi an toàn vào phần mềm nghiệp vụ thật, cổng phải quyết chín chuyện, ví dụ: không rõ lệnh đã chạy chưa thì làm gì, và chặn người dùng nhờ làm lại một việc đang chờ thế nào.
-- Mỗi chuyện có hai tới năm cách làm; tài liệu này đặt chúng cạnh nhau, kèm được gì và mất gì.
-- Các nguồn công khai ở mục 11 đã được đọc; phần lớn giữ nguyên cách đang nghiêng, riêng mục 3 và mục 8 phải sửa cách làm.
-- Mục 10 được củng cố: khoá chống ghi trùng của đích không thay được khoá ý định của cổng.
+- Để ghi an toàn vào phần mềm nghiệp vụ thật, cổng phải quyết chín chuyện.
+  Ví dụ: không rõ lệnh đã chạy chưa thì làm gì.
+- Các hệ thống lớn chọn giống cách Lab đang nghiêng về ở hầu hết các chuyện.
+- Khi gửi lại một lệnh chưa rõ kết quả, phải đặt hạn tổng cho các lần gửi.
+  Lần gửi lại phải dùng đúng nội dung lần đầu.
+- Hạn thực thi của một lệnh phải ngắn hơn khoảng thời gian hệ thống đích còn cho phép làm việc đó.
 - Việc tiếp theo: đo các cách trên phần mềm giả, rồi ghi lựa chọn vào một quyết định kiến trúc.
 
 ## 1. Cách chọn phương án
@@ -39,8 +41,11 @@ Cổng hôm nay giả định mọi đích giống hệ thống giả.
 | C. Cổng tự dò năng lực lúc chạy, ví dụ gửi thử hai lần cùng mã | Không phụ thuộc lời khai | Gửi thử là ghi thật; nhiều năng lực không dò được, như thời hạn nhớ mã |
 | D. Chỉ nhận đích có chống ghi trùng đầy đủ, từ chối đích khác | Đơn giản nhất | Loại Lark Task, đích đầu tiên Lab định nối |
 
-**Đang nghiêng về A**, giữ sau khi đọc nguồn ngoài: chỉ đích mới nói được nó nhớ mã bao lâu và ghi mã cùng hiệu ứng thế nào.
-Có phép thử hợp đồng hằng ngày để bắt lời khai sai: mỗi ngày gọi từng thao tác trên một bản ghi thử và so câu trả lời với bản khai, để biết sớm khi đích đổi API (P9).
+**Đang nghiêng về A**, giữ sau khi đọc nguồn ngoài.
+Chỉ đích mới nói được nó nhớ mã bao lâu và ghi mã cùng hiệu ứng thế nào.
+Có phép thử hợp đồng hằng ngày để bắt lời khai sai.
+Mỗi ngày gọi từng thao tác trên một bản ghi thử và so câu trả lời với bản khai.
+Nhờ vậy biết sớm khi đích đổi API (P9).
 Bộ tiếp hợp (adapter) là phần mã nối cổng với một hệ thống.
 Hôm nay bộ tiếp hợp khai trường, phòng sở hữu và hành động ([`adapters/types.ts`](../../lab/gateway/src/adapters/types.ts)); bản khai năng lực thêm các dòng dưới.
 
@@ -86,13 +91,20 @@ Luật dạng dữ liệu đọc được dòng "Thu hồi được", nên có t
 **Cách quyết định:** điền bản khai cho Lark Task, Lark Approval và hai đích ngoài nhóm Lark (một cổng thanh toán, một API quảng cáo) chỉ từ tài liệu.
 Nếu một đích cần hành vi ngoài bảng, ghi lại dòng thiếu; nếu từ hai đích trở lên cần mã riêng, phương án B thắng cho phần đó.
 
-**Nguồn ngoài:** [IETF, bản nháp 09](https://www.ietf.org/archive/id/draft-ietf-httpapi-idempotency-key-header-09.txt) khuyến nghị đích công bố hạn nhớ mã ("The resource SHOULD define such expiration policy and publish it in the documentation."), nên A đúng hướng và B vẫn làm được nhưng không có một chỗ khai để lõi đọc.
-[AWS Lambda Powertools](https://docs.powertools.aws.dev/lambda/python/latest/utilities/idempotency/) cho thấy bên gọi cũng phải giữ bản ghi chống ghi trùng, nhưng bản ghi đó không thay được lời khai của đích.
-[Amazon Builders' Library](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/) đòi mã và mọi thao tác ghi nằm trong cùng một giao dịch ("the idempotent token and all mutating operations related to servicing the request must meet the properties for an atomic, consistent, isolated, and durable (ACID) operation."), một dòng bảng hiện chưa có, nên A chưa mô tả được đích ghi lệch (P32, đích ghi mã và hiệu ứng lệch nhau).
-[Google AIP-155](https://google.aip.dev/155) cho đích tự chọn hạn nhớ mã ("APIs may choose any reasonable timeframe for honoring request IDs."), nên C không dò được hạn này.
+**Nguồn ngoài:** [IETF, bản nháp 09](https://www.ietf.org/archive/id/draft-ietf-httpapi-idempotency-key-header-09.txt) khuyến nghị đích công bố hạn nhớ mã ("The resource SHOULD define such expiration policy and publish it in the documentation.").
+Vì vậy A đúng hướng.
+B vẫn làm được nhưng không có một chỗ khai để lõi đọc.
+[AWS Lambda Powertools](https://docs.powertools.aws.dev/lambda/python/latest/utilities/idempotency/) cho thấy bên gọi cũng phải giữ bản ghi chống ghi trùng.
+Bản ghi đó không thay được lời khai của đích.
+[Amazon Builders' Library](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/) đòi mã và mọi thao tác ghi nằm trong cùng một giao dịch ("the idempotent token and all mutating operations related to servicing the request must meet the properties for an atomic, consistent, isolated, and durable (ACID) operation.").
+Một dòng bảng hiện chưa có, nên A chưa mô tả được đích ghi lệch (P32, đích ghi mã và hiệu ứng lệch nhau).
+[Google AIP-155](https://google.aip.dev/155) cho đích tự chọn hạn nhớ mã ("APIs may choose any reasonable timeframe for honoring request IDs.").
+Vì vậy C không dò được hạn này.
 
 **Kết luận:** đây là quyết định nền; mọi mục sau đọc bản khai, nên mục này chốt trước.
-Nguồn ngoài giữ A, và thêm một dòng bắt buộc: đích phải khai mã và hiệu ứng có cùng một giao dịch hay không (P32, đích ghi mã và hiệu ứng lệch nhau).
+Nguồn ngoài giữ A.
+Bảng phải thêm một dòng bắt buộc.
+Đích phải khai mã và hiệu ứng có cùng một giao dịch hay không (P32, đích ghi mã và hiệu ứng lệch nhau).
 
 ## 3. Không rõ lệnh đã chạy chưa thì làm gì
 
@@ -160,21 +172,32 @@ Quá 5 phút mà vẫn chưa rõ, cổng không gửi lại mù nữa, vì tạo
 Nó chờ qua thời gian xử lý tối đa và độ trễ đọc, rồi tìm task mang dấu là mã lệnh của mình: thấy thì xong, chắc chắn không có thì tạo lại.
 Lark Task chưa được kiểm có chỗ giữ dấu hay không; nếu không, lệnh chuyển sang "cần người xem".
 
-**Nguồn ngoài:** C đúng hướng, nhưng các nguồn chỉ ra ba chỗ phải thêm: hạn tổng cho chuỗi gửi lại, bản ghi "đang chạy" có hạn riêng, và không coi 2xx là bằng chứng lệnh của mình đã ghi.
+**Nguồn ngoài:** C đúng hướng.
+Các nguồn chỉ ra ba chỗ phải thêm.
+Một là hạn tổng cho chuỗi gửi lại; hai là bản ghi "đang chạy" có hạn riêng.
+Ba là không coi 2xx là bằng chứng lệnh của mình đã ghi.
+
 - [IETF, bản nháp 09](https://www.ietf.org/archive/id/draft-ietf-httpapi-idempotency-key-header-09.txt): "the resource SHOULD reply with an HTTP 409 status code", và "the resource SHOULD reply with an HTTP 422 status code".
-  Chuẩn tách 409 (lệnh cùng mã đang chạy) khỏi 422 (khoá dùng lại với nội dung khác), nên C đọc đúng hai mã này; A gửi lại mù sẽ gặp cả hai mà không biết nghĩa.
+  Chuẩn tách 409 (lệnh cùng mã đang chạy) khỏi 422 (khoá dùng lại với nội dung khác).
+  C đọc đúng hai mã này; A gửi lại mù sẽ gặp cả hai mà không biết nghĩa.
 - [AWS Lambda Powertools](https://docs.powertools.aws.dev/lambda/python/latest/utilities/idempotency/): "By default, we expire idempotency records after an hour", và "If saving the response fails after it was serialized, we keep the record, as the write could have landed.".
-  Bên gọi giữ bản ghi có trạng thái và hạn riêng, để lần gửi bị treo không chặn lần sau; C thiếu hạn này.
+  Bên gọi giữ bản ghi có trạng thái và hạn riêng.
+  Nhờ vậy lần gửi bị treo không chặn lần sau; C thiếu hạn này.
 - [Azure, transactional outbox](https://learn.microsoft.com/en-us/azure/architecture/databases/guide/transactional-out-box-cosmos): "When you save the business object and its events within the same database transaction, the system guarantees no data loss.", và "The transaction either commits everything or rolls back everything if an error occurs.".
-  Hàng đợi của cổng là một outbox, tức hộp thư đi lưu trong cùng cơ sở dữ liệu với nghiệp vụ; lưu lệnh và trạng thái gửi trong cùng một giao dịch thì không mất lệnh khi sập.
+  Hàng đợi của cổng là một outbox, tức hộp thư đi lưu trong cùng cơ sở dữ liệu với nghiệp vụ.
+  Lưu lệnh và trạng thái gửi trong cùng một giao dịch thì không mất lệnh khi sập.
 - [Amazon Builders' Library](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/): "it is safest to assume that the customer intended a different outcome" khi cùng mã mà khác tham số.
-  Vì vậy C phải lưu nguyên nội dung lần gửi đầu và gửi lại đúng nội dung đó; tính lại nội dung có thể biến lệnh lặp thành 422.
-- [Temporal, retry policies](https://docs.temporal.io/encyclopedia/retry-policies): "Temporal provides guidance around idempotence of Activity code with the expectation that Activities will need to re-execute upon failure".
-  Hệ thống bền vững đặt hạn tổng cho chuỗi lần thử; C hiện gửi lại không giới hạn trong hạn nhớ mã, nên thiếu hạn tổng.
-- [Stripe, bài về idempotency](https://stripe.com/blog/idempotency): "state is recovered and the call is continued.".
-  Đích phải biết nó đã hoàn tất hay đã huỷ lệnh trước đó; C dựa vào đúng lời khai đó.
+  Vì vậy C phải lưu nguyên nội dung lần gửi đầu và gửi lại đúng nội dung đó.
+  Tính lại nội dung có thể biến lệnh lặp thành 422.
+- [Temporal, retry policies](https://docs.temporal.io/encyclopedia/retry-policies): "we recommend using the Workflow Execution Timeout for Workflows or the Schedule-To-Close Timeout for Activities to limit the total duration of retries".
+  Hệ thống bền vững đặt hạn tổng cho chuỗi lần thử.
+  C hiện gửi lại không giới hạn trong hạn nhớ mã, nên thiếu hạn tổng.
+- [Stripe, bài về idempotency](https://stripe.com/blog/idempotency): "The server receives the ID and correlates it with the state of the request on its end.".
+  Đích dùng mã để tra trạng thái lệnh trước khi quyết định chạy tiếp hay chạy lại.
+  C dựa vào đúng lời khai đó.
 - [Google AIP-155](https://google.aip.dev/155): "it is permissible to substitute the historical success response with a similar response that reflects more current data.".
-  Một lần gửi lại có thể nhận trạng thái hiện tại, không phải kết quả gốc; cổng phải đọc lại và ghi vết trước khi ghi công.
+  Một lần gửi lại có thể nhận trạng thái hiện tại, không phải kết quả gốc.
+  Cổng phải đọc lại và ghi vết trước khi ghi công.
 
 **Chưa biết:**
 
@@ -192,7 +215,9 @@ D tính được từ dữ liệu của cánh A mà không cần chạy thêm, n
 E chỉ khác C trên đích còn nhớ mã; nó được đo như một biến thể của C nếu phép đo cho thấy C gửi lại sai trong thời hạn nhớ mã.
 
 **Kết luận:** C là phương án duy nhất có thể đúng trên cả Lark Task lẫn hệ thống giả, nhưng nó đặt cược vào bản khai đúng; phép đo phải cho thấy cái giá của nó thấp hơn D.
-Nguồn ngoài giữ C và thêm ba điều kiện: hạn tổng cho chuỗi gửi lại, bản ghi "đang chạy" có hạn riêng, và không coi 2xx là bằng chứng lệnh của mình đã ghi.
+Nguồn ngoài giữ C.
+C cần thêm hạn tổng cho chuỗi gửi lại và hạn riêng cho bản ghi "đang chạy".
+Cũng không được coi 2xx là bằng chứng lệnh của mình đã ghi.
 
 ## 4. "Đã nhận" khác "đã xong": trạng thái và đối soát
 
@@ -204,7 +229,8 @@ Nguồn ngoài giữ C và thêm ba điều kiện: hạn tổng cho chuỗi g�
 | B. Thêm trạng thái "đã được nhận", đích báo ngược qua webhook | Biết ngay; không tốn lượt gọi | Cổng phải mở cửa nhận từ ngoài; tin báo cũng có thể mất hay trùng |
 | C. Không theo dõi; chỉ báo "đích đã nhận" và để người dùng tự kiểm | Đơn giản | Không ai biết khi việc hỏng sau đó |
 
-**Đang nghiêng về A**, giữ sau khi đọc nguồn ngoài: HTTP không có kênh báo lại kết quả bất đồng bộ, nên cổng phải có chỗ tra trạng thái.
+**Đang nghiêng về A**, giữ sau khi đọc nguồn ngoài.
+HTTP không có kênh báo lại kết quả bất đồng bộ, nên cổng phải có chỗ tra trạng thái.
 
 Lệnh ghi có thêm hai trạng thái:
 
@@ -240,22 +266,27 @@ Với đề xuất nhiều mục, các mục độc lập nhau ([ADR-0007, mục
 **Ví dụ ở AppotaPay (giả định):** lệnh hoàn tiền nằm ở "đã được nhận" tới khi ngân hàng xác nhận.
 Trong lúc đó, trợ lý trả lời nhân viên chăm sóc khách hàng "ngân hàng đã nhận lệnh, kết quả dự kiến vào ngày làm việc tiếp theo", không nói "đã hoàn tiền".
 
-**Nguồn ngoài:** A đúng là cách HTTP đã định, B không cần cho phạm vi này.
+**Nguồn ngoài:** A đúng là cách HTTP đã định; B cần một cửa nhận gọi từ ngoài.
+
 - [RFC 9110, mục 15.3.3](https://www.rfc-editor.org/rfc/rfc9110.html): "The 202 (Accepted) status code indicates that the request has been accepted for processing, but the processing has not been completed.", và "There is no facility in HTTP for re-sending a status code from an asynchronous operation.".
-  Chuẩn nói thẳng 202 không hứa việc sẽ xong và không có kênh báo lại; vì vậy A phải kèm một chỗ tra trạng thái, đúng như trang tiến độ.
-- [Temporal, Activity Execution](https://docs.temporal.io/activity-execution): "When an external system has the final result of a computation that is started by an Activity", hệ thống đó hoàn tất activity sau.
-  Đây là cách đích báo kết quả cuối mà không cần webhook, nhưng vẫn cần một mã tương quan; cổng chưa có mã này.
+  Chuẩn nói thẳng 202 không hứa việc sẽ xong và không có kênh báo lại.
+  Vì vậy A phải kèm một chỗ tra trạng thái, đúng như trang tiến độ.
+- [Temporal, Activity Execution](https://docs.temporal.io/activity-execution): "When an external system has the final result of a computation that is started by an Activity", hệ thống đó gọi lại để hoàn tất activity.
+  Đây là kiểu báo ngược như B, chỉ khác là có sẵn mã tương quan (task token).
+  Muốn dùng thì cổng phải mở cửa nhận gọi từ ngoài.
 
 **Chưa biết:**
 
-- Chu kỳ hỏi lại tốn bao nhiêu lượt gọi so với giới hạn tốc độ của đích; Lark Task có sự kiện thay đổi task để dùng phương án B không.
+- Chu kỳ hỏi lại tốn bao nhiêu lượt gọi so với giới hạn tốc độ của đích.
+- Lark Task có sự kiện thay đổi task để dùng phương án B không.
 - Thời gian chờ kết quả cuối nên khác nhau theo hành động; 202 không cho biết bao lâu.
-- Có nên thêm mã tương quan để đích tự hoàn tất, thay vì cổng hỏi lại.
+- Có nên thêm mã tương quan và cửa nhận để đích tự hoàn tất, thay vì cổng hỏi lại.
 
 **Cách quyết định:** đo số lượt gọi của đối soát trên hồ sơ `late-result` và `rate-limited`; nếu đối soát chiếm quá một phần mười hạn mức của đích, xem lại B.
 
 **Kết luận:** thêm trạng thái là việc chắc phải làm; chỉ cách biết kết quả cuối còn phải chọn.
-Nguồn ngoài giữ A, vì 202 là chuẩn của HTTP và không có kênh báo lại; B chỉ cần khi đích chỉ báo bằng webhook.
+Nguồn ngoài giữ A, vì 202 là chuẩn của HTTP và cổng chưa mở cửa nhận gọi từ ngoài.
+B chỉ dùng được khi có mã tương quan và cửa nhận.
 
 ## 5. Ai đóng lệnh mà cổng không tự kết luận được
 
@@ -267,7 +298,8 @@ Nguồn ngoài giữ A, vì 202 là chuẩn của HTTP và không có kênh báo
 | B. Trả về người yêu cầu tự kiểm và đóng | Không cần thêm người | Người yêu cầu thường không có quyền xem hệ thống đích; tự đóng lệnh của mình |
 | C. Người duyệt đóng | Đã quen việc | Người duyệt không phải người hiểu hệ thống đích |
 
-**Đang nghiêng về A**, giữ sau khi đọc nguồn ngoài: hệ thống lớn cũng tách việc tự thử lại khỏi việc đưa cho người.
+**Đang nghiêng về A**, giữ sau khi đọc nguồn ngoài.
+Hệ thống lớn cũng tách việc tự thử lại khỏi việc đưa cho người.
 
 - Người vận hành không được là người yêu cầu hay người duyệt của chính đề xuất đó.
 - Trang điều khiển hiện mỗi lệnh "cần người xem" kèm từng lần gửi, câu trả lời của đích, kết quả các lần tra, và lý do cổng dừng.
@@ -278,6 +310,7 @@ Nguồn ngoài giữ A, vì 202 là chuẩn của HTTP và không có kênh báo
 - Người vận hành không tự sửa bản ghi trên đích thay cho lệnh, vì khi đó vết của cổng và vết của đích lệch nhau.
 
 **Nguồn ngoài:** A đúng hướng, vì hệ thống lớn tách "thử lại tự động" khỏi "đưa cho người".
+
 - [Temporal, retry policies](https://docs.temporal.io/encyclopedia/retry-policies): "it is better to surface them than to retry them.".
   Lỗi vĩnh viễn không tự khỏi; hệ thống dừng thử lại và báo ra ngoài.
 - [Temporal, Activity Execution](https://docs.temporal.io/activity-execution): "consider an external process that is waiting for a human to review something and respond".
@@ -290,7 +323,9 @@ Nguồn ngoài giữ A, vì 202 là chuẩn của HTTP và không có kênh báo
 **Cách quyết định:** số "cần người xem" của phép đo Q3, tính trên 1.000 lệnh ghi; Lab chưa có số lệnh ghi mỗi ngày của người dùng thật để đổi ra số việc của một người.
 
 **Kết luận:** chọn A nếu số lệnh cần xem đủ thấp để một người xử lý trong ngày; nếu không, phải giảm số đó ở mục 3 trước.
-Nguồn ngoài giữ A; hệ thống lớn cũng dừng thử lại và có bước chờ người, nhưng họ có hàng đợi và sổ tay xử lý, Lab chưa có.
+Nguồn ngoài giữ A.
+Hệ thống lớn cũng dừng thử lại và có bước chờ người.
+Họ có hàng đợi và sổ tay xử lý, Lab chưa có.
 
 ## 6. Chống ghi đè khi đích không có số phiên bản
 
@@ -303,7 +338,8 @@ Nguồn ngoài giữ A; hệ thống lớn cũng dừng thử lại và có bư�
 | C. Ghi rồi đọc lại để phát hiện ghi đè, báo người | Thấy được mọi ghi đè đã xảy ra | Phát hiện sau khi đã hỏng |
 | D. Chấp nhận ghi đè, chỉ ghi vết | Đơn giản | Xoá quyết định của người khác mà không ai biết |
 
-**Đang nghiêng về A, cộng B khi bản khai cho thấy đích hỗ trợ ghi có điều kiện**, giữ sau khi đọc nguồn ngoài; B chỉ đóng được khe khi đích so sánh bằng ETag mạnh.
+**Đang nghiêng về A, cộng B khi bản khai cho thấy đích hỗ trợ ghi có điều kiện**, giữ sau khi đọc nguồn ngoài.
+B chỉ đóng được khe khi đích so sánh bằng ETag mạnh.
 
 - Ngay trước mỗi lần gửi một lệnh sửa, cổng đọc lại bản ghi và so các trường liên quan với giá trị lúc soạn.
 - Khác thì lệnh thất bại `TARGET_CHANGED`, như hôm nay.
@@ -312,23 +348,28 @@ Nguồn ngoài giữ A; hệ thống lớn cũng dừng thử lại và có bư�
 - Trên đích đọc trễ, lần đọc lại không thấy thay đổi mới hơn độ trễ đã khai, nên khe rộng thêm đúng bằng độ trễ đó.
 
 **Nguồn ngoài:** B là chuẩn khi đích có ETag mạnh, nhưng A vẫn là nền.
+
 - [RFC 9110, mục 13.1.1](https://www.rfc-editor.org/rfc/rfc9110.html): "to prevent accidental overwrites when multiple user agents might be acting in parallel on the same resource", và "An origin server that evaluates an If-Match condition MUST NOT perform the requested method if the condition evaluates to false.".
   Đây là cơ sở của B: ghi có điều kiện đóng đúng khe giữa đọc và ghi, nếu đích so sánh bằng ETag mạnh.
 - [RFC 9110, mục 13.1.1](https://www.rfc-editor.org/rfc/rfc9110.html): "An origin server MUST use the strong comparison function when comparing entity tags for If-Match".
-  ETag yếu không đóng được khe, nên bản khai phải nói rõ loại; bảng hiện chỉ có "có hay không có số phiên bản".
+  ETag yếu không đóng được khe, nên bản khai phải nói rõ loại.
+  Bảng hiện chỉ có "có hay không có số phiên bản".
 - [RFC 9110, mục 13.1.1](https://www.rfc-editor.org/rfc/rfc9110.html): "the origin server MAY respond with a 2xx (Successful) status code" khi lệnh có vẻ đã được áp dụng.
-  Vì vậy 2xx trên lệnh có điều kiện có thể nghĩa là "người khác đã làm"; cổng phải đọc lại và ghi vết trước khi ghi công.
+  Vì vậy 2xx trên lệnh có điều kiện có thể nghĩa là "người khác đã làm".
+  Cổng phải đọc lại và ghi vết trước khi ghi công.
 
 **Chưa biết:**
 
-- Khe còn lại lớn tới đâu trong thực tế; Lark Task có trường thời gian sửa cuối để so thay vì so từng trường không.
+- Khe còn lại lớn tới đâu trong thực tế.
+- Lark Task có trường thời gian sửa cuối để so thay vì so từng trường không.
 - ETag của đích là mạnh hay yếu; ETag yếu không đóng được khe.
 - Đích trả 2xx cho lệnh đã áp dụng thì cổng coi là xong hay phải đọc lại để ghi công.
 
 **Cách quyết định:** giả thuyết 4 của phép đo Q3 đo khe này ([kế hoạch đo, mục 2](q3-measurement-plan.md#2-câu-hỏi-nghiên-cứu-q3)); C có thể thêm sau A như một lớp phát hiện nếu khe không đủ nhỏ.
 
 **Kết luận:** A là cách duy nhất dùng được với Lark Task hôm nay; phép đo cho biết nó đủ chưa.
-Nguồn ngoài giữ A cộng B, nhưng B chỉ đúng khi đích có ETag mạnh; 2xx trên lệnh có điều kiện phải đọc lại trước khi ghi công.
+Nguồn ngoài giữ A cộng B, nhưng B chỉ đúng khi đích có ETag mạnh.
+2xx trên lệnh có điều kiện phải đọc lại trước khi ghi công.
 
 ## 7. Kiểm lại quyền trước khi gửi
 
@@ -343,7 +384,8 @@ Hàng đợi không kiểm lại trước từng mục, đúng như [ADR-0007, m
 | C. Khi danh bạ hay luật đổi, cổng quét và dừng mọi lệnh chưa gửi bị ảnh hưởng | Chặn ngay khi đổi, không chờ tới lúc gửi | Cần nguồn sự kiện từ danh bạ; phức tạp hơn |
 | D. Giữ như ADR-0007, dựa vào hạn thực thi ngắn | Không thêm gì | Lệnh vẫn chạy bằng quyền đã mất trong suốt hạn |
 
-**Đang nghiêng về A**, giữ sau khi đọc nguồn ngoài: kiểm lại ngay trước khi gửi là cách duy nhất dùng được khi danh bạ không có sự kiện.
+**Đang nghiêng về A**, giữ sau khi đọc nguồn ngoài.
+Kiểm lại ngay trước khi gửi là cách duy nhất dùng được khi danh bạ không có sự kiện.
 
 - Người yêu cầu còn trong danh bạ, và luật hiện hành còn cho phép thay đổi đó.
 - Người duyệt, nếu có, còn trong danh bạ và còn được duyệt theo luật hiện hành.
@@ -355,21 +397,26 @@ Nếu quyền đã mất, lệnh đó chỉ được tra kết quả, hoặc chu
 Điều này khôi phục [ADR-0002, điểm 4](../../docs/adr/adr-0002-safe-read-and-write.md#3-quyết-định-về-ghi) ("kiểm luật hai lần, lúc soạn và lúc ghi"), mà ADR-0007 mục 3.5 đã thu hẹp.
 
 **Nguồn ngoài:** A đúng, nhưng chỉ khi lần đọc danh bạ không cũ hơn lần duyệt.
+
 Nhất quán nhân quả (causal consistency) nghĩa là thứ tự các thay đổi được giữ đúng khi đọc.
+
 - [Zanzibar, bài ATC 2019](https://www.usenix.org/system/files/atc19-pang.pdf): "ACL checks must respect the order in which users modify ACLs and object contents".
   Kiểm quyền trên bản sao cũ có thể cho người đã bị xoá thấy nội dung mới; bài gọi đây là "new enemy problem".
 - [Zanzibar](https://www.usenix.org/system/files/atc19-pang.pdf): "Zanzibar must provide two key consistency properties: external consistency".
-  Cách giải là một mốc đọc nhất quán (zookie) đi kèm lần đọc, để lần kiểm sau không cũ hơn lần sửa trước; bảng năng lực chưa có dòng này.
+  Cách giải là một mốc đọc nhất quán (zookie) đi kèm lần đọc.
+  Lần kiểm sau không cũ hơn lần sửa trước; bảng năng lực chưa có dòng này.
 
 **Chưa biết:**
 
-- Danh bạ thật cập nhật trễ bao lâu sau khi một người nghỉ hay chuyển phòng; nếu trễ hơn hạn thực thi, A không chặn được gì mà D chưa chặn.
+- Danh bạ thật cập nhật trễ bao lâu sau khi một người nghỉ hay chuyển phòng.
+- Nếu trễ hơn hạn thực thi, A không chặn được gì mà D chưa chặn.
 - Danh bạ có trả được mốc đọc nhất quán không; nếu không, A chỉ là ước lượng.
 
 **Cách quyết định:** phép thử ở [kế hoạch đo, mục 4.4](q3-measurement-plan.md#44-phép-thử-cho-kiểm-lại-quyền-và-hạn-thực-thi) kiểm A đúng; độ trễ của danh bạ thật cần hỏi chủ dữ liệu.
 
 **Kết luận:** A rẻ và đúng hướng, nhưng giá trị của nó tuỳ độ trễ của danh bạ, điều Lab chưa biết.
-Zanzibar cho thấy A chỉ đủ khi lần đọc danh bạ không cũ hơn lần duyệt; nếu danh bạ không trả mốc đọc, phải dùng C.
+Zanzibar cho thấy A chỉ đủ khi lần đọc danh bạ không cũ hơn lần duyệt.
+Nếu danh bạ không trả mốc đọc, phải dùng C.
 
 ## 8. Hạn thực thi và huỷ lệnh chưa gửi
 
@@ -383,7 +430,8 @@ Hạn thực thi là thời gian tối đa từ lúc duyệt tới lúc gửi l�
 | C. Quá hạn thì hỏi lại người yêu cầu xác nhận, thay vì thất bại | Không mất việc vẫn còn cần | Thêm một bước người; xác nhận lại nhưng không đọc lại dữ liệu |
 | D. Không hạn, chỉ cho huỷ tay | Không chặn nhầm | Lệnh lỗi thời vẫn chạy nếu không ai nhớ huỷ |
 
-**Đang nghiêng về A, cộng nút huỷ, cộng C khi quyền ở đích đã hết hạn**, sau khi đọc nguồn ngoài: hạn phải là mốc nhỏ hơn giữa luật của Lab và hạn của quyền ở đích.
+**Đang nghiêng về A, cộng nút huỷ, cộng C khi quyền ở đích đã hết hạn**, sau khi đọc nguồn ngoài.
+Hạn phải là mốc nhỏ hơn giữa luật của Lab và hạn của quyền ở đích.
 
 - File luật khai hạn thực thi cho từng hành động.
   Con số đầu tiên là giả định để đo, ví dụ 24 giờ cho đổi người phụ trách, và chỉnh khi có số liệu dùng thật.
@@ -396,6 +444,7 @@ Hạn thực thi chỉ áp cho lần gửi đầu.
 Lệnh đã gửi mà chưa rõ kết quả không bao giờ bị huỷ vì hết hạn, cùng lý do như ở mục 7.
 
 **Nguồn ngoài:** A đúng, nhưng hạn phải lấy từ đích, không chỉ từ file luật; C có chỗ dùng.
+
 - [Stripe, giữ tiền rồi thu sau](https://docs.stripe.com/payments/place-a-hold-on-a-payment-method): "You need to capture the funds before the authorization expires.", và "If the authorization expires before you capture the funds, the funds are released and the payment status changes to canceled.".
   Quyền ở đích có hạn riêng; hết hạn thì việc không còn làm được, dù đề xuất vẫn còn hạn.
 - [Stripe](https://docs.stripe.com/payments/place-a-hold-on-a-payment-method): "The exact authorization window is 4 days and 18 hours", và "Only some payment methods support separate authorization and capture.".
@@ -410,7 +459,8 @@ Lệnh đã gửi mà chưa rõ kết quả không bao giờ bị huỷ vì hế
 **Cách quyết định:** thời gian từ duyệt tới gửi đo được trên hồ sơ `rate-limited`; con số đầu chỉ cần đủ dài để không chặn nhầm trong phép đo.
 
 **Kết luận:** A cộng nút huỷ là mức tối thiểu; con số cụ thể đến từ số đo, không từ tài liệu này.
-Nguồn ngoài sửa một điểm: hạn thực thi là mốc nhỏ hơn giữa hạn trong luật và hạn của quyền ở đích, và hết hạn quyền thì đi nhánh C.
+Nguồn ngoài sửa một điểm: hạn thực thi là mốc nhỏ hơn giữa hạn trong luật và hạn của quyền ở đích.
+Hết hạn quyền thì đi nhánh C.
 
 ## 9. Đề xuất thành công một nửa
 
@@ -424,10 +474,12 @@ Vì vậy "một nửa" trong Lab là 20 task đã chuyển và 10 task bị t�
 | B. Tất cả hoặc không: mục hỏng thì hoàn tác mục đã xong | Không có trạng thái nửa vời | Cần thao tác bù trừ cho từng hành động; có việc không hoàn tác được |
 | C. Tự gửi lại mục bị từ chối | Không cần người | Mục bị từ chối thường bị từ chối vì lý do đúng |
 
-**Đang nghiêng về A**, giữ sau khi đọc nguồn ngoài: các mục của đề xuất độc lập nên không cần bù trừ.
+**Đang nghiêng về A**, giữ sau khi đọc nguồn ngoài.
+Các mục của đề xuất độc lập nên không cần bù trừ.
 Trang tiến độ và câu trả lời của trợ lý tách rõ mục xong, mục bị từ chối kèm lý do, mục chờ kết quả cuối và mục cần người xem.
 
 **Nguồn ngoài:** A đủ cho phạm vi hiện tại; B chỉ đúng khi các bước nằm ở nhiều hệ thống.
+
 - [Azure, Saga](https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/saga/saga): "The system must handle transient failures effectively and ensure idempotence".
   B cần thao tác bù trừ và chống ghi trùng cho từng bước; Lab chưa có bước nào như vậy.
 - [Azure, Saga](https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/saga/saga): "Compensating transactions might not always succeed, which can leave the system in an inconsistent state.".
@@ -438,7 +490,8 @@ Trang tiến độ và câu trả lời của trợ lý tách rõ mục xong, m�
 **Cách quyết định:** B chỉ được xem lại khi có đề xuất cần đổi hai hệ thống cùng lúc (mục 12).
 
 **Kết luận:** với các mục độc lập, A đủ.
-Nguồn ngoài giữ A, và thêm một nhãn: khi mở phạm vi nhiều hệ thống, mục không hoàn tác được phải xếp cuối.
+Nguồn ngoài giữ A.
+Khi mở phạm vi nhiều hệ thống, mục không hoàn tác được phải xếp cuối.
 
 ## 10. Chặn hai đề xuất cho cùng một việc
 
@@ -452,7 +505,8 @@ Nguồn ngoài giữ A, và thêm một nhãn: khi mở phạm vi nhiều hệ t
 | C. Trợ lý tự tra đề xuất đang mở trước khi soạn | Không cần khai khoá | Dựa vào mô hình; mô hình yếu bỏ qua bước tra |
 | D. Không chặn, dựa vào người duyệt | Không thêm gì | Hai người duyệt khác nhau không thấy nhau |
 
-**Đang nghiêng về A**, giữ sau khi đọc nguồn ngoài, với khả năng hạ xuống B nếu tỉ lệ chặn nhầm cao; không chuẩn nào chống trùng hai lần gửi khác mã.
+**Đang nghiêng về A**, giữ sau khi đọc nguồn ngoài, với khả năng hạ xuống B nếu tỉ lệ chặn nhầm cao.
+Không chuẩn nào chống trùng hai lần gửi khác mã.
 
 - Mỗi hành động trong bộ tiếp hợp khai các trường tạo nên khoá ý định, ví dụ "đổi người phụ trách + mã task", hay "tạo task + tiêu đề đã chuẩn hoá + người nhận + hạn".
   Ở Gamota (giả định), khoá cho hoàn tiền sẽ là "hoàn tiền + mã giao dịch nạp gốc".
@@ -466,6 +520,7 @@ Lệnh tạo task ghi mã lệnh của cổng vào một trường của task m�
 Thao tác này đổi hợp đồng ghi của bộ tiếp hợp, vốn luôn có mã bản ghi và số phiên bản, nên phải ghi trong ADR-0009.
 
 **Nguồn ngoài:** A đúng, vì khoá chống ghi trùng của đích không làm được việc này.
+
 - [IETF, bản nháp 09](https://www.ietf.org/archive/id/draft-ietf-httpapi-idempotency-key-header-09.txt): "An idempotency key is a unique value generated by the client which the resource uses to recognize subsequent retries of the same request.".
   Khoá này gắn với một lần gửi, không gắn với ý định; hai đề xuất trùng có hai khoá khác nhau nên đích không thấy.
 - [Google AIP-155](https://google.aip.dev/155): "Providing a request ID must guarantee idempotency.".

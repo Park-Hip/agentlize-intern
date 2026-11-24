@@ -1,11 +1,11 @@
 # Những vấn đề cổng kiểm soát còn phải giải
 
-Ngày: 2026-11-24. Trạng thái: danh mục gom từ hai đợt nghiên cứu tuần 3, một lần rà spec ghi an toàn và các nguồn công khai cho spec ghi an toàn, đã đối chiếu với mã Lab; đã chọn hướng 1 làm trọng tâm của spec ghi an toàn; cách giải còn là đề xuất.
+Ngày: 2026-11-24. Trạng thái: danh mục đã đối chiếu với mã Lab, gom từ hai đợt nghiên cứu; cách giải còn là đề xuất.
 
 ## Đọc nhanh
 
 - Cổng kiểm soát của Lab chạy đúng trên hai hệ thống giả, nơi lệnh ghi nào cũng được trả lời ngay và rõ ràng.
-- Khi nối vào hệ thống thật và đưa cho nhân viên dùng, có 33 chỗ có thể hỏng; tài liệu này gom chúng thành năm nhóm.
+- Khi nối vào hệ thống thật, có 33 chỗ có thể hỏng; tài liệu gom chúng thành năm nhóm.
 - Bốn nhóm cần nghiên cứu: ghi vào hệ thống không chắc chắn, người duyệt và thẩm quyền, trợ lý AI không đáng tin, dữ liệu tiếng Việt và dữ liệu cá nhân.
 - Nhóm thứ năm là việc vận hành để nhân viên dùng được, như đăng nhập, nơi chạy, thông báo; nhóm này ngoài phạm vi hiện tại.
 - Bước tiếp theo là chọn hai hoặc ba hướng ở mục 7, rồi viết lại spec ghi an toàn theo hướng đã chọn.
@@ -175,15 +175,19 @@ Hai ca dưới đây lộ ra khi đọc nguồn cho [các phương án thiết k
 
 #### 2.10.1. P32. Đích ghi mã chống ghi trùng và ghi hiệu ứng không cùng một giao dịch
 
-**Chuyện gì xảy ra:** hệ thống đích nhận mã chống ghi trùng, rồi sập trước khi ghi task; hoặc ghi task xong rồi sập trước khi lưu mã.
+**Chuyện gì xảy ra:** hệ thống đích nhận mã chống ghi trùng, rồi sập trước khi ghi task.
+Hoặc ghi task xong rồi sập trước khi lưu mã.
 Lần gửi lại gặp mã đã lưu nhưng không có task, hoặc gặp task mà không có mã.
-Cổng tin câu trả lời "đã có mã" và báo xong, trong khi việc chưa xảy ra; hoặc gửi lại và tạo task thứ hai.
+Cổng tin câu trả lời "đã có mã" và báo xong, trong khi việc chưa xảy ra.
+Hoặc gửi lại và tạo task thứ hai.
 
 **Lab đã có:** hệ thống giả ghi mã và ghi bản ghi trong cùng một tiến trình, nên không có khe giữa hai việc.
 
-**Còn trống:** bảng năng lực chưa có dòng "mã và hiệu ứng có cùng một giao dịch không"; phép đo chưa có chế độ sập giữa hai bước.
+**Còn trống:** bảng năng lực chưa có dòng "mã và hiệu ứng có cùng một giao dịch không".
+Phép đo chưa có chế độ sập giữa hai bước.
 
-**Tái hiện:** thêm vào hệ thống giả hai chế độ sập: sau khi lưu mã, trước khi ghi bản ghi; và sau khi ghi bản ghi, trước khi lưu mã.
+**Tái hiện:** thêm vào hệ thống giả hai chế độ sập.
+Một là sau khi lưu mã, trước khi ghi bản ghi; hai là sau khi ghi bản ghi, trước khi lưu mã.
 Đếm số lần cổng báo xong mà đích không có thay đổi, và số bản ghi bị tạo hai lần.
 
 **Đe doạ:** SR6 (không ghi trùng), SR7 (vết xuyên suốt).
@@ -193,23 +197,28 @@ Nguồn: Amazon Builders' Library yêu cầu mã và mọi thao tác ghi phải 
 #### 2.10.2. P33. Quyền ở đích hết hạn trước hạn thực thi của đề xuất
 
 **Chuyện gì xảy ra:** ví dụ này dùng thanh toán, vì danh bạ và task không có quyền có hạn.
-Đề xuất hoàn tiền được duyệt lúc 9 giờ, hạn thực thi 24 giờ; quyền giữ tiền ở đích chỉ sống tới 15 giờ cùng ngày.
+Đề xuất hoàn tiền được duyệt lúc 9 giờ, hạn thực thi 24 giờ.
+Quyền giữ tiền ở đích chỉ sống tới 15 giờ cùng ngày.
 Đến 16 giờ cổng gửi lệnh, đích từ chối vì quyền đã hết hạn, dù đề xuất vẫn còn hạn.
 
 **Lab đã có:** không áp dụng; quyền của nhân viên trong danh bạ không có hạn.
 
 **Còn trống:** bảng năng lực chưa có dòng "hạn của quyền ở đích"; mục 8 mới lấy hạn từ file luật.
 
-**Tái hiện:** cho hệ thống thanh toán giả một quyền giữ tiền sống 60 giây; duyệt đề xuất, chờ quá 60 giây rồi gửi; đo số lệnh bị từ chối và số lần phải xin quyền mới.
+**Tái hiện:** cho hệ thống thanh toán giả một quyền giữ tiền sống 60 giây.
+Duyệt đề xuất, chờ quá 60 giây rồi gửi; đo số lệnh bị từ chối và số lần phải xin quyền mới.
 
-**Đe doạ:** SR4 (điểm dừng rủi ro), SR6 (không ghi trùng).
+**Đe doạ:** SR4 (điểm dừng rủi ro), SR5 (không chắc thì chặn).
 Bàn ở [Phương án 8](../design/write-safety-options.md#8-hạn-thực-thi-và-huỷ-lệnh-chưa-gửi).
-Nguồn: Stripe nói quyền giữ tiền có hạn theo loại giao dịch và loại thẻ, hết hạn thì tiền được nhả và giao dịch chuyển sang huỷ ([Stripe](https://docs.stripe.com/payments/place-a-hold-on-a-payment-method)).
+Nguồn: Stripe nói quyền giữ tiền có hạn theo loại giao dịch và loại thẻ.
+Hết hạn thì tiền được nhả và giao dịch chuyển sang huỷ ([Stripe](https://docs.stripe.com/payments/place-a-hold-on-a-payment-method)).
 
 **Kết luận nhóm A:** P1 (không biết đã chạy chưa), P2 (đích quên mã sớm) và P3 (nhận chưa phải xong) cùng một gốc.
 Cổng đang giả định mọi hệ thống đích đều tốt như hệ thống giả.
 Cách giải chung là mỗi bộ tiếp hợp khai báo năng lực của hệ thống đích, và hàng đợi chọn cách gửi lại hoặc đối soát theo năng lực đó.
-P32 (mã và hiệu ứng lệch nhau) và P33 (quyền ở đích hết hạn) cho thấy bản khai phải dài hơn: không chỉ đích nhớ mã bao lâu, mà còn ghi mã cùng hiệu ứng thế nào và quyền sống bao lâu.
+P32 (mã và hiệu ứng lệch nhau) và P33 (quyền ở đích hết hạn) cho thấy bản khai phải dài hơn.
+Bản khai không chỉ nói đích nhớ mã bao lâu.
+Nó còn phải nói ghi mã cùng hiệu ứng thế nào và quyền sống bao lâu.
 
 ## 3. Nhóm B: người duyệt và thẩm quyền
 

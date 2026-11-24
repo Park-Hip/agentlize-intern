@@ -76,8 +76,8 @@ check "$POWERTOOLS" "If saving the response fails after it was serialized, we ke
 check "$AZURE_OUTBOX" "When you save the business object and its events within the same database transaction, the system guarantees no data loss." "Mục 3, Outbox: lưu việc và sự kiện cùng giao dịch"
 check "$AZURE_OUTBOX" "The transaction either commits everything or rolls back everything if an error occurs." "Mục 3, Outbox: tất cả hoặc không"
 check "$BUILDERS" "it is safest to assume that the customer intended a different outcome" "Mục 3, Builders: cùng mã khác tham số là ý định khác"
-check "$TEMPORAL_RETRY" "Temporal provides guidance around idempotence of Activity code with the expectation that Activities will need to re-execute upon failure" "Mục 3, Temporal: activity phải chịu chạy lại"
-check "$STRIPE_BLOG" "state is recovered and the call is continued." "Mục 3, Stripe: khôi phục trạng thái rồi chạy tiếp"
+check "$TEMPORAL_RETRY" "we recommend using the Workflow Execution Timeout for Workflows or the Schedule-To-Close Timeout for Activities to limit the total duration of retries" "Mục 3, Temporal: hạn tổng cho chuỗi thử lại"
+check "$STRIPE_BLOG" "The server receives the ID and correlates it with the state of the request on its end." "Mục 3, Stripe: đối chiếu mã với trạng thái"
 check "$AIP155" "it is permissible to substitute the historical success response with a similar response that reflects more current data." "Mục 3, AIP-155: trả trạng thái hiện tại"
 
 # Mục 4: đã nhận khác đã xong
