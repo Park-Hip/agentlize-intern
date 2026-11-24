@@ -17,7 +17,7 @@ Câu hỏi: với Lark Task v2 và Lark Contacts, mỗi giao diện lập trình
 Bốn thứ cần trả lời cho từng API: có mã chống ghi trùng (idempotency key) không, có số phiên bản (version) hay ghi có điều kiện (conditional write) không, có chỗ gắn dấu và tìm theo dấu không, và giới hạn tốc độ (rate limit) báo thời gian chờ thế nào.
 Bài cũng trả lời API gọi bằng khoá ứng dụng hay khoá người dùng, cần quyền (scope) nào, mã trả về nào nghĩa là "đã làm", "chưa làm" hay "không biết", và có công ty thử (test company) không.
 
-Phần Lark Base và token người dùng đã có câu trả lời ở [#142](https://github.com/Park-Hip/agentlize-intern/issues/142), kiểm lại bằng [`rd/checks/open-problems.sh`](../checks/open-problems.sh).
+Phần Lark Base và token người dùng đã có câu trả lời ở [#142](https://github.com/Park-Hip/agentlize-intern/issues/142), nằm trong [PR #149](https://github.com/Park-Hip/agentlize-intern/pull/149), kiểm lại bằng [`rd/checks/open-problems.sh`](../checks/open-problems.sh).
 Bài này không chép lại hai phần đó, chỉ trỏ tới chúng trong bảng ở mục 2.
 Phần Lark Approval đã có trong bảng năng lực và không thuộc bài này.
 
@@ -40,8 +40,8 @@ Cột "Mức bảo đảm" nói điều cổng được phép tin, không nói c
 | `DELETE /task/v2/tasks/:task_guid` | Bù trừ khi tạo nhầm | Không có mã chống ghi trùng; xoá lặp trả 404; task đã xoá không khôi phục được | [Lark Task, xoá task](https://open.larksuite.com/document/uAjLw4CM/ukTMukTMukTM/task-v2/task/delete.md) |
 | `GET /contact/v3/users/:user_id` | Nguồn danh bạ | Chỉ đọc, không ghi; không áp dụng | [Lark Contacts, đọc người](https://open.larksuite.com/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/user/get.md) |
 | `GET /contact/v3/departments/:department_id` | Nguồn danh bạ | Chỉ đọc, không ghi; không áp dụng | [Lark Contacts, đọc phòng ban](https://open.larksuite.com/document/uAjLw4CM/ukTMukTMukTM/reference/contact-v3/department/get.md) |
-| Lark Base, tạo và sửa bản ghi | Nguồn dữ liệu khác | Đã trả lời ở #142; xem issue và script kiểm, không chép lại | [#142](https://github.com/Park-Hip/agentlize-intern/issues/142), [`rd/checks/open-problems.sh`](../checks/open-problems.sh) |
-| Token người dùng Lark | Cách gọi thay cho khoá ứng dụng | Đã trả lời ở #142; xem issue và script kiểm, không chép lại | [#142](https://github.com/Park-Hip/agentlize-intern/issues/142), [`rd/checks/open-problems.sh`](../checks/open-problems.sh) |
+| Lark Base, tạo và sửa bản ghi | Nguồn dữ liệu khác | Đã trả lời ở #142; xem issue và script kiểm, không chép lại | [#142](https://github.com/Park-Hip/agentlize-intern/issues/142), [PR #149](https://github.com/Park-Hip/agentlize-intern/pull/149), [`rd/checks/open-problems.sh`](../checks/open-problems.sh) |
+| Token người dùng Lark | Cách gọi thay cho khoá ứng dụng | Đã trả lời ở #142; xem issue và script kiểm, không chép lại | [#142](https://github.com/Park-Hip/agentlize-intern/issues/142), [PR #149](https://github.com/Park-Hip/agentlize-intern/pull/149), [`rd/checks/open-problems.sh`](../checks/open-problems.sh) |
 
 **Kết luận:** chỉ thao tác tạo task có một thời hạn chống ghi trùng dùng được; thao tác sửa không có gì để đích tự chặn ghi đè; Contacts không phải đích ghi.
 
