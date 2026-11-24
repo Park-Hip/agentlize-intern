@@ -1,18 +1,18 @@
 # Những vấn đề cổng kiểm soát còn phải giải
 
-Ngày: 2026-11-24. Trạng thái: danh mục gom từ hai đợt nghiên cứu tuần 3 và một lần rà spec ghi an toàn, đã đối chiếu với mã Lab; đã chọn hướng 1 làm trọng tâm của spec ghi an toàn; cách giải còn là đề xuất.
+Ngày: 2026-11-24. Trạng thái: danh mục đã đối chiếu với mã Lab; đã chọn hướng 1 làm trọng tâm của spec ghi an toàn; cách giải còn là đề xuất.
 
 ## Đọc nhanh
 
 - Cổng kiểm soát của Lab chạy đúng trên hai hệ thống giả, nơi lệnh ghi nào cũng được trả lời ngay và rõ ràng.
-- Khi nối vào hệ thống thật và đưa cho nhân viên dùng, có 31 chỗ có thể hỏng; tài liệu này gom chúng thành năm nhóm.
+- Khi nối vào hệ thống thật, có 33 chỗ có thể hỏng; tài liệu gom chúng thành năm nhóm.
 - Bốn nhóm cần nghiên cứu: ghi vào hệ thống không chắc chắn, người duyệt và thẩm quyền, trợ lý AI không đáng tin, dữ liệu tiếng Việt và dữ liệu cá nhân.
 - Nhóm thứ năm là việc vận hành để nhân viên dùng được, như đăng nhập, nơi chạy, thông báo; nhóm này ngoài phạm vi hiện tại.
 - Bước tiếp theo là chọn hai hoặc ba hướng ở mục 7, rồi viết lại spec ghi an toàn theo hướng đã chọn.
 
 ## 1. Cách đọc tài liệu này
 
-Mỗi vấn đề có một mã P1-P31 để tra cứu, luôn đi kèm tên.
+Mỗi vấn đề có một mã P1-P33 để tra cứu, luôn đi kèm tên.
 Mỗi vấn đề ghi bốn thứ: chuyện gì xảy ra, Lab đã có gì, còn trống gì, và cách tái hiện bằng hệ thống giả.
 Cột "Lab đã có gì" được kiểm trực tiếp trong mã ngày 2026-11-24, kèm đường dẫn tới file.
 
@@ -24,6 +24,7 @@ Nguồn gốc của danh mục:
 - Một khảo sát thị trường và tài liệu công khai năm 2025-2026 về an toàn đường ghi, bề mặt công cụ, danh tính, sản phẩm cổng MCP, bộ đo và câu lệnh cài cắm.
 - Một khảo sát độc lập, không đọc repo, về những gì có thể hỏng khi gắn cổng vào hệ thống nghiệp vụ của một tập đoàn nhiều công ty thành viên như Appota.
 - Các lỗi và câu hỏi mở đã ghi trong [spec ghi an toàn](../design/write-safety-spec.md).
+- Các nguồn công khai đọc cho [các phương án thiết kế](../design/write-safety-options.md), ghi ở mục 2.10.
 
 Bộ yêu cầu chung vẫn là SR1-SR8 trong [PRD](prd-ai-platform.md); mỗi vấn đề ghi nó đe doạ yêu cầu nào.
 
@@ -168,9 +169,56 @@ Cột "Bàn ở" dùng tên ngắn: "Khảo sát" là [khảo sát hệ thống 
 | P30 | Lệnh đã duyệt nằm chờ lâu và không còn đúng ý người yêu cầu | Lệnh đã duyệt không có hạn, không huỷ được | Khảo sát 7, Phương án 8 | SR1 (danh tính và một cửa ghi), SR4 (điểm dừng rủi ro) |
 | P31 | Một việc cần nhiều lời gọi, và lời gọi sau cần kết quả lời gọi trước | Mỗi mục là một lời gọi, các mục độc lập | Khảo sát 11, Phương án 12 | SR6 (không ghi trùng) |
 
+### 2.10. Hai ca mới từ nguồn ngoài
+
+Hai ca dưới đây lộ ra khi đọc nguồn cho [các phương án thiết kế](../design/write-safety-options.md); chúng chưa có trong P1-P31.
+
+#### 2.10.1. P32. Đích ghi mã chống ghi trùng và ghi hiệu ứng không cùng một giao dịch
+
+**Chuyện gì xảy ra:** hệ thống đích nhận mã chống ghi trùng, rồi sập trước khi ghi task.
+Hoặc ghi task xong rồi sập trước khi lưu mã.
+Lần gửi lại gặp mã đã lưu nhưng không có task, hoặc gặp task mà không có mã.
+Cổng tin câu trả lời "đã có mã" và báo xong, trong khi việc chưa xảy ra.
+Hoặc gửi lại và tạo task thứ hai.
+
+**Lab đã có:** hệ thống giả ghi mã và ghi bản ghi trong cùng một tiến trình, nên không có khe giữa hai việc.
+
+**Còn trống:** bảng năng lực chưa có dòng "mã và hiệu ứng có cùng một giao dịch không".
+Phép đo chưa có chế độ sập giữa hai bước.
+
+**Tái hiện:** thêm vào hệ thống giả hai chế độ sập.
+Một là sau khi lưu mã, trước khi ghi bản ghi; hai là sau khi ghi bản ghi, trước khi lưu mã.
+Đếm số lần cổng báo xong mà đích không có thay đổi, và số bản ghi bị tạo hai lần.
+
+**Đe doạ:** SR6 (không ghi trùng), SR7 (vết xuyên suốt).
+Bàn ở [Phương án 2](../design/write-safety-options.md#2-đích-mô-tả-năng-lực-ghi-của-nó-thế-nào) và [Phương án 3](../design/write-safety-options.md#3-không-rõ-lệnh-đã-chạy-chưa-thì-làm-gì).
+Nguồn: Amazon Builders' Library yêu cầu mã và mọi thao tác ghi phải là một giao dịch ACID ([Builders' Library](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)).
+
+#### 2.10.2. P33. Quyền ở đích hết hạn trước hạn thực thi của đề xuất
+
+**Chuyện gì xảy ra:** ví dụ này dùng thanh toán, vì danh bạ và task không có quyền có hạn.
+Đề xuất hoàn tiền được duyệt lúc 9 giờ, hạn thực thi 24 giờ.
+Quyền giữ tiền ở đích chỉ sống tới 15 giờ cùng ngày.
+Đến 16 giờ cổng gửi lệnh, đích từ chối vì quyền đã hết hạn, dù đề xuất vẫn còn hạn.
+
+**Lab đã có:** không áp dụng; quyền của nhân viên trong danh bạ không có hạn.
+
+**Còn trống:** bảng năng lực chưa có dòng "hạn của quyền ở đích"; mục 8 mới lấy hạn từ file luật.
+
+**Tái hiện:** cho hệ thống thanh toán giả một quyền giữ tiền sống 60 giây.
+Duyệt đề xuất, chờ quá 60 giây rồi gửi; đo số lệnh bị từ chối và số lần phải xin quyền mới.
+
+**Đe doạ:** SR4 (điểm dừng rủi ro), SR5 (không chắc thì chặn).
+Bàn ở [Phương án 8](../design/write-safety-options.md#8-hạn-thực-thi-và-huỷ-lệnh-chưa-gửi).
+Nguồn: Stripe nói quyền giữ tiền có hạn theo loại giao dịch và loại thẻ.
+Hết hạn thì tiền được nhả và giao dịch chuyển sang huỷ ([Stripe](https://docs.stripe.com/payments/place-a-hold-on-a-payment-method)).
+
 **Kết luận nhóm A:** P1 (không biết đã chạy chưa), P2 (đích quên mã sớm) và P3 (nhận chưa phải xong) cùng một gốc.
 Cổng đang giả định mọi hệ thống đích đều tốt như hệ thống giả.
 Cách giải chung là mỗi bộ tiếp hợp khai báo năng lực của hệ thống đích, và hàng đợi chọn cách gửi lại hoặc đối soát theo năng lực đó.
+P32 (mã và hiệu ứng lệch nhau) và P33 (quyền ở đích hết hạn) cho thấy bản khai phải dài hơn.
+Bản khai không chỉ nói đích nhớ mã bao lâu.
+Nó còn phải nói ghi mã cùng hiệu ứng thế nào và quyền sống bao lâu.
 
 ## 3. Nhóm B: người duyệt và thẩm quyền
 
@@ -405,6 +453,8 @@ Sản phẩm cổng trên thị trường thường gắn lời duyệt với "n
 | P29 | Lệnh ghi kéo theo việc khác | A | Chưa | Vừa | Dễ |
 | P30 | Lệnh đã duyệt nhưng đã lỗi thời | A | Chưa | Vừa | Dễ |
 | P31 | Một việc nhiều lời gọi | A | Chưa | Vừa | Vừa |
+| P32 | Đích ghi mã và hiệu ứng lệch nhau | A | Chưa | Cao | Dễ |
+| P33 | Quyền ở đích hết hạn trước hạn thực thi | A | Chưa | Vừa | Dễ |
 | P12 | Thẩm quyền đổi giữa duyệt và ghi | B | Một phần | Vừa | Dễ |
 | P13 | Hai người duyệt trên ngưỡng | B | Một phần | Vừa | Dễ |
 | P14 | Mỏi duyệt và ngưỡng duyệt | B | Chưa | Cao | Khó, cần người thật |
@@ -421,7 +471,7 @@ Các mã còn lại xếp thấp, lý do ghi trong bảng nhỏ của từng nh�
 
 | Hướng | Vấn đề gom vào | Câu hỏi | Tài sản bàn giao |
 | --- | --- | --- | --- |
-| 1. Ghi chắc chắn vào hệ thống đích không chắc chắn | P1, P2, P3, P4, P5, P7, P8, P12, P27, P28, P29, P30 | Cổng cần thêm gì để giữ "không ghi trùng, không mất lệnh" khi hệ thống đích không chống ghi trùng, nhớ mã ngắn, hay báo kết quả muộn? | Hệ thống giả bật được từng hành vi xấu; bảng khai báo năng lực bộ tiếp hợp; bộ kiểm thử đường ghi chạy được trên cổng khác |
+| 1. Ghi chắc chắn vào hệ thống đích không chắc chắn | P1, P2, P3, P4, P5, P7, P8, P12, P27, P28, P29, P30, P32, P33 | Cổng cần thêm gì để giữ "không ghi trùng, không mất lệnh" khi hệ thống đích không chống ghi trùng, nhớ mã ngắn, hay báo kết quả muộn? | Hệ thống giả bật được từng hành vi xấu; bảng khai báo năng lực bộ tiếp hợp; bộ kiểm thử đường ghi chạy được trên cổng khác |
 | 2. Kênh duyệt mà trợ lý không với tới | P20, P13, P14 | Kênh duyệt nào chặn được trợ lý tự duyệt khi nó chạy lệnh trên máy người dùng? | Kịch bản tấn công chạy lại được; khuyến nghị kênh duyệt có số liệu |
 | 3. Cách bày công cụ và lời trợ lý báo lại | P18, P19, P21 | Cách bày công cụ nào làm trợ lý ít bỏ bước soạn đề xuất và ít báo thành công giả nhất? | Kịch bản đo cho từng cách bày; hướng dẫn thiết kế công cụ ghi có số liệu |
 | 4. Dữ liệu tiếng Việt và dữ liệu cá nhân | P23, P24, P21 | Trợ lý nhắm sai người bao nhiêu lần khi có tên trùng, và bao nhiêu dữ liệu cá nhân rời Việt Nam cho mỗi việc? | Danh bạ giả 2.000 người tiếng Việt; quy tắc phân giải danh tính; bộ đếm dữ liệu ra nước ngoài |
