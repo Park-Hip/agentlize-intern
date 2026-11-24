@@ -54,6 +54,7 @@ test('trace: a line is stored with every field and read back', () => {
       turnId: null,
       idempotencyKey: null,
       attempts: null,
+      droppedFields: 0,
       usage: null,
       at: '2026-11-17T09:00:00.000Z',
       durationMs: 3,

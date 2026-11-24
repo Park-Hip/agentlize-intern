@@ -27,8 +27,15 @@ const METHOD_NOT_ALLOWED = -32000;
 
 const TRACE_UNAVAILABLE_SENTENCE = 'Cổng không ghi được vết nên không trả kết quả. Hãy báo người vận hành Lab.';
 
-function rpcError(res: ServerResponse, status: number, code: number, message: string, headers: Record<string, string> = {}): void {
-  sendJson(res, status, { jsonrpc: '2.0', error: { code, message }, id: null }, headers);
+function rpcError(
+  res: ServerResponse,
+  status: number,
+  code: number,
+  message: string,
+  headers: Record<string, string> = {},
+  data?: { reason_code: string | null; deny_reason: string | null },
+): void {
+  sendJson(res, status, { jsonrpc: '2.0', error: { code, message, ...(data === undefined ? {} : { data }) }, id: null }, headers);
 }
 
 /** The same entries as `GET /v1/tools`, with the key MCP expects for the parameter schema. */
@@ -63,7 +70,7 @@ function buildServer(
         content: [{ type: 'text', text: result.text }],
         // A refusal or a failure is an error to the host; "not found" is an answer.
         isError: result.outcome === 'refused' || result.outcome === 'error',
-        _meta: { reason_code: result.reasonCode, trace_id: traceId },
+        _meta: { reason_code: result.reasonCode, deny_reason: result.denyReason ?? null, trace_id: traceId },
       };
     } catch (error) {
       if (!(error instanceof TraceUnavailableError)) throw error;
@@ -92,7 +99,10 @@ export async function handleMcp(deps: GatewayDeps, req: IncomingMessage, res: Se
       const { result } = await performCall(deps, 'mcp', req.headers, authenticated, UNKNOWN_TOOL, () =>
         Promise.resolve({}),
       );
-      return rpcError(res, result.status, REQUEST_REFUSED, result.text, { 'www-authenticate': 'Bearer realm="lab-gateway"' });
+      return rpcError(res, result.status, REQUEST_REFUSED, result.text, { 'www-authenticate': 'Bearer realm="lab-gateway"' }, {
+        reason_code: result.reasonCode,
+        deny_reason: result.denyReason ?? null,
+      });
     } catch (error) {
       if (!(error instanceof TraceUnavailableError)) throw error;
       return rpcError(res, 500, INTERNAL_ERROR, TRACE_UNAVAILABLE_SENTENCE);

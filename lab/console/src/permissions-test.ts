@@ -185,6 +185,28 @@ test('permissions: a save changes task fields and a cell, and leaves everything 
   assert.equal(resourcesOf(after)['task']?.fields['lead']?.includes('description'), true);
 });
 
+test('permissions: a save keeps the client profiles and data classes it does not edit', async (t) => {
+  const fixture = await startFixture();
+  t.after(() => fixture.close());
+
+  const page = await (await fetch(`${fixture.url}/permissions`)).text();
+  const before = readRules(fixture.rulesPath);
+  const params = saveFields(before, hiddenFields(page), catalogOf(page), (fields) => {
+    removeField(fields, 'fields.employee.staff', 'work_email');
+  });
+
+  const response = await postForm(fixture, params);
+  assert.equal(response.status, 303);
+
+  const after = readRules(fixture.rulesPath);
+  assert.deepEqual(after['clients'], before['clients'], 'the client table survives a save');
+  const beforeResources = before['resources'] as Record<string, { data_classes?: unknown }>;
+  const afterResources = after['resources'] as Record<string, { data_classes?: unknown }>;
+  for (const type of ['task', 'employee']) {
+    assert.deepEqual(afterResources[type]?.data_classes, beforeResources[type]?.data_classes, `${type}.data_classes`);
+  }
+});
+
 test('permissions: a broken form never reaches the file', async (t) => {
   const fixture = await startFixture();
   t.after(() => fixture.close());

@@ -2,6 +2,9 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { ADAPTER_DECLARATIONS } from '../adapters/registry.js';
 import type { RecordDeclaration } from '../adapters/types.js';
+import { DATA_CLASS_RULE_SUFFIX, exceedsCeiling, LOWEST_DATA_CLASS } from './data-classes.js';
+import type { ClientClass, DataClass } from './data-classes.js';
+import { denyReasonFor } from './deny-reason.js';
 import {
   createRulesSchema,
   policyInputSchema,
@@ -43,21 +46,28 @@ interface Candidate {
   readonly ruleId: string;
 }
 
-/** The actions the adapters of a running gateway declare, by record type. */
+/** The actions and their writable fields, from the adapters of a running gateway. */
 interface Vocabulary {
   readonly all: ReadonlySet<string>;
   readonly byType: ReadonlyMap<string, ReadonlySet<string>>;
+  /** `<record type>` -> `<action>` -> the fields that action changes. */
+  readonly fieldsByAction: ReadonlyMap<string, ReadonlyMap<string, readonly string[]>>;
 }
 
 function vocabularyOf(declarations: readonly RecordDeclaration[]): Vocabulary {
   const byType = new Map<string, ReadonlySet<string>>();
+  const fieldsByAction = new Map<string, ReadonlyMap<string, readonly string[]>>();
   const all = new Set<string>([READ_EMPLOYEE_FIELD]);
   for (const declaration of declarations) {
-    const names = declaration.actions.map((action) => action.name);
-    byType.set(declaration.type, new Set(names));
-    for (const name of names) all.add(name);
+    const actions = new Map<string, readonly string[]>();
+    for (const action of declaration.actions) {
+      actions.set(action.name, action.fields);
+      all.add(action.name);
+    }
+    byType.set(declaration.type, new Set(actions.keys()));
+    fieldsByAction.set(declaration.type, actions);
   }
-  return { all, byType };
+  return { all, byType, fieldsByAction };
 }
 
 export interface PolicyEngineOptions {
@@ -83,8 +93,12 @@ export interface PolicyEngine {
   decide(input: unknown): PolicyDecision;
   /** How far a role may read one record type, and the rule that says so. */
   readScope(role: string, type: string): ReadDecision;
-  /** The fields one role may receive from one record type. Empty whenever the engine is unsure. */
-  allowedFields(role: string, type?: string): FieldsDecision;
+  /**
+   * The fields one role may receive from one record type through one client.
+   * Empty whenever the engine is unsure, and the two dropped lists keep the
+   * role gate separate from the client ceiling (ADR-0010 section 3.3).
+   */
+  allowedFields(role: string, type: string, caller: string): FieldsDecision;
   /** How far back the bulk count looks, from `cumulative_window_minutes`. */
   cumulativeWindow(): WindowDecision;
   /** The people who may approve a request under the `approval` block. */
@@ -106,19 +120,46 @@ export function fieldsRuleId(type: string, role: string): string {
   return `${type}.fields.${role}`;
 }
 
+/** One client as the rule file describes it; an absent profile is the lowest class, not an error. */
+interface ClientChoice {
+  readonly name: string;
+  readonly clientClass: ClientClass | null;
+  readonly ceiling: DataClass;
+  readonly declared: boolean;
+}
+
+function clientChoice(rules: Rules, caller: string): ClientChoice {
+  const profile = Object.hasOwn(rules.clients, caller) ? rules.clients[caller] : undefined;
+  return profile === undefined
+    ? { name: caller, clientClass: null, ceiling: LOWEST_DATA_CLASS, declared: false }
+    : { name: caller, clientClass: profile.class, ceiling: profile.ceiling, declared: true };
+}
+
+function dataClassOf(resource: Rules['resources'][string] | undefined, field: string): DataClass | null {
+  if (resource === undefined || !Object.hasOwn(resource.data_classes, field)) return null;
+  return resource.data_classes[field] ?? null;
+}
+
 function unavailable(): PolicyDecision {
   return {
     effect: 'deny',
     reasonCode: 'POLICY_UNAVAILABLE',
     ruleId: RULE_IDS.unavailable,
     policyVersion: null,
+    denyReason: denyReasonFor('POLICY_UNAVAILABLE', null),
   };
 }
 
 function decisionOf(candidate: Candidate, policyVersion: number): PolicyDecision {
   const reasonCode =
     candidate.effect === 'allow' ? 'ALLOWED' : candidate.effect === 'needs_approval' ? 'NEEDS_APPROVAL' : 'NOT_PERMITTED';
-  return { effect: candidate.effect, reasonCode, ruleId: candidate.ruleId, policyVersion };
+  return {
+    effect: candidate.effect,
+    reasonCode,
+    ruleId: candidate.ruleId,
+    policyVersion,
+    denyReason: denyReasonFor(reasonCode === 'ALLOWED' ? null : reasonCode, candidate.ruleId),
+  };
 }
 
 function deny(ruleId: string, policyVersion: number): PolicyDecision {
@@ -148,6 +189,7 @@ function rolesOf(rules: Rules): readonly string[] {
 function evaluate(rules: Rules, input: PolicyInput, vocabulary: Vocabulary): PolicyDecision {
   const version = rules.version;
   const { actor, object, context } = input;
+  const client = clientChoice(rules, context.caller);
 
   if (!vocabulary.all.has(input.action)) {
     return deny(RULE_IDS.actionUnknown, version);
@@ -168,8 +210,17 @@ function evaluate(rules: Rules, input: PolicyInput, vocabulary: Vocabulary): Pol
     if (fields === undefined) {
       return deny(`${fieldsRuleId('employee', actor.role)}.undeclared`, version);
     }
-    const effect: PolicyEffect = fields.includes(object.field) ? 'allow' : 'deny';
-    return decisionOf({ effect, ruleId: fieldsRuleId('employee', actor.role) }, version);
+    if (!fields.includes(object.field)) {
+      return deny(fieldsRuleId('employee', actor.role), version);
+    }
+    const dataClass = dataClassOf(resource, object.field);
+    if (dataClass === null) {
+      return deny(`${fieldsRuleId('employee', actor.role)}.data_class_undeclared`, version);
+    }
+    if (exceedsCeiling(dataClass, client.ceiling)) {
+      return deny(`${fieldsRuleId('employee', actor.role)}${DATA_CLASS_RULE_SUFFIX}`, version);
+    }
+    return decisionOf({ effect: 'allow', ruleId: fieldsRuleId('employee', actor.role) }, version);
   }
 
   const type = object.kind;
@@ -197,6 +248,22 @@ function evaluate(rules: Rules, input: PolicyInput, vocabulary: Vocabulary): Pol
     }
     if (object.department !== actor.department) {
       return deny(`${baseRule}.scope`, version);
+    }
+  }
+
+  // A client that may not receive a field may not write it either (ADR-0010
+  // section 3.3). A cell the role already denies keeps its role reason, so a
+  // client can never turn a "no" into a data-class answer.
+  if (cell.effect !== 'deny') {
+    const actionFields = vocabulary.fieldsByAction.get(type)?.get(action) ?? [];
+    for (const field of actionFields) {
+      const dataClass = dataClassOf(resource, field);
+      if (dataClass === null) {
+        return deny(`${baseRule}.data_class_undeclared`, version);
+      }
+      if (exceedsCeiling(dataClass, client.ceiling)) {
+        return deny(`${baseRule}${DATA_CLASS_RULE_SUFFIX}`, version);
+      }
     }
   }
 
@@ -261,23 +328,59 @@ export function createPolicyEngine(options: PolicyEngineOptions = {}): PolicyEng
       }
     },
 
-    allowedFields(role: string, type = 'employee'): FieldsDecision {
+    allowedFields(role: string, type: string, caller: string): FieldsDecision {
+      const client = { name: caller, clientClass: null, ceiling: null, declared: false } as const;
+      const empty = {
+        fields: [],
+        droppedByClient: [],
+        droppedUnclassified: [],
+        client: client.name,
+        clientClass: client.clientClass,
+        ceiling: client.ceiling,
+        clientDeclared: client.declared,
+      } as const;
       try {
         const rules = loadRules();
+        const chosen = clientChoice(rules, caller);
+        const withClient = {
+          client: chosen.name,
+          clientClass: chosen.clientClass,
+          ceiling: chosen.ceiling,
+          clientDeclared: chosen.declared,
+        } as const;
+
         if (!rolesOf(rules).includes(role)) {
-          return { ...deny(RULE_IDS.roleUnknown, rules.version), fields: [] };
+          return { ...deny(RULE_IDS.roleUnknown, rules.version), ...empty, ...withClient };
         }
         const resource = Object.hasOwn(rules.resources, type) ? rules.resources[type] : undefined;
         const fields = resource?.fields[role];
         if (fields === undefined) {
-          return { ...deny(`${fieldsRuleId(type, role)}.undeclared`, rules.version), fields: [] };
+          return { ...deny(`${fieldsRuleId(type, role)}.undeclared`, rules.version), ...empty, ...withClient };
         }
+
+        const visible: string[] = [];
+        const droppedByClient: string[] = [];
+        const droppedUnclassified: string[] = [];
+        for (const field of fields) {
+          const dataClass = dataClassOf(resource, field);
+          if (dataClass === null) {
+            droppedUnclassified.push(field);
+          } else if (exceedsCeiling(dataClass, chosen.ceiling)) {
+            droppedByClient.push(field);
+          } else {
+            visible.push(field);
+          }
+        }
+
         return {
           ...decisionOf({ effect: 'allow', ruleId: fieldsRuleId(type, role) }, rules.version),
-          fields: [...fields],
+          fields: visible,
+          droppedByClient,
+          droppedUnclassified,
+          ...withClient,
         };
       } catch {
-        return { ...unavailable(), fields: [] };
+        return { ...unavailable(), ...empty };
       }
     },
 

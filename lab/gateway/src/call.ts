@@ -9,7 +9,7 @@ import type {
   KeyStore,
   PagePasswordStore,
 } from './identity/index.js';
-import { RULE_IDS, type PolicyEngine } from './policy/index.js';
+import { denyReasonFor, RULE_IDS, type PolicyEngine } from './policy/index.js';
 import type { ProposalExecutor, ProposalStore } from './proposals/index.js';
 import type { CommandStore } from './writes/index.js';
 import type { RegisteredTool, ToolResult } from './tools/types.js';
@@ -86,12 +86,26 @@ export function refuse(code: ReasonCode, ruleId: string, sentence?: string): Too
     reasonCode: code,
     outcome: 'refused',
     ruleId,
+    denyReason: denyReasonFor(code, ruleId),
   };
 }
 
 /** A bad request is not a refusal of policy: no reason code, and the sentence says what to fix. */
 export function badRequest(status: number, sentence: string): ToolResult {
-  return { status, text: sentence, reasonCode: null, outcome: 'error' };
+  return { status, text: sentence, reasonCode: null, outcome: 'error', denyReason: null };
+}
+
+/**
+ * Attach the gateway name to a tool answer that carries a reason code but did
+ * not build the name itself, such as a write status read. A tool that already
+ * decided its `denyReason` keeps it.
+ */
+function withDenyReason(result: ToolResult): ToolResult {
+  if (result.denyReason !== undefined) return result;
+  if (result.outcome === 'not_found' && result.outOfScope === true) {
+    return { ...result, denyReason: denyReasonFor('NOT_PERMITTED', null) };
+  }
+  return { ...result, denyReason: denyReasonFor(result.reasonCode, result.ruleId ?? null) };
 }
 
 function describeInputProblem(error: z.ZodError): string {
@@ -153,7 +167,8 @@ async function answerCall(
   }
 
   // Also the gate for task reads: no readable rule file or no entry for the role means no answer at all.
-  const rules = deps.policy.allowedFields(role);
+  // The caller comes from the key record, never from the request (ADR-0010 section 3.4).
+  const rules = deps.policy.allowedFields(role, 'employee', identity.caller);
   if (rules.effect !== 'allow') {
     const code = rules.reasonCode === 'POLICY_UNAVAILABLE' ? 'POLICY_UNAVAILABLE' : 'NOT_PERMITTED';
     return { ...refuse(code, rules.ruleId), policyVersion: rules.policyVersion };
@@ -182,7 +197,7 @@ async function answerSafely(
   trail: Trail,
 ): Promise<ToolResult> {
   try {
-    return await answerCall(deps, authenticated, toolName, readArgs, trail);
+    return withDenyReason(await answerCall(deps, authenticated, toolName, readArgs, trail));
   } catch (error) {
     if (error instanceof SystemUnavailableError) return refuse('GATEWAY_UNAVAILABLE', `SYSTEM.${error.system}`);
     console.error(`[gateway] tool call failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -235,6 +250,7 @@ export function writeTrace(
       hostUser,
       turnId: trail.turnId,
       proposalId: result.proposalId ?? null,
+      droppedFields: result.droppedFields ?? 0,
       durationMs: performance.now() - startedAt,
     });
   } catch (error) {

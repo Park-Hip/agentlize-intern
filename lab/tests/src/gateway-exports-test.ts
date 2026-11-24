@@ -32,7 +32,7 @@ test('gateway package: the rule file, its schema, the key store, the escape func
 
   const engine = createPolicyEngine();
   assert.equal(engine.decide(null).ruleId, 'INPUT_INVALID');
-  assert.equal(engine.allowedFields('staff').fields.includes('work_email'), true);
+  assert.equal(engine.allowedFields('staff', 'employee', 'tho-than-desktop').fields.includes('work_email'), true);
 
   assert.equal(esc('<b>"x" & \'y\'</b>'), '&lt;b&gt;&quot;x&quot; &amp; &#39;y&#39;&lt;/b&gt;');
 

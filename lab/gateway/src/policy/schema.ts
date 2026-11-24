@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ADAPTER_DECLARATIONS, actionsByType } from '../adapters/registry.js';
 import type { RecordDeclaration } from '../adapters/types.js';
+import { CLIENT_CLASSES, DATA_CLASSES } from './data-classes.js';
 
 /**
  * The action names of each record type, from the adapters the gateway ships
@@ -25,6 +26,20 @@ export type PolicyAction = string;
 
 const effectSchema = z.enum(['allow', 'deny', 'needs_approval']);
 const scopeSchema = z.enum(['own_department', 'any']);
+const dataClassSchema = z.enum(DATA_CLASSES);
+const clientClassSchema = z.enum(CLIENT_CLASSES);
+
+/** One client profile: a reporting label and the limit that actually decides (ADR-0010 section 3.2). */
+const clientProfileSchema = z.strictObject({
+  class: clientClassSchema,
+  ceiling: dataClassSchema,
+});
+
+/**
+ * The client table. Missing means an empty table, so every client gets the
+ * lowest class; a misspelt class or ceiling makes the whole file invalid.
+ */
+const clientsSchema = z.record(z.string().min(1), clientProfileSchema).default({});
 
 /** One role on one action: what it may do, in which department, and what happens at the bulk threshold. */
 const cellSchema = z
@@ -42,6 +57,12 @@ const resourceSchema = z
     bulk_threshold: z.number().int().positive(),
     read: z.record(z.string().min(1), scopeSchema),
     fields: z.record(z.string().min(1), z.array(z.string().min(1))),
+    /**
+     * One class per field. Missing is allowed on purpose: a field the file has
+     * not classified yet is dropped at read time (ADR-0010 section 3.3), while
+     * a misspelt field name is a typo and refuses the whole file.
+     */
+    data_classes: z.record(z.string().min(1), dataClassSchema).default({}),
     actions: z.record(z.string().min(1), z.record(z.string().min(1), cellSchema)),
   })
   .refine(
@@ -82,6 +103,7 @@ export function createRulesSchema(declarations: readonly RecordDeclaration[] = A
       version: z.number().int().positive(),
       approval: approvalSchema,
       cumulative_window_minutes: z.number().int().positive(),
+      clients: clientsSchema,
       resources: z.record(z.string().min(1), resourceSchema),
     })
     .superRefine((rules, ctx) => {
@@ -105,6 +127,18 @@ export function createRulesSchema(declarations: readonly RecordDeclaration[] = A
         for (const action of Object.keys(resource.actions)) {
           if (!actions.includes(action)) {
             ctx.addIssue({ code: 'custom', message: `unknown action "${action}" for "${type}"`, path: [...path, 'actions', action] });
+          }
+        }
+
+        const declaration = declarations.find((candidate) => candidate.type === type);
+        const declaredFields = new Set(declaration?.fields.map((field) => field.name) ?? []);
+        for (const field of Object.keys(resource.data_classes)) {
+          if (!declaredFields.has(field)) {
+            ctx.addIssue({
+              code: 'custom',
+              message: `unknown field "${field}" in data_classes for "${type}"`,
+              path: [...path, 'data_classes', field],
+            });
           }
         }
 

@@ -363,6 +363,7 @@ test('write: a task changed after the draft fails with TARGET_CHANGED and keeps 
     assert.match(status.body.text, /\[TARGET_CHANGED\]/);
     assert.match(status.body.text, /nhờ AI soạn lại/);
     assert.equal(status.body.reason_code, 'TARGET_CHANGED');
+    assert.equal(status.body.deny_reason, 'stale_target');
 
     const line = f.gateway.trace.list().find((entry) => entry.tool === 'write_command');
     assert.equal(line?.outcome, 'refused');

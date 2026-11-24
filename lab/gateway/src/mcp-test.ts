@@ -95,8 +95,9 @@ test('mcp: a call answers with the same text and reason code as the REST door, a
 
     assert.equal(viaMcp.isError, false);
     assert.equal(firstText(viaMcp), viaRest.body.text);
-    const meta = viaMcp['_meta'] as { reason_code: unknown; trace_id: string };
+    const meta = viaMcp['_meta'] as { reason_code: unknown; deny_reason: unknown; trace_id: string };
     assert.equal(meta.reason_code, viaRest.body.reason_code);
+    assert.equal(meta.deny_reason, viaRest.body.deny_reason);
 
     const line = f.gateway.trace.list().find((row) => row.traceId === meta.trace_id);
     assert.ok(line !== undefined, 'the call left a trace line');
@@ -131,6 +132,7 @@ test('mcp: a refusal inside a call is an error result carrying the code; "not fo
     assert.equal(refused.isError, true);
     assert.ok(firstText(refused).startsWith(`${REFUSAL_PREFIX} [KEY_INVALID] `));
     assert.equal((refused['_meta'] as { reason_code: unknown }).reason_code, 'KEY_INVALID');
+    assert.equal((refused['_meta'] as { deny_reason: unknown }).deny_reason, 'no_permission');
 
     const client = await connect(f, { authorization: `Bearer ${f.keyFor(HOA)}` });
     const missing = await invoke(client, 'get_task', { task_id: 'T-9999' });
@@ -167,8 +169,10 @@ test('mcp: a missing, wrong or revoked key gets 401 with the refusal text, and e
       const answer = await rpc(f, initialize, headers);
       assert.equal(answer.status, 401, label);
       assert.match(answer.headers.get('www-authenticate') ?? '', /^Bearer/, label);
-      const error = (answer.json as { error: { message: string } }).error;
+      const error = (answer.json as { error: { message: string; data?: { reason_code?: string; deny_reason?: string } } }).error;
       assert.ok(error.message.startsWith(`${REFUSAL_PREFIX} [${code}] `), label);
+      assert.equal(error.data?.reason_code, code, label);
+      assert.equal(error.data?.deny_reason, 'no_permission', label);
     }
 
     const lines = f.gateway.trace.list();

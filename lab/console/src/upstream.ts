@@ -362,7 +362,7 @@ export async function callTool(
       reasonCode: null,
       traceId: null,
       elapsedMs,
-      problem: 'Cổng trả lời không đúng dạng { text, reason_code, trace_id }.',
+      problem: 'Cổng trả lời không đúng dạng { text, reason_code, deny_reason, trace_id }.',
     };
   }
   return {

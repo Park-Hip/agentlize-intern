@@ -1,4 +1,4 @@
-import type { ReasonCode, ToolDefinition } from '@lab/shared';
+import type { DenyReason, ReasonCode, ToolDefinition } from '@lab/shared';
 import type { ResourceAdapter } from '../adapters/index.js';
 import type { FieldsDecision, PolicyEngine } from '../policy/index.js';
 import type { ProposalStore } from '../proposals/index.js';
@@ -43,6 +43,10 @@ export interface ToolResult {
   readonly proposalId?: string | null;
   readonly ruleId?: string | null;
   readonly policyVersion?: number | null;
+  /** The gateway's own name for a refusal or a withheld field (ADR-0010 section 3.5). */
+  readonly denyReason?: DenyReason | null;
+  /** Distinct field names the client ceiling removed from this answer (ADR-0010 section 3.6). */
+  readonly droppedFields?: number;
 }
 
 /** A catalog entry plus the code that answers it. The catalog the callers see is `ToolDefinition`. */

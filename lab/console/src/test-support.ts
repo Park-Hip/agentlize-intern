@@ -381,17 +381,27 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
 
         if (tool === 'find_employee') {
           record();
-          return json(res, 200, { text: FOUND_TEXT, reason_code: null, trace_id: traceId });
+          return json(res, 200, { text: FOUND_TEXT, reason_code: null, deny_reason: null, trace_id: traceId });
         }
         if (tool === 'propose_task_change') {
           record();
-          return json(res, 200, { text: PROPOSAL_TEXT, reason_code: null, trace_id: traceId });
+          return json(res, 200, { text: PROPOSAL_TEXT, reason_code: null, deny_reason: null, trace_id: traceId });
         }
         if (tool === 'get_task') {
-          return json(res, 403, { text: REFUSAL_TEXT, reason_code: 'NOT_PERMITTED', trace_id: traceId });
+          return json(res, 403, {
+            text: REFUSAL_TEXT,
+            reason_code: 'NOT_PERMITTED',
+            deny_reason: 'no_permission',
+            trace_id: traceId,
+          });
         }
         // list_tasks answers with a code whose line nobody writes, to prove the page survives a missing line.
-        return json(res, 200, { text: 'Có 0 task khớp.', reason_code: null, trace_id: traceId });
+        return json(res, 200, {
+          text: 'Có 0 task khớp.',
+          reason_code: null,
+          deny_reason: null,
+          trace_id: traceId,
+        });
       }),
     );
   }

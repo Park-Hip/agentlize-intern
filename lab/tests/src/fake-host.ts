@@ -58,6 +58,7 @@ export interface HostAnswer {
   readonly status: number;
   readonly text: string;
   readonly reasonCode: string | null;
+  readonly denyReason: string | null;
   readonly traceId: string | null;
   readonly isError: boolean;
 }
@@ -87,7 +88,11 @@ interface RpcReply {
     readonly tools?: readonly { readonly name?: string }[];
     readonly content?: readonly { readonly type?: string; readonly text?: string }[];
     readonly isError?: boolean;
-    readonly _meta?: { readonly reason_code?: string | null; readonly trace_id?: string };
+    readonly _meta?: {
+      readonly reason_code?: string | null;
+      readonly deny_reason?: string | null;
+      readonly trace_id?: string;
+    };
   };
 }
 
@@ -288,6 +293,7 @@ export class FakeThoThanHost {
         status,
         text: message,
         reasonCode: REFUSAL_CODE.exec(message)?.[1] ?? null,
+        denyReason: null,
         traceId: null,
         isError: true,
       };
@@ -298,6 +304,7 @@ export class FakeThoThanHost {
       status,
       text,
       reasonCode: reply?.result?._meta?.reason_code ?? REFUSAL_CODE.exec(text)?.[1] ?? null,
+      denyReason: reply?.result?._meta?.deny_reason ?? null,
       traceId: reply?.result?._meta?.trace_id ?? null,
       isError: reply?.result?.isError === true,
     };

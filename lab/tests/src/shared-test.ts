@@ -30,18 +30,27 @@ test('shared: refusal text keeps the fixed prefix and one line', () => {
   assert.throws(() => refusalMessage('NOT_PERMITTED', '   '), /one Vietnamese sentence/);
 });
 
-test('shared: tool response carries text, reason_code and trace_id', () => {
+test('shared: tool response carries text, reason_code, deny_reason and trace_id', () => {
   const parsed = toolResponseSchema.parse({
     text: 'Đã ghi',
     reason_code: null,
+    deny_reason: null,
     trace_id: 'trace-01',
     extra: 'must be dropped',
   });
-  assert.deepEqual(Object.keys(parsed).sort(), ['reason_code', 'text', 'trace_id']);
+  assert.deepEqual(Object.keys(parsed).sort(), ['deny_reason', 'reason_code', 'text', 'trace_id']);
   assert.equal(parsed.reason_code, null);
+  assert.equal(parsed.deny_reason, null);
 
-  assert.throws(() => toolResponseSchema.parse({ text: '', reason_code: null, trace_id: 'trace-01' }));
-  assert.throws(() => toolResponseSchema.parse({ text: 'x', reason_code: 'NOT_A_CODE', trace_id: 'trace-01' }));
+  assert.throws(() =>
+    toolResponseSchema.parse({ text: '', reason_code: null, deny_reason: null, trace_id: 'trace-01' }),
+  );
+  assert.throws(() =>
+    toolResponseSchema.parse({ text: 'x', reason_code: 'NOT_A_CODE', deny_reason: null, trace_id: 'trace-01' }),
+  );
+  assert.throws(() =>
+    toolResponseSchema.parse({ text: 'x', reason_code: null, deny_reason: 'NOT_A_REASON', trace_id: 'trace-01' }),
+  );
 });
 
 test('shared: ports have defaults and can be overridden', () => {

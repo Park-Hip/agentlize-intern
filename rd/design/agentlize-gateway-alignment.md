@@ -57,7 +57,7 @@ Lab áp ràng buộc này như sau:
 - Ứng dụng không khai trong file luật nhận mức thấp nhất, theo SR5 (không chắc thì chặn).
 - Trường bị bỏ vì vượt trần được nêu tên kèm lý do riêng, khác lý do che theo vai trò.
 
-Ví dụ: chị Hoa (nhân sự) tra số điện thoại cá nhân của anh Minh.
+Ví dụ: chị Nhung (nhân sự) tra số điện thoại cá nhân của anh Minh.
 Qua Thổ Thần, chị thấy số đó, vì lớp `employee_personal` nằm dưới trần của Thổ Thần.
 Qua một ứng dụng chạy trên máy cá nhân, số đó bị bỏ với lý do `data_class_exceeds_client`.
 

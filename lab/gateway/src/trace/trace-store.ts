@@ -54,12 +54,18 @@ export interface TraceRecord {
   readonly idempotencyKey?: string | null;
   /** How many times a write command had been sent when this line was written. */
   readonly attempts?: number | null;
+  /**
+   * Distinct field names the client gate removed from this answer, whether the
+   * field was above the ceiling or had no class (ADR-0010 sections 3.6 and 5).
+   */
+  readonly droppedFields?: number;
   readonly durationMs: number;
 }
 
 export interface TraceRow extends TraceRecord {
   readonly at: string;
   readonly turnId: string | null;
+  readonly droppedFields: number;
   /** The cost the assistant reported for this line's turn; null when it reported none. */
   readonly usage: UsageRow | null;
 }
@@ -99,6 +105,7 @@ interface Row {
   proposal_id: string | null;
   idempotency_key: string | null;
   attempts: number | null;
+  dropped_fields: number;
   duration_ms: number;
 }
 
@@ -125,6 +132,7 @@ function createTraceSql(table: string): string {
       proposal_id    TEXT,
       idempotency_key TEXT,
       attempts       INTEGER,
+      dropped_fields INTEGER NOT NULL DEFAULT 0,
       duration_ms    INTEGER NOT NULL
     );
   `;
@@ -168,6 +176,7 @@ function toRow(row: Row): TraceRow {
     proposalId: row.proposal_id,
     idempotencyKey: row.idempotency_key,
     attempts: row.attempts,
+    droppedFields: row.dropped_fields ?? 0,
     durationMs: row.duration_ms,
     usage: null,
   };
@@ -310,10 +319,12 @@ export class TraceStore extends TraceReader {
 
     // A table made before a column existed gets it; ADD COLUMN is not an UPDATE, so the triggers stay quiet.
     const columns = (db.prepare('PRAGMA table_info(trace)').all() as { name: string }[]).map((column) => column.name);
-    for (const column of ['host_user', 'turn_id', 'proposal_id', 'idempotency_key', 'attempts']) {
+    for (const column of ['host_user', 'turn_id', 'proposal_id', 'idempotency_key', 'attempts', 'dropped_fields']) {
       if (!columns.includes(column)) {
-        const type = column === 'attempts' ? 'INTEGER' : 'TEXT';
-        db.exec(`ALTER TABLE trace ADD COLUMN ${column} ${type}`);
+        const integer = column === 'attempts' || column === 'dropped_fields';
+        const type = integer ? 'INTEGER' : 'TEXT';
+        const fallback = column === 'dropped_fields' ? ' NOT NULL DEFAULT 0' : '';
+        db.exec(`ALTER TABLE trace ADD COLUMN ${column} ${type}${fallback}`);
       }
     }
     db.exec('CREATE INDEX IF NOT EXISTS trace_turn ON trace (turn_id);');
@@ -336,10 +347,10 @@ export class TraceStore extends TraceReader {
       this.db.exec(`
         INSERT INTO trace (seq, trace_id, at, requester, caller, entry, tool, object_id, outcome, reason_code,
                            out_of_scope, rule_id, policy_version, host_user, turn_id, proposal_id, idempotency_key,
-                           attempts, duration_ms)
+                           attempts, dropped_fields, duration_ms)
         SELECT seq, trace_id, at, requester, caller, entry, tool, object_id, outcome, reason_code,
                out_of_scope, rule_id, policy_version, host_user, turn_id, proposal_id, idempotency_key,
-               attempts, duration_ms
+               attempts, dropped_fields, duration_ms
         FROM trace_before_web;
         DROP TABLE trace_before_web;
       `);
@@ -371,16 +382,17 @@ export class TraceStore extends TraceReader {
       proposal_id: record.proposalId ?? null,
       idempotency_key: record.idempotencyKey ?? null,
       attempts: record.attempts ?? null,
+      dropped_fields: record.droppedFields ?? 0,
       duration_ms: Math.max(0, Math.round(record.durationMs)),
     };
     this.db
       .prepare(
         `INSERT INTO trace (trace_id, at, requester, caller, entry, tool, object_id, outcome, reason_code,
                             out_of_scope, rule_id, policy_version, host_user, turn_id, proposal_id, idempotency_key,
-                            attempts, duration_ms)
+                            attempts, dropped_fields, duration_ms)
          VALUES (@trace_id, @at, @requester, @caller, @entry, @tool, @object_id, @outcome, @reason_code,
                  @out_of_scope, @rule_id, @policy_version, @host_user, @turn_id, @proposal_id, @idempotency_key,
-                 @attempts, @duration_ms)`,
+                 @attempts, @dropped_fields, @duration_ms)`,
       )
       .run(row);
   }

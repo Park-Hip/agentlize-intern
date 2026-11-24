@@ -12,6 +12,8 @@ export interface Answer {
   readonly status: number;
   readonly text: string;
   readonly reasonCode: string | null;
+  /** The gateway's own denial name (ADR-0010 section 3.5); optional so older callers can build an answer. */
+  readonly denyReason?: string | null;
   readonly traceId: string | null;
 }
 
@@ -40,7 +42,13 @@ const restDoor: Door = {
       body: JSON.stringify(args),
     });
     const body = (await response.json()) as ToolResponse;
-    return { status: response.status, text: body.text, reasonCode: body.reason_code, traceId: body.trace_id };
+    return {
+      status: response.status,
+      text: body.text,
+      reasonCode: body.reason_code,
+      denyReason: body.deny_reason ?? null,
+      traceId: body.trace_id,
+    };
   },
   async toolNames(base) {
     const catalog = (await (await fetch(`${base}/v1/tools`)).json()) as { tools: { name: string }[] };
@@ -54,7 +62,11 @@ interface RpcReply {
   readonly result?: {
     readonly content?: readonly { readonly text: string }[];
     readonly tools?: readonly { readonly name: string }[];
-    readonly _meta?: { readonly reason_code: string | null; readonly trace_id?: string };
+    readonly _meta?: {
+      readonly reason_code: string | null;
+      readonly deny_reason?: string | null;
+      readonly trace_id?: string;
+    };
   };
 }
 
@@ -85,12 +97,13 @@ const mcpHttpDoor: Door = {
     const { status, json } = await rpc(base, key, 'tools/call', { name: tool, arguments: args }, hostUser);
     if (status !== 200) {
       const text = json.error?.message ?? '';
-      return { status, text, reasonCode: REFUSAL_CODE.exec(text)?.[1] ?? null, traceId: null };
+      return { status, text, reasonCode: REFUSAL_CODE.exec(text)?.[1] ?? null, denyReason: null, traceId: null };
     }
     return {
       status,
       text: json.result?.content?.[0]?.text ?? '',
       reasonCode: json.result?._meta?.reason_code ?? null,
+      denyReason: json.result?._meta?.deny_reason ?? null,
       traceId: json.result?._meta?.trace_id ?? null,
     };
   },

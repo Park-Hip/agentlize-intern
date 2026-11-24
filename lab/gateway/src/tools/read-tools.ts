@@ -1,9 +1,9 @@
-import { DEPARTMENTS, EMPLOYEE_ID_PATTERN, type ToolDefinition } from '@lab/shared';
+import { DEPARTMENTS, EMPLOYEE_ID_PATTERN, type DenyReason, type ToolDefinition } from '@lab/shared';
 import { z } from 'zod';
 import { adapterOf, type RecordData, type ResourceAdapter } from '../adapters/index.js';
 import { TASK_STATUSES } from '../adapters/tasks.js';
 import { refuse } from '../call.js';
-import type { ReadDecision } from '../policy/index.js';
+import { denyReasonFor, withheldFieldsReason, type FieldsDecision, type ReadDecision } from '../policy/index.js';
 import { wrapSystemData } from './block.js';
 import type { RegisteredTool, ToolContext, ToolResult } from './types.js';
 
@@ -21,17 +21,58 @@ const TASK_LINE_FIELDS = [
 ] as const;
 
 /**
- * The fixed line that names the labelled fields the asker's role may not see,
- * with no value. Null when the role may see every labelled field. A field new
- * to the directory has no label, so it is never named here and never leaves
- * the gateway (spec section 4.4, rule 1).
+ * The fixed lines that name the labelled fields the asker does not receive,
+ * with no value. A field hidden by the role and a field hidden by the client
+ * ceiling get different sentences, so the reader knows which gate removed it
+ * (ADR-0010 section 3.3). A field new to the directory has no label, so it is
+ * never named here and never leaves the gateway (spec section 4.4, rule 1).
  */
-export function hiddenFieldsLine(fields: readonly string[], adapter: ResourceAdapter): string | null {
-  const labels: string[] = [];
+export function hiddenFieldsLine(decision: FieldsDecision, adapter: ResourceAdapter): string | null {
+  const roleFields = new Set([
+    ...decision.fields,
+    ...decision.droppedByClient,
+    ...decision.droppedUnclassified,
+  ]);
+  const roleHidden: string[] = [];
+  const clientHidden: string[] = [];
+  const unclassified: string[] = [];
   for (const field of adapter.fields) {
-    if (!fields.includes(field.name)) labels.push(field.label);
+    if (!roleFields.has(field.name)) roleHidden.push(field.label);
+    else if (decision.droppedByClient.includes(field.name)) clientHidden.push(field.label);
+    else if (decision.droppedUnclassified.includes(field.name)) unclassified.push(field.label);
   }
-  return labels.length === 0 ? null : `Không hiện theo quyền của bạn: ${labels.join(', ')}.`;
+
+  const lines: string[] = [];
+  if (roleHidden.length > 0) lines.push(`Không hiện theo quyền của bạn: ${roleHidden.join(', ')}.`);
+  if (clientHidden.length > 0) {
+    lines.push(
+      `Không hiện vì vượt mức dữ liệu của client (data_class_exceeds_client): ${clientHidden.join(', ')}.`,
+    );
+  }
+  if (unclassified.length > 0) {
+    lines.push(`Không hiện vì chưa khai mức dữ liệu: ${unclassified.join(', ')}.`);
+  }
+  return lines.length === 0 ? null : lines.join('\n');
+}
+
+/**
+ * What one successful read must say about its fields: the lines naming what
+ * did not come out, the gateway name for the strongest gate that removed a
+ * field, and the count the trace keeps.
+ */
+function readGate(
+  decision: FieldsDecision,
+  adapter: ResourceAdapter,
+): { readonly note: string; readonly denyReason: DenyReason | null; readonly droppedFields: number } {
+  const hidden = hiddenFieldsLine(decision, adapter);
+  const denyReason = withheldFieldsReason(decision.droppedByClient.length > 0, hidden !== null);
+  return {
+    note: hidden === null ? '' : `${hidden}\n`,
+    denyReason,
+    // A field without a class is withheld by the same gate and counted too; the
+    // answer still names which of the two reasons removed it.
+    droppedFields: decision.droppedByClient.length + decision.droppedUnclassified.length,
+  };
 }
 
 const findEmployeeInput = z
@@ -109,6 +150,7 @@ export function notFoundTask(taskId: string, ruleId: string, extra: Partial<Tool
     text: `Không tìm thấy task ${taskId}.`,
     reasonCode: null,
     outcome: 'not_found',
+    denyReason: null,
     ruleId,
     ...extra,
   };
@@ -148,14 +190,15 @@ const findEmployee = defineTool(
       visible.length > shown.length
         ? `Có ${visible.length} nhân viên khớp, chỉ hiện ${shown.length} người đầu. Hãy thu hẹp theo tên hoặc phòng.`
         : `Tìm thấy ${visible.length} nhân viên.`;
-    // The line names fields, never values, and stays outside the block: it is the gateway speaking, not the directory.
-    const hidden = hiddenFieldsLine(rules.fields, directory);
-    const note = hidden === null ? '' : `${hidden}\n`;
+    // The lines name fields, never values, and stay outside the block: they are the gateway speaking, not the directory.
+    const gate = readGate(rules, directory);
     return {
       status: 200,
-      text: `${heading}\n${note}${wrapSystemData(lines.join('\n'))}`,
+      text: `${heading}\n${gate.note}${wrapSystemData(lines.join('\n'))}`,
       reasonCode: null,
       outcome: 'ok',
+      denyReason: gate.denyReason,
+      droppedFields: gate.droppedFields,
       ...base,
     };
   },
@@ -175,8 +218,9 @@ const getTask = defineTool(
     const read = policy.readScope(actor.role, tasks.type);
     if (read.effect !== 'allow') return readRefusal(read);
 
-    const fields = policy.allowedFields(actor.role, tasks.type);
+    const fields = policy.allowedFields(actor.role, tasks.type, actor.identity.caller);
     if (fields.effect !== 'allow') return readRefusal({ ...fields, scope: read.scope });
+    const gate = readGate(fields, tasks);
 
     const objectId = tasks.idPattern.test(taskId) ? taskId : null;
     const base = { objectId, policyVersion: read.policyVersion } as const;
@@ -187,15 +231,22 @@ const getTask = defineTool(
 
     if (read.scope === 'own_department' && task[tasks.ownerField] !== actor.department) {
       // Same answer as a missing task; only the trace can tell them apart.
-      return notFoundTask(taskId, read.ruleId, { ...base, outOfScope: true, traceReasonCode: 'NOT_PERMITTED' });
+      return notFoundTask(taskId, read.ruleId, {
+        ...base,
+        outOfScope: true,
+        traceReasonCode: 'NOT_PERMITTED',
+        denyReason: denyReasonFor('NOT_PERMITTED', null),
+      });
     }
 
     return {
       status: 200,
-      text: `Task ${String(task['id'])}.\n${wrapSystemData(taskDetail(task, tasks, fields.fields))}`,
+      text: `Task ${String(task['id'])}.\n${gate.note}${wrapSystemData(taskDetail(task, tasks, fields.fields))}`,
       reasonCode: null,
       outcome: 'ok',
       ruleId: read.ruleId,
+      denyReason: gate.denyReason,
+      droppedFields: gate.droppedFields,
       ...base,
     };
   },
@@ -214,8 +265,9 @@ const listTasks = defineTool(
     const read = policy.readScope(actor.role, tasks.type);
     if (read.effect !== 'allow') return readRefusal(read);
 
-    const fields = policy.allowedFields(actor.role, tasks.type);
+    const fields = policy.allowedFields(actor.role, tasks.type, actor.identity.caller);
     if (fields.effect !== 'allow') return readRefusal({ ...fields, scope: read.scope });
+    const gate = readGate(fields, tasks);
 
     const base = { ruleId: read.ruleId, policyVersion: read.policyVersion } as const;
 
@@ -237,9 +289,11 @@ const listTasks = defineTool(
         : `Có ${found.length} task khớp.`;
     return {
       status: 200,
-      text: `${heading}\n${wrapSystemData(shown.map((task) => taskLine(task, fields.fields)).join('\n'))}`,
+      text: `${heading}\n${gate.note}${wrapSystemData(shown.map((task) => taskLine(task, fields.fields)).join('\n'))}`,
       reasonCode: null,
       outcome: 'ok',
+      denyReason: gate.denyReason,
+      droppedFields: gate.droppedFields,
       ...base,
     };
   },

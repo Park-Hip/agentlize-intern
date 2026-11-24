@@ -1,13 +1,16 @@
 import { z } from 'zod';
-import { REASON_CODES } from './reasons.js';
+import { DENY_REASONS, REASON_CODES } from './reasons.js';
 
 /**
  * The shape every tool returns. `reason_code` is always present so a caller can
  * branch on it without parsing the Vietnamese sentence; it is null on success.
+ * `deny_reason` is the gateway's own name for a refusal or a withheld field
+ * (ADR-0010 section 3.5), so a host can branch on the name it already knows.
  */
 export const toolResponseSchema = z.object({
   text: z.string().min(1),
   reason_code: z.enum(REASON_CODES).nullable(),
+  deny_reason: z.enum(DENY_REASONS).nullable(),
   trace_id: z.string().min(1),
 });
 
