@@ -21,6 +21,6 @@ export function denyReasonFor(code: ReasonCode | null, ruleId: string | null): D
  * role is the catch-all. The strings live here with the other names.
  */
 export function withheldFieldsReason(droppedByClient: boolean, hidden: boolean): DenyReason | null {
-  if (droppedByClient) return 'data_class_exceeds_client';
-  return hidden ? 'no_permission' : null;
+  if (droppedByClient) return denyReasonFor('NOT_PERMITTED', DATA_CLASS_RULE_SUFFIX);
+  return hidden ? denyReasonFor('NOT_PERMITTED', null) : null;
 }
