@@ -10,35 +10,25 @@ R&D repository for **AgentLize Next Gen AI 2026** (Appota Group), an 8 week inte
 - Central question: how can AI connect to, use and coordinate business tools and systems in a way that is safe, observable and reusable?
 - Delivery vehicle: the **AI Operations Connector Lab** mini project. Two simulated systems (an employee directory and a task list), one agent that reads data, checks permission, proposes an update and only writes after confirmation, plus two integration approaches built side by side for comparison.
 
-Authoritative sources:
-
-- `docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt`: extracted text for fast grep and citation.
-
-Read the  TXT for the full acceptance criteria, the R&D framework and the week by week plan.
+The authoritative source is `docs/program/Appota_AgentLize_Next_Gen_AI_RnD_8_Tuan_2026_Cap_Nhat.txt`, the program document as plain text.
+Read it for the full acceptance criteria, the R&D framework and the week by week plan.
 
 ## 2. Current state
 
-The research phase is done and summarized in `rd/findings.md`: the five integration models, real systems and the 2026 market were surveyed, and no product covers the Lab's problem end to end.
-The `lab/` prototype runs a gateway, two fake systems and an operator console; `lab/README.md` lists what each one already does.
-`tools/mcp-probe` recorded how Thổ Thần behaves as an MCP host; its results are in `rd/appota/tho-than-mcp-probe.md`.
-The current goal is a first prototype that plugs into Thổ Thần AI as an MCP server: the intern has a Thổ Thần account, and both the web and desktop apps connect to MCP servers.
-Host facts that constrain the design are summarized in `rd/findings.md` section 4: chat can call tools over stdio or over Streamable HTTP when the server has a public HTTPS address, chat calls in both web and desktop go through the Thổ Thần server, the host attaches identity headers but the Bearer key is set by whoever adds the skill, there is no approval step, and calls are cut at 60 seconds.
+The research is done and summarized in `rd/findings.md`, which also records the Thổ Thần host facts (section 4) and the next steps (section 8).
+The `lab/` prototype passed milestones 1-3 in Thổ Thần desktop; `lab/README.md` lists its packages and what each one does.
+Thổ Thần web cannot enable a custom skill yet (#65), so acceptance runs in the desktop app only.
+The two research questions of the prototype spec `rd/design/mvp-spec.md` are answered, with evidence in `rd/evaluation/`.
+The next direction is the write-safety spec `rd/design/write-safety-spec.md`: writing safely into target systems less reliable than the fake ones, pending ADR-0009.
+The plan for the current week is the last section of the latest file in `submitted/weekly-report/`.
+
+Stack and architecture are recorded in ADR-0001 to ADR-0008 in `docs/adr/`, and the lab implements all of them.
+Read the ADRs that touch an area before changing its business logic.
 
 The company ecosystem the lab plugs into is recorded in `docs/context/appota-ai-ecosystem.md` (AgentLize control plane, Thổ Thần AI execution plane, Kdata infrastructure, business data owners).
 It is context for where the work lands, not a decision on stack or architecture, and it needs Kevin to confirm it.
 
-Stack, architecture and prototype scope are recorded in ADR-0001 to ADR-0008 and the prototype spec.
-ADR-0007 (system adapters, rules as data, multi-item proposals, write outbox) and ADR-0008 (page password, approval inbox) replace the task-only write path before milestone 3.
-Read them before adding business logic.
-
-Setup, run and test commands are in section 6.
-
 ## 3. Way of working
-
-The program's R&D framework (explore, compare, question, propose, build, evaluate, package) is no longer the folder layout or a fixed gate order.
-Explore, compare, question and propose are done; their results live in `rd/findings.md`.
-
-What still applies:
 
 - **Prototype first, in the real host.** Build the smallest thing that runs inside Thổ Thần, then measure it.
 - **Evidence before claims.** A baseline and a test suite exist before any claim of success.
@@ -89,22 +79,15 @@ It exits 1 on a conflict with `main`, and prints a conflict with another open PR
 python tools/check-merge.py
 ```
 
-Re-run the source quote checks (they open the cited URLs, so they need network).
+Re-run the source quote checks, one script per document (they open the cited URLs, so they need network).
 
 ```
-bash rd/checks/prd-ai-platform.sh
-bash rd/checks/real-system-architectures.sh
-bash rd/checks/tho-than-platform.sh
-bash rd/checks/market-landscape.sh
-bash rd/checks/mausbot.sh
-bash rd/checks/eve.sh
+for f in rd/checks/*.sh; do bash "$f"; done
 ```
 
 ### Lab POC
 
 The lab is an npm workspace in `lab/` and needs Node 22 or newer.
-`lab/README.md` covers running the lab, the commands and the environment variables; each package's own README (`lab/gateway/README.md`, `lab/console/README.md`, `lab/fake-directory/README.md`, `lab/fake-tasks/README.md`, `lab/measure/README.md`) covers how that service or command behaves.
-Read them before changing the lab.
 
 ```
 cd lab
@@ -116,63 +99,17 @@ npm start
 ```
 
 `npm run lint` type-checks the workspace; `npm test` builds, then runs every `*-test.js` file, including a smoke test of the four services.
-`npm run sr` builds, runs the same tests once and prints one row per requirement SR1-SR8 with its test, pass and fail counts, using `lab/scripts/sr-map.json`; it exits 1 when a requirement has no test or a failing test.
+`npm run sr` runs the same tests once and prints one row per requirement SR1-SR8 from `lab/scripts/sr-map.json`; it exits 1 when a requirement has no test or a failing test.
 `npm start` opens the gateway on 127.0.0.1:8790, the fake directory on 8791, the fake task list on 8792 and the console on 8793.
 Run one package's tests with `npm test -w <folder>` (for example `npm test -w console`), or a subset with `npm test -w gateway -- --test-name-pattern policy`.
 Runtime data lives in `lab/.data` (git-ignored); the gateway reads its live rules from `rules.json` there, so `lab/gateway/policy/rules.json` is only the base copy.
 
-```
-npm run seed-keys [-- --rotate]
-npm run keys -- issue --employee NV-07 --caller tho-than-desktop [--scope read_only]
-npm run keys -- page-password --employee NV-07
-npm run keys -- list
-npm run trace -- --task T-12
-```
+The other commands (keys and page passwords, trace, measure, assistant, tunnel) are listed in `lab/README.md`, and each package's own README explains its command.
+Read them before changing the lab.
+`npm run assistant` spends real model credit: it needs `LAB_MODEL_API_KEY`, refuses to run in Vietnamese peak hours without `--allow-peak`, and stops when the balance falls under 0.20 USD.
+`npm run tunnel` exposes the gateway's `/mcp` for at most 45 minutes; the latest acceptance script that uses it is `rd/evaluation/milestone-3-tho-than.md`.
 
-`seed-keys` prints one tool key `lab_` and one page password `trang_` per persona; `--rotate` replaces both.
-The page password opens the gateway pages only, never a tool, and `page-password` replaces the previous one of that person.
-
-Measure one scenario against a private stack on free ports and a temporary data folder, or against a write target chosen with `--target` (default `gateway`).
-Only a scenario that declares the shared stack builds it.
-The command writes a small summary and a gzipped sample file with the environment and the safety counters; `--runs` defaults to 100 and `--out` defaults to `rd/evaluation/results/`.
-Scenarios are files in `lab/measure/src/scenarios/`; adding one does not edit a registry.
-`lab/measure/README.md` covers the result format, the five safety counters and how to add a scenario.
-
-```
-npm run measure -- m1-gateway --runs 100
-npm run measure -- q1-outbox --target gateway --runs 2
-```
-
-### Assistant cho Q2
-
-`npm run assistant -- --door <mcp|function> --job <việc> --runs N` chạy một việc của Q2 qua một cửa nối và ghi kết quả vào `rd/evaluation/results/`.
-`--door` chọn `mcp` (#108) hoặc `function` (#109); phần dùng chung nằm ở `lab/assistants/src/shared/`.
-`--job` chọn một trong bốn việc, `--runs` mặc định 1, `--max-steps` mặc định 8.
-Lệnh đọc số dư USD của DeepSeek trước khi chạy và sau mỗi 10 lượt; dừng khi dưới 0,20 USD.
-Trong giờ cao điểm 08:00-11:00 và 13:00-17:00 giờ Việt Nam, thứ Hai tới thứ Sáu, lệnh từ chối chạy nếu thiếu `--allow-peak`.
-Kết quả ghi số dư trước và sau, giờ cao điểm, và lý do dừng sớm nếu có.
-Khoá mô hình chỉ đọc từ `LAB_MODEL_API_KEY`, không in ra log; `npm test` dùng mô hình giả nên không cần khoá và không gọi mạng.
-`lab/assistants/README.md` mô tả biến môi trường, bốn việc, định dạng kết quả và cách thêm một việc.
-
-```
-npm run assistant -- --door mcp --job lookup-minh-phone --runs 1
-```
-
-### Tunnel for one acceptance session
-
-`npm run tunnel` (in `lab/`) exposes only the gateway's `/mcp` through a Cloudflare quick tunnel for at most 45 minutes.
-The step by step acceptance script is `rd/evaluation/milestone-1-tho-than.md`.
-
-### MCP probe for Thổ Thần
-
-`tools/mcp-probe` is a throwaway MCP server that recorded what Thổ Thần sends as an MCP host; it is not a lab component.
-Its modes, options and log format are in `tools/mcp-probe/README.md`.
-
-```
-cd tools/mcp-probe
-npm install
-npm run selftest   # must print SELFTEST PASSED: <n> checks
-```
+`tools/mcp-probe` is a throwaway MCP server that recorded how Thổ Thần behaves as an MCP host, not a lab component; see `tools/mcp-probe/README.md`.
 
 ## 7. Writing conventions
 
@@ -212,20 +149,21 @@ README.md        map of the repo
 AGENTS.md        this file
 docs/
   program/       the official program document, read only
-  context/       company context (ecosystem, track comparison)
+  context/       company context and read-only copies of mentor documents
   adr/           one file per decision: adr-0001-<slug>.md
 rd/              the R&D work, grouped by topic
   findings.md    what the research found and what we do next; start here
-  problem/       problem, users, requirements SR1-SR8 (PRD), glossary
+  problem/       problem, users, requirements SR1-SR8 (PRD), glossary, open problems
   research/      outside solutions: MCP, five integration models, real systems, market, comparison
   appota/        Appota's own systems: member company cases, AppotaPay skills, Thổ Thần
-  design/        solution candidates, open questions and how to test them
+  design/        specs, system map and plans for the next build
+  evaluation/    acceptance scripts and evaluation reports; measurement results in results/
   checks/        scripts that re-verify quoted claims, one per document: <doc-slug>.sh
-lab/             prototype code, created after the first ADR
+lab/             prototype code
 submitted/       PDFs handed in to the program, never edited afterwards
   weekly-report/ weekly reports sent to Lark: Markdown source and its PDF
   weekly-plan/   weekly plans sent to the mentor, named like weekly reports
-tools/           render, doc-check and merge-check scripts
+tools/           render, doc-check and merge-check scripts, and the Thổ Thần MCP probe
 dist/            generated PDFs (git-ignored)
 scratch/         agent working files and raw captures (git-ignored)
 ```
@@ -233,12 +171,16 @@ scratch/         agent working files and raw captures (git-ignored)
 Rules:
 
 - Put a document in the folder of its topic. File names carry no number or step.
-  Add a new topic folder only when it will hold at least two documents; evaluation reports go in `rd/evaluation/` and measurement results in `rd/evaluation/results/`.
+  Add a new topic folder only when it will hold at least two documents.
 - New findings that change the direction go into `rd/findings.md`, and the detailed document links back to it.
 - File names are lowercase ASCII kebab-case with a short English slug, for example `option-comparison.md`. Content stays Vietnamese.
 - Files whose name GitHub fixes (`.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/`) keep that name.
-- Three exceptions allow a number or date: `adr-0001-<slug>.md` (never renumbered), `YYYY-MM-DD-<slug>.pdf` in `submitted/` (the submission date), and `rd/evaluation/results/<YYYY-MM-DD>-<scenario>-<target>-<commit 7>.json` with its matching `<YYYY-MM-DD>-<scenario>-<target>-<commit 7>.samples.ndjson.gz`, where a measurement without a target drops the `<target>` segment and an optional `--variant` name sits just before the commit (the measurement date and the commit measured, written by `npm run measure`).
-  A weekly report or weekly plan keeps its Markdown source next to its PDF, both named `YYYY-MM-DD-week-<n>` after the Monday of its week.
+- Three exceptions allow a number or date:
+  - `adr-0001-<slug>.md`, never renumbered.
+  - `YYYY-MM-DD-<slug>.pdf` in `submitted/`, the submission date.
+    A weekly report or weekly plan keeps its Markdown source next to its PDF, both named `YYYY-MM-DD-week-<n>` after the Monday of its week.
+  - A measurement result in `rd/evaluation/results/`: a `.json` summary and a matching `.samples.ndjson.gz`, both named with the measurement date first and the 7 character commit measured last, and written by the command itself.
+    `npm run measure` writes `<YYYY-MM-DD>-<scenario>-<target>-<variant>-<commit>`, and `npm run assistant` writes `<YYYY-MM-DD>-assistant-<door>-<job>-<plan>-<commit>`; the target, variant and plan segments are dropped when absent.
 - No version or draft markers in file names (`v2`, `final`, `old`). Version history is git. A document that is replaced is deleted, not kept beside the new one.
 - A summary page for a document sits next to it with the same slug (`appota-cases.md` and `appota-cases.html`).
 - Every claim that rests on an external quote has a script in `rd/checks/`, named after its document, that can re-verify it.
@@ -274,16 +216,8 @@ Branches and pull requests:
 - Do not push to `main`. Branch from it as `<issue>-<slug>` (for example `12-employee-lookup`, the name GitHub's "Create a branch" gives) and keep the branch short-lived.
 - One purpose per PR, small enough to review in one sitting. Use `.github/pull_request_template.md`.
 - PR titles follow the commit style: a short imperative English sentence.
-- The last PR of an issue says `Closes #<n>`; earlier ones say `Refs #<n>`. A dependent chain of PRs can use GitHub stacked PRs (`gh stack`).
+- The last PR of an issue says `Closes #<n>`; earlier ones say `Refs #<n>`. A dependent chain of PRs can use GitHub stacked PRs (`gh stack`, installed with `gh extension install github/gh-stack`).
 - After any PR merges, rebase every open branch on the new `main` and run `python tools/check-merge.py`.
   Resolve a conflict in favour of what already merged, and never keep two implementations of the same thing.
 - Squash merge, after `python tools/check-docs.py`, `python tools/check-merge.py` and the relevant tests pass.
 - An agent working an issue opens the PR and keeps its description current. It never merges its own PR; the intern reviews and merges.
-
-One-time setup of the labels the forms use:
-
-```
-gh label create feature --color a2eeef --description "Kết quả kiểm chứng được"
-gh label create task --color c5def5 --description "Việc nhỏ, thường là việc con"
-gh label create research --color d876e3 --description "Câu hỏi có giới hạn thời gian"
-```

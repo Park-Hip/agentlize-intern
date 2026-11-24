@@ -1,6 +1,6 @@
 # PRD - AI Platform
 
-Ngày: 2026-11-15. Trạng thái: bản nháp, chờ mentor review.
+Ngày: 2026-11-19. Trạng thái: bản nháp, chờ mentor review.
 Câu chuyện, vai, ma trận quyền và mọi con số mục tiêu là giả định trên dữ liệu giả lập của Lab, chưa khảo sát người dùng và chưa đo.
 
 ## Đọc nhanh
@@ -94,14 +94,12 @@ Lab trả lời câu hỏi trung tâm của Track 01, nguyên văn:
 
 > "Làm sao để AI kết nối, sử dụng và phối hợp công cụ/hệ thống nghiệp vụ một cách an toàn, quan sát được và tái sử dụng được?"
 
-Trong bản PRD AgentLize Skill Studio, lớp "AgentLize Hook" kiểm "bạn là ai, thuộc phòng nào, có được dùng Skill này không".
-Lớp đó kiểm theo Skill và theo tool, và phục vụ việc đọc dữ liệu.
-Lab lo phần tiếp theo: khi Skill đã được bật và muốn ghi, từng lệnh ghi vẫn phải qua kiểm quyền theo từng tham số, duyệt khi rủi ro cao, chống ghi trùng và ghi vết.
+Lab là **lớp kiểm từng lệnh ở phía hệ thống nghiệp vụ**: mọi lệnh đọc và ghi của AI đi qua cổng của Lab trước khi chạm dữ liệu, dù lệnh đến từ Thổ Thần hay từ một trợ lý khác.
+Cổng kiểm quyền theo từng tham số, giữ bước duyệt khi rủi ro cao, chống ghi trùng và ghi vết.
 
-Nói gọn, Lab là **lớp ghi an toàn phía sau Hook**.
-Cách định vị này cần Kevin xác nhận.
-Nếu được xác nhận, tám yêu cầu ở mục 6 trở thành hợp đồng mà Hook và Skill phải tuân theo.
-Nếu không, Lab vẫn đứng riêng được, vì chạy hoàn toàn trên dữ liệu giả lập.
+Quyết định về quyền phải nằm ở cổng, không nằm ở nơi chat, vì hai lẽ.
+Một, ai có khoá cũng gọi thẳng được cổng mà không qua Thổ Thần ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)).
+Hai, các trợ lý khác không đi qua lớp kiểm nào của Thổ Thần.
 
 # 3. Người dùng và phạm vi thử
 

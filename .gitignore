@@ -1,5 +1,7 @@
 dist/
 scratch/
+# Bản chép đặc tả nội bộ của mentor: chỉ để đọc ở máy, repo này là public nên không commit (AGENTS.md mục 5).
+docs/context/mentor-agentlize-gateway-spec.md
 .lavish/
 *.render.html
 __pycache__/
