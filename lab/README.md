@@ -3,6 +3,7 @@
 Bản thử của Lab: một cổng kiểm soát đứng giữa AI và hai hệ thống giả (danh bạ nhân viên và danh sách task).
 AI đọc dữ liệu qua cổng, cổng kiểm quyền từng lời gọi, và chỉ ghi sau khi người yêu cầu bấm Gửi, cộng thêm trưởng nhóm duyệt khi luật đòi.
 Thổ Thần nối vào cổng qua cửa `/mcp`; người vận hành theo dõi và chỉnh luật trên trang điều khiển.
+Danh sách task giả chạy được tám hồ sơ đích đặt tên sẵn, từ `standard` giữ nguyên hành vi cũ tới các đích khó tính dùng cho phép đo Q3.
 
 ```
 Thổ Thần / client MCP ──► cổng :8790 ──► danh bạ giả :8791
