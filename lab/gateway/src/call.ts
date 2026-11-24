@@ -103,7 +103,7 @@ export function badRequest(status: number, sentence: string): ToolResult {
 function withDenyReason(result: ToolResult): ToolResult {
   if (result.denyReason !== undefined) return result;
   if (result.outcome === 'not_found' && result.outOfScope === true) {
-    return { ...result, denyReason: 'no_permission' };
+    return { ...result, denyReason: denyReasonFor('NOT_PERMITTED', null) };
   }
   return { ...result, denyReason: denyReasonFor(result.reasonCode, result.ruleId ?? null) };
 }

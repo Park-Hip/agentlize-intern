@@ -12,6 +12,7 @@ import {
 import { TASK_STATUSES } from '../adapters/tasks.js';
 import { badRequest, refuse } from '../call.js';
 import {
+  denyReasonFor,
   readRuleId,
   RULE_IDS,
   strictestOf,
@@ -343,7 +344,7 @@ const proposeTaskChange = defineTool(
         reasonCode: 'NOT_PERMITTED',
         ruleId: RULE_IDS.inputInvalid,
         policyVersion: null,
-        denyReason: 'no_permission',
+        denyReason: denyReasonFor('NOT_PERMITTED', null),
       };
       return refusalForDecision(refused, actions, context, built[0]?.recordId ?? '', tasks);
     }

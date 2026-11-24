@@ -14,3 +14,13 @@ export function denyReasonFor(code: ReasonCode | null, ruleId: string | null): D
   if (code === 'TARGET_CHANGED') return 'stale_target';
   return 'no_permission';
 }
+
+/**
+ * The name for a successful read that withheld fields, or null when it
+ * withheld none. A ceiling drop is the specific cause; a field hidden by the
+ * role is the catch-all. The strings live here with the other names.
+ */
+export function withheldFieldsReason(droppedByClient: boolean, hidden: boolean): DenyReason | null {
+  if (droppedByClient) return 'data_class_exceeds_client';
+  return hidden ? 'no_permission' : null;
+}

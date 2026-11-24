@@ -10,7 +10,7 @@ export {
   LOWEST_DATA_CLASS,
 } from './data-classes.js';
 export type { ClientClass, DataClass } from './data-classes.js';
-export { denyReasonFor } from './deny-reason.js';
+export { denyReasonFor, withheldFieldsReason } from './deny-reason.js';
 export {
   actionRuleId,
   createPolicyEngine,

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DATA_CLASSES, DATA_CLASS_RULE_SUFFIX, exceedsCeiling } from './data-classes.js';
-import { denyReasonFor } from './deny-reason.js';
+import { denyReasonFor, withheldFieldsReason } from './deny-reason.js';
 
 test('data classes: a ceiling allows equal and lower classes and rejects every higher class', () => {
   for (let field = 0; field < DATA_CLASSES.length; field++) {
@@ -29,4 +29,7 @@ test('deny reasons: one mapping owns the suffix, the stale target and the catch-
   assert.equal(denyReasonFor('POLICY_UNAVAILABLE', 'POLICY_UNAVAILABLE'), 'no_permission');
   assert.equal(denyReasonFor('NEEDS_APPROVAL', 'task.change_task_status.staff.bulk'), null);
   assert.equal(denyReasonFor(null, null), null);
+  assert.equal(withheldFieldsReason(true, true), 'data_class_exceeds_client');
+  assert.equal(withheldFieldsReason(false, true), 'no_permission');
+  assert.equal(withheldFieldsReason(false, false), null);
 });

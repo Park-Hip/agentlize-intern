@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { adapterOf, type RecordData, type ResourceAdapter } from '../adapters/index.js';
 import { TASK_STATUSES } from '../adapters/tasks.js';
 import { refuse } from '../call.js';
-import type { FieldsDecision, ReadDecision } from '../policy/index.js';
+import { denyReasonFor, withheldFieldsReason, type FieldsDecision, type ReadDecision } from '../policy/index.js';
 import { wrapSystemData } from './block.js';
 import type { RegisteredTool, ToolContext, ToolResult } from './types.js';
 
@@ -65,8 +65,7 @@ function readGate(
   adapter: ResourceAdapter,
 ): { readonly note: string; readonly denyReason: DenyReason | null; readonly droppedFields: number } {
   const hidden = hiddenFieldsLine(decision, adapter);
-  const denyReason =
-    decision.droppedByClient.length > 0 ? 'data_class_exceeds_client' : hidden === null ? null : 'no_permission';
+  const denyReason = withheldFieldsReason(decision.droppedByClient.length > 0, hidden !== null);
   return {
     note: hidden === null ? '' : `${hidden}\n`,
     denyReason,
@@ -236,7 +235,7 @@ const getTask = defineTool(
         ...base,
         outOfScope: true,
         traceReasonCode: 'NOT_PERMITTED',
-        denyReason: 'no_permission',
+        denyReason: denyReasonFor('NOT_PERMITTED', null),
       });
     }
 
