@@ -121,6 +121,7 @@ class HttpError extends Error {
     readonly code: string,
     readonly detail?: string,
     readonly headers: Record<string, string> = {},
+    readonly responseBody?: unknown,
   ) {
     super(code);
   }
@@ -204,8 +205,15 @@ function actorOf(req: IncomingMessage): string {
 function rateLimitHeaders(mode: RateLimitMode, waitMs: number): Record<string, string> {
   const seconds = String(Math.max(1, Math.ceil(waitMs / 1_000)));
   if (mode === 'retry_after') return { 'retry-after': seconds };
-  if (mode === 'custom_header') return { 'x-estimated-time-to-regain-access': seconds };
+  if (mode === 'custom_header') return { 'x-ogw-ratelimit-reset': seconds };
   return {};
+}
+
+function rateLimitBody(mode: RateLimitMode): unknown {
+  if (mode === 'custom_header') {
+    return { code: 99991400, msg: 'request trigger frequency limit' };
+  }
+  return undefined;
 }
 
 interface Waiting {
@@ -260,7 +268,13 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
         if (setting.mode === 'none') return;
         const wait = (): never => {
           const waitMs = Math.max(1, blockedUntil - now);
-          throw new HttpError(429, 'rate_limited', undefined, rateLimitHeaders(setting.mode, waitMs));
+          throw new HttpError(
+            429,
+            'rate_limited',
+            undefined,
+            rateLimitHeaders(setting.mode, waitMs),
+            rateLimitBody(setting.mode),
+          );
         };
         if (blockedUntil > now) {
           if (setting.mode === 'silent') blockedUntil = now + setting.extraBlockSeconds * 1_000;
@@ -312,6 +326,12 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
         return undefined;
       }
       if (repeat === 'conflict') throw new HttpError(409, 'write_in_progress');
+      if (repeat === 'conflict_1470422') {
+        throw new HttpError(500, 'client_token_conflict', undefined, {}, {
+          code: 1470422,
+          msg: 'concurrent requests with the same client_token',
+        });
+      }
       throw new HttpError(409, 'duplicate_idempotency_key');
     }
 
@@ -670,7 +690,12 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
         return;
       }
       if (error instanceof HttpError) {
-        const body = error.detail === undefined ? { error: error.code } : { error: error.code, detail: error.detail };
+        const body =
+          error.responseBody !== undefined
+            ? error.responseBody
+            : error.detail === undefined
+              ? { error: error.code }
+              : { error: error.code, detail: error.detail };
         sendJson(
           res,
           error.status,

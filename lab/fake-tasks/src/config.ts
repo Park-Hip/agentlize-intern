@@ -15,7 +15,7 @@ export type IdempotencyMemory = (typeof IDEMPOTENCY_MEMORY)[number];
 export const IDEMPOTENCY_SCOPES = ['service_key', 'token'] as const;
 export type IdempotencyScope = (typeof IDEMPOTENCY_SCOPES)[number];
 
-export const REPEAT_MODES = ['replay', 'duplicate_error', 'wait', 'conflict'] as const;
+export const REPEAT_MODES = ['replay', 'duplicate_error', 'wait', 'conflict', 'conflict_1470422'] as const;
 export type RepeatMode = (typeof REPEAT_MODES)[number];
 
 export const FINAL_RESULT_MODES = ['immediate', 'late'] as const;
@@ -92,7 +92,7 @@ const standard: TargetConfig = {
 const larkTask: TargetConfig = {
   ...standard,
   idempotency: {
-    create: { memory: 'seconds', memorySeconds: 300, scope: 'token', tokenSeconds: 7_200, repeat: 'conflict' },
+    create: { memory: 'seconds', memorySeconds: 300, scope: 'token', tokenSeconds: 7_200, repeat: 'conflict_1470422' },
     update: { memory: 'none', memorySeconds: 0, scope: 'service_key', tokenSeconds: 7_200, repeat: 'replay' },
   },
   versionCheck: false,

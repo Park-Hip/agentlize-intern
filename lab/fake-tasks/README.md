@@ -37,17 +37,17 @@ Tên hồ sơ lạ, JSON hỏng hoặc khoá không có trong bảng công tắc
 
 ## Chín công tắc
 
-Cột nguồn trỏ tới [khảo sát hệ thống thật](../../rd/research/target-system-gaps.md); "mục N" là mục trong tài liệu đó.
+Cột nguồn trỏ tới [khảo sát hệ thống thật](../../rd/research/target-system-gaps.md) hoặc [tài liệu Lark Open API](../../rd/research/lark-open-api.md); "mục N" là mục trong tài liệu được link.
 Chỗ ghi "giả định" là hành vi Lab tự đặt để đo, không lấy từ nguồn ngoài.
 
 | Công tắc | Giá trị | Mặc định `standard` | Nguồn |
 | --- | --- | --- | --- |
 | Nhớ mã | `forever`, `seconds` với `memorySeconds`, `none` | `forever` | Mục 3: Lark Task nhớ 5 phút, Stripe 24 giờ, Braintree 30 ngày |
 | Phạm vi nhớ mã | `service_key` dùng chung, `token` tách theo từng token với `tokenSeconds` | `service_key` | Mục 3: Lark Task chỉ nhận ra lệnh lặp khi cùng một token gửi, token sống khoảng 2 giờ |
-| Gặp lại mã | `replay` trả kết quả cũ, `duplicate_error` báo lỗi trùng, `wait` chờ lệnh đầu, `conflict` trả 409 đang chạy | `replay` | `replay` và `wait` là giả định của Lab; mục 2 cho lỗi trùng của Lark Approval; mục 8 cho 409 đang chạy của Stripe và Lark Task |
+| Gặp lại mã | `replay` trả kết quả cũ, `duplicate_error` báo lỗi trùng, `wait` chờ lệnh đầu, `conflict` trả 409 đang chạy, `conflict_1470422` trả 500 kèm mã 1470422 | `replay` | `replay` và `wait` là giả định của Lab; mục 2 cho lỗi trùng của Lark Approval; mục 8 cho 409 đang chạy của Stripe; [Lark API](../../rd/research/lark-open-api.md) mục 3.1 và 3.8 cho mã 1470422, câu `msg` là giả định |
 | Kiểm số phiên bản khi sửa | `true` trả 409 khi `expected_version` cũ, `false` bỏ qua và ghi đè | `true` | Mục 5: lệnh sửa của Lark Task không có số phiên bản |
 | Kết quả cuối | `immediate` trả bản ghi đã ghi, `late` trả 200 kèm `write_state: "processing"` rồi ghi hay báo lỗi sau `delayMs` | `immediate` | Mục 4: ACH, chuyển tiền sau giờ chốt, Google Play; tỉ lệ lỗi `failureEvery` là giả định |
-| Giới hạn tốc độ | `none`, `retry_after`, `custom_header`, `silent`; kèm `maxRequests`, `windowMs`, `retryAfterSeconds`, `extraBlockSeconds` | `none` | Mục 6: Meta dùng header riêng, Lark Approval 100 lần mỗi phút; cách khoá thêm của `silent` là giả định |
+| Giới hạn tốc độ | `none`, `retry_after`, `custom_header`, `silent`; kèm `maxRequests`, `windowMs`, `retryAfterSeconds`, `extraBlockSeconds` | `none` | Mục 6: Meta dùng header riêng, Lark Approval 100 lần mỗi phút; `custom_header` dùng `x-ogw-ratelimit-reset` và mã 99991400 của [Lark API](../../rd/research/lark-open-api.md) mục 3.6; cách khoá thêm của `silent` là giả định |
 | Độ trễ đọc | 0 hoặc `readDelayMs` mili giây | 0 | Mục 9: chưa có bằng chứng cho Lark, nên đây là giả định theo hệ thống đọc từ bản sao |
 | Việc kéo theo | `none`, `every_write` một thông báo mỗi lần ghi, `on_change` chỉ khi giá trị đổi | `none` | Mục 10: người theo dõi task của Lark nhận thông báo khi task đổi |
 | Lịch sử ghi theo người ghi | `true` ghi người ghi, `false` chỉ đếm mà không lộ người ghi | `true` | Giả định: công cụ quản trị game không lưu người ghi |
@@ -57,12 +57,12 @@ Chỗ ghi "giả định" là hành vi Lab tự đặt để đo, không lấy t
 | Hồ sơ | Khác `standard` ở đâu | Giống hệ thống nào | Nguồn |
 | --- | --- | --- | --- |
 | `standard` | Không khác | Hệ thống giả hôm nay | Lab, mốc so sánh |
-| `lark-task` | Tạo nhớ 300 giây theo từng token, token hết hạn, 409 khi cùng mã còn chạy; sửa không nhớ mã và không kiểm phiên bản; thông báo mỗi lần ghi | Lark Task | Mục 2, 3, 5, 8, 10 |
+| `lark-task` | Tạo nhớ 300 giây theo từng token, token hết hạn, trả HTTP 500 kèm mã 1470422 khi cùng mã còn chạy; sửa không nhớ mã và không kiểm phiên bản; thông báo mỗi lần ghi | Lark Task | Mục 2, 3, 5, 8, 10; [Lark API](../../rd/research/lark-open-api.md) mục 3.1 và 3.8 |
 | `lark-approval` | Tạo nhớ mãi và báo lỗi trùng | Lark Approval | Mục 2 |
 | `no-dedup` | Không nhớ mã; vẫn kiểm phiên bản; không có lịch sử người ghi | Công cụ quản trị game | Giả định |
 | `short-memory` | Nhớ 86.400 giây, rút xuống vài giây bằng `LAB_TASKS_SWITCHES` khi đo | Cổng thanh toán kiểu Stripe | Mục 3 |
 | `late-result` | Kết quả đến sau 1 giây; mỗi lần ghi thứ ba thất bại | Chuyển tiền sau giờ chốt, ghi nợ ACH | Mục 4; thời gian và tỉ lệ lỗi là giả định |
-| `rate-limited` | Như `standard`, cộng 2 lần ghi mỗi giây và 429 kèm `Retry-After`; đổi `mode` để thử header riêng hoặc im lặng | Meta, Lark Approval | Mục 6; hạn mức và thời gian chờ là giả định |
+| `rate-limited` | Như `standard`, cộng 2 lần ghi mỗi giây và 429 kèm `Retry-After`; đổi `mode` để thử `x-ogw-ratelimit-reset` của Lark hoặc im lặng | Meta, Lark Approval, Lark Task | Mục 6 và [Lark API](../../rd/research/lark-open-api.md) mục 3.6; hạn mức và thời gian chờ là giả định |
 | `stale-read` | Không nhớ mã, không kiểm phiên bản, đọc trễ 1 giây | Hệ thống đọc từ bản sao | Mục 9; độ trễ là giả định |
 
 ## Đường
@@ -92,7 +92,8 @@ Cả ba bước nằm trong một giao dịch SQLite, theo đúng thứ tự; c�
 
 Mã được kiểm trước phiên bản, nên một lệnh gửi lại sau khi đã ghi thành công nhận phản hồi cũ chứ không nhận 409.
 Chỉ lần ghi thành công được lưu theo mã.
-Hai lệnh cùng mã đến khi lệnh đầu còn chạy thì `wait` chờ lệnh đầu, `conflict` trả 409 `write_in_progress`, và `duplicate_error` trả 409 `duplicate_idempotency_key`.
+Khi lệnh cùng mã đến lúc lệnh đầu còn chạy, `wait` chờ lệnh đầu, `conflict` trả 409 `write_in_progress`, và `conflict_1470422` trả 500 kèm mã 1470422.
+`duplicate_error` trả 409 `duplicate_idempotency_key` cho mọi lần gặp lại; các chế độ còn lại trả kết quả cũ.
 
 ## Đường cho phép thử
 

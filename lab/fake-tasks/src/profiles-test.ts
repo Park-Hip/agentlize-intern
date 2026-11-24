@@ -58,6 +58,17 @@ test('profile smoke: lark-task remembers create keys per token, skips version ch
   assert.equal(replay.headers.get('idempotent-replayed'), 'true');
   assert.equal(((await replay.json()) as { task: { id: string } }).task.id, createdId);
 
+  await h.call('POST', '/admin/faults', {
+    body: { mode: 'hold_item_before_commit', position: 2, delay_ms: 500 },
+  });
+  const firstRunning = createTask(h, 'proposal:2', CREATE, { token });
+  await sleep(200);
+  const secondRunning = await createTask(h, 'proposal:2', CREATE, { token });
+  assert.equal(secondRunning.status, 500);
+  assert.equal(((await secondRunning.json()) as { code: number }).code, 1470422);
+  assert.equal((await firstRunning).status, 201);
+  assert.equal(((await (await h.call('GET', '/tasks')).json()) as { tasks: unknown[] }).tasks.length, 102);
+
   assert.equal((await patch(h, 'T-12', 'smoke-lark-update-1', { status: 'doing' })).status, 200);
   assert.equal((await patch(h, 'T-12', 'smoke-lark-update-2', { status: 'doing' })).status, 200);
   assert.equal((await getTask(h, 'T-12')).version, 3);

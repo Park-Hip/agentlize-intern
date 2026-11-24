@@ -127,6 +127,20 @@ test('switch: a repeated key replays, errors, waits or conflicts', async (t) => 
   assert.equal(((await secondConflict.json()) as { error: string }).error, 'write_in_progress');
   assert.equal((await firstConflict).status, 200);
   assert.equal(await writeCount(conflicts, 'T-12'), 1);
+
+  const larkConflict = await harness(t, {
+    switches: { idempotency: { update: { repeat: 'conflict_1470422' } } },
+  });
+  await larkConflict.call('POST', '/admin/faults', {
+    body: { mode: 'hold_item_before_commit', position: 2, delay_ms: 500 },
+  });
+  const firstLarkConflict = patch(larkConflict, 'T-12', 'proposal:2', { status: 'doing' }, 1);
+  await sleep(150);
+  const secondLarkConflict = await patch(larkConflict, 'T-12', 'proposal:2', { status: 'doing' }, 1);
+  assert.equal(secondLarkConflict.status, 500);
+  assert.equal(((await secondLarkConflict.json()) as { code: number }).code, 1470422);
+  assert.equal((await firstLarkConflict).status, 200);
+  assert.equal(await writeCount(larkConflict, 'T-12'), 1);
 });
 
 test('switch: version check refuses a stale version or accepts and overwrites', async (t) => {
@@ -227,8 +241,9 @@ test('switch: rate limit passes, reports Retry-After, a custom header, or nothin
   assert.equal((await patch(custom, 'T-12', 'rate-custom-1', { status: 'doing' }, 1)).status, 200);
   const customLimited = await patch(custom, 'T-13', 'rate-custom-2', { status: 'doing' }, 1);
   assert.equal(customLimited.status, 429);
-  assert.equal(customLimited.headers.get('x-estimated-time-to-regain-access'), '1');
+  assert.equal(customLimited.headers.get('x-ogw-ratelimit-reset'), '1');
   assert.equal(customLimited.headers.get('retry-after'), null);
+  assert.deepEqual(await customLimited.json(), { code: 99991400, msg: 'request trigger frequency limit' });
 
   const silent = await harness(t, {
     switches: {
@@ -239,7 +254,7 @@ test('switch: rate limit passes, reports Retry-After, a custom header, or nothin
   const firstBlock = await patch(silent, 'T-13', 'rate-silent-2', { status: 'doing' }, 1);
   assert.equal(firstBlock.status, 429);
   assert.equal(firstBlock.headers.get('retry-after'), null);
-  assert.equal(firstBlock.headers.get('x-estimated-time-to-regain-access'), null);
+  assert.equal(firstBlock.headers.get('x-ogw-ratelimit-reset'), null);
   assert.equal((await patch(silent, 'T-14', 'rate-silent-3', { status: 'doing' }, 1)).status, 429);
   await sleep(1_200);
   assert.equal((await patch(silent, 'T-15', 'rate-silent-4', { status: 'doing' }, 1)).status, 429);
