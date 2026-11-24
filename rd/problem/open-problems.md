@@ -1,6 +1,6 @@
 # Những vấn đề cổng kiểm soát còn phải giải
 
-Ngày: 2026-11-24. Trạng thái: danh mục đã đối chiếu với mã Lab, gom từ hai đợt nghiên cứu; cách giải còn là đề xuất.
+Ngày: 2026-11-24. Trạng thái: danh mục đã đối chiếu với mã Lab; đã chọn hướng 1 làm trọng tâm của spec ghi an toàn; cách giải còn là đề xuất.
 
 ## Đọc nhanh
 
