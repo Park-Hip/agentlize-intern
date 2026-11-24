@@ -7,14 +7,14 @@ Quyết định 1 và 2 trong [tài liệu khớp cổng AgentLize, mục 2.1 v�
 ## Đọc nhanh
 
 - Vấn đề: cổng của công ty giới hạn mỗi loại ứng dụng AI (client) chỉ được nhận dữ liệu tới một mức nhạy cảm nhất định, gọi là mức trần (ceiling).
-- Bản thử của Lab mới có quyền theo vai và phòng, nên chị Hoa bên nhân sự tra số điện thoại của anh Minh qua một ứng dụng chạy trên máy cá nhân vẫn thấy số đó.
+- Bản thử của Lab mới có quyền theo vai và phòng, nên chị Nhung bên nhân sự tra số điện thoại của anh Minh qua một ứng dụng chạy trên máy cá nhân vẫn thấy số đó.
 - Quyết định: mỗi trường dữ liệu mang một lớp dữ liệu (data class); mỗi ứng dụng có một mức trần; cổng chỉ trả trường vừa được vai cho phép vừa nằm dưới trần.
 - Ứng dụng không cộng thêm quyền, chỉ hạ trần; tên ứng dụng lấy từ bản ghi khoá, không lấy từ lời gọi.
 - Việc tiếp theo: dựng lược đồ file luật, lõi chính sách, câu từ chối và phép thử; lời từ chối dùng chung tên với cổng của công ty.
 
 ## 1. Bối cảnh
 
-Ví dụ xuyên suốt: chị Hoa bên nhân sự nhờ AI tra anh Minh để lấy số điện thoại.
+Ví dụ xuyên suốt: chị Nhung bên nhân sự nhờ AI tra anh Minh để lấy số điện thoại.
 Qua Thổ Thần, chị thấy số đó, vì Thổ Thần do Appota vận hành.
 Qua một ứng dụng chạy trên máy cá nhân, chị không được thấy số đó, dù dùng cùng một khoá và cùng quyền nhân sự.
 
@@ -184,13 +184,13 @@ Một lần tìm không có ai khớp thì không phải từ chối, nên `deny
 ### 3.6. Vết ghi tên ứng dụng và số trường bị bỏ
 
 Bảng vết đã có cột `caller`, nên tên ứng dụng đã được ghi ở mỗi dòng.
-ADR này thêm cột `dropped_fields`, một số nguyên đếm số tên trường bị bỏ vì vượt trần trong lần gọi đó.
+ADR này thêm cột `dropped_fields`, một số nguyên đếm số tên trường bị bỏ vì vượt trần hoặc vì chưa khai lớp trong lần gọi đó.
 Đếm theo tên trường, không theo số bản ghi: tìm mười nhân viên mà cùng bỏ `personal_phone` thì đếm là một.
 Với một đề xuất bị từ chối vì trường vượt trần, đếm số trường của hành động bị chặn.
 Vết không ghi tên trường và không ghi giá trị, chỉ ghi số, để không mang dữ liệu cá nhân vào sổ.
 
 Dòng vết cũ trong cơ sở dữ liệu nhận giá trị 0 khi cột được thêm.
-Cột `out_of_scope` giữ nghĩa cũ là bị che vì phạm vi; trường vượt trần dùng `dropped_fields` và `deny_reason`.
+Cột `out_of_scope` giữ nghĩa cũ là bị che vì phạm vi; trường bị client bỏ dùng `dropped_fields` và `deny_reason`.
 
 ### 3.7. Màn hình luật của console
 
@@ -215,7 +215,7 @@ Không bộ tiếp hợp nào phải sửa, nên phần "dùng lại" của SR8 
   Đây là hậu quả có chủ ý của SR5, không phải một lỗi im lặng: câu trả lời nêu tên trường bị bỏ và vết đếm chúng.
 - Mọi nơi gọi đang dùng phải có hồ sơ, nếu không sẽ mất dữ liệu.
   Bản gốc khai `tho-than-desktop`, `tho-than-web`, `fc-assistant`, `lab-console`, `test` và `user_device` để giữ hành vi cũ và có một ứng dụng thử.
-- Khoá `user_device` của chị Hoa đọc được dữ liệu nội bộ nhưng không đọc được số điện thoại hay địa chỉ nhà.
+- Khoá `user_device` của chị Nhung đọc được dữ liệu nội bộ nhưng không đọc được số điện thoại hay địa chỉ nhà.
   Đây là bằng chứng nghiệm thu của issue #154, không phải một quyền mới.
 - Bảng vết thêm một cột; cơ sở dữ liệu cũ được thêm cột với giá trị 0.
 - Câu trả lời HTTP và MCP thêm một trường; bên gọi cũ bỏ qua trường lạ nên không phải sửa.
@@ -231,14 +231,14 @@ Không bộ tiếp hợp nào phải sửa, nên phần "dùng lại" của SR8 
 | Điều cần đúng | Phép thử |
 | --- | --- |
 | Ứng dụng không cộng quyền | `policy scope: a client never adds a right and lowers the ceiling like the table`: intern qua mọi ứng dụng vẫn bị từ chối; staff qua mọi ứng dụng vẫn được; ứng dụng máy cá nhân không biến một ô `deny` thành `allow` |
-| Hạ trần đúng bảng | Chị Hoa qua `tho-than-desktop` thấy số điện thoại; qua `user_device` không thấy, và câu trả lời nêu tên trường với lý do `data_class_exceeds_client` |
+| Hạ trần đúng bảng | Chị Nhung qua `tho-than-desktop` thấy số điện thoại; qua `user_device` không thấy, và câu trả lời nêu tên trường với lý do `data_class_exceeds_client` |
 | Hai nơi gọi cùng mức trần | `SR8: two callers with the same ceiling get the same fields`: hai khoá khác tên nhưng cùng mức trần cho cùng câu trả lời |
 | Trường thiếu lớp | Xoá `personal_phone` khỏi `data_classes` trong một file tạm: trường đó không ra, các trường khác vẫn ra, vết đếm 1 |
 | File luật không đọc được | Các phép thử `policy unavailable` và `read: a rule file that cannot be read stops every tool` vẫn phải đạt: không trường nào ra |
 | Ứng dụng chưa khai | Gọi bằng một tên không có trong `clients`: không nhận trường nào; `dropped_fields` bằng số trường của vai |
-| Ghi trường vượt trần | Đổi lớp `work_email` thành `employee_personal` trong file tạm: chị Hoa qua `user_device` soạn `edit_work_email` bị từ chối với `data_class_exceeds_client`, không có đề xuất và không có lệnh ghi |
+| Ghi trường vượt trần | Đổi lớp `work_email` thành `employee_personal` trong file tạm: chị Nhung qua `user_device` soạn `edit_work_email` bị từ chối với `data_class_exceeds_client`, không có đề xuất và không có lệnh ghi |
 | `deny_reason` ở hai cửa | `NOT_PERMITTED` cho `no_permission`, `TARGET_CHANGED` cho `stale_target`, vượt trần cho `data_class_exceeds_client`; JSON của `/v1/tools` và `_meta` của `/mcp` cùng giá trị |
-| Vết ghi tên ứng dụng và số trường | Dòng vết của lần gọi bằng `user_device` có `caller = 'user_device'` và `dropped_fields = 2` khi chị Hoa tra anh Minh |
+| Vết ghi tên ứng dụng và số trường | Dòng vết của lần gọi bằng `user_device` có `caller = 'user_device'` và `dropped_fields = 2` khi chị Nhung tra anh Minh |
 | Console giữ khoá mới | Đọc một file có `clients` và `data_classes`, lưu qua màn hình luật, đọc lại: hai khối còn nguyên |
 | SR8 trong PRD | Câu mới có mặt trong bảng yêu cầu; `lab/scripts/sr-map.json` có mẫu tên của hai phép thử mới |
 

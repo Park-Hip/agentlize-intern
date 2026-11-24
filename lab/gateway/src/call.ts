@@ -1,5 +1,5 @@
 import { performance } from 'node:perf_hooks';
-import { BodyError, maskKey, refusalMessage, type DenyReason, type ReasonCode, type ToolKind } from '@lab/shared';
+import { BodyError, maskKey, refusalMessage, type ReasonCode, type ToolKind } from '@lab/shared';
 import { z } from 'zod';
 import { adapterOf, SystemUnavailableError, type ResourceAdapter } from './adapters/index.js';
 import type {
@@ -9,7 +9,7 @@ import type {
   KeyStore,
   PagePasswordStore,
 } from './identity/index.js';
-import { RULE_IDS, type PolicyEngine } from './policy/index.js';
+import { denyReasonFor, RULE_IDS, type PolicyEngine } from './policy/index.js';
 import type { ProposalExecutor, ProposalStore } from './proposals/index.js';
 import type { CommandStore } from './writes/index.js';
 import type { RegisteredTool, ToolResult } from './tools/types.js';
@@ -78,18 +78,6 @@ const REFUSAL_SENTENCE: Readonly<Partial<Record<ReasonCode, string>>> = {
   GATEWAY_UNAVAILABLE: 'Cổng không nối được với danh bạ hoặc danh sách task. Hãy thử lại sau, hoặc báo người vận hành Lab.',
 };
 
-/**
- * The gateway's name for one refusal (ADR-0010 section 3.5). The two specific
- * causes keep their own name; everything else is the catch-all, because the
- * company vocabulary has exactly three names and `reason_code` keeps the
- * precise internal cause.
- */
-export function denyReasonOf(code: ReasonCode, ruleId: string): DenyReason {
-  if (ruleId.endsWith('.data_class')) return 'data_class_exceeds_client';
-  if (code === 'TARGET_CHANGED') return 'stale_target';
-  return 'no_permission';
-}
-
 /** `sentence` replaces the default one when the caller can say more, such as who to ask. */
 export function refuse(code: ReasonCode, ruleId: string, sentence?: string): ToolResult {
   return {
@@ -98,7 +86,7 @@ export function refuse(code: ReasonCode, ruleId: string, sentence?: string): Too
     reasonCode: code,
     outcome: 'refused',
     ruleId,
-    denyReason: denyReasonOf(code, ruleId),
+    denyReason: denyReasonFor(code, ruleId),
   };
 }
 
@@ -114,13 +102,10 @@ export function badRequest(status: number, sentence: string): ToolResult {
  */
 function withDenyReason(result: ToolResult): ToolResult {
   if (result.denyReason !== undefined) return result;
-  if (result.reasonCode === null || result.reasonCode === 'NEEDS_APPROVAL') {
-    return { ...result, denyReason: null };
+  if (result.outcome === 'not_found' && result.outOfScope === true) {
+    return { ...result, denyReason: 'no_permission' };
   }
-  if (result.reasonCode === 'TARGET_CHANGED') return { ...result, denyReason: 'stale_target' };
-  if ((result.ruleId ?? '').endsWith('.data_class')) return { ...result, denyReason: 'data_class_exceeds_client' };
-  if (result.outcome === 'not_found' && result.outOfScope !== true) return { ...result, denyReason: null };
-  return { ...result, denyReason: 'no_permission' };
+  return { ...result, denyReason: denyReasonFor(result.reasonCode, result.ruleId ?? null) };
 }
 
 function describeInputProblem(error: z.ZodError): string {

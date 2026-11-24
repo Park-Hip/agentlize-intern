@@ -2,12 +2,15 @@ export { strictestOf } from './actions.js';
 export {
   CLIENT_CLASSES,
   DATA_CLASSES,
+  DATA_CLASS_RULE_SUFFIX,
   dataClassRank,
+  exceedsCeiling,
   isClientClass,
   isDataClass,
   LOWEST_DATA_CLASS,
 } from './data-classes.js';
 export type { ClientClass, DataClass } from './data-classes.js';
+export { denyReasonFor } from './deny-reason.js';
 export {
   actionRuleId,
   createPolicyEngine,

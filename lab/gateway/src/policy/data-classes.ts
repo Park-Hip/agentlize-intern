@@ -33,6 +33,14 @@ export function dataClassRank(value: string): number | null {
   return Object.hasOwn(DATA_CLASS_RANK, value) ? DATA_CLASS_RANK[value as DataClass] : null;
 }
 
+/** True when a field's class is more sensitive than the client's ceiling; equal is allowed. */
+export function exceedsCeiling(dataClass: DataClass, ceiling: DataClass): boolean {
+  return DATA_CLASS_RANK[dataClass] > DATA_CLASS_RANK[ceiling];
+}
+
+/** The rule-id suffix that marks a refusal caused by the client ceiling, in one place. */
+export const DATA_CLASS_RULE_SUFFIX = '.data_class';
+
 export function isDataClass(value: string): value is DataClass {
   return Object.hasOwn(DATA_CLASS_RANK, value);
 }

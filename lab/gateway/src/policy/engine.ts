@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import type { DenyReason } from '@lab/shared';
 import { ADAPTER_DECLARATIONS } from '../adapters/registry.js';
 import type { RecordDeclaration } from '../adapters/types.js';
-import { dataClassRank, LOWEST_DATA_CLASS } from './data-classes.js';
+import { DATA_CLASS_RULE_SUFFIX, exceedsCeiling, LOWEST_DATA_CLASS } from './data-classes.js';
 import type { ClientClass, DataClass } from './data-classes.js';
+import { denyReasonFor } from './deny-reason.js';
 import {
   createRulesSchema,
   policyInputSchema,
@@ -124,8 +124,7 @@ export function fieldsRuleId(type: string, role: string): string {
 interface ClientChoice {
   readonly name: string;
   readonly clientClass: ClientClass | null;
-  /** null only when no rule file could be read. */
-  readonly ceiling: DataClass | null;
+  readonly ceiling: DataClass;
   readonly declared: boolean;
 }
 
@@ -141,19 +140,13 @@ function dataClassOf(resource: Rules['resources'][string] | undefined, field: st
   return resource.data_classes[field] ?? null;
 }
 
-/** The gateway name for a policy denial: the data-class cause, then the catch-all (ADR-0010 section 3.5). */
-function denyReasonOf(ruleId: string, effect: PolicyEffect): DenyReason | null {
-  if (effect !== 'deny') return null;
-  return ruleId.endsWith('.data_class') ? 'data_class_exceeds_client' : 'no_permission';
-}
-
 function unavailable(): PolicyDecision {
   return {
     effect: 'deny',
     reasonCode: 'POLICY_UNAVAILABLE',
     ruleId: RULE_IDS.unavailable,
     policyVersion: null,
-    denyReason: 'no_permission',
+    denyReason: denyReasonFor('POLICY_UNAVAILABLE', null),
   };
 }
 
@@ -165,7 +158,7 @@ function decisionOf(candidate: Candidate, policyVersion: number): PolicyDecision
     reasonCode,
     ruleId: candidate.ruleId,
     policyVersion,
-    denyReason: denyReasonOf(candidate.ruleId, candidate.effect),
+    denyReason: denyReasonFor(reasonCode === 'ALLOWED' ? null : reasonCode, candidate.ruleId),
   };
 }
 
@@ -224,8 +217,8 @@ function evaluate(rules: Rules, input: PolicyInput, vocabulary: Vocabulary): Pol
     if (dataClass === null) {
       return deny(`${fieldsRuleId('employee', actor.role)}.data_class_undeclared`, version);
     }
-    if (client.ceiling !== null && (dataClassRank(dataClass) ?? 0) > (dataClassRank(client.ceiling) ?? 0)) {
-      return deny(`${fieldsRuleId('employee', actor.role)}.data_class`, version);
+    if (exceedsCeiling(dataClass, client.ceiling)) {
+      return deny(`${fieldsRuleId('employee', actor.role)}${DATA_CLASS_RULE_SUFFIX}`, version);
     }
     return decisionOf({ effect: 'allow', ruleId: fieldsRuleId('employee', actor.role) }, version);
   }
@@ -268,8 +261,8 @@ function evaluate(rules: Rules, input: PolicyInput, vocabulary: Vocabulary): Pol
       if (dataClass === null) {
         return deny(`${baseRule}.data_class_undeclared`, version);
       }
-      if (client.ceiling !== null && (dataClassRank(dataClass) ?? 0) > (dataClassRank(client.ceiling) ?? 0)) {
-        return deny(`${baseRule}.data_class`, version);
+      if (exceedsCeiling(dataClass, client.ceiling)) {
+        return deny(`${baseRule}${DATA_CLASS_RULE_SUFFIX}`, version);
       }
     }
   }
@@ -372,10 +365,7 @@ export function createPolicyEngine(options: PolicyEngineOptions = {}): PolicyEng
           const dataClass = dataClassOf(resource, field);
           if (dataClass === null) {
             droppedUnclassified.push(field);
-          } else if (
-            chosen.ceiling !== null &&
-            (dataClassRank(dataClass) ?? 0) > (dataClassRank(chosen.ceiling) ?? 0)
-          ) {
+          } else if (exceedsCeiling(dataClass, chosen.ceiling)) {
             droppedByClient.push(field);
           } else {
             visible.push(field);

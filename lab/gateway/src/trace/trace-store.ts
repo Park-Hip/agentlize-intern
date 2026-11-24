@@ -54,7 +54,10 @@ export interface TraceRecord {
   readonly idempotencyKey?: string | null;
   /** How many times a write command had been sent when this line was written. */
   readonly attempts?: number | null;
-  /** Distinct field names the client ceiling removed from this answer (ADR-0010 section 3.6). */
+  /**
+   * Distinct field names the client gate removed from this answer, whether the
+   * field was above the ceiling or had no class (ADR-0010 sections 3.6 and 5).
+   */
   readonly droppedFields?: number;
   readonly durationMs: number;
 }
