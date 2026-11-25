@@ -155,12 +155,8 @@ function pressApproval(
 }
 
 /** Nhung asks to change the work email of Minh, who belongs to another department. */
-async function waitingEmployeeProposal(f: GatewayFixture): Promise<{ id: string; text: string }> {
-  const answer = await f.call(
-    'propose_employee_change',
-    { employee_id: MINH, work_email: 'minh.moi@lab.example' },
-    f.keyFor(NHUNG),
-  );
+async function waitingEmployeeProposal(f: GatewayFixture, email: string): Promise<{ id: string; text: string }> {
+  const answer = await f.call('propose_employee_change', { employee_id: MINH, work_email: email }, f.keyFor(NHUNG));
   assert.equal(answer.status, 200, answer.body.text);
   assert.equal(answer.body.reason_code, 'NEEDS_APPROVAL');
   const { id } = linkOf(answer.body.text);
@@ -233,7 +229,7 @@ for (const mode of APPROVER_MODES) {
       const wrong = right.id === QUANG ? MAI : QUANG;
 
       // Who may approve: a cross-department email change names the right lead and only that lead sees it.
-      const email = await waitingEmployeeProposal(f);
+      const email = await waitingEmployeeProposal(f, 'minh.moi1@lab.example');
       assert.match(email.text, new RegExp(right.name), 'the propose answer names the lead the rule file picks');
       assert.doesNotMatch(email.text, new RegExp(right.id === QUANG ? 'Hồ Thanh Mai' : 'Trần Văn Quang'));
 
@@ -278,7 +274,7 @@ for (const mode of APPROVER_MODES) {
       assert.equal(f.gateway.commands.listByProposal(self.id).length, 0);
 
       // A moved lead: the same person is no longer in the department the rule file names.
-      const moved = await waitingEmployeeProposal(f);
+      const moved = await waitingEmployeeProposal(f, 'minh.moi2@lab.example');
       const movedBrowser = await signInForApproval(f, right.id, moved.id);
       const movedTo = right.id === QUANG ? 'Kinh doanh' : 'Vận hành';
       f.systems.employees = f.systems.employees.map((person) =>
