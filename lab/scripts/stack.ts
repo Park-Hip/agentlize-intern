@@ -191,6 +191,11 @@ export async function startStack(options: StartStackOptions = {}): Promise<LabSt
   // Fail before spawning anything if an inherited key is too short.
   readServiceKey(serviceEnv);
 
+  // The lark-task profile reassigns with add_members then remove_members; the gateway follows the same profile.
+  if (serviceEnv['LAB_TASKS_PROFILE'] === 'lark-task') {
+    serviceEnv['LAB_TASKS_ASSIGNEE_MODE'] = 'members';
+  }
+
   for (const name of startedServices) {
     serviceEnv[PORT_ENV[name]] = String(ports[name]);
   }

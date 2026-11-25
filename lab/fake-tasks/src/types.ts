@@ -16,8 +16,17 @@ export interface Task {
   readonly id: string;
   readonly title: string;
   readonly description: string;
-  /** Employee code such as `NV-03`. The directory owns what the code means. */
+  /**
+   * Employee code such as `NV-03`. The directory owns what the code means.
+   * A task may hold several members when the target profile has `memberCalls`;
+   * this field is then the first member, so old readers keep working.
+   */
   readonly assignee: string;
+  /**
+   * The full member list, only returned by a profile with `memberCalls`.
+   * `assignee` repeats its first element; the two never disagree.
+   */
+  readonly assignees?: readonly string[];
   readonly department: Department;
   readonly status: TaskStatus;
   /** Calendar date `YYYY-MM-DD`. */

@@ -45,6 +45,19 @@ export interface OtherWriteInput {
   readonly now: number;
 }
 
+export interface MemberInput {
+  readonly taskId: string;
+  /** Employee codes to add or remove. A code that is already in the wanted state is ignored. */
+  readonly members: readonly string[];
+  readonly actor: string;
+  readonly now: number;
+}
+
+export interface AddMemberInput extends MemberInput {
+  /** The write command key; a repeat with the same content replays the old answer. */
+  readonly idempotencyKey: string;
+}
+
 /** A response worth keeping: the exact status and body a caller received. */
 export interface StoredResponse {
   readonly status: number;
@@ -88,6 +101,22 @@ export type OtherWriteOutcome =
   | { readonly kind: 'conflict'; readonly currentVersion: number }
   | { readonly kind: 'written'; readonly task: Task };
 
+export type MemberOutcome =
+  /** The add key was seen with the same content: the old answer, untouched. */
+  | { readonly kind: 'replayed'; readonly response: StoredResponse }
+  /** The add key was seen with different content. */
+  | { readonly kind: 'key_reused' }
+  | { readonly kind: 'not_found' }
+  /** The member was already there, or already gone: no write. */
+  | { readonly kind: 'unchanged'; readonly response: StoredResponse }
+  | { readonly kind: 'written'; readonly response: StoredResponse };
+
+/** A remove call has no key, so it never replays and never reuses a key. */
+export type RemoveMemberOutcome =
+  | { readonly kind: 'not_found' }
+  | { readonly kind: 'unchanged'; readonly response: StoredResponse }
+  | { readonly kind: 'written'; readonly response: StoredResponse };
+
 export interface WriteEntry {
   readonly id: number;
   readonly key: string;
@@ -105,6 +134,8 @@ interface TaskRow {
   title: string;
   description: string;
   assignee: string;
+  /** JSON array of employee codes; `assignee` is its first element. */
+  assignees: string;
   department: Department;
   status: TaskStatus;
   due: string;
@@ -139,6 +170,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   assignee TEXT NOT NULL,
+  assignees TEXT NOT NULL DEFAULT '[]',
   department TEXT NOT NULL,
   status TEXT NOT NULL,
   due TEXT NOT NULL,
@@ -207,18 +239,57 @@ export function createFingerprint(input: CreateInput): string {
     .digest('hex');
 }
 
-function toTask(row: TaskRow): Task {
+/** The member list of a stored row; an old row without the column holds its single assignee. */
+function membersOf(row: TaskRow): string[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(row.assignees);
+  } catch {
+    return [row.assignee];
+  }
+  if (!Array.isArray(parsed)) return [row.assignee];
+  return parsed.filter((value): value is string => typeof value === 'string' && value !== '');
+}
+
+/** The member list of a task the store just built. */
+function taskMembers(task: Task): string[] {
+  return [...(task.assignees ?? [task.assignee])];
+}
+
+function toTask(row: TaskRow, withAssignees: boolean): Task {
+  const assignees = membersOf(row);
   return {
     id: row.id,
     title: row.title,
     description: row.description,
-    assignee: row.assignee,
+    // The first member is the old single-assignee field, so an old reader keeps working.
+    assignee: assignees[0] ?? row.assignee,
     department: row.department,
     status: row.status,
     due: row.due,
     version: row.version,
+    ...(withAssignees ? { assignees } : {}),
   };
 }
+
+/** Same member change, same key: same fingerprint, whatever the order of the codes. */
+function memberFingerprint(operation: 'add' | 'remove', input: MemberInput): string {
+  const members = [...input.members].sort();
+  return createHash('sha256').update(JSON.stringify([operation, input.taskId, members])).digest('hex');
+}
+
+/**
+ * Add and remove member calls remember their key forever and per service key,
+ * like the rest of the Lab's target. A profile scoped by caller token would
+ * reject the gateway's member call, which carries no `X-Lab-Token`.
+ */
+const MEMBER_KEY_SWITCH: IdempotencySwitch = {
+  memory: 'forever',
+  memorySeconds: 0,
+  scope: 'service_key',
+  tokenSeconds: 7_200,
+  repeat: 'replay',
+};
 
 function differs(task: Task, changes: TaskChanges): boolean {
   return Object.entries(changes).some(([field, value]) => task[field as keyof TaskChanges] !== value);
@@ -265,6 +336,8 @@ export class TaskStore {
     this.#db.pragma('synchronous = FULL');
     this.#db.exec(SCHEMA);
     this.#addMissingKeyColumns();
+    this.#addMissingTaskColumns();
+    this.#backfillMembers();
 
     const count = this.#db.prepare('SELECT COUNT(*) AS n FROM tasks').get() as { n: number };
     if (count.n === 0) this.#seed();
@@ -296,13 +369,18 @@ export class TaskStore {
       for (const field of ['assignee', 'department', 'status'] as const) {
         const value = filter[field];
         if (value !== undefined) {
-          clauses.push(`${field} = ?`);
+          // A task matches any of its members, not only the first one.
+          clauses.push(
+            field === 'assignee'
+              ? 'EXISTS (SELECT 1 FROM json_each(tasks.assignees) WHERE json_each.value = ?)'
+              : `${field} = ?`,
+          );
           values.push(value);
         }
       }
       const where = clauses.length === 0 ? '' : `WHERE ${clauses.join(' AND ')}`;
       const rows = this.#db.prepare(`SELECT * FROM tasks ${where} ORDER BY seq`).all(...values) as TaskRow[];
-      return rows.map(toTask);
+      return rows.map((row) => toTask(row, this.#config.memberCalls));
     }
 
     const ids = this.#db.prepare('SELECT id FROM tasks ORDER BY seq').all() as { id: string }[];
@@ -315,7 +393,7 @@ export class TaskStore {
       const row = pick.get(id, visibleAt) as { body: string } | undefined;
       if (row === undefined) continue;
       const task = JSON.parse(row.body) as Task;
-      if (filter.assignee !== undefined && task.assignee !== filter.assignee) continue;
+      if (filter.assignee !== undefined && !taskMembers(task).includes(filter.assignee)) continue;
       if (filter.department !== undefined && task.department !== filter.department) continue;
       if (filter.status !== undefined && task.status !== filter.status) continue;
       tasks.push(task);
@@ -335,6 +413,28 @@ export class TaskStore {
 
   otherWrite(input: OtherWriteInput): OtherWriteOutcome {
     return this.#other(input);
+  }
+
+  /** Lark Task's add_members: a key, an existing member ignored, one version per real change. */
+  addMembers(input: AddMemberInput): MemberOutcome {
+    return this.#db
+      .transaction((value: AddMemberInput): MemberOutcome => this.#addMembersInTransaction(value))
+      .immediate(input);
+  }
+
+  /** Lark Task's remove_members: no key, an absent member ignored, one version per real change. */
+  removeMembers(input: MemberInput): RemoveMemberOutcome {
+    return this.#db
+      .transaction((value: MemberInput): RemoveMemberOutcome => this.#removeMembersInTransaction(value))
+      .immediate(input);
+  }
+
+  /** How many tasks hold more than one assignee right now. */
+  multipleAssigneeCount(): number {
+    const row = this.#db
+      .prepare('SELECT COUNT(*) AS n FROM tasks WHERE json_array_length(assignees) > 1')
+      .get() as { n: number };
+    return row.n;
   }
 
   /** Apply or fail a write whose result was promised for later. */
@@ -408,6 +508,18 @@ export class TaskStore {
     }
   }
 
+  #addMissingTaskColumns(): void {
+    const columns = this.#db.prepare('PRAGMA table_info(tasks)').all() as { name: string }[];
+    if (!columns.some((column) => column.name === 'assignees')) {
+      this.#db.exec("ALTER TABLE tasks ADD COLUMN assignees TEXT NOT NULL DEFAULT '[]'");
+    }
+  }
+
+  /** An older database has no member column yet; its one assignee becomes the list of one. */
+  #backfillMembers(): void {
+    this.#db.prepare("UPDATE tasks SET assignees = json_array(assignee) WHERE assignees = '[]' AND assignee != ''").run();
+  }
+
   #maxSeq(): number {
     const row = this.#db.prepare('SELECT COALESCE(MAX(seq), 0) AS n FROM tasks').get() as { n: number };
     return row.n;
@@ -415,7 +527,7 @@ export class TaskStore {
 
   #seed(): void {
     const insert = this.#db.prepare(
-      'INSERT INTO tasks (seq, id, title, description, assignee, department, status, due, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (seq, id, title, description, assignee, assignees, department, status, due, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
     const version = this.#db.prepare(
       'INSERT INTO task_versions (task_id, version, body, visible_at) VALUES (?, ?, ?, 0)',
@@ -428,12 +540,17 @@ export class TaskStore {
           task.title,
           task.description,
           task.assignee,
+          JSON.stringify([task.assignee]),
           task.department,
           task.status,
           task.due,
           task.version,
         );
-        version.run(task.id, task.version, JSON.stringify(task));
+        version.run(
+          task.id,
+          task.version,
+          JSON.stringify(this.#publicTask({ ...task, assignees: [task.assignee] })),
+        );
       });
     });
     insertAll(seedTasks());
@@ -447,14 +564,31 @@ export class TaskStore {
       'INSERT INTO task_versions (task_id, version, body, visible_at) VALUES (?, ?, ?, 0)',
     );
     const insertAll = this.#db.transaction((tasks: TaskRow[]) => {
-      for (const row of tasks) insert.run(row.id, row.version, JSON.stringify(toTask(row)));
+      for (const row of tasks) {
+        insert.run(row.id, row.version, JSON.stringify(this.#publicTask(toTask(row, this.#config.memberCalls))));
+      }
     });
     insertAll(rows);
   }
 
+  /** What a reader sees: the member list only on a profile that simulates the two member calls. */
+  #publicTask(task: Task): Task {
+    if (this.#config.memberCalls) return task;
+    return {
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      assignee: task.assignee,
+      department: task.department,
+      status: task.status,
+      due: task.due,
+      version: task.version,
+    };
+  }
+
   #currentTask(id: string): Task | undefined {
     const row = this.#db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) as TaskRow | undefined;
-    return row === undefined ? undefined : toTask(row);
+    return row === undefined ? undefined : toTask(row, this.#config.memberCalls);
   }
 
   #savedKey(key: string, sw: IdempotencySwitch, now: number): KeyRow | undefined {
@@ -530,26 +664,84 @@ export class TaskStore {
     log: boolean,
     kind: 'patch' | 'other',
   ): { task: Task; notifications: number } {
-    const next: Task = { ...current, ...changes, version: current.version + 1 };
+    // A direct assignee change is still one member, so the list stays truthful.
+    const members = changes.assignee === undefined ? taskMembers(current) : [changes.assignee];
+    const next: Task = {
+      ...current,
+      ...changes,
+      assignee: members[0] ?? '',
+      assignees: members,
+      version: current.version + 1,
+    };
     this.#db
-      .prepare('UPDATE tasks SET description = ?, assignee = ?, status = ?, due = ?, version = ? WHERE id = ?')
-      .run(next.description, next.assignee, next.status, next.due, next.version, next.id);
+      .prepare(
+        'UPDATE tasks SET description = ?, assignee = ?, assignees = ?, status = ?, due = ?, version = ? WHERE id = ?',
+      )
+      .run(
+        next.description,
+        next.assignee,
+        JSON.stringify(members),
+        next.status,
+        next.due,
+        next.version,
+        next.id,
+      );
     this.#db.prepare('INSERT INTO writes (task_id, key) VALUES (?, ?)').run(next.id, key);
     const notifications = notificationFor(this.#config.notifications, current, changes);
     if (log) {
       this.#logWrite(next.id, key, actor, kind, Object.keys(changes), notifications, 'applied', now, now);
     }
-    this.#recordVersion(next, now + this.#config.readDelayMs);
-    return { task: next, notifications };
+    const visible = this.#publicTask(next);
+    this.#recordVersion(visible, now + this.#config.readDelayMs);
+    return { task: visible, notifications };
+  }
+
+  /** One real membership change: a version, a write count, a write log entry and a notification rule. */
+  #applyMembers(
+    current: Task,
+    members: readonly string[],
+    key: string,
+    actor: string,
+    now: number,
+    kind: 'add_members' | 'remove_members',
+  ): Task {
+    const next: Task = {
+      ...current,
+      assignee: members[0] ?? '',
+      assignees: [...members],
+      version: current.version + 1,
+    };
+    this.#db
+      .prepare('UPDATE tasks SET assignee = ?, assignees = ?, version = ? WHERE id = ?')
+      .run(next.assignee, JSON.stringify(members), next.version, next.id);
+    this.#db.prepare('INSERT INTO writes (task_id, key) VALUES (?, ?)').run(next.id, key);
+    // Any real membership change is a change, including one that leaves the first member in place.
+    const notifications = notificationFor(this.#config.notifications, null, null);
+    this.#logWrite(next.id, key, actor, kind, ['assignee'], notifications, 'applied', now, now);
+    const visible = this.#publicTask(next);
+    this.#recordVersion(visible, now + this.#config.readDelayMs);
+    return visible;
   }
 
   #insertTask(task: Task, key: string, actor: string, now: number, log: boolean): number {
     const seq = Number(task.id.slice(2));
+    const members = [task.assignee];
     this.#db
       .prepare(
-        'INSERT INTO tasks (seq, id, title, description, assignee, department, status, due, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO tasks (seq, id, title, description, assignee, assignees, department, status, due, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       )
-      .run(seq, task.id, task.title, task.description, task.assignee, task.department, task.status, task.due, task.version);
+      .run(
+        seq,
+        task.id,
+        task.title,
+        task.description,
+        task.assignee,
+        JSON.stringify(members),
+        task.department,
+        task.status,
+        task.due,
+        task.version,
+      );
     this.#db.prepare('INSERT INTO writes (task_id, key) VALUES (?, ?)').run(task.id, key);
     const notifications = notificationFor(this.#config.notifications, null, null);
     if (log) {
@@ -565,7 +757,7 @@ export class TaskStore {
         now,
       );
     }
-    this.#recordVersion(task, now + this.#config.readDelayMs);
+    this.#recordVersion(this.#publicTask(task), now + this.#config.readDelayMs);
     return notifications;
   }
 
@@ -654,6 +846,64 @@ export class TaskStore {
     return { kind: 'written', response };
   }
 
+  #memberResponse(task: Task): StoredResponse {
+    return { status: 200, body: `${JSON.stringify({ task })}\n` };
+  }
+
+  #addMembersInTransaction(input: AddMemberInput): MemberOutcome {
+    const print = memberFingerprint('add', input);
+    // Each API has its own key space, so a due PATCH with the same command key cannot collide.
+    const savedKey = `member:add:${input.idempotencyKey}`;
+    const seen = this.#savedKey(savedKey, MEMBER_KEY_SWITCH, input.now);
+    if (seen !== undefined) {
+      if (seen.fingerprint !== print) return { kind: 'key_reused' };
+      return { kind: 'replayed', response: { status: seen.status, body: seen.body } };
+    }
+
+    const current = this.#currentTask(input.taskId);
+    if (current === undefined) return { kind: 'not_found' };
+
+    const before = taskMembers(current);
+    const added = input.members.filter((member) => !before.includes(member));
+    if (added.length === 0) {
+      const response = this.#memberResponse(current);
+      this.#saveKey(savedKey, print, input.taskId, response, 'done', input.now);
+      return { kind: 'unchanged', response };
+    }
+
+    const task = this.#applyMembers(
+      current,
+      [...before, ...added],
+      input.idempotencyKey,
+      input.actor,
+      input.now,
+      'add_members',
+    );
+    const response = this.#memberResponse(task);
+    this.#saveKey(savedKey, print, input.taskId, response, 'done', input.now);
+    return { kind: 'written', response };
+  }
+
+  #removeMembersInTransaction(input: MemberInput): RemoveMemberOutcome {
+    const current = this.#currentTask(input.taskId);
+    if (current === undefined) return { kind: 'not_found' };
+
+    const before = taskMembers(current);
+    const after = before.filter((member) => !input.members.includes(member));
+    if (after.length === before.length) return { kind: 'unchanged', response: this.#memberResponse(current) };
+
+    // remove_members has no client token on Lark; the generated key only labels the local write log.
+    const task = this.#applyMembers(
+      current,
+      after,
+      `member:remove:${input.taskId}:${input.now}`,
+      input.actor,
+      input.now,
+      'remove_members',
+    );
+    return { kind: 'written', response: this.#memberResponse(task) };
+  }
+
   #createInTransaction(input: CreateInput): CreateOutcome {
     const sw = this.#config.idempotency.create;
     const print = createFingerprint(input);
@@ -672,6 +922,7 @@ export class TaskStore {
       title: input.title,
       description: input.description,
       assignee: input.assignee,
+      assignees: [input.assignee],
       department: input.department,
       status: input.status,
       due: input.due,
@@ -683,7 +934,7 @@ export class TaskStore {
       const willFail =
         this.#config.finalResult.failureEvery > 0 &&
         this.#lateSequence % this.#config.finalResult.failureEvery === 0;
-      const response = processingResponse(task, input.now + this.#config.finalResult.delayMs);
+      const response = processingResponse(this.#publicTask(task), input.now + this.#config.finalResult.delayMs);
       const logId = this.#logWrite(
         task.id,
         input.idempotencyKey,
@@ -715,7 +966,7 @@ export class TaskStore {
     }
 
     this.#insertTask(task, input.idempotencyKey, input.actor, input.now, true);
-    const response: StoredResponse = { status: 201, body: `${JSON.stringify({ task })}\n` };
+    const response: StoredResponse = { status: 201, body: `${JSON.stringify({ task: this.#publicTask(task) })}\n` };
     if (sw.memory !== 'none') {
       this.#saveKey(input.idempotencyKey, print, task.id, response, 'done', input.now);
     }
@@ -804,6 +1055,6 @@ export class TaskStore {
     this.#db
       .prepare('UPDATE write_log SET state = ?, notifications = ?, applied_at = ? WHERE id = ?')
       .run('applied', notifications, now, job.logId);
-    this.#finishKey(job.key, { status: 201, body: `${JSON.stringify({ task: intended })}\n` });
+    this.#finishKey(job.key, { status: 201, body: `${JSON.stringify({ task: this.#publicTask(intended) })}\n` });
   }
 }

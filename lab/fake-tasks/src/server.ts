@@ -15,7 +15,9 @@ import {
 import { readTargetConfig, type IdempotencySwitch, type RateLimitMode, type RepeatMode } from './config.js';
 import {
   TaskStore,
+  type AddMemberInput,
   type LateJob,
+  type MemberInput,
   type PatchInput,
   type StoredResponse,
   type TaskFilter,
@@ -68,10 +70,20 @@ const otherWriteBodySchema = z.strictObject({
   expected_version: z.number().int().min(1).optional(),
 });
 
+const memberBodySchema = z.strictObject({
+  members: z.array(z.string().regex(EMPLOYEE_CODE)).min(1).max(100),
+});
+
+/** Which write a drop fault applies to; the default keeps the old behaviour for every write. */
+const dropCalls = ['any', 'add_members', 'remove_members'] as const;
+type DropCall = (typeof dropCalls)[number];
+
 const faultBodySchema = z.discriminatedUnion('mode', [
   z.strictObject({
     mode: z.literal('drop_response_after_commit'),
     count: z.number().int().min(0).max(1_000).default(1),
+    /** Only a member call of this kind is dropped; a PATCH or create does not use the fault. */
+    call: z.enum(dropCalls).default('any'),
   }),
   z.strictObject({
     /** Commit, then hold the answer open so a test can stop the caller before it hears the result. */
@@ -244,6 +256,8 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
 
   /** Committed writes whose response is still to be dropped (test hook). */
   let dropsLeft = 0;
+  /** The write kind a drop fault waits for; `any` keeps the old behaviour. */
+  let dropCall: DropCall = 'any';
   /** Committed writes whose response is held open for a while (test hook). */
   let delaysLeft = 0;
   let delayMs = 0;
@@ -399,6 +413,7 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
     res: ServerResponse,
     key: string,
     response: StoredResponse,
+    kind: 'patch' | 'create' | 'add_members' | 'remove_members',
   ): void {
     if (!heldBeforeCommit && heldPosition !== null && positionOfKey(key) === heldPosition) {
       const afterMs = heldMs;
@@ -406,7 +421,7 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
       answerLater(res, response, afterMs);
       return;
     }
-    if (dropsLeft > 0) {
+    if (dropsLeft > 0 && (dropCall === 'any' || dropCall === kind)) {
       // The write is committed; the caller never hears about it.
       dropsLeft -= 1;
       req.socket.destroy();
@@ -427,6 +442,10 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
       throw new HttpError(400, 'invalid_idempotency_key', 'Idempotency-Key header is required');
     }
     const parsed = parseBody(bodySchema, body);
+    if (config.memberCalls && parsed.changes.assignee !== undefined) {
+      // Lark Task: "Task member/reminder/tasklist data cannot be updated by this api."
+      throw new HttpError(400, 'assignee_not_patchable', 'Change task members through add_members and remove_members');
+    }
     const sw = config.idempotency.update;
     const now = Date.now();
     const scope = scopeOf(sw, req, now);
@@ -460,7 +479,7 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
           sendJson(res, 409, { error: 'version_conflict', current_version: outcome.currentVersion });
           return;
         case 'written':
-          sendCommitted(req, res, storedKey, outcome.response);
+          sendCommitted(req, res, storedKey, outcome.response, 'patch');
           return;
         case 'accepted':
           scheduleLate(outcome.job);
@@ -508,7 +527,7 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
         case 'duplicate':
           throw new HttpError(409, 'duplicate_idempotency_key', 'This key was used before');
         case 'written':
-          sendCommitted(req, res, storedKey, outcome.response);
+          sendCommitted(req, res, storedKey, outcome.response, 'create');
           return;
         case 'accepted':
           scheduleLate(outcome.job);
@@ -517,6 +536,71 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
       }
     } finally {
       leaveInFlight(storedKey, entry);
+    }
+  }
+
+  async function handleAddMembers(req: IncomingMessage, res: ServerResponse, taskId: string, body: unknown): Promise<void> {
+    const key = req.headers['idempotency-key'];
+    if (typeof key !== 'string' || !KEY_PATTERN.test(key)) {
+      throw new HttpError(400, 'invalid_idempotency_key', 'Idempotency-Key header is required');
+    }
+    const parsed = parseBody(memberBodySchema, body);
+    const actor = actorOf(req);
+    const now = Date.now();
+    limiter.enforce(now);
+
+    const input: AddMemberInput = {
+      taskId,
+      members: parsed.members,
+      actor,
+      idempotencyKey: key,
+      now,
+    };
+    const outcome = store.addMembers(input);
+    switch (outcome.kind) {
+      case 'replayed':
+        sendRaw(res, outcome.response, { 'idempotent-replayed': 'true' });
+        return;
+      case 'key_reused':
+        throw new HttpError(422, 'idempotency_key_reused', 'This key was used with different content');
+      case 'not_found':
+        throw new HttpError(404, 'task_not_found');
+      case 'unchanged':
+        sendRaw(res, outcome.response);
+        return;
+      case 'written':
+        sendCommitted(req, res, key, outcome.response, 'add_members');
+        return;
+    }
+  }
+
+  async function handleRemoveMembers(
+    req: IncomingMessage,
+    res: ServerResponse,
+    taskId: string,
+    body: unknown,
+  ): Promise<void> {
+    const parsed = parseBody(memberBodySchema, body);
+    const actor = actorOf(req);
+    const now = Date.now();
+    limiter.enforce(now);
+
+    const input: MemberInput = {
+      taskId,
+      members: parsed.members,
+      actor,
+      now,
+    };
+    const outcome = store.removeMembers(input);
+    switch (outcome.kind) {
+      case 'not_found':
+        throw new HttpError(404, 'task_not_found');
+      case 'unchanged':
+        sendRaw(res, outcome.response);
+        return;
+      case 'written':
+        sendCommitted(req, res, `member:remove:${taskId}:${now}`, outcome.response, 'remove_members');
+        return;
     }
   }
 
@@ -548,6 +632,18 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
       throw new HttpError(405, 'method_not_allowed');
     }
 
+    const memberMatch = /^\/tasks\/([^/]+)\/(add_members|remove_members)$/.exec(path);
+    if (memberMatch !== null) {
+      if (!config.memberCalls) throw new HttpError(404, 'not_found');
+      const id = decodeURIComponent(memberMatch[1] ?? '');
+      if (!TASK_ID.test(id)) throw new HttpError(404, 'task_not_found');
+      if (method !== 'POST') throw new HttpError(405, 'method_not_allowed');
+      const body = await readJson(req);
+      if (memberMatch[2] === 'add_members') await handleAddMembers(req, res, id, body);
+      else await handleRemoveMembers(req, res, id, body);
+      return;
+    }
+
     const taskMatch = /^\/tasks\/([^/]+)$/.exec(path);
     if (taskMatch !== null) {
       const id = decodeURIComponent(taskMatch[1] ?? '');
@@ -574,6 +670,7 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
         limiter.reset();
         store.reset();
         dropsLeft = 0;
+        dropCall = 'any';
         delaysLeft = 0;
         delayMs = 0;
         heldPosition = null;
@@ -586,6 +683,7 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
         const fault = parseBody(faultBodySchema, await readJson(req));
         if (fault.mode === 'hold_item_after_commit' || fault.mode === 'hold_item_before_commit') {
           dropsLeft = 0;
+          dropCall = 'any';
           delaysLeft = 0;
           delayMs = 0;
           heldPosition = fault.position;
@@ -599,15 +697,17 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
         heldBeforeCommit = false;
         if (fault.mode === 'delay_response_after_commit') {
           dropsLeft = 0;
+          dropCall = 'any';
           delaysLeft = fault.count;
           delayMs = fault.delay_ms;
           sendJson(res, 200, { mode: fault.mode, count: delaysLeft, delay_ms: delayMs });
           return;
         }
         dropsLeft = fault.count;
+        dropCall = fault.call;
         delaysLeft = 0;
         delayMs = 0;
-        sendJson(res, 200, { mode: fault.mode, count: dropsLeft });
+        sendJson(res, 200, { mode: fault.mode, count: dropsLeft, call: dropCall });
         return;
       }
       if (path === '/admin/write-count' && method === 'GET') {
@@ -626,6 +726,10 @@ export async function startTasksServer(options: TasksServerOptions = {}): Promis
         const task = url.searchParams.get('task');
         if (task === null || !TASK_ID.test(task)) throw new HttpError(400, 'invalid_query', 'task');
         sendJson(res, 200, { task, count: store.notificationCount(task) });
+        return;
+      }
+      if (path === '/admin/multiple-assignee-count' && method === 'GET') {
+        sendJson(res, 200, { count: store.multipleAssigneeCount() });
         return;
       }
       if (path === '/admin/writes' && method === 'GET') {

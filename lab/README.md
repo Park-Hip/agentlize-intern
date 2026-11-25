@@ -82,6 +82,7 @@ Lệnh trả mã lỗi khi một yêu cầu không có phép thử nào, khi m�
 | `LAB_GATEWAY_PORT` | 8790 | Cổng mạng của cổng kiểm soát |
 | `LAB_DIRECTORY_PORT` | 8791 | Cổng mạng của danh bạ giả |
 | `LAB_TASKS_PORT` | 8792 | Cổng mạng của task giả |
+| `LAB_TASKS_ASSIGNEE_MODE` | `patch` | Cách cổng đổi người phụ trách: `patch` sửa thẳng như cũ, `members` thêm người mới rồi bỏ người cũ bằng hai lời gọi; `npm start` và lệnh đo tự đặt `members` khi chạy hồ sơ `lark-task` |
 | `LAB_LEAVE_PORT` | 8794 | Cổng mạng của hệ thống đơn nghỉ phép giả |
 | `LAB_LEAVE_PROFILE` | `standard` | Hồ sơ đơn nghỉ phép: `standard` nhớ khoá tạo đơn, `no-dedup` quên khoá đó |
 | `LAB_LEAVE_DECISION_DELAY_MS` | 5000 | Số mili giây quản lý nguồn chờ trước khi tự duyệt hoặc từ chối |
