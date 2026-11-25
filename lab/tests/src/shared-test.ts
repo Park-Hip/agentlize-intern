@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   DEFAULT_PORTS,
   GATEWAY_UNAVAILABLE,
+  PENDING_LIMIT,
   POLICY_REASON_CODES,
   PORT_ENV,
   REASON_CODES,
@@ -12,11 +13,11 @@ import {
   toolResponseSchema,
 } from '@lab/shared';
 
-test('shared: ten policy codes plus the gateway code', () => {
+test('shared: ten policy codes, the gateway code and the pending cap code', () => {
   assert.equal(POLICY_REASON_CODES.length, 10);
-  assert.equal(REASON_CODES.length, 11);
-  assert.equal(new Set(REASON_CODES).size, 11);
-  assert.deepEqual([...REASON_CODES], [...POLICY_REASON_CODES, GATEWAY_UNAVAILABLE]);
+  assert.equal(REASON_CODES.length, 12);
+  assert.equal(new Set(REASON_CODES).size, 12);
+  assert.deepEqual([...REASON_CODES], [...POLICY_REASON_CODES, GATEWAY_UNAVAILABLE, PENDING_LIMIT]);
 });
 
 test('shared: refusal text keeps the fixed prefix and one line', () => {
@@ -30,17 +31,35 @@ test('shared: refusal text keeps the fixed prefix and one line', () => {
   assert.throws(() => refusalMessage('NOT_PERMITTED', '   '), /one Vietnamese sentence/);
 });
 
-test('shared: tool response carries text, reason_code, deny_reason and trace_id', () => {
+test('shared: tool response carries the gateway status and the two free-text flags', () => {
   const parsed = toolResponseSchema.parse({
     text: 'Đã ghi',
     reason_code: null,
     deny_reason: null,
+    gateway_status: 'executed',
+    untrusted_content: true,
+    truncated: false,
     trace_id: 'trace-01',
     extra: 'must be dropped',
   });
-  assert.deepEqual(Object.keys(parsed).sort(), ['deny_reason', 'reason_code', 'text', 'trace_id']);
-  assert.equal(parsed.reason_code, null);
-  assert.equal(parsed.deny_reason, null);
+  assert.deepEqual(Object.keys(parsed).sort(), [
+    'deny_reason',
+    'gateway_status',
+    'reason_code',
+    'text',
+    'trace_id',
+    'truncated',
+    'untrusted_content',
+  ]);
+  assert.equal(parsed.gateway_status, 'executed');
+  assert.equal(parsed.untrusted_content, true);
+  assert.equal(parsed.truncated, false);
+
+  // An older answer without the three newer keys still parses, so a client
+  // built before them keeps working.
+  const older = toolResponseSchema.parse({ text: 'Đã ghi', reason_code: null, deny_reason: null, trace_id: 'trace-01' });
+  assert.equal(older.gateway_status, undefined);
+  assert.equal(older.untrusted_content, undefined);
 
   assert.throws(() =>
     toolResponseSchema.parse({ text: '', reason_code: null, deny_reason: null, trace_id: 'trace-01' }),
@@ -50,6 +69,15 @@ test('shared: tool response carries text, reason_code, deny_reason and trace_id'
   );
   assert.throws(() =>
     toolResponseSchema.parse({ text: 'x', reason_code: null, deny_reason: 'NOT_A_REASON', trace_id: 'trace-01' }),
+  );
+  assert.throws(() =>
+    toolResponseSchema.parse({
+      text: 'x',
+      reason_code: null,
+      deny_reason: null,
+      gateway_status: 'unknown',
+      trace_id: 'trace-01',
+    }),
   );
 });
 

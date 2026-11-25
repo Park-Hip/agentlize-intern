@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { runTraceCli } from '../cli/trace.js';
 import { openGatewayDatabase, type GatewayDatabase } from '../database.js';
+import { DEFAULT_PENDING_LIMIT } from '../policy/index.js';
 import { ProposalStore } from '../proposals/proposal-store.js';
 import { TraceStore, type TraceRecord } from './trace-store.js';
 
@@ -63,7 +64,7 @@ function seed(): Seeded {
       previous: { assignee: 'NV-03' },
       changes: { assignee: 'NV-04' },
     })),
-  });
+  }, DEFAULT_PENDING_LIMIT);
   const rejected = proposals.create({
     requester: HOA,
     caller: 'tho-than-desktop',
@@ -81,7 +82,7 @@ function seed(): Seeded {
       previous: { description: 'Mô tả cũ.' },
       changes: { description: 'Mô tả mới.' },
     })),
-  });
+  }, DEFAULT_PENDING_LIMIT);
   const trace = new TraceStore(db, () => new Date('2026-11-18T09:05:00.000Z'));
 
   const rows: TraceRecord[] = [

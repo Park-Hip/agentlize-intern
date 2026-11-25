@@ -70,7 +70,14 @@ function buildServer(
         content: [{ type: 'text', text: result.text }],
         // A refusal or a failure is an error to the host; "not found" is an answer.
         isError: result.outcome === 'refused' || result.outcome === 'error',
-        _meta: { reason_code: result.reasonCode, deny_reason: result.denyReason ?? null, trace_id: traceId },
+        _meta: {
+          reason_code: result.reasonCode,
+          deny_reason: result.denyReason ?? null,
+          gateway_status: result.gatewayStatus ?? null,
+          untrusted_content: result.untrustedContent ?? false,
+          truncated: result.truncated ?? false,
+          trace_id: traceId,
+        },
       };
     } catch (error) {
       if (!(error instanceof TraceUnavailableError)) throw error;

@@ -14,6 +14,7 @@ import type { PolicyInput, Rules } from './schema.js';
 import type {
   ApproversDecision,
   FieldsDecision,
+  PendingLimitDecision,
   PersonRef,
   PolicyDecision,
   PolicyEffect,
@@ -101,6 +102,8 @@ export interface PolicyEngine {
   allowedFields(role: string, type: string, caller: string): FieldsDecision;
   /** How far back the bulk count looks, from `cumulative_window_minutes`. */
   cumulativeWindow(): WindowDecision;
+  /** How many proposals one person may leave waiting, from `pending_limit`. */
+  pendingLimit(): PendingLimitDecision;
   /** The people who may approve a request under the `approval` block. */
   approversFor(requester: Requester, people: readonly PersonRef[]): ApproversDecision;
 }
@@ -393,6 +396,18 @@ export function createPolicyEngine(options: PolicyEngineOptions = {}): PolicyEng
         };
       } catch {
         return { ...unavailable(), minutes: 0 };
+      }
+    },
+
+    pendingLimit(): PendingLimitDecision {
+      try {
+        const rules = loadRules();
+        return {
+          ...decisionOf({ effect: 'allow', ruleId: 'pending_limit' }, rules.version),
+          limit: rules.pending_limit,
+        };
+      } catch {
+        return { ...unavailable(), limit: 0 };
       }
     },
 

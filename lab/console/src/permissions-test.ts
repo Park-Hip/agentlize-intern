@@ -207,6 +207,24 @@ test('permissions: a save keeps the client profiles and data classes it does not
   }
 });
 
+test('permissions: a save keeps the pending limit it does not edit', async (t) => {
+  const base = JSON.parse(rulesWithVersion(7)) as Record<string, unknown>;
+  base['pending_limit'] = 3;
+  const fixture = await startFixture({ rulesText: JSON.stringify(base) });
+  t.after(() => fixture.close());
+
+  const page = await (await fetch(`${fixture.url}/permissions`)).text();
+  const before = readRules(fixture.rulesPath);
+  const params = saveFields(before, hiddenFields(page), catalogOf(page), (fields) => {
+    removeField(fields, 'fields.employee.staff', 'work_email');
+  });
+
+  const response = await postForm(fixture, params);
+  assert.equal(response.status, 303);
+  const after = readRules(fixture.rulesPath);
+  assert.equal(after['pending_limit'], 3, 'a rule-file key the screen does not show survives a save');
+});
+
 test('permissions: a broken form never reaches the file', async (t) => {
   const fixture = await startFixture();
   t.after(() => fixture.close());

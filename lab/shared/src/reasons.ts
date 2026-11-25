@@ -18,7 +18,14 @@ export const POLICY_REASON_CODES = [
 /** The adapter adds this code when the gateway cannot be reached at all. */
 export const GATEWAY_UNAVAILABLE = 'GATEWAY_UNAVAILABLE' as const;
 
-export const REASON_CODES = [...POLICY_REASON_CODES, GATEWAY_UNAVAILABLE] as const;
+/**
+ * The Lab's own code for a person who already has the maximum number of
+ * proposals waiting. The gateway alignment document names the limit but not a
+ * code, so the Lab names its own refusal rather than borrowing one.
+ */
+export const PENDING_LIMIT = 'PENDING_LIMIT' as const;
+
+export const REASON_CODES = [...POLICY_REASON_CODES, GATEWAY_UNAVAILABLE, PENDING_LIMIT] as const;
 
 export type PolicyReasonCode = (typeof POLICY_REASON_CODES)[number];
 

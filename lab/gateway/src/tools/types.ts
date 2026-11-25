@@ -1,4 +1,4 @@
-import type { DenyReason, ReasonCode, ToolDefinition } from '@lab/shared';
+import type { DenyReason, GatewayStatus, ReasonCode, ToolDefinition } from '@lab/shared';
 import type { ResourceAdapter } from '../adapters/index.js';
 import type { FieldsDecision, PolicyEngine } from '../policy/index.js';
 import type { ProposalStore } from '../proposals/index.js';
@@ -47,6 +47,12 @@ export interface ToolResult {
   readonly denyReason?: DenyReason | null;
   /** Distinct field names the client ceiling removed from this answer (ADR-0010 section 3.6). */
   readonly droppedFields?: number;
+  /** The status of a proposal in the gateway's vocabulary, from the one mapping in `gateway-status.ts`. */
+  readonly gatewayStatus?: GatewayStatus | null;
+  /** True when the answer carries free text read from a system, such as a task description. */
+  readonly untrustedContent?: boolean;
+  /** True when free text in the answer was cut at the length limit. */
+  readonly truncated?: boolean;
 }
 
 /** A catalog entry plus the code that answers it. The catalog the callers see is `ToolDefinition`. */

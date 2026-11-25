@@ -219,6 +219,7 @@ for (const door of DOORS) {
         'propose_task_change',
         'get_request_status',
         'propose_employee_change',
+        'action_status',
       ]);
       for (const name of names) {
         assert.doesNotMatch(name, /confirm|approve|write/i, `no tool may confirm, approve or write: ${name}`);
@@ -367,6 +368,7 @@ test('gateway read path: the three doors publish one catalog with no confirm, ap
     'propose_task_change',
     'get_request_status',
     'propose_employee_change',
+    'action_status',
   ]);
   for (const name of names) {
     assert.doesNotMatch(name, /confirm|approve|write/i);

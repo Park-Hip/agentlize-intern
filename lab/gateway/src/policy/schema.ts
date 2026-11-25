@@ -3,6 +3,9 @@ import { ADAPTER_DECLARATIONS, actionsByType } from '../adapters/registry.js';
 import type { RecordDeclaration } from '../adapters/types.js';
 import { CLIENT_CLASSES, DATA_CLASSES } from './data-classes.js';
 
+/** How many proposals one person may leave waiting when the rule file does not name a limit. */
+export const DEFAULT_PENDING_LIMIT = 20;
+
 /**
  * The action names of each record type, from the adapters the gateway ships
  * with (ADR-0007 section 3.2). A key in the rule file that no adapter declares
@@ -103,6 +106,12 @@ export function createRulesSchema(declarations: readonly RecordDeclaration[] = A
       version: z.number().int().positive(),
       approval: approvalSchema,
       cumulative_window_minutes: z.number().int().positive(),
+      /**
+       * How many proposals one person may leave waiting for their own press or
+       * for a lead. A file from before this key gets the default, so old files
+       * keep working (issue #155).
+       */
+      pending_limit: z.number().int().positive().default(DEFAULT_PENDING_LIMIT),
       clients: clientsSchema,
       resources: z.record(z.string().min(1), resourceSchema),
     })

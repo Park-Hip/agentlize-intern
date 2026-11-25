@@ -13,6 +13,7 @@ import { RULE_IDS, type PolicyDecision } from '../policy/index.js';
 import { formatMoment, itemRows } from '../proposals/card.js';
 import { actionFields, approvalRoster, approverSentence, waitText } from '../proposals/index.js';
 import { wrapSystemData } from './block.js';
+import { draftWithinPendingLimit } from './pending-limit.js';
 import { defineTool } from './read-tools.js';
 import type { RegisteredTool, ToolContext, ToolResult } from './types.js';
 
@@ -165,31 +166,39 @@ const proposeEmployeeChange = defineTool(
     if (decision.effect === 'deny') return refusalForDecision(decision, action, context, objectId, directory);
 
     const requiresApproval = decision.effect === 'needs_approval';
-    const proposal = proposals.create({
-      requester: actor.employeeId,
-      caller: actor.identity.caller,
-      draftedByKeyId: actor.identity.keyId,
-      tool: PROPOSE_TOOL,
-      recordType: directory.type,
-      changes: { work_email: args.work_email },
-      requiresApproval,
-      approvalReason: requiresApproval
-        ? decision.ruleId.endsWith('.cumulative')
-          ? `Đề xuất có 1 mục, cộng với các mục cùng việc đã đếm trong ${windowMinutes} phút qua nên cần trưởng nhóm duyệt trước khi ghi.`
-          : 'Bộ luật quyền yêu cầu trưởng nhóm duyệt việc sửa email công việc trước khi ghi.'
-        : null,
-      policyVersion: decision.policyVersion ?? 0,
-      items: [
-        {
-          system: directory.type,
-          recordType: directory.type,
-          recordId: objectId,
-          baseVersion: Number(employee['version']),
-          previous: { work_email: previous },
-          changes: { work_email: args.work_email },
-        },
-      ],
-    });
+    const pendingLimit = policy.pendingLimit();
+    if (pendingLimit.effect !== 'allow') return refuse('POLICY_UNAVAILABLE', pendingLimit.ruleId);
+    const drafted = draftWithinPendingLimit(
+      proposals,
+      {
+        requester: actor.employeeId,
+        caller: actor.identity.caller,
+        draftedByKeyId: actor.identity.keyId,
+        tool: PROPOSE_TOOL,
+        recordType: directory.type,
+        changes: { work_email: args.work_email },
+        requiresApproval,
+        approvalReason: requiresApproval
+          ? decision.ruleId.endsWith('.cumulative')
+            ? `Đề xuất có 1 mục, cộng với các mục cùng việc đã đếm trong ${windowMinutes} phút qua nên cần trưởng nhóm duyệt trước khi ghi.`
+            : 'Bộ luật quyền yêu cầu trưởng nhóm duyệt việc sửa email công việc trước khi ghi.'
+          : null,
+        policyVersion: decision.policyVersion ?? 0,
+        items: [
+          {
+            system: directory.type,
+            recordType: directory.type,
+            recordId: objectId,
+            baseVersion: Number(employee['version']),
+            previous: { work_email: previous },
+            changes: { work_email: args.work_email },
+          },
+        ],
+      },
+      pendingLimit.limit,
+    );
+    if (!drafted.ok) return drafted.result;
+    const proposal = drafted.proposal;
 
     const item = proposal.items[0];
     if (item === undefined) {

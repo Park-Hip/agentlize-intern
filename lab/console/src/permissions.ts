@@ -359,6 +359,8 @@ export function rulesFromForm(
       wait_minutes: waitMinutes,
     },
     cumulative_window_minutes: windowMinutes,
+    // The screen does not edit the pending cap yet, so a save copies the value it read.
+    pending_limit: current.pending_limit,
     clients: current.clients,
     resources,
   });

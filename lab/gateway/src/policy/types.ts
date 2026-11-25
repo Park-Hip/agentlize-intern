@@ -55,6 +55,11 @@ export interface WindowDecision extends PolicyDecision {
   readonly minutes: number;
 }
 
+/** How many proposals one person may leave waiting; 0 whenever the engine cannot read the file. */
+export interface PendingLimitDecision extends PolicyDecision {
+  readonly limit: number;
+}
+
 /** One person the directory knows, as the approval question needs them. */
 export interface PersonRef {
   readonly id: string;

@@ -81,6 +81,7 @@ test('mcp: tools/list is the same catalog as GET /v1/tools', async () => {
       'propose_task_change',
       'get_request_status',
       'propose_employee_change',
+      'action_status',
     ]);
   });
 });
@@ -95,9 +96,19 @@ test('mcp: a call answers with the same text and reason code as the REST door, a
 
     assert.equal(viaMcp.isError, false);
     assert.equal(firstText(viaMcp), viaRest.body.text);
-    const meta = viaMcp['_meta'] as { reason_code: unknown; deny_reason: unknown; trace_id: string };
+    const meta = viaMcp['_meta'] as {
+      reason_code: unknown;
+      deny_reason: unknown;
+      gateway_status: unknown;
+      untrusted_content: unknown;
+      truncated: unknown;
+      trace_id: string;
+    };
     assert.equal(meta.reason_code, viaRest.body.reason_code);
     assert.equal(meta.deny_reason, viaRest.body.deny_reason);
+    assert.equal(meta.gateway_status, viaRest.body.gateway_status);
+    assert.equal(meta.untrusted_content, viaRest.body.untrusted_content);
+    assert.equal(meta.truncated, viaRest.body.truncated);
 
     const line = f.gateway.trace.list().find((row) => row.traceId === meta.trace_id);
     assert.ok(line !== undefined, 'the call left a trace line');
@@ -106,6 +117,29 @@ test('mcp: a call answers with the same text and reason code as the REST door, a
     assert.equal(line.tool, 'get_task');
     assert.equal(line.objectId, 'T-12');
     assert.equal(f.gateway.trace.list().find((row) => row.traceId === viaRest.body.trace_id)?.entry, 'http');
+  });
+});
+
+test('mcp: action_status answers through /mcp with the gateway status in _meta', async () => {
+  await withGateway(async (f) => {
+    const key = f.keyFor(HOA);
+    const drafted = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { status: 'done' } }, key);
+    const id = /xac-nhan\/(dx-[0-9a-f]{16})/.exec(drafted.body.text)?.[1];
+    assert.ok(id !== undefined, 'the draft carries its code');
+
+    const client = await connect(f, { authorization: `Bearer ${key}` });
+    const answer = await invoke(client, 'action_status', { request_id: id });
+    await client.close();
+
+    assert.equal(answer.isError, false);
+    const meta = answer['_meta'] as {
+      gateway_status?: unknown;
+      untrusted_content?: unknown;
+      truncated?: unknown;
+    };
+    assert.equal(meta.gateway_status, 'pending');
+    assert.equal(meta.untrusted_content, false);
+    assert.equal(meta.truncated, false);
   });
 });
 

@@ -24,6 +24,7 @@ export { RULES_FILE, resolveRulesPath, seedRulesFile } from './rules-file.js';
 export {
   ACTIONS,
   createRulesSchema,
+  DEFAULT_PENDING_LIMIT,
   READ_EMPLOYEE_FIELD,
   RESOURCE_ACTIONS,
   rulesSchema,
@@ -40,6 +41,7 @@ export type {
 export type {
   ApproversDecision,
   FieldsDecision,
+  PendingLimitDecision,
   PersonRef,
   PolicyDecision,
   PolicyEffect,

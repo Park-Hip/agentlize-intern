@@ -7,6 +7,14 @@ import { compareRecordIds, fingerprintOf, type Changes } from './fingerprint.js'
 /** A proposal lives this long before its requester has pressed Gửi. After it the page and the status tool say it has expired. */
 export const PROPOSAL_TTL_MS = 30 * 60 * 1000;
 
+/** Thrown by `create` when a person already has the allowed number of waiting proposals. */
+export class PendingLimitError extends Error {
+  constructor(readonly limit: number) {
+    super(`a person may have at most ${limit} proposals waiting`);
+    this.name = 'PendingLimitError';
+  }
+}
+
 /** A lead's note on a decision keeps at most this much of their sentence (ADR-0008 section 3.2). */
 export const MAX_APPROVAL_REASON = 500;
 
@@ -363,8 +371,12 @@ export class ProposalStore {
    * One proposal and all its items, in one transaction. Items are ordered by
    * record code and numbered from 1, so the same set always gets the same
    * positions and the same fingerprint.
+   * The pending count and the insert share the transaction, so two drafts that
+   * race cannot both pass the last free slot.
+   * `pendingLimit` is required: the caller reads it from the rule file through
+   * the policy engine, so the store never falls back to a number of its own.
    */
-  create(input: NewProposal): Proposal {
+  create(input: NewProposal, pendingLimit: number): Proposal {
     const createdAt = this.now();
     const orderedItems = [...input.items].sort((left, right) => compareRecordIds(left.recordId, right.recordId));
     const items: ProposalItem[] = orderedItems.map((item, index) => ({
@@ -398,6 +410,7 @@ export class ProposalStore {
 
     this.db
       .transaction(() => {
+        if (this.countPending(input.requester) >= pendingLimit) throw new PendingLimitError(pendingLimit);
         this.db
           .prepare(
             `INSERT INTO proposals (proposal_id, requester, caller, drafted_by_key_id, tool, record_type, changes,
@@ -442,6 +455,29 @@ export class ProposalStore {
       )
       .get(proposalId) as ApprovalRow | undefined;
     return toProposal(row, items.map(toItem), toApproval(approval));
+  }
+
+  /**
+   * The proposals this person still has to act on: waiting for their own press
+   * and waiting for a lead, without the ones past the deadline of their stage.
+   * A proposal that has been sent or settled is no longer waiting.
+   */
+  countPending(requester: string): number {
+    const row = this.db
+      .prepare(
+        `SELECT COUNT(*) AS waiting
+         FROM proposals
+         WHERE requester = @requester
+           AND (
+             (status = 'awaiting_confirmation' AND expires_at > @now)
+             OR (
+               status = 'awaiting_approval'
+               AND (approval_expires_at IS NULL OR approval_expires_at > @now)
+             )
+           )`,
+      )
+      .get({ requester, now: this.now().toISOString() }) as { waiting: number };
+    return row.waiting;
   }
 
   /** Proposals a lead still has to answer, oldest deadline first; the pages filter by who may approve them. */
