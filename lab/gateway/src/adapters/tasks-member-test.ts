@@ -19,6 +19,7 @@ function memberSystem(): {
   readonly fetch: typeof fetch;
   readonly calls: Call[];
   failNextRemove(): void;
+  members(): readonly string[];
 } {
   let version = 1;
   let due = '2026-11-27';
@@ -62,15 +63,16 @@ function memberSystem(): {
       return json(200, { task: task() });
     }
     if (url.pathname.endsWith('/remove_members')) {
-      if (failRemove) {
-        failRemove = false;
-        throw new TypeError('network down');
-      }
       const wanted = new Set((body as { members?: string[] }).members ?? []);
       const kept = members.filter((member) => !wanted.has(member));
       if (kept.length !== members.length) {
         members = kept;
         version += 1;
+      }
+      if (failRemove) {
+        // The removal landed; only the answer is lost.
+        failRemove = false;
+        throw new TypeError('network down');
       }
       return json(200, { task: task() });
     }
@@ -83,6 +85,7 @@ function memberSystem(): {
     failNextRemove: () => {
       failRemove = true;
     },
+    members: () => [...members],
   };
 }
 
@@ -147,7 +150,7 @@ test('assignee mode: members adds first with the command key, then removes the o
   assert.equal(written.due, '2026-12-01');
 });
 
-test('assignee mode: a lost answer on remove leaves the call unknown, and the resend replays the whole sequence', async () => {
+test('assignee mode: a lost answer on remove leaves the call unknown, and the resend sees nothing left to remove', async () => {
   const system = memberSystem();
   const tasks = adapter(system.fetch, 'members');
   const write = {
@@ -169,17 +172,17 @@ test('assignee mode: a lost answer on remove leaves the call unknown, and the re
     [
       ['GET', '/tasks/T-12', null],
       ['POST', '/tasks/T-12/add_members', 'dx-0123456789abcdef:1'],
-      ['POST', '/tasks/T-12/remove_members', null],
       ['GET', '/tasks/T-12', null],
     ],
-    'the resend runs the add again with the same key, then the remove',
+    'the remove already landed, so the resend has only the add replay and the final read',
   );
-  assert.deepEqual(
-    system.calls.slice(beforeResend)[2]?.body,
-    { members: ['NV-03'] },
-    'the resend removes the old member named in the draft, even though it is already gone',
+  assert.equal(
+    system.calls.slice(beforeResend).some((call) => call.path.endsWith('/remove_members')),
+    false,
+    'the resend sends no second remove',
   );
 
+  assert.deepEqual(system.members(), ['NV-04'], 'the task ends with exactly the new assignee');
   const written = taskSchema.parse(second.kind === 'written' ? second.record : {});
   assert.equal(written.assignee, 'NV-04');
   const keys = system.calls.filter((call) => call.path.endsWith('/add_members')).map((call) => call.key);

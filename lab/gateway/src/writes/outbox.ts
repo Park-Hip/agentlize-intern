@@ -263,7 +263,6 @@ export class Outbox implements ProposalExecutor {
           idempotencyKey: current.idempotencyKey,
           expectedVersion: current.expectedVersion,
           changes: item.changes,
-          previous: item.previous,
         });
       }
     } catch (error) {

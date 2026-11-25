@@ -176,13 +176,10 @@ export class TasksAdapter implements ResourceAdapter {
   private async reassign(write: AdapterWrite, assignee: string): Promise<ApplyResult> {
     const current = await this.readWithMembers(write.id);
     if (current === undefined) return { kind: 'not_found' };
-    // The old assignee from the draft makes the resend repeat the remove call
-    // even after that call landed and its answer was lost. The target ignores
-    // an absent member, so this costs nothing and keeps the sequence whole.
-    const known = new Set(current.assignees ?? [current.assignee]);
-    const drafted = write.previous?.['assignee'];
-    if (typeof drafted === 'string' && drafted !== '') known.add(drafted);
-    const otherMembers = [...known].filter((member) => member !== assignee);
+    // A resend after a remove that landed sees only the new member, so there is
+    // nothing left to remove; a resend after an add sees both and removes the
+    // old one. Reading the current list is enough for both cases.
+    const otherMembers = (current.assignees ?? [current.assignee]).filter((member) => member !== assignee);
 
     const due = write.changes['due'];
     if (due !== undefined) {

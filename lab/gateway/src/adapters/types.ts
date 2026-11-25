@@ -65,11 +65,6 @@ export interface AdapterWrite {
   readonly idempotencyKey: string;
   readonly expectedVersion: number;
   readonly changes: AdapterChanges;
-  /**
-   * The values read when the proposal was drafted. A member change needs the
-   * old assignee so a resend can repeat the remove call even after it landed.
-   */
-  readonly previous?: Readonly<Record<string, string | undefined>>;
 }
 
 /**
