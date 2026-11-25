@@ -1,6 +1,6 @@
 import { DirectoryAdapter } from './directory.js';
 import { LeaveAdapter } from './leave.js';
-import { TasksAdapter } from './tasks.js';
+import { readTaskAssigneeMode, TasksAdapter, type TaskAssigneeMode } from './tasks.js';
 import type { ResourceAdapter } from './types.js';
 
 /**
@@ -22,14 +22,17 @@ export {
 export type { EmployeeRecord } from './directory.js';
 export {
   TASK_ACTIONS,
+  TASK_ASSIGNEE_MODES,
+  TASK_ASSIGNEE_MODE_ENV,
   TASK_DECLARATION,
   TASK_FIELDS,
   TASK_ID_PATTERN,
   TASK_STATUSES,
   TasksAdapter,
+  readTaskAssigneeMode,
   taskSchema,
 } from './tasks.js';
-export type { TaskField, TaskRecord } from './tasks.js';
+export type { TaskAssigneeMode, TaskField, TaskRecord, TasksAdapterOptions } from './tasks.js';
 export {
   LEAVE_ACTIONS,
   LEAVE_DECLARATION,
@@ -49,6 +52,8 @@ export interface HttpAdaptersOptions {
   readonly serviceKey: string;
   readonly timeoutMs?: number;
   readonly fetch?: typeof fetch;
+  /** `patch` keeps the old assignee path; `members` uses Lark's two member calls. Defaults from the env. */
+  readonly taskAssigneeMode?: TaskAssigneeMode;
 }
 
 /** The registry the gateway starts with: one HTTP adapter for each fake system. */
@@ -59,7 +64,11 @@ export function createHttpAdapters(options: HttpAdaptersOptions): readonly Resou
     ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
   };
   return [
-    new TasksAdapter({ url: options.tasksUrl, ...shared }),
+    new TasksAdapter({
+      url: options.tasksUrl,
+      ...shared,
+      assigneeMode: options.taskAssigneeMode ?? readTaskAssigneeMode(),
+    }),
     new LeaveAdapter({ url: options.leaveUrl, ...shared }),
     new DirectoryAdapter({ url: options.directoryUrl, ...shared }),
   ];

@@ -43,7 +43,7 @@ Các vấn đề trong phạm vi, với mã của [danh mục vấn đề](../pr
 | P29 | Lệnh ghi kéo theo việc khác ở đích | Không đếm |
 | P30 | Lệnh đã duyệt nhưng đã lỗi thời | Không có hạn, không huỷ được sau khi duyệt |
 
-P31 (một việc nhiều lời gọi) nằm ngoài phạm vi, lý do ở [các phương án thiết kế, mục 12](write-safety-options.md#12-ngoài-phạm-vi-và-vì-sao).
+P31 (một việc nhiều lời gọi) có trong phạm vi ở dạng hồ sơ `lark-task` gọi hai lời gọi thành viên; phần đổi nhiều hệ thống hay bù trừ khi lời gọi sau thất bại hẳn vẫn ngoài phạm vi, lý do ở [các phương án thiết kế, mục 12](write-safety-options.md#12-ngoài-phạm-vi-và-vì-sao).
 
 Phép đo so ba cánh, tức ba cách xử lý cùng chạy trên cùng các hệ thống giả:
 
@@ -89,7 +89,7 @@ Kiểm lại quyền và hạn thực thi trước khi gửi (P12, P30) không p
 ## 3. Hệ thống đích giả khó tính
 
 Danh sách task giả đã có móc gây lỗi cho phép thử: làm rơi câu trả lời sau khi ghi, trả lời muộn, giữ lệnh trước khi ghi ([`fake-tasks/src/server.ts`](../../lab/fake-tasks/src/server.ts)).
-Lần cập nhật này tách hành vi của nó thành chín công tắc, bật bằng cấu hình khi khởi động:
+Lần cập nhật này tách hành vi của nó thành mười công tắc, bật bằng cấu hình khi khởi động:
 
 - Nhớ mã: mãi mãi; N giây; không nhớ.
 - Phạm vi nhớ mã: theo khoá dịch vụ; theo từng token, token hết hạn sau N giây.
@@ -100,13 +100,14 @@ Lần cập nhật này tách hành vi của nó thành chín công tắc, bật
 - Độ trễ đọc: không; N giây.
 - Việc kéo theo: không; một thông báo mỗi lần ghi; một thông báo chỉ khi giá trị đổi.
 - Lịch sử ghi theo người ghi: có; không.
+- Giao việc: sửa thẳng người phụ trách bằng PATCH; hoặc hai lời gọi thành viên, thêm người mới trước rồi bỏ người cũ.
 
 Tám hồ sơ là tám tổ hợp đặt tên sẵn:
 
 | Hồ sơ | Công tắc | Giống hệ thống nào | Vấn đề kiểm |
 | --- | --- | --- | --- |
 | `standard` | Nhớ mãi, trả kết quả cũ, kiểm phiên bản, kết quả ngay, có lịch sử | Hệ thống giả hôm nay | Mốc so sánh |
-| `lark-task` | Tạo: nhớ 300 giây theo từng token, token hết hạn, trả 1470422 (HTTP 500) khi cùng mã còn chạy; sửa: không nhớ, không kiểm phiên bản; thông báo mỗi lần ghi | Lark Task, theo tài liệu | P1, P2, P27, P28, P29 |
+| `lark-task` | Tạo: nhớ 300 giây theo từng token, token hết hạn, trả 1470422 (HTTP 500) khi cùng mã còn chạy; sửa: không nhớ, không kiểm phiên bản; giao việc: hai lời gọi `add_members` và `remove_members`, PATCH có người phụ trách bị từ chối; thông báo mỗi lần ghi | Lark Task, theo tài liệu | P1, P2, P27, P28, P29, P31 |
 | `lark-approval` | Tạo: nhớ mãi, báo lỗi trùng | Lark Approval, theo tài liệu | P1 dạng báo lỗi |
 | `no-dedup` | Không nhớ; sửa vẫn kiểm phiên bản; không có lịch sử | Công cụ quản trị game, theo giả định | P1, lỗi báo thất bại dù đã ghi, kết luận sai sau xung đột |
 | `short-memory` | Nhớ N giây, rút từ 24 giờ xuống vài giây khi đo | Cổng thanh toán nhớ mã 24 giờ như Stripe | P2 |
@@ -116,11 +117,12 @@ Tám hồ sơ là tám tổ hợp đặt tên sẵn:
 
 Thời gian chờ và tỉ lệ thất bại của `late-result`, và độ trễ của `stale-read`, là giả định cấu hình được, không lấy từ nguồn; giả thuyết 3 và 7 không phụ thuộc vào con số cụ thể.
 
-Mỗi hồ sơ có ba bộ đếm phía đích, không đọc từ cổng:
+Mỗi hồ sơ có bốn bộ đếm phía đích, không đọc từ cổng:
 
 - Số lần mỗi thay đổi thật sự được áp vào bản ghi.
 - Danh sách lần ghi kèm người ghi, để biết lệnh của cổng có ghi lên thay đổi của người khác không.
 - Số thông báo phát ra cho mỗi thay đổi, để đếm việc kéo theo thừa.
+- Số task đang có hơn một người phụ trách, để thấy trạng thái dở dang giữa hai lời gọi giao việc.
 
 Các hồ sơ phủ theo hành vi, không theo tên hệ thống, nên một loại hệ thống được phủ khi mọi hành vi ghi của nó khớp một hồ sơ.
 Bảng dưới cho thấy loại nào đã có hồ sơ và loại nào chưa:
@@ -139,7 +141,7 @@ Bảng dưới cho thấy loại nào đã có hồ sơ và loại nào chưa:
 | Hệ thống chỉ nhận file, hệ thống không có API | Hệ thống cũ | Ngoài phạm vi | P10 |
 
 Kết quả của Q3 chỉ đúng cho các loại có hồ sơ; Lab không suy rộng sang các dòng "Chưa có".
-Nếu một hệ thống thật có hành vi ngoài chín công tắc, thêm một công tắc trước khi viết bộ tiếp hợp cho nó.
+Nếu một hệ thống thật có hành vi ngoài mười công tắc, thêm một công tắc trước khi viết bộ tiếp hợp cho nó.
 
 **Kết luận:** hệ thống giả trở thành tài sản dùng lại được: một cổng khác có thể chạy chính các hồ sơ này để biết nó hỏng ở đâu, và bảng độ phủ nói rõ nó chưa kiểm được những loại nào.
 
@@ -152,7 +154,7 @@ Mỗi lần chạy là một đề xuất 30 mục, như kịch bản C của b�
 
 Hai thao tác:
 
-- **Sửa:** đặt người phụ trách, như hôm nay.
+- **Sửa:** đặt người phụ trách, như hôm nay; hồ sơ `lark-task` chạy hai lời gọi thành viên cho phần người phụ trách.
 - **Tạo:** tạo task mới, đóng vai thao tác không tự lọc trùng.
 
 Cách cũ không có thao tác tạo; với thao tác tạo, "cách cũ" là mã mới với bản khai năng lực tắt, tức luôn gửi lại cùng mã.

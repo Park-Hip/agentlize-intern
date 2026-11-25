@@ -574,7 +574,7 @@ Một phương án đã có ở hệ thống lớn và được đo trên hồ s
 | Nhận tin báo ngược (webhook) | Hỏi định kỳ đủ để biết kết quả cuối; xem mục 4 | Hệ thống thật chỉ báo kết quả qua webhook |
 | Hệ thống chỉ nhận file (P10) | Chưa biết hệ thống nào sẽ nối dùng file | Có việc thật cần một hệ thống như vậy |
 | Ghi bằng token của từng người (P9) | Lab ghi bằng khoá dịch vụ của cổng; xem [kế hoạch cập nhật giả lập](simulation-update-plan.md), U3 | Nối Lark Task, vì phạm vi nhớ mã của Lark Task tính theo token |
-| Một việc nhiều lời gọi (P31) | Bộ tiếp hợp chỉ bày thao tác một lời gọi; các mục của đề xuất độc lập nhau | Có việc thật cần tạo task kèm file, hay việc khác mà lời gọi sau cần kết quả lời gọi trước |
+| Một việc nhiều lời gọi (P31) | Bộ tiếp hợp chỉ bày thao tác một lời gọi; các mục của đề xuất độc lập nhau. Ca đổi người phụ trách trên Lark đã có trong hồ sơ `lark-task`: thêm người mới rồi bỏ người cũ. Phần còn lại vẫn ngoài phạm vi. | Có việc thật cần tạo task kèm file, hay việc khác mà lời gọi sau cần kết quả lời gọi trước |
 | Đường duyệt chặt hơn cho thao tác không thu hồi được (P6) | Đổi người phụ trách và tạo task sửa lại được | Nối hệ thống tin nhắn, thanh toán hay hoá đơn |
 | Vết phía đích (P16): Lark chỉ thấy ứng dụng của cổng, không thấy người yêu cầu và người duyệt | Vết của cổng đã nối đủ ba người; không làm sai trạng thái | Chủ dữ liệu yêu cầu đọc vết ngay trên Lark |
 | Chạy nhiều bản cổng cùng lúc | Lab chỉ đo, chưa có người dùng; một tiến trình đủ | Tải vượt một tiến trình |

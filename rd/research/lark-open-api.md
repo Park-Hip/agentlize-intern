@@ -93,11 +93,11 @@ Thêm lại người đã có thì Lark bỏ qua: "If the member to be added is 
 Bỏ người là `POST /task/v2/tasks/:task_guid/remove_members`, không có `client_token`, nhưng bỏ người không còn trong task thì Lark bỏ qua: "if the member to be removed is not one of this task members, it will be automatically ignored."
 Nhờ hai tính chất đó, đổi người phụ trách bằng "thêm người mới rồi bỏ người cũ" gửi lại được mà không tạo thêm thành viên.
 
-Điều này lệch với hồ sơ `lark-task` ở [kế hoạch đo, mục 3](../design/q3-measurement-plan.md#3-hệ-thống-đích-giả-khó-tính): hồ sơ chỉ mô phỏng sửa bằng PATCH.
-Muốn đo đúng thao tác "đổi người phụ trách", R3 phải thêm một thao tác hai lời gọi hoặc một hồ sơ riêng.
-Đây là ca P31 (một việc nhiều lời gọi) mà [các phương án thiết kế, mục 12](../design/write-safety-options.md#12-ngoài-phạm-vi-và-vì-sao) đang để ngoài phạm vi.
+Hồ sơ `lark-task` ở [kế hoạch đo, mục 3](../design/q3-measurement-plan.md#3-hệ-thống-đích-giả-khó-tính) đã mô phỏng đúng hai lời gọi này: công tắc thứ mười bật `add_members` và `remove_members`, còn PATCH có người phụ trách bị từ chối.
+Nhờ vậy phép đo Q3 thấy được ca nguy hiểm của P31 (một việc nhiều lời gọi): mạng rớt giữa hai lời gọi, task còn hai người phụ trách, và cổng phải gửi lại cho tới khi chỉ còn người mới.
+P31 vẫn nằm ngoài phạm vi cho việc đổi nhiều hệ thống hay bù trừ khi lời gọi sau thất bại hẳn, theo [các phương án thiết kế, mục 12](../design/write-safety-options.md#12-ngoài-phạm-vi-và-vì-sao).
 
-**Kết luận:** giao task trên Lark thật là hai lời gọi, không phải PATCH; cả hai lời gọi đều gửi lại an toàn, nhưng phép đo hiện chưa mô phỏng chúng.
+**Kết luận:** giao task trên Lark thật là hai lời gọi, không phải PATCH; cả hai lời gọi đều gửi lại an toàn, và hồ sơ `lark-task` giờ mô phỏng chúng để kết quả Q3 đúng cho cả thao tác giao việc.
 
 ### 3.4. Dấu gắn trong task và tra kết quả
 
@@ -296,11 +296,11 @@ Hồ sơ `lark-task` ở [kế hoạch đo, mục 3](../design/q3-measurement-pl
 Một điểm phải sửa: Lark Task không trả 409 khi cùng mã còn chạy, mà trả HTTP 500 kèm mã 1470422.
 Vì vậy dòng hồ sơ phải ghi "trả 1470422 (HTTP 500) khi cùng mã còn chạy".
 
-Hồ sơ này vẫn chỉ mô phỏng sửa bằng PATCH.
-Thao tác "đổi người phụ trách" trên Lark thật là `add_members` cộng `remove_members`, nên R3 cần thêm một thao tác hai lời gọi trước khi đo.
-Nếu không thêm, kết quả Q3 (cổng còn ghi an toàn không khi đích không hợp tác) chỉ đúng cho PATCH, không đúng cho thao tác giao việc.
+Hồ sơ này đã có công tắc thứ mười cho thao tác "đổi người phụ trách": khi bật, PATCH có người phụ trách bị từ chối, còn `add_members` và `remove_members` chạy đúng như mục 3.3.
+Cổng có tuỳ chọn `patch` (mặc định, giữ hành vi cũ) hoặc `members` (thêm người mới trước rồi bỏ mọi người khác); lệnh khởi động và lệnh đo tự bật `members` khi chạy hồ sơ `lark-task`.
+Nhờ vậy kết quả Q3 (cổng còn ghi an toàn không khi đích không hợp tác) đúng cho cả thao tác sửa task và thao tác giao việc.
 
-**Kết luận:** sửa mã lỗi là đủ để hồ sơ khớp tài liệu cho tạo và PATCH; thao tác giao việc vẫn là một khoảng trống phải đóng trước R3.
+**Kết luận:** sửa mã lỗi và thêm công tắc giao việc làm hồ sơ khớp tài liệu cho tạo, PATCH và giao việc; R3 chỉ còn kiểm lại trên Lark thật.
 
 ## 7. Cách kiểm ở R3
 
@@ -313,7 +313,7 @@ Mỗi phép kiểm dưới đây điền một ô "Chưa kiểm" hoặc xác nh�
 | Lịch sử ghi theo người ghi | Tài liệu không nói ai đã sửa task | Tạo bằng người A, sửa bằng người B, rồi đọc chi tiết và sự kiện | Nếu không thấy người sửa, ghi "không"; nếu có, ghi trường nào |
 | Thời gian xử lý tối đa | Tài liệu không nêu mốc xong | Đo từ lúc gửi tới lúc task thấy được, 100 lần tạo và 100 lần sửa | Báo phân vị 95 và lớn nhất, tính bằng giây |
 | Tra kết quả bằng dấu | Không có API tìm theo `extra` hay trường tuỳ ý | Tạo task có `extra` là mã lệnh, rồi tìm và liệt kê | Ghi cách nào tìm được; nếu không, ghi "không" |
-| Giao việc hai lời gọi | Hồ sơ `lark-task` chưa có thao tác này | Thêm người mới, bỏ người cũ, gửi lại cả hai | Không có thành viên trùng; ghi số lời gọi |
+| Giao việc hai lời gọi | Hồ sơ `lark-task` đã mô phỏng hai lời gọi, còn cần kiểm trên Lark thật | Thêm người mới, bỏ người cũ, gửi lại cả hai | Không có thành viên trùng; ghi số lời gọi |
 | Giới hạn tốc độ | Số trên tài liệu có thể đổi | Gửi 20 lệnh ghi mỗi giây tới khi nhận 429 | Đọc được `x-ogw-ratelimit-reset`; chờ đúng số giây rồi gửi lại thành công |
 | Công ty thử | Cần kiểm cài đặt thật | Tạo công ty thử, cài ứng dụng bản thử, chạy một lệnh tạo task | Tạo được task mà không cần dữ liệu thật |
 
@@ -330,7 +330,7 @@ Lark Task là đích đầu tiên Lab nối, và nó tách làm hai loại thao 
   Cổng gửi lại an toàn khi còn trong hạn, cùng token và cùng nội dung; quá hạn hay token mới thì phải tra hoặc chuyển "cần người xem".
 - **Sửa task:** không có mã chống ghi trùng và không có số phiên bản.
   Cổng chỉ có cách đọc lại trước khi gửi, chấp nhận khe còn lại, và chuyển "cần người xem" khi không chắc.
-- **Giao task:** là hai lời gọi, nhưng cả hai gửi lại an toàn; phép đo phải thêm thao tác này.
+- **Giao task:** là hai lời gọi, nhưng cả hai gửi lại an toàn; hồ sơ `lark-task` đã mô phỏng chúng cho phép đo.
 - **Dấu gắn:** gắn được bằng `extra` hay trường tuỳ ý, nhưng không tìm được; nếu mất mã task thì phải chuyển người xem.
 - **Sự kiện:** bỏ được vòng hỏi lại, nhưng cần mở webhook và vẫn phải đọc task.
 - **Danh bạ:** chỉ đọc; quyền theo trường và phạm vi danh bạ là điều kiện thấy dữ liệu.

@@ -101,6 +101,12 @@ export async function notificationCount(h: Harness, id: string): Promise<number>
   return ((await response.json()) as { count: number }).count;
 }
 
+export async function multipleAssigneeCount(h: Harness): Promise<number> {
+  const response = await h.call('GET', '/admin/multiple-assignee-count');
+  assert.equal(response.status, 200);
+  return ((await response.json()) as { count: number }).count;
+}
+
 export interface WriteEntry {
   readonly id: number;
   readonly key: string;
@@ -141,6 +147,32 @@ export function patch(
       expectedVersion === undefined || expectedVersion === null
         ? { changes }
         : { changes, expected_version: expectedVersion },
+  });
+}
+
+export function addMembers(
+  h: Harness,
+  id: string,
+  key: string,
+  members: readonly string[],
+  options: Pick<CallOptions, 'actor'> = {},
+): Promise<Response> {
+  return h.call('POST', `/tasks/${id}/add_members`, {
+    idempotencyKey: key,
+    ...(options.actor === undefined ? {} : { actor: options.actor }),
+    body: { members },
+  });
+}
+
+export function removeMembers(
+  h: Harness,
+  id: string,
+  members: readonly string[],
+  options: Pick<CallOptions, 'actor'> = {},
+): Promise<Response> {
+  return h.call('POST', `/tasks/${id}/remove_members`, {
+    ...(options.actor === undefined ? {} : { actor: options.actor }),
+    body: { members },
   });
 }
 

@@ -18,7 +18,7 @@ Mã nhân viên lấy từ `shared/src/personas.ts`, cùng nguồn với danh b�
 ## Cấu hình khởi động
 
 Danh sách task giả chạy một hồ sơ đích chọn lúc khởi động, mặc định `standard`.
-Mỗi hồ sơ là một tổ hợp của chín công tắc, không phải một nhánh mã riêng.
+Mỗi hồ sơ là một tổ hợp của mười công tắc, không phải một nhánh mã riêng.
 
 | Biến | Mặc định | Việc |
 | --- | --- | --- |
@@ -35,7 +35,7 @@ Tên hồ sơ lạ, JSON hỏng hoặc khoá không có trong bảng công tắc
 `idempotency.create` và `idempotency.update` khai riêng vì Lark Task chỉ nhận mã chống ghi trùng khi tạo, không nhận khi sửa.
 `GET /admin/profile` trả hồ sơ đang chạy và toàn bộ công tắc đã áp.
 
-## Chín công tắc
+## Mười công tắc
 
 Cột nguồn trỏ tới [khảo sát hệ thống thật](../../rd/research/target-system-gaps.md) hoặc [tài liệu Lark Open API](../../rd/research/lark-open-api.md); "mục N" là mục trong tài liệu được link.
 Chỗ ghi "giả định" là hành vi Lab tự đặt để đo, không lấy từ nguồn ngoài.
@@ -51,13 +51,14 @@ Chỗ ghi "giả định" là hành vi Lab tự đặt để đo, không lấy t
 | Độ trễ đọc | 0 hoặc `readDelayMs` mili giây | 0 | Mục 9: chưa có bằng chứng cho Lark, nên đây là giả định theo hệ thống đọc từ bản sao |
 | Việc kéo theo | `none`, `every_write` một thông báo mỗi lần ghi, `on_change` chỉ khi giá trị đổi | `none` | Mục 10: người theo dõi task của Lark nhận thông báo khi task đổi |
 | Lịch sử ghi theo người ghi | `true` ghi người ghi, `false` chỉ đếm mà không lộ người ghi | `true` | Giả định: công cụ quản trị game không lưu người ghi |
+| Giao việc bằng lời gọi thành viên | `false` sửa người phụ trách bằng PATCH; `true` từ chối PATCH có người phụ trách và mở `add_members` cộng `remove_members` | `false` | [Lark API](../../rd/research/lark-open-api.md) mục 3.3: Lark Task không đổi thành viên bằng PATCH |
 
 ## Tám hồ sơ đích
 
 | Hồ sơ | Khác `standard` ở đâu | Giống hệ thống nào | Nguồn |
 | --- | --- | --- | --- |
 | `standard` | Không khác | Hệ thống giả hôm nay | Lab, mốc so sánh |
-| `lark-task` | Tạo nhớ 300 giây theo từng token, token hết hạn, trả HTTP 500 kèm mã 1470422 khi cùng mã còn chạy; sửa không nhớ mã và không kiểm phiên bản; thông báo mỗi lần ghi | Lark Task | Mục 2, 3, 5, 8, 10; [Lark API](../../rd/research/lark-open-api.md) mục 3.1 và 3.8 |
+| `lark-task` | Tạo nhớ 300 giây theo từng token, token hết hạn, trả HTTP 500 kèm mã 1470422 khi cùng mã còn chạy; sửa không nhớ mã và không kiểm phiên bản; giao việc bằng `add_members` cộng `remove_members`, PATCH có người phụ trách trả 400; thông báo mỗi lần ghi | Lark Task | Mục 2, 3, 5, 8, 10; [Lark API](../../rd/research/lark-open-api.md) mục 3.1, 3.3 và 3.8 |
 | `lark-approval` | Tạo nhớ mãi và báo lỗi trùng | Lark Approval | Mục 2 |
 | `no-dedup` | Không nhớ mã; vẫn kiểm phiên bản; không có lịch sử người ghi | Công cụ quản trị game | Giả định |
 | `short-memory` | Nhớ 86.400 giây, rút xuống vài giây bằng `LAB_TASKS_SWITCHES` khi đo | Cổng thanh toán kiểu Stripe | Mục 3 |
@@ -73,11 +74,20 @@ Chỗ ghi "giả định" là hành vi Lab tự đặt để đo, không lấy t
 | `GET /tasks?assignee=&department=&status=` | `{ "tasks": [...] }`, lọc bằng so khớp đúng; giá trị lạ trả 400 |
 | `POST /tasks` | Tạo task mới; cần header `Idempotency-Key` và thân `{ "title", "description", "assignee", "department", "due", "status"? }` |
 | `PATCH /tasks/<mã>` | Ghi; cần header `Idempotency-Key` và thân `{ "changes": {...}, "expected_version": n }` |
+| `POST /tasks/<mã>/add_members` | Thêm người phụ trách; cần header `Idempotency-Key` và thân `{ "members": ["NV-04"] }`; người đã có thì bỏ qua |
+| `POST /tasks/<mã>/remove_members` | Bỏ người phụ trách; thân `{ "members": ["NV-03"] }`, không nhận mã; người không còn trong task thì bỏ qua |
 
 `changes` chỉ nhận `assignee`, `due`, `description`, `status`.
 `expected_version` bắt buộc khi hồ sơ kiểm phiên bản và bỏ được khi hồ sơ tắt công tắc đó.
 `POST /tasks` trả 201 với task mới, mã từ `T-101` trở đi, phiên bản 1.
 Phía cổng chưa có thao tác tạo trong issue này; đường tạo chỉ phục vụ phép đo Q3.
+
+Khi công tắc giao việc bật, `PATCH` có `assignee` trả 400 `assignee_not_patchable`, giống Lark.
+`add_members` nhớ mã theo khoá dịch vụ, không theo token, vì lời gọi của cổng không mang token người gọi.
+Task giữ được nhiều người phụ trách: lời đọc trả thêm `assignees`, danh sách đủ theo thứ tự thêm vào, còn `assignee` cũ là phần tử đầu.
+Task mới tạo luôn có một người, nên `assignees` là một mảng một phần tử.
+Lọc `assignee` khớp với bất kỳ thành viên nào của task, không chỉ người đầu tiên.
+Hai đường thành viên chỉ có khi công tắc bật; khi tắt chúng trả 404 như chưa từng có.
 
 ## Một lần ghi được kiểm thế nào
 
@@ -107,26 +117,31 @@ Chỉ chạy khi `LAB_TEST_HOOKS=1`; khi biến tắt chúng trả 404.
 | `GET /admin/write-count?task=<mã>` | `{ "task", "count" }`: số lần ghi thật, không tính lần gửi lại |
 | `GET /admin/applied-count?task=<mã>` | `{ "task", "count" }`: số thay đổi thật sự được áp, tính cả lần ghi muộn đã xong |
 | `GET /admin/notification-count?task=<mã>` | `{ "task", "count" }`: số thông báo đích đã phát cho task |
+| `GET /admin/multiple-assignee-count` | `{ "count" }`: số task đang có hơn một người phụ trách |
 | `GET /admin/writes?task=<mã>` | `{ "task", "history", "writes": [...] }`: danh sách lần ghi kèm người ghi |
 | `POST /admin/tokens` | Cấp token cho phạm vi nhớ mã theo token; thân `{ "ttl_ms"? }`, trả `token` và `expires_at` |
 | `POST /admin/other-write` | Một người dùng khác sửa task; thân `{ "task_id", "changes", "expected_version"? }` |
 
-Mỗi dòng trong `writes` gồm `id`, `key`, `actor`, `kind` (`patch`, `create` hoặc `other`), `fields`, `state` (`processing`, `applied` hoặc `failed`), `notifications`, `at` và `applied_at`.
+Mỗi dòng trong `writes` gồm `id`, `key`, `actor`, `kind` (`patch`, `create`, `add_members`, `remove_members` hoặc `other`), `fields`, `state` (`processing`, `applied` hoặc `failed`), `notifications`, `at` và `applied_at`.
+Một lần thêm hay bỏ thành viên thật sự là một dòng riêng, nên vết ghi cho biết đổi người phụ trách tốn mấy lời gọi.
+Lần thêm đã có người, lần bỏ người không còn, và lần gửi lại đúng mã đều không tạo dòng mới.
 Khi hồ sơ tắt lịch sử người ghi, `history` là `false` và `actor` là `null`; số đếm vẫn đúng.
-`POST /admin/other-write` ghi với mã nhân viên `NV-01`, không cần mã chống ghi trùng, và tính vào cả ba bộ đếm.
+`POST /admin/other-write` ghi với mã nhân viên `NV-01`, không cần mã chống ghi trùng, và tính vào cả ba bộ đếm theo task.
 Nó dùng để tạo điểm gây lỗi 5 của phép đo Q3: người khác sửa cùng bản ghi trong lúc đề xuất chờ duyệt.
 
 | `mode` của `/admin/faults` | Làm gì |
 | --- | --- |
-| `drop_response_after_commit` | `count` lần ghi kế tiếp ghi xong rồi đóng kết nối không trả lời |
+| `drop_response_after_commit` | `count` lần ghi kế tiếp ghi xong rồi đóng kết nối không trả lời; `call` (`any`, `add_members`, `remove_members`) chọn đúng loại lời gọi bị rớt, mặc định `any` |
 | `delay_response_after_commit` | Như trên nhưng giữ kết nối `delay_ms` rồi mới trả lời |
 | `hold_item_before_commit` | Giữ mục ở vị trí `position` của một đề xuất trước khi ghi |
 | `hold_item_after_commit` | Ghi mục ở vị trí `position` rồi giữ câu trả lời, để phép thử dừng cổng giữa hai mục |
 
 Vị trí lấy từ mã chống ghi trùng `<mã đề xuất>:<vị trí>`.
-Bốn móc gây lỗi áp cho cả `PATCH /tasks/<mã>` và `POST /tasks`.
+Bốn móc gây lỗi áp cho `PATCH /tasks/<mã>`, `POST /tasks` và hai đường thành viên.
+Lỗi rớt câu trả lời lọc được theo `call`, để phép thử rớt đúng sau lời gọi thêm hoặc sau lời gọi bỏ.
 
 ## Giữ hành vi cũ
 
-Hồ sơ `standard` là mặc định và giữ nguyên hành vi cũ: không có độ trễ đọc, nhớ mã mãi mãi, trả kết quả ngay, kiểm phiên bản và không giới hạn tốc độ.
+Hồ sơ `standard` là mặc định và giữ nguyên hành vi cũ: không có độ trễ đọc, nhớ mã mãi mãi, trả kết quả ngay, kiểm phiên bản, không giới hạn tốc độ và đổi người phụ trách bằng PATCH.
+Lời đọc trên `standard` giữ đúng tám trường cũ, không có `assignees`.
 Các phép thử cũ, `npm run sr` và phép đo `q1-outbox` chạy trên hồ sơ này không đổi.

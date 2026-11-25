@@ -61,6 +61,11 @@ export async function startMeasureStack(): Promise<MeasureStack> {
     [PORT_ENV.gateway]: String(gatewayPort),
   };
 
+  // A measurement on the lark-task profile must reassign the way Lark does.
+  if (env['LAB_TASKS_PROFILE'] === 'lark-task') {
+    env['LAB_TASKS_ASSIGNEE_MODE'] = 'members';
+  }
+
   const started: SpawnedService[] = [];
   let stopped = false;
 

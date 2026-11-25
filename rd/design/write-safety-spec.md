@@ -120,7 +120,7 @@ Trước khi chọn, Lab đọc cách các hệ thống lớn đã giải cùng 
 ## 4. Kiểm chứng và thứ tự làm
 
 Câu hỏi nghiên cứu Q3: khi hệ thống đích không hợp tác, cổng cần thêm gì để vẫn không ghi trùng, không ghi đè và không mất lệnh, và mỗi thứ thêm vào tốn bao nhiêu?
-Lab trả lời bằng phần mềm giả có chín công tắc bắt chước các khác biệt ở mục 2, và so ba cách: gửi một lần, cách hôm nay, và cách đang nghiêng.
+Lab trả lời bằng phần mềm giả có mười công tắc bắt chước các khác biệt ở mục 2, và so ba cách: gửi một lần, cách hôm nay, và cách đang nghiêng.
 Phép đo không dùng mô hình AI, chạy khoảng 13 giờ máy qua hai đêm ([kế hoạch đo](q3-measurement-plan.md)).
 
 Thứ tự làm:

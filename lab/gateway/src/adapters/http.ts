@@ -131,7 +131,7 @@ export class HttpSystem {
   async post(
     path: string,
     payload: unknown,
-    idempotencyKey: string,
+    idempotencyKey: string | undefined,
     recordOf: (body: unknown) => RecordData | undefined,
     idOf: (record: RecordData) => string | undefined,
   ): Promise<ApplyResult> {
@@ -143,7 +143,7 @@ export class HttpSystem {
         headers: {
           authorization: `Bearer ${this.options.serviceKey}`,
           'content-type': 'application/json',
-          'idempotency-key': idempotencyKey,
+          ...(idempotencyKey === undefined ? {} : { 'idempotency-key': idempotencyKey }),
         },
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(this.timeoutMs),

@@ -1,13 +1,16 @@
 import { z } from 'zod';
 
 /**
- * The nine switches of the Q3 measurement plan, grouped as a resolved
+ * The ten switches of the Q3 measurement plan, grouped as a resolved
  * configuration. A profile is one named combination of these values, so
  * adding a target behaviour never means adding a branch in the server.
  *
  * The create and update idempotency switches are set separately because
  * real systems do not deduplicate both operations: Lark Task accepts a key
  * on create and has none on patch.
+ *
+ * `memberCalls` says how a task changes its assignee: a PATCH like the old
+ * task list, or Lark Task's add_members plus remove_members.
  */
 export const IDEMPOTENCY_MEMORY = ['forever', 'seconds', 'none'] as const;
 export type IdempotencyMemory = (typeof IDEMPOTENCY_MEMORY)[number];
@@ -68,6 +71,11 @@ export interface TargetConfig {
   readonly notifications: NotificationMode;
   /** Whether the target exposes the actor of each write. */
   readonly writeHistory: boolean;
+  /**
+   * Whether reassigning goes through add_members and remove_members instead
+   * of a PATCH. Lark Task refuses a member change on PATCH.
+   */
+  readonly memberCalls: boolean;
 }
 
 export const PROFILE_ENV = 'LAB_TASKS_PROFILE';
@@ -87,6 +95,7 @@ const standard: TargetConfig = {
   readDelayMs: 0,
   notifications: 'none',
   writeHistory: true,
+  memberCalls: false,
 };
 
 const larkTask: TargetConfig = {
@@ -97,6 +106,7 @@ const larkTask: TargetConfig = {
   },
   versionCheck: false,
   notifications: 'every_write',
+  memberCalls: true,
 };
 
 const larkApproval: TargetConfig = {
@@ -208,6 +218,7 @@ const overrideSchema = z.strictObject({
   readDelayMs: z.number().int().min(0).max(MAX_DELAY_MS).optional(),
   notifications: z.enum(NOTIFICATION_MODES).optional(),
   writeHistory: z.boolean().optional(),
+  memberCalls: z.boolean().optional(),
 });
 
 type ConfigOverride = z.infer<typeof overrideSchema>;
@@ -249,6 +260,7 @@ function mergeConfig(base: TargetConfig, override: ConfigOverride): TargetConfig
     readDelayMs: override.readDelayMs ?? base.readDelayMs,
     notifications: override.notifications ?? base.notifications,
     writeHistory: override.writeHistory ?? base.writeHistory,
+    memberCalls: override.memberCalls ?? base.memberCalls,
   };
 }
 
