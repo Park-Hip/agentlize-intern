@@ -7,7 +7,6 @@ import {
   EMPLOYEE_FIELD_LABELS,
   READ_EMPLOYEE_FIELD,
   rulesSchema,
-  TASK_FIELDS,
   type ActionCell,
   type ApproverMode,
   type PolicyAction,
@@ -147,15 +146,22 @@ export function fieldChoices(rules: Rules, fields: readonly string[]): readonly 
   }));
 }
 
-/** The task fields the screen offers, including the ones no role sees yet. */
-export function taskFieldChoices(rules: Rules): readonly FieldChoice[] {
-  const declared = declaredFields(rules, 'task');
-  return TASK_FIELDS.filter((field) => field.name !== 'version').map((field) => ({
-    field: field.name,
-    label: field.label,
-    directoryKey: field.name,
-    declared: declared.has(field.name),
-  }));
+/**
+ * The fields the screen offers for one record type other than `employee`, from
+ * the adapter declaration, including the ones no role sees yet. Each type gets
+ * its own list, so a page saved untouched writes back the fields it read.
+ */
+export function recordFieldChoices(rules: Rules, type: string): readonly FieldChoice[] {
+  const declared = declaredFields(rules, type);
+  const declaration = ADAPTER_DECLARATIONS.find((candidate) => candidate.type === type);
+  return (declaration?.fields ?? [])
+    .filter((field) => field.name !== 'version')
+    .map((field) => ({
+      field: field.name,
+      label: field.label,
+      directoryKey: field.name,
+      declared: declared.has(field.name),
+    }));
 }
 
 export interface RoleColumn {
@@ -189,7 +195,8 @@ export interface PermissionsView {
   readonly roles: readonly RoleColumn[];
   readonly rules: Rules;
   readonly fields: readonly FieldChoice[];
-  readonly taskFields: readonly FieldChoice[];
+  /** The field choices of every record type except `employee`, by type. */
+  readonly recordFields: Readonly<Record<string, readonly FieldChoice[]>>;
   readonly resources: readonly ResourceView[];
 }
 
@@ -210,7 +217,11 @@ export function permissionsView(
     roles: roleColumns(rules),
     rules,
     fields,
-    taskFields: taskFieldChoices(rules),
+    recordFields: Object.fromEntries(
+      resourceTypes(rules)
+        .filter((type) => type !== 'employee')
+        .map((type) => [type, recordFieldChoices(rules, type)] as const),
+    ),
     resources: resourceTypes(rules).map((type) => ({
       type,
       label: RESOURCE_LABEL[type] ?? type,

@@ -153,7 +153,7 @@ ${rows}
 }
 
 function resourcePanel(view: PermissionsPageView, resource: ResourceView): string {
-  const choices = resource.type === 'employee' ? view.fields : view.taskFields;
+  const choices = resource.type === 'employee' ? view.fields : (view.recordFields[resource.type] ?? []);
   const thresholdName = `bulk_threshold.${resource.type}`;
   const thresholdId = `bulk_threshold_${resource.type}`;
   const approverId = `approver_${resource.type}`;
@@ -325,7 +325,7 @@ ${restored}
 <input type="hidden" name="csrf" value="${esc(view.csrfToken)}">
 <input type="hidden" name="version" value="${view.version}">
 ${view.fields.map((field) => `<input type="hidden" name="catalog.employee" value="${esc(field.field)}">`).join('\n')}
-${view.taskFields.map((field) => `<input type="hidden" name="catalog.task" value="${esc(field.field)}">`).join('\n')}
+${(view.recordFields['task'] ?? []).map((field) => `<input type="hidden" name="catalog.task" value="${esc(field.field)}">`).join('\n')}
 ${view.resources.map((resource) => resourcePanel(view, resource)).join('\n')}
 ${approvalPanel(view)}
 <div class="actions rule-actions">

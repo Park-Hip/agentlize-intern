@@ -135,6 +135,26 @@ test('permissions: the screen shows one table per record type, every cell in thr
   assert.match(html, /value="restore" class="secondary" formnovalidate/);
 });
 
+test('permissions: every record type offers its own fields, so an untouched page keeps the file fields', async (t) => {
+  const fixture = await startFixture();
+  t.after(() => fixture.close());
+
+  const html = await (await fetch(`${fixture.url}/permissions`)).text();
+  const resources = resourcesOf(readRules(fixture.rulesPath));
+  for (const [type, resource] of Object.entries(resources)) {
+    for (const [role, fields] of Object.entries(resource.fields)) {
+      // A browser sends only the ticked boxes, so the ticked boxes are what a save writes.
+      const ticked = [
+        ...html.matchAll(new RegExp(`<input type="checkbox" name="fields\\.${type}\\.${role}" value="([^"]*)" checked>`, 'g')),
+      ].map((match) => match[1]);
+      assert.deepEqual([...ticked].sort(), [...fields].sort(), `${type}.${role} renders the fields the file grants`);
+    }
+  }
+  assert.match(html, /<h3>Trường của đơn nghỉ phép mỗi vai được xem<\/h3>/);
+  assert.match(html, /name="fields\.leave\.staff" value="leave_type" checked/);
+  assert.equal(checkbox(html, 'leave', 'staff', 'title'), null, 'leave never offers a task field');
+});
+
 test('permissions: a valid save writes the next version and keeps a history copy', async (t) => {
   const fixture = await startFixture();
   t.after(() => fixture.close());
