@@ -103,7 +103,7 @@ async function stop(child: ChildProcess): Promise<void> {
 }
 
 /**
- * Assistant B declares the six tools by hand, so only a test can notice when
+ * Assistant B declares the seven tools by hand, so only a test can notice when
  * the gateway's words move. This starts the real gateway and compares the
  * published catalog with that declaration, character for character and
  * schema for schema (issue #136).

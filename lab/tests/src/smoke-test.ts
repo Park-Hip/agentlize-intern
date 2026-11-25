@@ -7,14 +7,15 @@ import test from 'node:test';
 import { DATA_DIR_ENV, LOOPBACK_HOST, PORT_ENV, RULES_PATH_ENV, SERVICE_KEY_ENV, type ServiceName } from '@lab/shared';
 import { freePorts, spawnBuiltService, stopChild, waitForHealth, type SpawnedService } from './process.js';
 
-test('smoke: four services start on temporary ports and answer /health', async (t) => {
+test('smoke: five services start on temporary ports and answer /health', async (t) => {
   const key = randomBytes(32).toString('base64url');
   const dataDir = await mkdtemp(join(tmpdir(), 'agentlize-lab-'));
-  const [directoryPort, tasksPort, gatewayPort, consolePort] = await freePorts(4);
+  const [directoryPort, tasksPort, leavePort, gatewayPort, consolePort] = await freePorts(5);
 
   const ports: Readonly<Record<ServiceName, number>> = {
     directory: directoryPort ?? 0,
     tasks: tasksPort ?? 0,
+    leave: leavePort ?? 0,
     gateway: gatewayPort ?? 0,
     console: consolePort ?? 0,
   };
@@ -26,6 +27,7 @@ test('smoke: four services start on temporary ports and answer /health', async (
     [RULES_PATH_ENV]: join(dataDir, 'rules.json'),
     [PORT_ENV.directory]: String(ports.directory),
     [PORT_ENV.tasks]: String(ports.tasks),
+    [PORT_ENV.leave]: String(ports.leave),
     [PORT_ENV.gateway]: String(ports.gateway),
     [PORT_ENV.console]: String(ports.console),
   };
@@ -44,6 +46,10 @@ test('smoke: four services start on temporary ports and answer /health', async (
   started.push(tasks);
   await waitForHealth(tasks, ports.tasks, key);
 
+  const leave = spawnBuiltService('fake-leave', env);
+  started.push(leave);
+  await waitForHealth(leave, ports.leave, key);
+
   const gateway = spawnBuiltService('gateway', env);
   started.push(gateway);
   await waitForHealth(gateway, ports.gateway, key);
@@ -54,6 +60,7 @@ test('smoke: four services start on temporary ports and answer /health', async (
 
   const expected: ReadonlyArray<[ServiceName, number]> = [
     ['tasks', ports.tasks],
+    ['leave', ports.leave],
     ['gateway', ports.gateway],
     ['console', ports.console],
   ];

@@ -1,17 +1,17 @@
 # Trang điều khiển
 
-Trang cho người vận hành: xem ba dịch vụ có chạy không, sửa luật quyền, gọi thử tool, xem dữ liệu gốc và đọc vết.
+Trang cho người vận hành: xem bốn dịch vụ có chạy không, sửa luật quyền, gọi thử tool, xem dữ liệu gốc và đọc vết.
 Mở `http://127.0.0.1:8793` sau `npm start`.
 
 ## Sáu màn hình
 
 | Màn hình | Cho thấy |
 | --- | --- |
-| Tổng quan | `/health` của ba dịch vụ, phiên bản file luật, sáu nhân vật và khách |
+| Tổng quan | `/health` của bốn dịch vụ, phiên bản file luật, sáu nhân vật và khách |
 | Tool | Danh mục tool của cổng: mô tả, tham số, nhãn "Chỉ đọc" hay "Soạn đề xuất" |
 | Quyền và trường | Vai nào được làm gì, xem trường nào, ai duyệt; ô thử quyết định |
 | Sân chơi | Gọi một tool qua cổng dưới tên một nhân vật, xem nguyên văn câu trả lời |
-| Dữ liệu gốc | Dữ liệu đúng như hai hệ thống giả đang lưu, góc nhìn mà AI không có |
+| Dữ liệu gốc | Dữ liệu đúng như ba hệ thống giả đang lưu, góc nhìn mà AI không có |
 | Vết | Bảng vết của cổng, lọc theo người, task, đề xuất, cửa vào; tự làm mới mỗi 5 giây |
 
 Trang không có nút sửa bản ghi: mọi thay đổi nghiệp vụ đi qua cổng.

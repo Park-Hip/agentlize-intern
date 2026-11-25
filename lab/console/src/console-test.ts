@@ -11,7 +11,7 @@ import {
   startFixture,
 } from './test-support.js';
 
-test('console: overview shows the three services, the applied rule version and the seven identities', async (t) => {
+test('console: overview shows the four services, the applied rule version and the seven identities', async (t) => {
   const fixture = await startFixture();
   t.after(() => fixture.close());
 
@@ -26,7 +26,7 @@ test('console: overview shows the three services, the applied rule version and t
   const html = await response.text();
   assert.match(html, /<h1>Tổng quan<\/h1>/);
   assert.match(html, /Phiên bản 7/);
-  assert.equal(html.match(/Đang chạy/g)?.length, 3);
+  assert.equal(html.match(/Đang chạy/g)?.length, 4);
   assert.match(html, /Nhân viên 02/);
   assert.match(html, /Nhân viên 01/);
   assert.match(html, /NV-99/);
@@ -86,8 +86,8 @@ test('console: overview still opens when the directory is off and says so', asyn
   assert.match(html, /Danh bạ giả/);
   assert.match(html, /Chưa đọc được/);
   assert.match(html, /NV-01/);
-  // The gateway and the task list are still reported as running.
-  assert.equal(html.match(/Đang chạy/g)?.length, 2);
+  // The gateway, the task list and the leave system are still reported as running.
+  assert.equal(html.match(/Đang chạy/g)?.length, 3);
   assert.equal(html.match(/Không chạy/g)?.length, 1);
 });
 
@@ -113,7 +113,7 @@ test('console: overview still opens when the task list is off and says so', asyn
   assert.match(html, /Task giả/);
   assert.match(html, /Không chạy/);
   assert.match(html, /Nhân viên 02/);
-  assert.equal(html.match(/Đang chạy/g)?.length, 2);
+  assert.equal(html.match(/Đang chạy/g)?.length, 3);
   assert.equal(html.match(/Không chạy/g)?.length, 1);
 });
 
@@ -129,7 +129,7 @@ test('console: a broken rule file is reported without hiding the rest of the pag
   assert.match(html, /Nhân viên 02/);
 });
 
-test('console: source data shows both systems raw, states the operator view and pages 100 tasks', async (t) => {
+test('console: source data shows the three systems raw, states the operator view and pages 100 tasks', async (t) => {
   const fixture = await startFixture();
   t.after(() => fixture.close());
 
@@ -153,6 +153,14 @@ test('console: source data shows both systems raw, states the operator view and 
   assert.match(html, /Trang 1\/5, 100 task\./);
   assert.match(html, /href="\/data\?page=2"/);
 
+  // Leave requests: the source system's own data, with the waiting state visible.
+  assert.match(html, /<h2>Đơn nghỉ phép giả<\/h2>/);
+  assert.match(html, /<code>NP-1<\/code>/);
+  assert.match(html, /Chờ quản lý duyệt/);
+  assert.match(html, /Phép năm/);
+  assert.match(html, /Khoá tạo/);
+  assert.match(html, /<code>NP-2<\/code>/);
+
   // No control changes a record: the department filter is the only form.
   assert.equal(html.match(/<form/g)?.length, 1);
   assert.equal(html.includes('method="post"'), false);
@@ -173,7 +181,7 @@ test('console: source data shows both systems raw, states the operator view and 
   assert.match(lastHtml, /<code>T-100<\/code>/);
 });
 
-test('console: the department filter narrows both tables and an unknown department is ignored', async (t) => {
+test('console: the department filter narrows the tables and an unknown department is ignored', async (t) => {
   const fixture = await startFixture();
   t.after(() => fixture.close());
 
@@ -184,6 +192,8 @@ test('console: the department filter narrows both tables and an unknown departme
   assert.equal(html.includes('NV-01'), false);
   assert.match(html, /Trang 1\/2, 40 task\./);
   assert.match(html, /<code>T-61<\/code>/);
+  assert.match(html, /<code>NP-2<\/code>/);
+  assert.equal(html.includes('NP-1'), false, 'the Vận hành leave request is filtered out');
   // The page link keeps the department.
   assert.match(html, /href="\/data\?department=Kinh\+doanh&amp;page=2"/);
 
@@ -192,6 +202,7 @@ test('console: the department filter narrows both tables and an unknown departme
   assert.match(unknownHtml, /bỏ qua bộ lọc phòng/);
   assert.match(unknownHtml, /<code>NV-01<\/code>/);
   assert.match(unknownHtml, /Trang 1\/5, 100 task\./);
+  assert.match(unknownHtml, /<code>NP-1<\/code>/);
 });
 
 test('console: source data still opens when a system is off and says which table is empty', async (t) => {
@@ -201,6 +212,7 @@ test('console: source data still opens when a system is off and says which table
   assert.match(withoutDirectory, /Không đọc được danh bạ/);
   assert.match(withoutDirectory, /Chưa đọc được danh bạ nên bảng nhân viên để trống\./);
   assert.match(withoutDirectory, /<code>T-1<\/code>/);
+  assert.match(withoutDirectory, /<code>NP-1<\/code>/);
 
   const tasksOff = await startFixture({ tasks: false });
   t.after(() => tasksOff.close());
@@ -208,6 +220,14 @@ test('console: source data still opens when a system is off and says which table
   assert.match(withoutTasks, /Không đọc được danh sách task/);
   assert.match(withoutTasks, /Chưa đọc được danh sách task nên bảng task để trống\./);
   assert.match(withoutTasks, /<code>NV-01<\/code>/);
+  assert.match(withoutTasks, /<code>NP-1<\/code>/);
+
+  const leaveOff = await startFixture({ leave: false });
+  t.after(() => leaveOff.close());
+  const withoutLeave = await (await fetch(`${leaveOff.url}/data`)).text();
+  assert.match(withoutLeave, /Không đọc được danh sách đơn nghỉ phép/);
+  assert.match(withoutLeave, /Chưa đọc được danh sách đơn nghỉ phép nên bảng đơn nghỉ phép để trống\./);
+  assert.match(withoutLeave, /<code>NV-01<\/code>/);
 });
 
 test('console: the test buttons appear only with LAB_TEST_HOOKS, and a press needs Origin and the token', async (t) => {

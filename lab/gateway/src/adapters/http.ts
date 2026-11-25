@@ -122,6 +122,62 @@ export class HttpSystem {
     return { kind: 'written', record, version, replayed: response.headers.get('idempotent-replayed') === 'true' };
   }
 
+  /**
+   * One POST with the fixed key, for a create. The target answers with the new
+   * record, and the adapter names the field that holds its code. A create has
+   * no version: the key is the only repeat guard, and a 409 means the target
+   * refused a key it had already seen with another answer.
+   */
+  async post(
+    path: string,
+    payload: unknown,
+    idempotencyKey: string,
+    recordOf: (body: unknown) => RecordData | undefined,
+    idOf: (record: RecordData) => string | undefined,
+  ): Promise<ApplyResult> {
+    let response: Response;
+    let text: string;
+    try {
+      response = await this.doFetch(`${this.options.url}${path}`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${this.options.serviceKey}`,
+          'content-type': 'application/json',
+          'idempotency-key': idempotencyKey,
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+      text = await response.text();
+    } catch (error) {
+      const reason = error instanceof Error ? error.name : 'error';
+      return { kind: 'unavailable', detail: `request failed (${reason})` };
+    }
+
+    if (response.status === 404) return { kind: 'not_found' };
+    if (response.status >= 500) return { kind: 'unavailable', detail: `HTTP ${response.status}` };
+    if (response.status < 200 || response.status >= 300) {
+      return { kind: 'rejected', status: response.status, error: errorText(text) };
+    }
+
+    let body: unknown;
+    try {
+      body = JSON.parse(text) as unknown;
+    } catch {
+      return { kind: 'unavailable', detail: 'reply is not JSON' };
+    }
+    const record = recordOf(body);
+    if (record === undefined) return { kind: 'unavailable', detail: 'reply has an unexpected shape' };
+    const recordId = idOf(record);
+    if (recordId === undefined) return { kind: 'unavailable', detail: 'reply has no record code' };
+    return {
+      kind: 'created',
+      record,
+      recordId,
+      replayed: response.headers.get('idempotent-replayed') === 'true',
+    };
+  }
+
   parse<S extends z.ZodType>(schema: S, body: unknown): z.infer<S> {
     const parsed = schema.safeParse(body);
     if (!parsed.success) throw new SystemUnavailableError(this.service, 'reply has an unexpected shape');

@@ -66,13 +66,15 @@ test('permissions: the screen shows one table per record type, every cell in thr
 
   assert.match(html, /<h1>Quyền và trường<\/h1>/);
   assert.match(html, /<h2>Task<\/h2>/);
+  assert.match(html, /<h2>Đơn nghỉ phép<\/h2>/);
   assert.match(html, /<h2>Nhân viên<\/h2>/);
 
-  // Three task actions and one employee action, four roles, three selects per cell.
-  assert.equal(html.match(/name="cell\./g)?.length, 48);
+  // Three task actions, one leave action and one employee action, four roles, three selects per cell.
+  assert.equal(html.match(/name="cell\./g)?.length, 60);
   assert.equal(html.match(/name="cell\.task\.change_task_status\.staff\.effect"/g)?.length, 1);
+  assert.equal(html.match(/name="cell\.leave\.create_leave_request\.staff\.effect"/g)?.length, 1);
   assert.equal(html.match(/name="cell\.employee\.edit_work_email\.hr\.effect"/g)?.length, 1);
-  assert.equal(html.match(/name="read\./g)?.length, 8, 'one read select per role and record type');
+  assert.equal(html.match(/name="read\./g)?.length, 12, 'one read select per role and record type');
 
   const staffStatus = new RegExp(
     '<select name="cell\\.task\\.change_task_status\\.staff\\.effect"[^>]*>(.*?)</select>',
@@ -86,6 +88,7 @@ test('permissions: the screen shows one table per record type, every cell in thr
 
   // The bulk threshold is one number per record type.
   assert.match(html, /name="bulk_threshold\.task" type="number" min="1" step="1" value="5"/);
+  assert.match(html, /name="bulk_threshold\.leave" type="number" min="1" step="1" value="5"/);
   assert.match(html, /name="bulk_threshold\.employee" type="number" min="1" step="1" value="5"/);
 
   // A field added to the directory after the rule file has no role yet: it is shown and marked.

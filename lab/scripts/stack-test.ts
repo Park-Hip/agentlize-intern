@@ -38,13 +38,14 @@ async function freePorts(count: number): Promise<number[]> {
   return ports;
 }
 
-test('stack: starts the four services, answers health and stops every child', async (t) => {
+test('stack: starts the five services, answers health and stops every child', async (t) => {
   const dataDir = await mkdtemp(join(tmpdir(), 'agentlize-stack-'));
-  const [gatewayPort, directoryPort, tasksPort, consolePort] = await freePorts(4);
+  const [gatewayPort, directoryPort, tasksPort, leavePort, consolePort] = await freePorts(5);
   const ports = {
     gateway: gatewayPort ?? 0,
     directory: directoryPort ?? 0,
     tasks: tasksPort ?? 0,
+    leave: leavePort ?? 0,
     console: consolePort ?? 0,
   };
   const env: NodeJS.ProcessEnv = {
@@ -54,6 +55,7 @@ test('stack: starts the four services, answers health and stops every child', as
     [PORT_ENV.gateway]: String(ports.gateway),
     [PORT_ENV.directory]: String(ports.directory),
     [PORT_ENV.tasks]: String(ports.tasks),
+    [PORT_ENV.leave]: String(ports.leave),
     [PORT_ENV.console]: String(ports.console),
   };
   const output: string[] = [];
@@ -88,9 +90,9 @@ test('stack: starts the four services, answers health and stops every child', as
   await assert.rejects(fetch(`http://127.0.0.1:${ports.console}/health`, { signal: AbortSignal.timeout(1_000) }));
 });
 
-test('stack: the tunnel mode starts the three services and leaves the console off', async (t) => {
+test('stack: the tunnel mode starts the four services and leaves the console off', async (t) => {
   const dataDir = await mkdtemp(join(tmpdir(), 'agentlize-stack-no-console-'));
-  const [gatewayPort, directoryPort, tasksPort, consolePort] = await freePorts(4);
+  const [gatewayPort, directoryPort, tasksPort, leavePort, consolePort] = await freePorts(5);
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     [SERVICE_KEY_ENV]: randomBytes(32).toString('base64url'),
@@ -98,6 +100,7 @@ test('stack: the tunnel mode starts the three services and leaves the console of
     [PORT_ENV.gateway]: String(gatewayPort),
     [PORT_ENV.directory]: String(directoryPort),
     [PORT_ENV.tasks]: String(tasksPort),
+    [PORT_ENV.leave]: String(leavePort),
     [PORT_ENV.console]: String(consolePort),
   };
   const output: string[] = [];
@@ -122,7 +125,7 @@ test('stack: the tunnel mode starts the three services and leaves the console of
 
 test('stack: a service that cannot bind does not leave the earlier services running', async (t) => {
   const dataDir = await mkdtemp(join(tmpdir(), 'agentlize-stack-fail-'));
-  const [gatewayPort, directoryPort, tasksPort] = await freePorts(3);
+  const [gatewayPort, directoryPort, tasksPort, leavePort] = await freePorts(4);
   const blocker = createServer((socket) => {
     // The health check may reach this port before the gateway exits; close at once.
     socket.destroy();
@@ -144,6 +147,7 @@ test('stack: a service that cannot bind does not leave the earlier services runn
     [PORT_ENV.gateway]: String(gatewayPort),
     [PORT_ENV.directory]: String(directoryPort),
     [PORT_ENV.tasks]: String(tasksPort),
+    [PORT_ENV.leave]: String(leavePort),
   };
 
   await assert.rejects(
@@ -151,8 +155,8 @@ test('stack: a service that cannot bind does not leave the earlier services runn
     /gateway/,
   );
 
-  // The two fake systems were already healthy; a failed start must stop them.
-  for (const port of [directoryPort, tasksPort]) {
+  // The fake systems were already healthy; a failed start must stop them.
+  for (const port of [directoryPort, tasksPort, leavePort]) {
     const probe = createServer();
     await new Promise<void>((resolveListen, rejectListen) => {
       probe.once('error', rejectListen);

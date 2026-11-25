@@ -4,7 +4,7 @@ import { EMPLOYEE_ID_PATTERN, type ReasonCode } from '@lab/shared';
 import { adapterOf, SystemUnavailableError, type RecordData } from '../adapters/index.js';
 import { TraceUnavailableError, type GatewayDeps } from '../call.js';
 import type { KeyRecord } from '../identity/index.js';
-import { formatMoment, itemRows, personLabel } from '../proposals/card.js';
+import { formatMoment, itemLabel, itemRows, personLabel, traceObjectId } from '../proposals/card.js';
 import {
   actionFields,
   approvalRoster,
@@ -139,7 +139,7 @@ async function handleCard(deps: GatewayDeps, req: IncomingMessage, res: ServerRe
   const items = await Promise.all(
     proposal.items.map(async (item) => ({
       position: item.position,
-      recordId: item.recordId,
+      recordId: itemLabel(item),
       rows: await itemRows(item, deps.adapters),
       command: commands.get(item.position),
     })),
@@ -239,7 +239,9 @@ async function writeChecks(
   let current: (RecordData | undefined)[];
   try {
     employee = await directory.get(proposal.requester);
-    current = await Promise.all(proposal.items.map((item) => records.get(item.recordId)));
+    current = await Promise.all(
+      proposal.items.map(async (item) => (item.kind === 'create' ? undefined : records.get(item.recordId))),
+    );
   } catch (error) {
     if (!(error instanceof SystemUnavailableError)) throw error;
     return {
@@ -250,7 +252,7 @@ async function writeChecks(
         status: 502,
         ruleId: `WEB.SYSTEM.${error.system}`,
         policyVersion: null,
-        sentence: 'Cổng không nối được với danh bạ hoặc danh sách task nên chưa ghi. Hãy thử lại sau, hoặc báo người vận hành Lab.',
+        sentence: 'Cổng không nối được với danh bạ hoặc hệ thống nguồn nên chưa ghi. Hãy thử lại sau, hoặc báo người vận hành Lab.',
       },
     };
   }
@@ -311,7 +313,7 @@ async function handleDecision(
       tool,
       requester,
       caller: callerOfProposal(deps, proposalId),
-      taskId: proposal?.items[0]?.recordId ?? null,
+      taskId: traceObjectId(proposal),
       proposalId: PROPOSAL_ID_PATTERN.test(proposalId) ? proposalId : null,
       outcome: code === null ? 'not_found' : 'refused',
       reasonCode: code,
@@ -347,7 +349,7 @@ async function handleDecision(
           tool,
           requester,
           caller: proposal.caller,
-          taskId: proposal.items[0]?.recordId ?? null,
+          taskId: traceObjectId(proposal),
           proposalId: proposal.proposalId,
           outcome: 'refused',
           reasonCode: 'KEY_INVALID',
@@ -366,7 +368,7 @@ async function handleDecision(
           tool,
           requester,
           caller: proposal.caller,
-          taskId: proposal.items[0]?.recordId ?? null,
+          taskId: traceObjectId(proposal),
           proposalId: proposal.proposalId,
           outcome: 'refused',
           reasonCode: 'KEY_INVALID',
@@ -387,7 +389,7 @@ async function handleDecision(
           tool,
           requester,
           caller: draftedKey.caller,
-          taskId: proposal.items[0]?.recordId ?? null,
+          taskId: traceObjectId(proposal),
           proposalId: proposal.proposalId,
           outcome: 'refused',
           reasonCode: code,
@@ -411,7 +413,7 @@ async function handleDecision(
             tool,
             requester: decided.requester,
             caller: draftedKey.caller,
-            taskId: decided.items[0]?.recordId ?? null,
+            taskId: traceObjectId(decided),
             proposalId: decided.proposalId,
             outcome: 'ok',
             reasonCode: null,
@@ -478,7 +480,7 @@ async function handleDecision(
       tool,
       requester: decided.requester,
       caller,
-      taskId: decided.items[0]?.recordId ?? null,
+      taskId: traceObjectId(decided),
       proposalId: decided.proposalId,
       outcome: 'ok',
       reasonCode: null,

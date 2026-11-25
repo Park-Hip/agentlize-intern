@@ -76,6 +76,40 @@ export const TASKS = {
   }),
 };
 
+/** Two leave requests, one waiting in Vận hành and one already approved in Kinh doanh. */
+export const LEAVES = {
+  requests: [
+    {
+      code: 'NP-1',
+      employee: 'NV-02',
+      department: 'Vận hành',
+      leave_type: 'annual',
+      from_date: '2026-11-20',
+      to_date: '2026-11-21',
+      reason: 'Việc gia đình',
+      note: 'Về quê',
+      status: 'pending',
+      request_key: 'dx-0000000000000001:1',
+      created_at: '2026-11-18T09:00:00.000Z',
+      decided_at: '',
+    },
+    {
+      code: 'NP-2',
+      employee: 'NV-11',
+      department: 'Kinh doanh',
+      leave_type: 'sick',
+      from_date: '2026-11-25',
+      to_date: '2026-11-25',
+      reason: 'Khám bệnh',
+      note: '',
+      status: 'approved',
+      request_key: 'dx-0000000000000002:1',
+      created_at: '2026-11-18T10:00:00.000Z',
+      decided_at: '2026-11-18T10:05:00.000Z',
+    },
+  ],
+};
+
 export const TOOLS = {
   tools: [
     {
@@ -302,6 +336,7 @@ export interface FixtureOptions {
   readonly gateway?: boolean;
   readonly directory?: boolean;
   readonly tasks?: boolean;
+  readonly leave?: boolean;
   readonly rulesText?: string;
   /** The body the fake directory answers `/employees` with, instead of the default 20 people. */
   readonly employees?: unknown;
@@ -330,7 +365,12 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
   const rulesPath = join(dataDir, 'rules.json');
   writeFileSync(rulesPath, options.rulesText ?? rulesWithVersion(7));
 
-  const [gatewayPort, directoryPort, tasksPort] = await Promise.all([freePort(), freePort(), freePort()]);
+  const [gatewayPort, directoryPort, tasksPort, leavePort] = await Promise.all([
+    freePort(),
+    freePort(),
+    freePort(),
+    freePort(),
+  ]);
   const servers: FakeServer[] = [];
   const adminCalls: AdminCall[] = [];
   const toolCalls: ToolCall[] = [];
@@ -444,6 +484,17 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
     );
   }
 
+  if (options.leave !== false) {
+    servers.push(
+      await listen(leavePort, async (req, res, path) => {
+        if (req.headers.authorization !== `Bearer ${SERVICE_KEY}`) return json(res, 401, { error: 'unauthorized' });
+        if (path === '/leave-requests') return json(res, 200, LEAVES);
+        if (path === '/health') return json(res, 200, { status: 'ok', service: 'leave' });
+        json(res, 404, { error: 'not_found' });
+      }),
+    );
+  }
+
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     [SERVICE_KEY_ENV]: SERVICE_KEY,
@@ -452,6 +503,7 @@ export async function startFixture(options: FixtureOptions = {}): Promise<Fixtur
     [PORT_ENV.gateway]: String(gatewayPort),
     [PORT_ENV.directory]: String(directoryPort),
     [PORT_ENV.tasks]: String(tasksPort),
+    [PORT_ENV.leave]: String(leavePort),
   };
   if (options.testHooks === true) env[TEST_HOOKS_ENV] = '1';
 

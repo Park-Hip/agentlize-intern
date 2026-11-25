@@ -37,12 +37,13 @@ export interface MeasureStack {
  */
 export async function startMeasureStack(): Promise<MeasureStack> {
   const dataDir = await mkdtemp(join(tmpdir(), 'agentlize-measure-'));
-  const ports = await freePorts(3);
+  const ports = await freePorts(4);
   const directoryPort = ports[0];
   const tasksPort = ports[1];
-  const gatewayPort = ports[2];
-  if (directoryPort === undefined || tasksPort === undefined || gatewayPort === undefined) {
-    throw new Error('could not reserve three loopback ports');
+  const leavePort = ports[2];
+  const gatewayPort = ports[3];
+  if (directoryPort === undefined || tasksPort === undefined || leavePort === undefined || gatewayPort === undefined) {
+    throw new Error('could not reserve four loopback ports');
   }
 
   const serviceKey = randomBytes(32).toString('base64url');
@@ -56,6 +57,7 @@ export async function startMeasureStack(): Promise<MeasureStack> {
     [TEST_HOOKS_ENV]: '1',
     [PORT_ENV.directory]: String(directoryPort),
     [PORT_ENV.tasks]: String(tasksPort),
+    [PORT_ENV.leave]: String(leavePort),
     [PORT_ENV.gateway]: String(gatewayPort),
   };
 
@@ -82,6 +84,10 @@ export async function startMeasureStack(): Promise<MeasureStack> {
     started.push(tasks);
     await waitForHealth(tasks, tasksPort, serviceKey);
 
+    const leave = spawnBuiltService('fake-leave', env);
+    started.push(leave);
+    await waitForHealth(leave, leavePort, serviceKey);
+
     const gateway = spawnBuiltService('gateway', env);
     started.push(gateway);
     await waitForHealth(gateway, gatewayPort, serviceKey);
@@ -93,6 +99,7 @@ export async function startMeasureStack(): Promise<MeasureStack> {
         gateway: gatewayUrl,
         directory: `http://${LOOPBACK_HOST}:${directoryPort}`,
         tasks: `http://${LOOPBACK_HOST}:${tasksPort}`,
+        leave: `http://${LOOPBACK_HOST}:${leavePort}`,
       },
       output: () => started.map((service) => `--- ${service.name} ---\n${service.output()}`).join('\n'),
       stop,

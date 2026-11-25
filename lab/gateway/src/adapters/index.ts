@@ -1,4 +1,5 @@
 import { DirectoryAdapter } from './directory.js';
+import { LeaveAdapter } from './leave.js';
 import { TasksAdapter } from './tasks.js';
 import type { ResourceAdapter } from './types.js';
 
@@ -29,10 +30,22 @@ export {
   taskSchema,
 } from './tasks.js';
 export type { TaskField, TaskRecord } from './tasks.js';
+export {
+  LEAVE_ACTIONS,
+  LEAVE_DECLARATION,
+  LEAVE_FIELDS,
+  LEAVE_ID_PATTERN,
+  LEAVE_STATUSES,
+  LEAVE_TYPES,
+  LeaveAdapter,
+  leaveSchema,
+} from './leave.js';
+export type { LeaveField, LeaveRecord } from './leave.js';
 
 export interface HttpAdaptersOptions {
   readonly directoryUrl: string;
   readonly tasksUrl: string;
+  readonly leaveUrl: string;
   readonly serviceKey: string;
   readonly timeoutMs?: number;
   readonly fetch?: typeof fetch;
@@ -47,6 +60,7 @@ export function createHttpAdapters(options: HttpAdaptersOptions): readonly Resou
   };
   return [
     new TasksAdapter({ url: options.tasksUrl, ...shared }),
+    new LeaveAdapter({ url: options.leaveUrl, ...shared }),
     new DirectoryAdapter({ url: options.directoryUrl, ...shared }),
   ];
 }

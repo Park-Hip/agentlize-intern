@@ -19,7 +19,7 @@ import {
   type PolicyDecision,
   type TableAction,
 } from '../policy/index.js';
-import { formatMoment, itemRows } from '../proposals/card.js';
+import { formatMoment, itemLabel, itemRows } from '../proposals/card.js';
 import {
   actionFields,
   approvalRoster,
@@ -35,6 +35,7 @@ import { wrapSystemData } from './block.js';
 import { gatewayStatusOf } from './gateway-status.js';
 import { draftWithinPendingLimit } from './pending-limit.js';
 import { EMPLOYEE_PROPOSE_TOOLS } from './propose-employee-tools.js';
+import { LEAVE_PROPOSE_TOOLS } from './propose-leave-tools.js';
 import { defineTool, notFoundTask } from './read-tools.js';
 import type { RegisteredTool, ToolContext, ToolResult } from './types.js';
 import type { WriteCommand } from '../writes/command-store.js';
@@ -453,8 +454,9 @@ const COMMAND_FAILURE_SENTENCE: Readonly<Partial<Record<ReasonCode, string>>> = 
 /** `cho task T-12` or `cho 30 task`, with the record type the adapter declares. */
 function proposalHead(proposal: Proposal, adapters: readonly ResourceAdapter[]): string {
   const word = recordWordOf(adapters, proposal.recordType);
-  return proposal.items.length === 1
-    ? `Đề xuất ${proposal.proposalId} cho ${word} ${proposal.items[0]?.recordId ?? ''}:`
+  const only = proposal.items[0];
+  return proposal.items.length === 1 && only !== undefined
+    ? `Đề xuất ${proposal.proposalId} cho ${word} ${itemLabel(only)}:`
     : `Đề xuất ${proposal.proposalId} cho ${proposal.items.length} ${word}:`;
 }
 
@@ -465,17 +467,49 @@ interface StatusAnswer {
   readonly status: ProposalStatus;
 }
 
+/** The code a line names: the real record, or the new code once the target gave one. */
+function commandCode(item: ProposalItem, command: WriteCommand | undefined): string {
+  if (item.kind !== 'create') return item.recordId;
+  return command?.recordId !== undefined && command.recordId !== item.recordId ? command.recordId : 'đơn mới';
+}
+
 function commandSentence(item: ProposalItem, command: WriteCommand | undefined): string {
-  if (command === undefined || command.status === 'not_sent') return `${item.recordId}: cổng chưa gửi lệnh ghi.`;
-  if (command.status === 'sent_unknown') {
-    return `${item.recordId}: cổng đã gửi lệnh nhưng chưa nhận được kết quả, và sẽ gửi lại với đúng mã cũ.`;
+  const code = commandCode(item, command);
+  const create = item.kind === 'create';
+  if (command === undefined || command.status === 'not_sent') {
+    return `${code}: cổng chưa gửi lệnh ${create ? 'tạo' : 'ghi'}.`;
   }
-  if (command.status === 'done') return `${item.recordId}: đã ghi ở lần gửi thứ ${command.attempts}.`;
-  const code = command.reasonCode;
+  if (command.status === 'sent_unknown') {
+    return `${code}: cổng đã gửi lệnh ${create ? 'tạo' : 'ghi'} nhưng chưa nhận được kết quả, và sẽ gửi lại với đúng mã cũ.`;
+  }
+  if (command.status === 'done') {
+    return create
+      ? `${code}: đã tạo ở lần gửi thứ ${command.attempts}.`
+      : `${code}: đã ghi ở lần gửi thứ ${command.attempts}.`;
+  }
+  const failure = command.reasonCode;
   const sentence =
-    (code === null ? undefined : COMMAND_FAILURE_SENTENCE[code]) ?? 'Cổng không ghi được thay đổi. Hãy báo người vận hành Lab.';
-  const text = code === null ? `CHƯA THỰC HIỆN ${sentence}` : refusalMessage(code, sentence);
-  return `${item.recordId}: ${text}`;
+    (failure === null ? undefined : COMMAND_FAILURE_SENTENCE[failure]) ?? 'Cổng không ghi được thay đổi. Hãy báo người vận hành Lab.';
+  const text = failure === null ? `CHƯA THỰC HIỆN ${sentence}` : refusalMessage(failure, sentence);
+  return `${code}: ${text}`;
+}
+
+/**
+ * What the target says about the new record now. A create is not a permission
+ * to say the leave was granted: the source system's own manager still decides,
+ * and this line reports that state when the adapter declares one.
+ */
+async function createdStatusLine(context: ToolContext, recordType: string, code: string): Promise<string> {
+  const adapter = adapterOf(context.adapters, recordType);
+  if (adapter.statusField === undefined) return '';
+  try {
+    const record = await adapter.get(code);
+    const value = record === undefined ? undefined : recordValue(record, adapter.fields, adapter.statusField);
+    if (typeof value !== 'string' || value === '') return '';
+    return ` Trạng thái hiện tại: ${adapter.statusLabels?.[value] ?? value}.`;
+  } catch {
+    return '';
+  }
 }
 
 async function describeStatus(proposal: Proposal, context: ToolContext): Promise<StatusAnswer> {
@@ -572,6 +606,15 @@ async function describeStatus(proposal: Proposal, context: ToolContext): Promise
       };
     }
     if (command.status === 'done') {
+      const item = proposal.items[0];
+      if (item?.kind === 'create') {
+        const targetStatus = await createdStatusLine(context, proposal.recordType, command.recordId);
+        return {
+          text: `${head} đã tạo ${recordWordOf(context.adapters, proposal.recordType)} ${command.recordId} ở lần gửi thứ ${command.attempts}.${targetStatus}`,
+          reasonCode: null,
+          status,
+        };
+      }
       return {
         text: `${head} đã ghi thay đổi vào ${recordWordOf(context.adapters, proposal.recordType)} ${command.recordId} ở lần gửi thứ ${command.attempts}.`,
         reasonCode: null,
@@ -652,5 +695,6 @@ export const PROPOSE_TOOLS: readonly RegisteredTool[] = [
   proposeTaskChange,
   getRequestStatus,
   ...EMPLOYEE_PROPOSE_TOOLS,
+  ...LEAVE_PROPOSE_TOOLS,
   actionStatus,
 ];

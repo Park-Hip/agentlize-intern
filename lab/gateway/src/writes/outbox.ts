@@ -30,6 +30,12 @@ export interface OutboxOptions {
 
 type SendOutcome =
   | { readonly kind: 'written'; readonly status: number; readonly replayed: boolean; readonly version: number }
+  | {
+      readonly kind: 'created';
+      readonly status: number;
+      readonly replayed: boolean;
+      readonly recordId: string;
+    }
   | { readonly kind: 'target_changed'; readonly status: number; readonly currentVersion: number | null }
   | { readonly kind: 'content_changed'; readonly status: number; readonly error: string }
   | { readonly kind: 'rejected'; readonly status: number; readonly error: string };
@@ -39,6 +45,8 @@ interface Settled {
   readonly outcome: TraceOutcome;
   readonly reasonCode: ReasonCode | null;
   readonly result: string;
+  /** Present when a create landed, so the command row can carry the new code. */
+  readonly recordId?: string;
 }
 
 /** What a terminal outcome means for the command, the trace and the page. */
@@ -50,6 +58,19 @@ function settledOf(outcome: SendOutcome): Settled {
         outcome: 'ok',
         reasonCode: null,
         result: JSON.stringify({ kind: 'written', status: outcome.status, replayed: outcome.replayed, version: outcome.version }),
+      };
+    case 'created':
+      return {
+        status: 'done',
+        outcome: 'ok',
+        reasonCode: null,
+        result: JSON.stringify({
+          kind: 'created',
+          status: outcome.status,
+          replayed: outcome.replayed,
+          recordId: outcome.recordId,
+        }),
+        recordId: outcome.recordId,
       };
     case 'target_changed':
       return {
@@ -230,12 +251,20 @@ export class Outbox implements ProposalExecutor {
 
     let result: ApplyResult;
     try {
-      result = await adapterOf(this.adapters, item.recordType).apply({
-        id: current.recordId,
-        idempotencyKey: current.idempotencyKey,
-        expectedVersion: current.expectedVersion,
-        changes: item.changes,
-      });
+      const adapter = adapterOf(this.adapters, item.recordType);
+      if (item.kind === 'create') {
+        result =
+          adapter.create === undefined
+            ? { kind: 'rejected', status: 501, error: 'create_not_supported' }
+            : await adapter.create({ idempotencyKey: current.idempotencyKey, changes: item.changes });
+      } else {
+        result = await adapter.apply({
+          id: current.recordId,
+          idempotencyKey: current.idempotencyKey,
+          expectedVersion: current.expectedVersion,
+          changes: item.changes,
+        });
+      }
     } catch (error) {
       result = { kind: 'unavailable', detail: error instanceof Error ? error.message : String(error) };
     }
@@ -243,6 +272,14 @@ export class Outbox implements ProposalExecutor {
     switch (result.kind) {
       case 'written':
         this.settle(current, { kind: 'written', status: 200, replayed: result.replayed, version: result.version }, ruleId, started);
+        return;
+      case 'created':
+        this.settle(
+          current,
+          { kind: 'created', status: 201, replayed: result.replayed, recordId: result.recordId },
+          ruleId,
+          started,
+        );
         return;
       case 'conflict':
         this.settle(current, { kind: 'target_changed', status: 409, currentVersion: result.currentVersion }, ruleId, started);
@@ -285,7 +322,12 @@ export class Outbox implements ProposalExecutor {
     try {
       this.commands.settle(
         command.commandId,
-        { status: settled.status, result: settled.result, reasonCode: settled.reasonCode },
+        {
+          status: settled.status,
+          result: settled.result,
+          reasonCode: settled.reasonCode,
+          ...(settled.recordId === undefined ? {} : { recordId: settled.recordId }),
+        },
         // The state change and its trace line share one transaction: if the line cannot be written, the command stays open.
         (next) => this.traceLine(next, settled.outcome, settled.reasonCode, ruleId, started),
       );

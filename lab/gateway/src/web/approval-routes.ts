@@ -11,7 +11,7 @@ import {
 } from '../adapters/index.js';
 import type { GatewayDeps } from '../call.js';
 import type { PersonRef } from '../policy/index.js';
-import { formatMoment, itemRows, personLabel } from '../proposals/card.js';
+import { formatMoment, itemLabel, itemRows, personLabel, traceObjectId } from '../proposals/card.js';
 import {
   effectiveStatus,
   MAX_APPROVAL_REASON,
@@ -93,7 +93,10 @@ function fieldPhrase(adapter: ResourceAdapter, field: string): string {
 /** `task T-12` or `30 task`, the object the sentence is about. */
 function targetOf(proposal: Proposal, adapters: readonly ResourceAdapter[]): string {
   const word = recordWordOf(adapters, proposal.recordType);
-  return proposal.items.length === 1 ? `${word} ${proposal.items[0]?.recordId ?? ''}` : `${proposal.items.length} ${word}`;
+  const only = proposal.items[0];
+  return proposal.items.length === 1 && only !== undefined
+    ? `${word} ${itemLabel(only)}`
+    : `${proposal.items.length} ${word}`;
 }
 
 /** True when every item changes exactly the same fields to the same values. */
@@ -116,6 +119,9 @@ async function valueOf(deps: GatewayDeps, field: string, value: string): Promise
  */
 async function summaryOf(deps: GatewayDeps, proposal: Proposal): Promise<string> {
   const adapter = adapterOf(deps.adapters, proposal.recordType);
+  if (proposal.items.some((item) => item.kind === 'create')) {
+    return `Tạo ${targetOf(proposal, deps.adapters)}`;
+  }
   const fields = Object.keys(proposal.changes);
   if (fields.length === 0) return `Đổi ${targetOf(proposal, deps.adapters)}`;
   const phrases = fields.map((field) => fieldPhrase(adapter, field));
@@ -160,7 +166,7 @@ async function itemsOf(deps: GatewayDeps, proposal: Proposal): Promise<CardItemV
   return Promise.all(
     proposal.items.map(async (item) => ({
       position: item.position,
-      recordId: item.recordId,
+      recordId: itemLabel(item),
       rows: await itemRows(item, deps.adapters),
       command: commands.get(item.position),
     })),
@@ -287,6 +293,7 @@ async function handleApprovalPage(deps: GatewayDeps, req: IncomingMessage, res: 
     approvalPage({
       proposalId: proposal.proposalId,
       requesterLabel: `${requester.id} ${requester.name}`,
+      summary: await summaryOf(deps, proposal),
       reason: proposal.approvalReason ?? 'Đề xuất này cần trưởng nhóm duyệt trước khi ghi.',
       expiresAtLabel:
         proposal.approvalExpiresAt === null ? null : formatMoment(new Date(proposal.approvalExpiresAt), deps.now()),
@@ -349,7 +356,7 @@ async function handleApprovalPress(
       tool,
       requester: active?.session.employeeId ?? null,
       caller: proposal === undefined ? null : callerOf(deps, proposal),
-      taskId: proposal?.items[0]?.recordId ?? null,
+      taskId: traceObjectId(proposal),
       proposalId: proposal?.proposalId ?? null,
       outcome: code !== null ? 'refused' : status === 404 ? 'not_found' : 'error',
       reasonCode: code,
@@ -404,7 +411,9 @@ async function handleApprovalPress(
   let currentRecords: (RecordData | undefined)[] = [];
   if (action === 'approve') {
     try {
-      currentRecords = await Promise.all(proposal.items.map((item) => recordsAdapter.get(item.recordId)));
+      currentRecords = await Promise.all(
+        proposal.items.map(async (item) => (item.kind === 'create' ? undefined : recordsAdapter.get(item.recordId))),
+      );
     } catch (error) {
       if (!(error instanceof SystemUnavailableError)) throw error;
       return refused(
@@ -456,7 +465,7 @@ async function handleApprovalPress(
       tool,
       requester: viewer.id,
       caller: callerOf(deps, proposal),
-      taskId: decided.items[0]?.recordId ?? null,
+      taskId: traceObjectId(decided),
       proposalId: decided.proposalId,
       outcome: 'ok',
       reasonCode: null,

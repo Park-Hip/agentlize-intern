@@ -251,7 +251,7 @@ test('function door: the fake model passes all four jobs over the hand-declared 
   }
 });
 
-test('function door: the hand-declared catalog holds the six gateway tools in order and needs no call', async () => {
+test('function door: the hand-declared catalog holds the seven gateway tools in order and needs no call', async () => {
   const gateway = await startFakeGateway();
   try {
     const door = await createDoor({ baseUrl: gateway.url, employeeId: 'NV-02', toolKey: HOA_KEY });
@@ -266,6 +266,7 @@ test('function door: the hand-declared catalog holds the six gateway tools in or
         'propose_task_change',
         'get_request_status',
         'propose_employee_change',
+        'propose_leave_request',
       ],
     );
     assert.equal(gateway.calls.length, 0, 'a declared catalog must not call the gateway');

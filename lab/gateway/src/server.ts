@@ -67,6 +67,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
       createHttpAdapters({
         directoryUrl: systemUrl('directory', env),
         tasksUrl: systemUrl('tasks', env),
+        leaveUrl: systemUrl('leave', env),
         serviceKey,
       });
 

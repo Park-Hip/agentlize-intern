@@ -81,6 +81,7 @@ test('mcp: tools/list is the same catalog as GET /v1/tools', async () => {
       'propose_task_change',
       'get_request_status',
       'propose_employee_change',
+      'propose_leave_request',
       'action_status',
     ]);
   });

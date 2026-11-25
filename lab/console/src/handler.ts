@@ -48,6 +48,7 @@ import {
   callTool,
   confirmationLinkIn,
   fetchEmployees,
+  fetchLeaveRequests,
   fetchTasks,
   fetchTools,
   injectLostResponseFault,
@@ -139,12 +140,13 @@ function hostAllowed(req: IncomingMessage): boolean {
 }
 
 async function sendOverview(deps: ConsoleDeps, res: ServerResponse): Promise<void> {
-  const [gateway, directory, tasks] = await Promise.all([
+  const [gateway, directory, tasks, leave] = await Promise.all([
     probe(deps.endpoints.gateway, deps.serviceKey),
     probe(deps.endpoints.directory, deps.serviceKey),
     probe(deps.endpoints.tasks, deps.serviceKey),
+    probe(deps.endpoints.leave, deps.serviceKey),
   ]);
-  const outcomes = { gateway, directory, tasks };
+  const outcomes = { gateway, directory, tasks, leave };
 
   const notices: Notice[] = [];
   let employees: readonly Employee[] | undefined;
@@ -269,9 +271,10 @@ async function sendData(deps: ConsoleDeps, res: ServerResponse, url: URL, csrf: 
   const done = doneNotice(url.searchParams.get('done'), url.searchParams.get('ok'));
   if (done !== undefined) notices.push(done);
 
-  const [directory, tasks] = await Promise.all([
+  const [directory, tasks, leave] = await Promise.all([
     fetchEmployees(deps.endpoints.directory, deps.serviceKey, department),
     fetchTasks(deps.endpoints.tasks, deps.serviceKey, department),
+    fetchLeaveRequests(deps.endpoints.leave, deps.serviceKey, department),
   ]);
 
   if (!directory.ok) {
@@ -286,6 +289,12 @@ async function sendData(deps: ConsoleDeps, res: ServerResponse, url: URL, csrf: 
       tone: 'bad',
     });
   }
+  if (!leave.ok) {
+    notices.push({
+      text: `Không đọc được danh sách đơn nghỉ phép (${leave.detail}) nên bảng đơn nghỉ phép để trống. Kiểm tra dịch vụ đơn nghỉ phép và khoá dịch vụ.`,
+      tone: 'bad',
+    });
+  }
 
   sendHtml(
     res,
@@ -296,6 +305,7 @@ async function sendData(deps: ConsoleDeps, res: ServerResponse, url: URL, csrf: 
         employees: directory.ok ? directory.employees : undefined,
         tasks: tasks.ok ? tasks.tasks : undefined,
         page: tasks.ok ? paginate(tasks.tasks, parsePage(url.searchParams.get('page'))) : undefined,
+        leaves: leave.ok ? leave.requests : undefined,
         notices,
         csrfToken: deps.testHooks ? csrf.issue() : undefined,
       },

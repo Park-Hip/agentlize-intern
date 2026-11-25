@@ -62,6 +62,42 @@
         }
       }
     },
+    "leave": {
+      "bulk_threshold": 5,
+      "read": {
+        "intern": "own_department",
+        "staff": "own_department",
+        "lead": "own_department",
+        "hr": "own_department"
+      },
+      "fields": {
+        "intern": ["code", "employee", "department", "leave_type", "from_date", "to_date", "reason", "note", "status", "created_at", "decided_at"],
+        "staff": ["code", "employee", "department", "leave_type", "from_date", "to_date", "reason", "note", "status", "created_at", "decided_at"],
+        "lead": ["code", "employee", "department", "leave_type", "from_date", "to_date", "reason", "note", "status", "created_at", "decided_at"],
+        "hr": ["code", "employee", "department", "leave_type", "from_date", "to_date", "reason", "note", "status", "created_at", "decided_at"]
+      },
+      "data_classes": {
+        "code": "internal_general",
+        "employee": "internal_general",
+        "department": "internal_general",
+        "leave_type": "internal_general",
+        "from_date": "internal_general",
+        "to_date": "internal_general",
+        "reason": "employee_personal",
+        "note": "employee_personal",
+        "status": "internal_general",
+        "created_at": "internal_general",
+        "decided_at": "internal_general"
+      },
+      "actions": {
+        "create_leave_request": {
+          "intern": { "effect": "needs_approval", "scope": "own_department", "bulk": "allow" },
+          "staff": { "effect": "needs_approval", "scope": "own_department", "bulk": "allow" },
+          "lead": { "effect": "allow", "scope": "own_department", "bulk": "allow" },
+          "hr": { "effect": "allow", "scope": "own_department", "bulk": "allow" }
+        }
+      }
+    },
     "employee": {
       "bulk_threshold": 5,
       "read": {

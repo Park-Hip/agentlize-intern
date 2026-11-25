@@ -219,6 +219,7 @@ for (const door of DOORS) {
         'propose_task_change',
         'get_request_status',
         'propose_employee_change',
+        'propose_leave_request',
         'action_status',
       ]);
       for (const name of names) {
@@ -368,6 +369,7 @@ test('gateway read path: the three doors publish one catalog with no confirm, ap
     'propose_task_change',
     'get_request_status',
     'propose_employee_change',
+    'propose_leave_request',
     'action_status',
   ]);
   for (const name of names) {

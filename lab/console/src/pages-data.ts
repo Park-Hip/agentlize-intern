@@ -1,6 +1,6 @@
 import { DEPARTMENTS } from '@lab/shared';
 import { esc } from '@lab/gateway';
-import type { Employee, TaskRecord } from './upstream.js';
+import type { Employee, LeaveRequestRecord, TaskRecord } from './upstream.js';
 import { employeeColumns, fieldText, statusLabel, type Paged } from './source-data.js';
 import { layout, type NavKey, type Notice } from './layout.js';
 
@@ -11,6 +11,8 @@ export interface DataView {
   readonly employees: readonly Employee[] | undefined;
   readonly tasks: readonly TaskRecord[] | undefined;
   readonly page: Paged<TaskRecord> | undefined;
+  /** `undefined` means the leave system could not be read. */
+  readonly leaves: readonly LeaveRequestRecord[] | undefined;
   readonly notices: readonly Notice[];
   /** Only a page that drew the test buttons has one; without `LAB_TEST_HOOKS` there is none. */
   readonly csrfToken: string | undefined;
@@ -127,6 +129,59 @@ ${links.join('\n')}
 </nav>`;
 }
 
+const LEAVE_TYPE_LABELS: Readonly<Record<string, string>> = {
+  annual: 'Phép năm',
+  sick: 'Nghỉ ốm',
+  personal: 'Việc riêng',
+  unpaid: 'Không lương',
+};
+
+function leaveStatusBadge(status: string): string {
+  const tone = status === 'approved' ? ' ok' : status === 'pending' ? ' warn' : status === 'rejected' ? ' bad' : '';
+  const label =
+    status === 'approved'
+      ? 'Đã duyệt'
+      : status === 'pending'
+        ? 'Chờ quản lý duyệt'
+        : status === 'rejected'
+          ? 'Bị từ chối'
+          : status;
+  return `<span class="badge${tone}">${esc(label)}</span> <code>${esc(status)}</code>`;
+}
+
+function leaveTable(requests: readonly LeaveRequestRecord[]): string {
+  if (requests.length === 0) {
+    return '<p class="meta">Chưa có đơn nghỉ phép nào. Đơn sẽ hiện ở đây sau khi cổng tạo qua tool <code>propose_leave_request</code>.</p>';
+  }
+
+  const rows = requests
+    .map(
+      (request) => `<tr>
+<th scope="row"><code>${esc(request.code)}</code>${request.requestKey === undefined ? '' : `<details><summary>Khoá tạo</summary><code>${esc(request.requestKey)}</code></details>`}</th>
+<td data-label="Nhân viên"><code>${esc(request.employee)}</code></td>
+<td data-label="Phòng">${esc(request.department)}</td>
+<td data-label="Loại nghỉ">${esc(LEAVE_TYPE_LABELS[request.leaveType] ?? request.leaveType)} <code>${esc(request.leaveType)}</code></td>
+<td class="num" data-label="Từ ngày">${esc(request.fromDate)}</td>
+<td class="num" data-label="Đến ngày">${esc(request.toDate)}</td>
+<td data-label="Trạng thái">${leaveStatusBadge(request.status)}</td>
+<td class="raw-cell" data-label="Lý do và nội dung"><strong>Lý do:</strong> ${esc(request.reason)}${request.note === '' ? '' : `<br><strong>Nội dung:</strong> ${esc(request.note)}`}</td>
+<td class="num" data-label="Tạo lúc">${esc(request.createdAt)}</td>
+<td class="num" data-label="Quyết định lúc">${esc(request.decidedAt === '' ? '-' : request.decidedAt)}</td>
+</tr>`,
+    )
+    .join('\n');
+
+  return `<div class="table-wrap">
+<table class="stack raw-table">
+<thead><tr><th scope="col">Mã</th><th scope="col">Nhân viên</th><th scope="col">Phòng</th><th scope="col">Loại nghỉ</th><th scope="col">Từ ngày</th><th scope="col">Đến ngày</th><th scope="col">Trạng thái</th><th scope="col">Lý do và nội dung</th><th scope="col">Tạo lúc</th><th scope="col">Quyết định lúc</th></tr></thead>
+<tbody>
+${rows}
+</tbody>
+</table>
+</div>
+<p class="meta">${requests.length} đơn. Hệ thống giả tự chuyển đơn đang chờ sang đã duyệt hoặc bị từ chối sau một khoảng cấu hình; tải lại trang để thấy trạng thái mới.</p>`;
+}
+
 /**
  * The buttons that exist only for tests (ADR-0006 section 3.5). They call the
  * `/admin/*` routes the fake systems already have, never a business route.
@@ -168,8 +223,12 @@ export function dataPage(view: DataView, active: NavKey): string {
       ? '<p class="meta">Chưa đọc được danh sách task nên bảng task để trống.</p>'
       : `${taskTable(view.page)}
 ${view.page.total === 0 ? '' : pager(view.page, view.department)}`;
+  const leaves =
+    view.leaves === undefined
+      ? '<p class="meta">Chưa đọc được danh sách đơn nghỉ phép nên bảng đơn nghỉ phép để trống.</p>'
+      : leaveTable(view.leaves);
 
-  const body = `<p class="sub">Bảng nhân viên và bảng task đúng như hai hệ thống giả đang lưu, đọc bằng khoá dịch vụ. Trang này không có nút sửa bản ghi: mọi thay đổi nghiệp vụ đi qua cổng.</p>
+  const body = `<p class="sub">Bảng nhân viên, bảng task và bảng đơn nghỉ phép đúng như ba hệ thống giả đang lưu, đọc bằng khoá dịch vụ. Trang này không có nút sửa bản ghi: mọi thay đổi nghiệp vụ đi qua cổng.</p>
 <p class="operator-view"><strong>Góc nhìn người vận hành, AI không thấy thế này.</strong> AI chỉ thấy phần cổng trả về sau khi lọc trường và phạm vi phòng. Bảng ở đây là để đối chiếu, không phải một tool.</p>
 ${departmentFilter(view.department)}
 <section class="panel wide">
@@ -180,6 +239,11 @@ ${directory}
 <h2>Task giả</h2>
 <p class="meta">Trường của task cố định trong mã nên màn hình chỉ hiện, không cho sửa. 100 task nạp cố định, 20 task mỗi trang; đổi phòng thì số trang tính lại theo danh sách đã lọc.</p>
 ${tasks}
+</section>
+<section class="panel wide">
+<h2>Đơn nghỉ phép giả</h2>
+<p class="meta">Đơn tạo qua cổng bắt đầu ở trạng thái chờ quản lý duyệt. Sau một khoảng cấu hình, hệ thống giả tự quyết định đã duyệt hoặc bị từ chối. Không có nút sửa: đơn nghỉ phép chỉ được tạo, không được sửa tại chỗ.</p>
+${leaves}
 </section>
 ${view.csrfToken === undefined ? '' : testHooksPanel(view.csrfToken)}`;
 

@@ -1,0 +1,14 @@
+{
+  "name": "@lab/fake-leave",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build -w @lab/shared && npm run build && node --test \"dist/**/*-test.js\""
+  },
+  "dependencies": {
+    "@lab/shared": "*"
+  }
+}

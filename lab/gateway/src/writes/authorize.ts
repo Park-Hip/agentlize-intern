@@ -85,7 +85,9 @@ export function checkWrite(input: WriteCheckInput): WriteCheck {
     return denied('NOT_PERMITTED', 403, RULE_IDS.roleUnknown, 'Danh bạ không cho biết vai và phòng của bạn nên cổng không ghi. Hãy báo người quản lý danh bạ.');
   }
 
-  const missing = proposal.items.flatMap((_item, index) => (records[index] === undefined ? [index] : []));
+  const missing = proposal.items.flatMap((item, index) =>
+    item.kind === 'update' && records[index] === undefined ? [index] : [],
+  );
   if (missing.length > 0 || records.length !== proposal.items.length) {
     const codes = codeList(proposal, missing.length > 0 ? missing : proposal.items.map((_item, index) => index));
     return denied(
@@ -105,8 +107,13 @@ export function checkWrite(input: WriteCheckInput): WriteCheck {
     ),
   ];
   const decisions: PolicyDecision[] = [];
-  for (const record of records) {
-    if (record === undefined) continue;
+  for (const [index, item] of proposal.items.entries()) {
+    // A create has no record yet. The policy question is about the new record's
+    // owner, which is the requester, so their department answers it.
+    const recordDepartment =
+      item.kind === 'create'
+        ? department
+        : String(records[index]?.[adapter.ownerField] ?? '');
     for (const action of actions) {
       decisions.push(
         policy.decide({
@@ -114,7 +121,7 @@ export function checkWrite(input: WriteCheckInput): WriteCheck {
           action,
           object: {
             kind: adapter.type,
-            department: String(record[adapter.ownerField]),
+            department: recordDepartment,
             taskCount: proposal.items.length,
             carriedItems: carriedItems[action] ?? 0,
           },

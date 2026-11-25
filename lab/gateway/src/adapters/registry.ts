@@ -1,4 +1,5 @@
 import { EMPLOYEE_DECLARATION } from './directory.js';
+import { LEAVE_DECLARATION } from './leave.js';
 import { TASK_DECLARATION } from './tasks.js';
 import type { RecordDeclaration } from './types.js';
 
@@ -7,7 +8,11 @@ import type { RecordDeclaration } from './types.js';
  * A new system adds one declaration here; everything downstream reads it
  * (ADR-0007 sections 3.1 and 3.6).
  */
-export const ADAPTER_DECLARATIONS: readonly RecordDeclaration[] = [TASK_DECLARATION, EMPLOYEE_DECLARATION];
+export const ADAPTER_DECLARATIONS: readonly RecordDeclaration[] = [
+  TASK_DECLARATION,
+  LEAVE_DECLARATION,
+  EMPLOYEE_DECLARATION,
+];
 
 /** The action names of each record type, from the adapters that declare them. */
 export function actionsByType(

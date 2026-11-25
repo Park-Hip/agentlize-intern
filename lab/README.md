@@ -1,18 +1,20 @@
 # Lab - AI Operations Connector
 
-Bản thử của Lab: một cổng kiểm soát đứng giữa AI và hai hệ thống giả (danh bạ nhân viên và danh sách task).
+Bản thử của Lab: một cổng kiểm soát đứng giữa AI và ba hệ thống giả (danh bạ nhân viên, danh sách task và đơn nghỉ phép).
 AI đọc dữ liệu qua cổng, cổng kiểm quyền từng lời gọi, và chỉ ghi sau khi người yêu cầu bấm Gửi, cộng thêm trưởng nhóm duyệt khi luật đòi.
 Thổ Thần nối vào cổng qua cửa `/mcp`; người vận hành theo dõi và chỉnh luật trên trang điều khiển.
 Danh sách task giả chạy được tám hồ sơ đích đặt tên sẵn, từ `standard` giữ nguyên hành vi cũ tới các đích khó tính dùng cho phép đo Q3.
+Hệ thống đơn nghỉ phép giả có hai hồ sơ: `standard` nhớ khoá tạo đơn, và `no-dedup` quên khoá đó để tái hiện lỗi tạo hai đơn.
 
 ```
 Thổ Thần / client MCP ──► cổng :8790 ──► danh bạ giả :8791
                             ▲   │
-trang điều khiển :8793 ─────┘   └──────► task giả :8792
+trang điều khiển :8793 ─────┘   ├──────► task giả :8792
+                                └──────► đơn nghỉ phép giả :8794
 ```
 
-Cả bốn dịch vụ chỉ nghe ở `127.0.0.1`.
-Chỉ hai hệ thống giả giữ dữ liệu nghiệp vụ, và chỉ cổng có khoá để gọi chúng.
+Cả năm dịch vụ chỉ nghe ở `127.0.0.1`.
+Chỉ ba hệ thống giả giữ dữ liệu nghiệp vụ, và chỉ cổng có khoá để gọi chúng.
 
 ## Chạy lần đầu
 
@@ -23,7 +25,7 @@ npm install
 npm start
 ```
 
-`npm start` dựng mã, mở bốn dịch vụ theo đúng thứ tự, và dừng cả bốn khi bấm Ctrl+C.
+`npm start` dựng mã, mở năm dịch vụ theo đúng thứ tự, và dừng cả năm khi bấm Ctrl+C.
 Ở cửa sổ thứ hai, cấp khoá cho các nhân vật rồi thử một lời gọi:
 
 ```
@@ -42,6 +44,7 @@ Mở `http://127.0.0.1:8793` để xem trang điều khiển; sân chơi ở đ�
 | `console` | Trang điều khiển cho người vận hành | [console/README.md](console/README.md) |
 | `fake-directory` | Danh bạ giả 20 nhân viên | [fake-directory/README.md](fake-directory/README.md) |
 | `fake-tasks` | Danh sách task giả 100 task | [fake-tasks/README.md](fake-tasks/README.md) |
+| `fake-leave` | Hệ thống đơn nghỉ phép giả: tạo đơn, chờ quản lý duyệt, tự chuyển trạng thái | [fake-leave/README.md](fake-leave/README.md) |
 | `shared` | Mã dùng chung: cổng mạng, mã lý do, sáu nhân vật, kiểm và che khoá dịch vụ | `shared/src/` |
 | `tests` | Phép thử nhiều dịch vụ: phép thử khói, nghiệm thu đọc và ghi, client giả Thổ Thần | `tests/src/` |
 | `measure` | Lệnh đo chạy lại được: dựng cụm riêng, ghi mẫu thô và tóm tắt vào `rd/evaluation/results/` | [measure/README.md](measure/README.md) |
@@ -54,7 +57,7 @@ Thư viện nằm ở `package.json` gốc, để mọi gói dùng chung một l
 
 | Lệnh | Làm gì |
 | --- | --- |
-| `npm start` | Mở bốn dịch vụ |
+| `npm start` | Mở năm dịch vụ |
 | `npm run lint` | Kiểm kiểu toàn workspace |
 | `npm test` | Dựng mã rồi chạy mọi `*-test.js` |
 | `npm test -w <gói>` | Chỉ chạy phép thử của một gói, ví dụ `npm test -w console` |
@@ -79,12 +82,16 @@ Lệnh trả mã lỗi khi một yêu cầu không có phép thử nào, khi m�
 | `LAB_GATEWAY_PORT` | 8790 | Cổng mạng của cổng kiểm soát |
 | `LAB_DIRECTORY_PORT` | 8791 | Cổng mạng của danh bạ giả |
 | `LAB_TASKS_PORT` | 8792 | Cổng mạng của task giả |
+| `LAB_LEAVE_PORT` | 8794 | Cổng mạng của hệ thống đơn nghỉ phép giả |
+| `LAB_LEAVE_PROFILE` | `standard` | Hồ sơ đơn nghỉ phép: `standard` nhớ khoá tạo đơn, `no-dedup` quên khoá đó |
+| `LAB_LEAVE_DECISION_DELAY_MS` | 5000 | Số mili giây quản lý nguồn chờ trước khi tự duyệt hoặc từ chối |
+| `LAB_LEAVE_DECISION` | `approved` | Quyết định của quản lý nguồn sau khoảng chờ: `approved` hoặc `rejected` |
 | `LAB_CONSOLE_PORT` | 8793 | Cổng mạng của trang điều khiển |
 | `LAB_DATA_DIR` | `lab/.data` | Thư mục dữ liệu chạy, bị bỏ qua trong git |
 | `LAB_RULES_PATH` | `<LAB_DATA_DIR>/rules.json` | File luật cổng đang áp, xem [file luật](gateway/README.md#file-luật) |
-| `LAB_SERVICE_KEY` | `npm start` sinh khi chưa đặt | Khoá cổng dùng để gọi hai hệ thống giả; không bao giờ in ra |
+| `LAB_SERVICE_KEY` | `npm start` sinh khi chưa đặt | Khoá cổng dùng để gọi ba hệ thống giả; không bao giờ in ra |
 | `LAB_PUBLIC_BASE_URL` | `http://127.0.0.1:<cổng>` | Địa chỉ gốc trong link xác nhận |
-| `LAB_TEST_HOOKS` | tắt | `1` mở các đường `/admin/*` của hai hệ thống giả cho phép thử; `npm start` không bật |
+| `LAB_TEST_HOOKS` | tắt | `1` mở các đường `/admin/*` của ba hệ thống giả cho phép thử; `npm start` không bật |
 
 Dữ liệu trong `lab/.data` là giả lập nên không có bộ chuyển đổi.
 Khi cổng dừng lúc khởi động và nhắc cơ sở dữ liệu kiểu cũ, xoá thư mục đó rồi chạy lại.
@@ -92,10 +99,10 @@ Khi cổng dừng lúc khởi động và nhắc cơ sở dữ liệu kiểu cũ
 ## Đường hầm cho một phiên nghiệm thu
 
 Thổ Thần web và desktop chỉ gọi được một địa chỉ HTTPS công khai ([ADR-0004](../docs/adr/adr-0004-shared-gateway-over-https.md#3-quyết-định)).
-`npm run tunnel` mở một đường hầm Cloudflare tới cổng, đợi có địa chỉ `https://<tên>.trycloudflare.com`, rồi mới mở cổng và hai hệ thống giả với địa chỉ đó.
+`npm run tunnel` mở một đường hầm Cloudflare tới cổng, đợi có địa chỉ `https://<tên>.trycloudflare.com`, rồi mới mở cổng và ba hệ thống giả với địa chỉ đó.
 Nhờ vậy link xác nhận dùng địa chỉ công khai, và người ở máy khác vẫn mở được.
 
-- Chỉ cổng đi qua đường hầm; hai hệ thống giả thì không, và trang điều khiển không được mở ([ADR-0006](../docs/adr/adr-0006-operator-console.md#31-vị-trí-và-ranh-giới)).
+- Chỉ cổng đi qua đường hầm; ba hệ thống giả thì không, và trang điều khiển không được mở ([ADR-0006](../docs/adr/adr-0006-operator-console.md#31-vị-trí-và-ranh-giới)).
 - Lệnh chỉ báo sẵn sàng khi gọi thử `/mcp` qua địa chỉ công khai mà không có khoá và nhận 401.
 - Đường hầm tự tắt sau 45 phút, hoặc khi bấm Ctrl+C.
 - Lệnh không nhận và không in khoá: lấy khoá bằng `npm run seed-keys` ở cửa sổ khác rồi dán vào ô API Key của skill.
