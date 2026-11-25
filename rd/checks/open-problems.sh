@@ -9,7 +9,7 @@
 # Không cần đăng nhập, không dùng khoá hay tài khoản thật.
 #
 # Cách chạy: bash rd/checks/open-problems.sh
-# Ngày chạy đầu: 2026-11-24.
+# Ngày chạy đầu: 2026-11-24; cập nhật 2026-11-25 cho câu trả lời ở P4, P9 và P12.
 
 set -u
 PASS=0
@@ -66,12 +66,16 @@ BASE="https://open.larkoffice.com/document/server-docs/docs/bitable-v1/app-table
 TOKEN="https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/authentication-management/access-token"
 TOKEN_OLD="https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/authen-v1/oidc-refresh_access_token/create.md"
 ACHECKIN="https://help.acheckin.vn/chuc-nang-cham-cong/quan-ly-va-theo-doi-don-bao-lam-them"
+TOKEN_REFRESH="$TOKEN/refresh-user-access-token-v3.md"
 
 # --- Q1: Lark Base có ghi có điều kiện hay mã chống ghi trùng? ---
 # Tạo bản ghi: có mã chống ghi trùng.
 check "$BASE/create.md" \
   "The format is a standard uuidv4, the unique identifier of the operation, used for idempotent update operations." \
   "Q1 tạo một bản ghi có client_token"
+check "$BASE/create.md" \
+  "This value is null to indicate that a new request will be initiated, and this value is non-null to indicate idempotent update operations." \
+  "Q1 client_token đánh dấu lần gọi có thể lặp"
 check "$BASE/create.md" \
   "Idempotent key conflict, you need to randomly generate an idempotent key" \
   "Q1 mã trùng trả lỗi 1255006"
@@ -90,6 +94,9 @@ check "$BASE/create.md" \
 
 # Sửa bản ghi: không có mã chống ghi trùng, không có điều kiện phiên bản.
 check "$BASE/update.md" \
+  "HTTP Method | PUT" \
+  "Q1 sửa một bản ghi là PUT"
+check "$BASE/update.md" \
   "record last modified timestamp" \
   "Q1 sửa bản ghi trả last_modified_time"
 check "$BASE/update.md" \
@@ -101,6 +108,12 @@ check_absent "$BASE/update.md" \
 check_absent "$BASE/update.md" \
   "If-Match" \
   "Q1 sửa một bản ghi không có If-Match"
+check_absent "$BASE/update.md" \
+  "version" \
+  "Q1 sửa một bản ghi không có số phiên bản"
+check_absent "$BASE/update.md" \
+  "etag" \
+  "Q1 sửa một bản ghi không có etag"
 check_absent "$BASE/batch_update.md" \
   "client_token" \
   "Q1 sửa nhiều bản ghi không có client_token"
@@ -118,21 +131,30 @@ check "$TOKEN/get-user-access-token-v3.md" \
 check "$TOKEN/get-user-access-token-v3.md" \
   '"refresh_token_expires_in": 604800' \
   "Q2 ví dụ token làm mới 604800 giây"
-check "$TOKEN/refresh-user-access-token.md" \
+check "$TOKEN_REFRESH" \
   'The previous `refresh_token` will be invalidated immediately. The existing `user_access_token` is not affected and remains valid until its expiration time.' \
   "Q2 token làm mới cũ mất hiệu lực, token truy cập còn hạn vẫn dùng được"
-check "$TOKEN/refresh-user-access-token.md" \
+check "$TOKEN_REFRESH" \
   "365 days after a user authorizes the application" \
   "Q2 sau 365 ngày phải xin cấp lại"
-check "$TOKEN/refresh-user-access-token.md" \
+check "$TOKEN_REFRESH" \
   "The refresh token has been used. Please note that a refresh token can only be used once." \
   "Q2 dùng lại token làm mới trả lỗi 20073"
-check "$TOKEN/refresh-user-access-token.md" \
+check "$TOKEN_REFRESH" \
   "The refresh token has been revoked. Please note that a refresh token can only be used once." \
   "Q2 token làm mới bị thu hồi trả lỗi 20064"
-check "$TOKEN/refresh-user-access-token.md" \
+check "$TOKEN_REFRESH" \
   "The user status is invalid." \
   "Q2 tài liệu mới: trạng thái người dùng không hợp lệ trả lỗi 20066"
+check "$TOKEN/get-user-access-token-v3.md" \
+  '`refresh_token` and `refresh_token_expires_in` fields are only returned when the following permission is granted' \
+  "Q2 token làm mới cần quyền offline_access"
+check_absent "$TOKEN_REFRESH" \
+  "token family" \
+  "Q2 Lark không nói thu hồi cả họ token"
+check_absent "$TOKEN_REFRESH" \
+  "all tokens" \
+  "Q2 Lark không nói thu hồi mọi token của người dùng"
 check "$TOKEN_OLD" \
   "The maximum valid period of user_access_token is about 2 hours." \
   "Q2 tài liệu cũ: token truy cập khoảng 2 giờ"
@@ -153,8 +175,23 @@ check "https://www.rfc-editor.org/rfc/rfc9700.txt" \
   "Q2 OAuth 2.1: token làm mới cũ bị vô hiệu"
 
 # --- Q3: đơn nghỉ phép của ACheckin gồm trường nào và trạng thái nào? ---
-# Bốn tên trường Từ ngày, Đến ngày, Lý do, Nội dung lấy từ ảnh trong trang hướng dẫn;
-# script chỉ kiểm được câu văn, không đọc được ảnh.
+# Bốn nhóm trường Email nhân viên, Chọn ngày, Lý do nghỉ, Nội dung lấy từ ảnh form
+# trong trang quản lý đơn báo; script chỉ kiểm được câu văn, không đọc được ảnh.
+check "$ACHECKIN.md" \
+  "Khai báo tên lý do nghỉ. Ví dụ: Nghỉ phép, nghỉ không lương, đi công tác, nghỉ nửa ngày, xin làm muộn, xin về sớm,..." \
+  "Q3 lý do nghỉ là danh mục công ty tự khai"
+check "$ACHECKIN/huong-dan-bao-nghi.md" \
+  "Chờ duyệt" \
+  "Q3 trạng thái chờ duyệt"
+check "$ACHECKIN/huong-dan-bao-nghi.md" \
+  "Đồng ý" \
+  "Q3 quản lý bấm đồng ý"
+check "$ACHECKIN/huong-dan-bao-nghi.md" \
+  "Từ chối" \
+  "Q3 quản lý bấm từ chối"
+check "$ACHECKIN/huong-dan-bao-nghi.md" \
+  "Đã duyệt" \
+  "Q3 lịch sử đơn đã duyệt"
 check "$ACHECKIN/huong-dan-bao-nghi.md" \
   "điền thời gian, lý do nghỉ tới leader (quản lý) trực tiếp của mình" \
   "Q3 đơn nghỉ: thời gian, lý do, quản lý trực tiếp"

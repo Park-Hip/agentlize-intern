@@ -1,6 +1,6 @@
 # Những vấn đề cổng kiểm soát còn phải giải
 
-Ngày: 2026-11-24. Trạng thái: danh mục đã đối chiếu với mã Lab; đã chọn hướng 1 làm trọng tâm của spec ghi an toàn; cách giải còn là đề xuất.
+Ngày: 2026-11-25. Trạng thái: danh mục đã đối chiếu với mã Lab; ba câu hỏi bước 0 đã có câu trả lời công khai; cách giải còn là đề xuất.
 
 ## Đọc nhanh
 
@@ -8,7 +8,7 @@ Ngày: 2026-11-24. Trạng thái: danh mục đã đối chiếu với mã Lab; 
 - Khi nối vào hệ thống thật, có 33 chỗ có thể hỏng; tài liệu gom chúng thành năm nhóm.
 - Bốn nhóm cần nghiên cứu: ghi vào hệ thống không chắc chắn, người duyệt và thẩm quyền, trợ lý AI không đáng tin, dữ liệu tiếng Việt và dữ liệu cá nhân.
 - Nhóm thứ năm là việc vận hành để nhân viên dùng được, như đăng nhập, nơi chạy, thông báo; nhóm này ngoài phạm vi hiện tại.
-- Bước tiếp theo là chọn hai hoặc ba hướng ở mục 7, rồi viết lại spec ghi an toàn theo hướng đã chọn.
+- Ba câu hỏi về cách hệ thống thật xử lý ghi, thẻ truy cập và đơn nghỉ đã có câu trả lời công khai; bước tiếp theo là chọn hai hoặc ba hướng ở mục 7.
 
 ## 1. Cách đọc tài liệu này
 
@@ -27,6 +27,8 @@ Nguồn gốc của danh mục:
 - Các nguồn công khai đọc cho [các phương án thiết kế](../design/write-safety-options.md), ghi ở mục 2.10.
 
 Bộ yêu cầu chung vẫn là SR1-SR8 trong [PRD](prd-ai-platform.md); mỗi vấn đề ghi nó đe doạ yêu cầu nào.
+
+Ba câu trả lời ở P4, P9 và P12 chỉ đọc tài liệu công khai, không đăng nhập, không dùng tài khoản hay dữ liệu thật.
 
 **Kết luận:** danh mục này là đầu vào để chọn hướng, không phải danh sách việc phải làm hết.
 
@@ -104,6 +106,30 @@ Thêm một thao tác "tạo task" vào hệ thống giả và đếm số task 
 **Đe doạ:** SR4 (điểm dừng rủi ro), SR6 (không ghi trùng).
 Nguồn: τ-bench cho thấy cùng một yêu cầu chạy nhiều lần cho kết quả khác nhau ([arXiv 2406.12045](https://arxiv.org/abs/2406.12045)).
 
+#### 2.4.1. Câu trả lời cho U4: Lark Base không có ghi có điều kiện
+
+**Câu hỏi:** Lark Base có số phiên bản hay thời điểm sửa cuối làm điều kiện ghi không, và tạo bản ghi có mã chống ghi trùng (idempotency) không?
+
+**Trả lời:** Lark Base không có ghi có điều kiện.
+Lệnh sửa một bản ghi là `PUT` và chỉ nhận `fields`; trang không có `client_token`, không có `If-Match`, không có `version` hay `etag`, và không nhận `last_modified_time` làm điều kiện ([sửa một bản ghi](https://open.larkoffice.com/document/server-docs/docs/bitable-v1/app-table-record/update.md)).
+`last_modified_time` chỉ nằm trong câu trả lời, dùng để đọc, không phải tham số gửi lên ([sửa một bản ghi](https://open.larkoffice.com/document/server-docs/docs/bitable-v1/app-table-record/update.md)).
+Sửa nhiều bản ghi cũng không có `client_token` ([sửa nhiều bản ghi](https://open.larkoffice.com/document/server-docs/docs/bitable-v1/app-table-record/batch_update.md)).
+
+Khi hai lệnh ghi cùng một bảng chạy đồng thời, Lark trả mã 1254291 "Write conflict" và bảo kiểm tra lệnh ghi đồng thời ([sửa một bản ghi](https://open.larkoffice.com/document/server-docs/docs/bitable-v1/app-table-record/update.md)).
+Đây là khoá tạm thời ở mức bảng, không phải kiểm phiên bản: lệnh thứ hai bị từ chối, người gửi phải đọc lại rồi gửi lại, và lần gửi lại vẫn có thể xoá thay đổi của người khác.
+
+Tạo bản ghi thì có mã chống ghi trùng.
+`client_token` là uuidv4, dùng cho lần gọi có thể lặp; mã trùng trả 1255006, gửi lặp trả 1254608 ([tạo một bản ghi](https://open.larkoffice.com/document/server-docs/docs/bitable-v1/app-table-record/create.md)).
+Tạo nhiều bản ghi cũng nhận `client_token` ([tạo nhiều bản ghi](https://open.larkoffice.com/document/server-docs/docs/bitable-v1/app-table-record/batch_create.md)).
+Tài liệu không nêu thời hạn nhớ mã và không nói lần gửi lặp trả lại bản ghi đầu.
+Vì vậy cổng chỉ được dùng `client_token` như khoá chống ghi trùng, không được dùng nó để tra kết quả; muốn tra phải dùng `record_id` trong câu trả lời.
+
+**Nghĩa cho U4:** giả định "hệ thống đích không có số phiên bản" đúng với Lark Base, nên U4 giữ ưu tiên như kế hoạch.
+P27 (đích không có số phiên bản) là cùng kết luận, đã ghi ở mục 2.9.
+#147 đã đóng, nên không mở lại; câu trả lời này xác nhận hồ sơ `no-version` là đúng cho Lark Base và cho các hệ thống cùng loại.
+
+**Kiểm lại:** các câu trích ở mục này là nhãn Q1 trong [`rd/checks/open-problems.sh`](../checks/open-problems.sh).
+
 ### 2.5. P5. Đề xuất nhiều mục chỉ thành công một nửa
 
 **Chuyện gì xảy ra:** đề xuất chuyển 30 task, 20 task ghi xong, 10 task bị từ chối vì người khác vừa sửa.
@@ -151,9 +177,48 @@ Bộ đếm này là luật của công ty, không phải hạn mức của hệ
 | Mã | Vấn đề | Lab đã có | Vì sao xếp thấp |
 | --- | --- | --- | --- |
 | P8 | Đọc ngay sau khi ghi thấy dữ liệu cũ, vì hệ thống thật cần vài giây để mọi bản sao cập nhật | Đọc và ghi cùng một nguồn | Xếp thấp với cách làm hôm nay, vì cổng chưa tra trước khi gửi lại; thành ghi trùng khi phương án ở [các phương án thiết kế, mục 3](../design/write-safety-options.md#3-không-rõ-lệnh-đã-chạy-chưa-thì-làm-gì) tra trên bản sao cũ của đích không có số phiên bản, nên phép đo đưa nó vào phạm vi |
-| P9 | Token hết hạn, hai tiến trình cùng làm mới token, hệ thống đích bảo trì hay đổi API | Ghi bằng khoá dịch vụ của cổng, không hết hạn | Phát sinh khi nối hệ thống thật; với Lark Task, cả token của ứng dụng cũng hết hạn sau khoảng 2 giờ và đổi phạm vi nhớ mã, xem [khảo sát hệ thống thật, mục 3](../research/target-system-gaps.md#3-chỉ-nhớ-mã-một-thời-gian-p2) |
+| P9 | Token hết hạn, hai tiến trình cùng làm mới token, hệ thống đích bảo trì hay đổi API | Ghi bằng khoá dịch vụ của cổng, không hết hạn | Phát sinh khi nối hệ thống thật; với Lark Task, cả token của ứng dụng cũng hết hạn sau khoảng 2 giờ và đổi phạm vi nhớ mã, xem [khảo sát hệ thống thật, mục 3](../research/target-system-gaps.md#3-chỉ-nhớ-mã-một-thời-gian-p2); U3 đưa P9 vào phạm vi, xem 2.8.1 |
 | P10 | Hệ thống cũ chỉ nhận file, kết quả về sau nhiều giờ, một số dòng bị từ chối | Mỗi mục là một lời gọi | Chưa biết hệ thống nào sẽ nối dùng file |
 | P11 | Khung thời gian theo giờ UTC trong khi nghiệp vụ tính theo giờ Việt Nam, ngày làm việc, ngày lễ | Bộ đếm dồn và hạn duyệt tính theo phút trượt, không theo ngày | Chỉ thành vấn đề khi luật có mốc "trong ngày" |
+
+#### 2.8.1. Câu trả lời cho P9: token người dùng Lark
+
+**Câu hỏi:** thẻ truy cập của người dùng (user access token) sống bao lâu, token làm mới (refresh token) đổi mới thế nào, và token làm mới cũ còn dùng được không?
+
+**Trả lời:** token truy cập và token làm mới đều có hạn, và cả hai hạn đều trả về trong câu trả lời, nên cổng phải đọc trường thay vì viết cứng.
+Bảng dưới tóm tắt; cột "hiện hành" là trang đang dùng, cột "cũ" là trang còn nêu con số khác.
+
+| Mục | Tài liệu hiện hành | Tài liệu cũ | Ghi chú cho U3 |
+| --- | --- | --- | --- |
+| Truy cập | `expires_in` ví dụ 7200 giây | khoảng 2 giờ | mặc định 7200 giây, cấu hình được |
+| Làm mới | `refresh_token_expires_in` ví dụ 604800 giây (7 ngày) | khoảng 30 ngày | mặc định 604800 giây, cấu hình được |
+| Cấp lại | sau 365 ngày phải xin người dùng cấp lại | - | không tự gia hạn vô hạn |
+
+Nguồn: [lấy token người dùng](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/authentication-management/access-token/get-user-access-token-v3.md), [làm mới token](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/authentication-management/access-token/refresh-user-access-token-v3.md), [tài liệu cũ về làm mới token](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/authen-v1/oidc-refresh_access_token/create.md).
+
+Ba luật đổi mới:
+
+1. Mỗi lần làm mới trả token truy cập mới và token làm mới mới.
+   Token làm mới cũ mất hiệu lực ngay, còn token truy cập cũ vẫn dùng được tới hạn của nó ([làm mới token](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/authentication-management/access-token/refresh-user-access-token-v3.md)).
+2. Token làm mới chỉ dùng một lần.
+   Dùng lại trả 20073 (đã dùng) hoặc 20064 (đã thu hồi) ([làm mới token](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/authentication-management/access-token/refresh-user-access-token-v3.md)).
+   Tài liệu cũ trả 20038 khi dùng lại token làm mới cũ ([tài liệu cũ](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/authen-v1/oidc-refresh_access_token/create.md)).
+3. Sau 365 ngày kể từ lúc người dùng cấp quyền, ứng dụng phải xin cấp lại ([làm mới token](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/authentication-management/access-token/refresh-user-access-token-v3.md)).
+   Token làm mới chỉ được trả khi người dùng cấp quyền `offline_access` (quyền xin token làm mới) ([lấy token người dùng](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/authentication-management/access-token/get-user-access-token-v3.md)).
+
+**Lark có thu hồi cả họ token khi dùng lại token làm mới cũ không?**
+Tài liệu không nói vậy.
+Trang làm mới chỉ nói token làm mới cũ mất hiệu lực và token truy cập còn hạn không bị ảnh hưởng ([làm mới token](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/authentication-management/access-token/refresh-user-access-token-v3.md)).
+OAuth 2.1 (bộ luật bảo mật OAuth, RFC 9700) nói khi thấy token làm mới đã bị vô hiệu được dùng lại, máy chủ cấp quyền thu hồi token làm mới đang hoạt động, không nói thu hồi token truy cập ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700.txt)).
+Vì vậy hành vi "dùng lại token làm mới cũ thì thu hồi mọi token của người đó" ở U3 là giả định mạnh hơn cả Lark lẫn RFC 9700.
+U3 giữ hành vi đó để thử phản ứng an toàn, nhưng phải ghi là giả định trong README của nơi cấp token và trong ADR-0009, không ghi là hành vi của Lark.
+
+**Nghĩa cho U3:** nơi cấp token giả lấy mặc định 7200 giây cho token truy cập và 604800 giây cho token làm mới, cả hai đọc từ cấu hình.
+Mỗi lần làm mới phát token mới và vô hiệu token cũ; chỉ một tiến trình được làm mới, vì lần thứ hai dùng token cũ sẽ trả lỗi.
+Khi người dùng bị xoá khỏi danh bạ, thu hồi token của người đó là giả định nghỉ việc, không phải hành vi Lark đã công bố.
+Tài liệu cũ nêu lỗi 20021 khi người dùng đã nghỉ việc; tài liệu mới nêu 20066 khi trạng thái người dùng không hợp lệ ([tài liệu cũ](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/authen-v1/oidc-refresh_access_token/create.md), [làm mới token](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/authentication-management/access-token/refresh-user-access-token-v3.md)).
+
+**Kiểm lại:** các câu trích ở mục này là nhãn Q2 trong [`rd/checks/open-problems.sh`](../checks/open-problems.sh).
 
 ### 2.9. Các vấn đề tìm thêm khi rà spec ghi an toàn
 
@@ -239,6 +304,51 @@ Với giới hạn tốc độ (P7) hay hệ thống đích bảo trì (P2), kho
 
 **Đe doạ:** SR1 (danh tính và một cửa ghi), SR5 (không chắc thì chặn).
 Nguồn: token đã cấp vẫn dùng được tới khi bị thu hồi; từ 8 tới 18/8/2025, token OAuth bị lấy của Salesloft Drift vẫn đọc được dữ liệu Salesforce của khách ([Google](https://cloud.google.com/blog/topics/threat-intelligence/data-theft-salesforce-instances-via-salesloft-drift)).
+
+#### 3.1.1. Câu trả lời cho U2: đơn nghỉ phép ACheckin
+
+**Câu hỏi:** đơn nghỉ phép của ACheckin gồm những trường nào và đi qua những trạng thái nào?
+
+**Trả lời:** trang hướng dẫn công khai nói nhân viên điền "thời gian, lý do nghỉ" và gửi tới quản lý trực tiếp; quản lý tạo hộ thì nhập "thông tin nhân viên thời gian và lý do nghỉ" ([hướng dẫn xin/duyệt nghỉ](https://help.acheckin.vn/chuc-nang-cham-cong/quan-ly-va-theo-doi-don-bao-lam-them/huong-dan-bao-nghi.md), [quản lý đơn báo](https://help.acheckin.vn/chuc-nang-cham-cong/quan-ly-va-theo-doi-don-bao-lam-them.md)).
+Ảnh form "Thêm đơn xin nghỉ" trong trang quản lý cho thấy bốn nhóm trường: Email nhân viên, Chọn ngày (Ngày bắt đầu, Ngày kết thúc), Lý do nghỉ, Nội dung ([quản lý đơn báo](https://help.acheckin.vn/chuc-nang-cham-cong/quan-ly-va-theo-doi-don-bao-lam-them.md)).
+Tên trường lấy từ ảnh, không phải câu trích; script kiểm chỉ đọc được câu văn, không đọc được ảnh.
+
+"Lý do nghỉ" là danh mục công ty tự khai, ví dụ Nghỉ phép, nghỉ không lương, đi công tác, nghỉ nửa ngày, xin làm muộn, xin về sớm ([quản lý đơn báo](https://help.acheckin.vn/chuc-nang-cham-cong/quan-ly-va-theo-doi-don-bao-lam-them.md)).
+Vì vậy "loại nghỉ" là danh mục cấu hình, không phải bốn giá trị cố định.
+
+Trạng thái đơn:
+
+- "Chờ duyệt": đơn mới gửi, quản lý chưa quyết định.
+- "Đã duyệt": quản lý bấm Đồng ý; đơn đã duyệt nằm trong lịch sử.
+- "Từ chối": quản lý bấm Từ chối; nếu cấp trước từ chối thì đơn bị từ chối.
+- Đơn còn chờ duyệt thì nhân viên thu hồi được, miễn là chưa tới thời gian xin; tài liệu không đặt tên trạng thái sau khi thu hồi.
+
+Nguồn: [hướng dẫn xin/duyệt nghỉ](https://help.acheckin.vn/chuc-nang-cham-cong/quan-ly-va-theo-doi-don-bao-lam-them/huong-dan-bao-nghi.md), [tính năng mới](https://help.acheckin.vn/tinh-nang-moi-cap-nhat.md).
+
+Luồng duyệt: mặc định một cấp là quản lý trực tiếp; bật "Áp dụng luồng duyệt" thì tới bốn cấp (quản lý nhóm, ban, phòng, công ty), cấp trước duyệt rồi cấp sau mới duyệt ([quản lý đơn báo](https://help.acheckin.vn/chuc-nang-cham-cong/quan-ly-va-theo-doi-don-bao-lam-them.md)).
+Giới hạn duyệt: mặc định quản lý duyệt bất cứ lúc nào; nếu bật giới hạn thì trong vòng 30 ngày trước ngày admin chọn ([quản lý đơn báo](https://help.acheckin.vn/chuc-nang-cham-cong/quan-ly-va-theo-doi-don-bao-lam-them.md)).
+
+**Đối chiếu `lab/fake-leave`.**
+Hệ thống giả đã merge ở #145 dùng bộ trường của [kế hoạch cập nhật, mục 4.2](../design/simulation-update-plan.md#42-u2-hệ-thống-đơn-nghỉ-phép-giả).
+Đối chiếu với nguồn công khai ở trên:
+
+- Khớp về tên trường: `employee`, `from_date`, `to_date`, `leave_type`, `note`, và ba trạng thái `pending`, `approved`, `rejected`; không có trường `version`.
+- Khớp một phần: giá trị `leave_type` của hệ thống giả là bốn lựa chọn cố định `annual`, `sick`, `personal`, `unpaid`; ACheckin để công ty tự khai danh mục "Lý do nghỉ" với ví dụ rộng hơn.
+- Khác: hệ thống giả có thêm trường `reason` là chữ tự do, trong khi form công khai có "Lý do nghỉ" (chọn danh mục) và "Nội dung" (chữ tự do), không có ô "Lý do" chữ tự do thứ hai; `note` đã đóng vai "Nội dung".
+- Khác: hệ thống giả không có đường thu hồi đơn khi đơn còn chờ duyệt; ACheckin có.
+- Khác: hệ thống giả không mô phỏng một tới bốn cấp duyệt; nó tự quyết định sau một khoảng cấu hình.
+- Nội bộ: `department` và `request_key` không có trên form, phục vụ phép thử của Lab.
+
+**Kết luận:** `lab/fake-leave` khớp lõi và ba trạng thái chính, không khớp hoàn toàn lược đồ công khai (schema: danh sách trường và kiểu của chúng).
+#145 đã đóng nên không sửa `lab/` trong việc này; các khác biệt trên là giả định đã biết, ghi ở bình luận #145 và trong mục 7 của kế hoạch cập nhật.
+Nếu cần khớp hơn, mở issue riêng cho danh mục lý do, trường `reason` và đường thu hồi.
+
+**Nghĩa cho P12:** ACheckin có quy trình duyệt riêng, nên quyết định cuối của đơn nằm ở hệ thống nguồn, không ở cổng.
+Cổng có thể duyệt đề xuất xin nghỉ lúc 9 giờ, nhưng người duyệt trong ACheckin là quản lý trực tiếp hay chuỗi tới bốn cấp, và có thể đổi giữa lúc cổng duyệt và lúc đơn được xử lý.
+Vì vậy cổng chỉ được báo "đã tạo đơn, chờ quản lý duyệt", không báo "đã được nghỉ"; nếu sau này cổng sửa hay huỷ đơn, cổng phải đọc trạng thái ngay trước khi ghi.
+Đây là P12 (thẩm quyền đổi giữa duyệt và ghi) và P3 (nhận chưa phải xong); P4 (hai đề xuất cho cùng một việc) là lý do U2 tạo mới không có số phiên bản.
+
+**Kiểm lại:** các câu trích ở mục này là nhãn Q3 trong [`rd/checks/open-problems.sh`](../checks/open-problems.sh).
 
 ### 3.2. P13. Tách biệt nhiệm vụ
 
@@ -485,7 +595,7 @@ Hướng 4 tạo khác biệt riêng cho Appota và mở khoá việc dùng dữ
 
 ## 8. Chưa kiểm chứng
 
-- Mọi nguồn ngoài trong tài liệu này mới được đọc qua hai đợt khảo sát; chưa có script trong `rd/checks/` để kiểm lại câu trích.
+- Câu trích cho ba câu hỏi ở P4, P9 và P12 có script [`rd/checks/open-problems.sh`](../checks/open-problems.sh) kiểm lại; các nguồn ngoài khác trong tài liệu này mới được đọc qua hai đợt khảo sát và chưa có script.
 - Các bài arXiv năm 2026 là bản thảo chưa qua bình duyệt, trừ khi ghi rõ hội nghị.
 - Số liệu mỏi duyệt là của nhà bán, đo trên người dùng agent lập trình, chưa chắc đúng với người duyệt việc nghiệp vụ.
 - Luật Phòng, chống rửa tiền 2022 Điều 40 chưa đối chiếu nguyên văn, và luật đã được sửa năm 2026.
@@ -493,4 +603,4 @@ Hướng 4 tạo khác biệt riêng cho Appota và mở khoá việc dùng dữ
 - Hệ thống nội bộ của các công ty thành viên Appota chưa có nguồn; mọi ví dụ về ví, game, quảng cáo là suy đoán từ nguồn công khai.
 - Nhận định "agent đứng trong trang thật thì lớp chống giả mạo không giúp" ở P20 (trợ lý tự bấm duyệt) là suy luận, chưa có phép thử.
 
-**Kết luận:** trước khi đưa nguồn nào vào báo cáo nộp, viết `rd/checks/open-problems.sh` cho các câu trích mà hướng được chọn dựa vào.
+**Kết luận:** ba câu hỏi bước 0 đã có script kiểm; trước khi đưa nguồn nào khác vào báo cáo nộp, viết thêm phép kiểm cho câu trích mà hướng được chọn dựa vào.
