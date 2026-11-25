@@ -2,12 +2,14 @@ import { DEPARTMENTS, ROLES } from '@lab/shared';
 import {
   ACTIONS,
   ADAPTER_DECLARATIONS,
+  APPROVER_MODES,
   DIRECTORY_KEY,
   EMPLOYEE_FIELD_LABELS,
   READ_EMPLOYEE_FIELD,
   rulesSchema,
   TASK_FIELDS,
   type ActionCell,
+  type ApproverMode,
   type PolicyAction,
   type PolicyDecision,
   type PolicyEffect,
@@ -33,6 +35,12 @@ export const SCOPES = ['own_department', 'any'] as const;
 export const SCOPE_LABEL: Readonly<Record<ReadScope, string>> = {
   own_department: 'Cùng phòng',
   any: 'Mọi phòng',
+};
+
+/** How each record type finds its approver, in the order the console offers it. */
+export const APPROVER_LABEL: Readonly<Record<ApproverMode, string>> = {
+  requester_lead: 'Trưởng phòng của người yêu cầu',
+  owner_lead: 'Trưởng phòng sở hữu bản ghi',
 };
 
 /** The record types the console draws, in the order the adapters declare them. */
@@ -163,6 +171,7 @@ export interface ResourceView {
   readonly type: string;
   readonly label: string;
   readonly bulkThreshold: number;
+  readonly approver: ApproverMode;
   readonly actions: readonly string[];
 }
 
@@ -206,6 +215,7 @@ export function permissionsView(
       type,
       label: RESOURCE_LABEL[type] ?? type,
       bulkThreshold: rules.resources[type]?.bulk_threshold ?? 0,
+      approver: rules.resources[type]?.approver ?? 'requester_lead',
       actions: actionsOf(type),
     })),
   };
@@ -221,6 +231,10 @@ function effectOf(value: string | null): PolicyEffect | undefined {
 
 function scopeOf(value: string | null): ReadScope | undefined {
   return value !== null && (SCOPES as readonly string[]).includes(value) ? (value as ReadScope) : undefined;
+}
+
+function approverModeOf(value: string | null): ApproverMode | undefined {
+  return value !== null && (APPROVER_MODES as readonly string[]).includes(value) ? (value as ApproverMode) : undefined;
 }
 
 function positiveNumber(form: URLSearchParams, name: string): number {
@@ -244,6 +258,7 @@ export function rulesFromForm(
     string,
     {
       bulk_threshold: number;
+      approver: ApproverMode;
       read: Record<string, ReadScope>;
       fields: Record<string, string[]>;
       data_classes: Record<string, string>;
@@ -255,6 +270,11 @@ export function rulesFromForm(
     const threshold = positiveNumber(form, `bulk_threshold.${type}`);
     if (!Number.isInteger(threshold) || threshold < 1) {
       return { ok: false, detail: `Ngưỡng hàng loạt của ${RESOURCE_LABEL[type] ?? type} phải là số nguyên từ 1.` };
+    }
+
+    const approver = approverModeOf(form.get(`approver.${type}`));
+    if (approver === undefined) {
+      return { ok: false, detail: `Cách tìm người duyệt của ${RESOURCE_LABEL[type] ?? type} phải là requester_lead hoặc owner_lead.` };
     }
 
     const read: Record<string, ReadScope> = {};
@@ -328,6 +348,7 @@ export function rulesFromForm(
     // instead of rebuilding it. A save must never drop a key it did not show.
     resources[type] = {
       bulk_threshold: threshold,
+      approver,
       read,
       fields: fieldLists,
       data_classes: current.resources[type]?.data_classes ?? {},

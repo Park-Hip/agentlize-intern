@@ -1,8 +1,9 @@
-import { esc } from '@lab/gateway';
-import type { PolicyEffect, ReadScope } from '@lab/gateway';
+import { APPROVER_MODES, esc } from '@lab/gateway';
+import type { ApproverMode, PolicyEffect, ReadScope } from '@lab/gateway';
 import { banner, layout, type NavKey, type Notice } from './layout.js';
 import {
   ACTION_LABEL,
+  APPROVER_LABEL,
   EFFECTS,
   EFFECT_LABEL,
   SCOPES,
@@ -59,6 +60,12 @@ function bulkOptions(selected: PolicyEffect | undefined): string {
       (effect) => `<option value="${effect}"${effect === selected ? ' selected' : ''}>${esc(EFFECT_LABEL[effect])}</option>`,
     ).join('')
   );
+}
+
+function approverOptions(selected: ApproverMode): string {
+  return APPROVER_MODES.map(
+    (mode) => `<option value="${mode}"${mode === selected ? ' selected' : ''}>${esc(APPROVER_LABEL[mode])}</option>`,
+  ).join('');
 }
 
 function readRow(view: PermissionsPageView, resource: ResourceView): string {
@@ -149,9 +156,13 @@ function resourcePanel(view: PermissionsPageView, resource: ResourceView): strin
   const choices = resource.type === 'employee' ? view.fields : view.taskFields;
   const thresholdName = `bulk_threshold.${resource.type}`;
   const thresholdId = `bulk_threshold_${resource.type}`;
+  const approverId = `approver_${resource.type}`;
   return `<section class="panel">
 <h2>${esc(resource.label)}</h2>
 <p class="meta">Mỗi ô khai ba thứ: hiệu lực, phạm vi và hiệu lực khi số mục chạm ngưỡng hàng loạt. "Chưa khai" nghĩa là hành động đó bị từ chối với mã luật <code>&lt;loại&gt;.&lt;hành động&gt;.&lt;vai&gt;.undeclared</code>.</p>
+<label for="${esc(approverId)}">Người duyệt của ${esc(resource.label.toLowerCase())}</label>
+<select id="${esc(approverId)}" name="approver.${esc(resource.type)}" aria-label="Cách tìm người duyệt cho ${esc(resource.label)}">${approverOptions(resource.approver)}</select>
+<p class="meta"><code>requester_lead</code> là trưởng phòng của người yêu cầu; <code>owner_lead</code> là trưởng phòng sở hữu bản ghi, đọc từ trường phòng mà bộ tiếp hợp khai. Người yêu cầu không bao giờ tự duyệt.</p>
 ${matrix(view, resource)}
 <label for="${esc(thresholdId)}">Một lệnh đổi từ bao nhiêu ${esc(resource.label.toLowerCase())} thì tính là hàng loạt</label>
 <input id="${esc(thresholdId)}" name="${esc(thresholdName)}" type="number" min="1" step="1" value="${resource.bulkThreshold}" required>

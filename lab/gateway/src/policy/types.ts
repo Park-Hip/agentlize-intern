@@ -68,10 +68,21 @@ export interface PersonRef {
   readonly department: string;
 }
 
+/**
+ * Where one record type finds its approver: `requester_lead` is the lead of
+ * the requester's department, `owner_lead` the lead of the department that
+ * owns the record (the adapter's `ownerField`).
+ */
+export type ApproverMode = 'requester_lead' | 'owner_lead';
+
 /** The approval rules plus the people who may approve this request. */
 export interface ApproversDecision extends PolicyDecision {
   readonly approverRoles: readonly string[];
   readonly sameDepartment: boolean;
   readonly waitMinutes: number;
+  /** The answer the record type gave, or `requester_lead` when the file is silent. */
+  readonly approverMode: ApproverMode;
+  /** The department whose lead answers this request: the requester's or the record owner's. */
+  readonly department: string;
   readonly approvers: readonly PersonRef[];
 }

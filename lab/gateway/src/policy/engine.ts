@@ -12,6 +12,7 @@ import {
 } from './schema.js';
 import type { PolicyInput, Rules } from './schema.js';
 import type {
+  ApproverMode,
   ApproversDecision,
   FieldsDecision,
   PendingLimitDecision,
@@ -84,9 +85,14 @@ export interface PolicyEngineOptions {
   readonly readFile?: (path: string) => string;
 }
 
-/** One person as the approval question sees them; only these four values are used. */
+/** One person as the approval question sees them; only these values are used. */
 export interface Requester {
+  /** The requester's own department, always known from the directory. */
   readonly department: string;
+  /** The record type the request changes; absent means no type, so the requester's lead answers. */
+  readonly kind?: string;
+  /** The department that owns the record, read through the adapter's `ownerField`. */
+  readonly ownerDepartment?: string;
 }
 
 export interface PolicyEngine {
@@ -415,14 +421,24 @@ export function createPolicyEngine(options: PolicyEngineOptions = {}): PolicyEng
       try {
         const rules = loadRules();
         const { approver_roles: approverRoles, same_department: sameDepartment, wait_minutes: waitMinutes } = rules.approval;
+        // A file from before `approver` keeps the requester-lead answer (issue #148).
+        const resource =
+          requester.kind !== undefined && Object.hasOwn(rules.resources, requester.kind)
+            ? rules.resources[requester.kind]
+            : undefined;
+        const approverMode: ApproverMode = resource?.approver ?? 'requester_lead';
+        const department =
+          approverMode === 'owner_lead' ? (requester.ownerDepartment ?? requester.department) : requester.department;
         const approvers = people.filter(
-          (person) => approverRoles.includes(person.role) && (!sameDepartment || person.department === requester.department),
+          (person) => approverRoles.includes(person.role) && (!sameDepartment || person.department === department),
         );
         return {
           ...decisionOf({ effect: 'allow', ruleId: 'approval' }, rules.version),
           approverRoles: [...approverRoles],
           sameDepartment,
           waitMinutes,
+          approverMode,
+          department,
           approvers,
         };
       } catch {
@@ -431,6 +447,8 @@ export function createPolicyEngine(options: PolicyEngineOptions = {}): PolicyEng
           approverRoles: [],
           sameDepartment: true,
           waitMinutes: 0,
+          approverMode: 'requester_lead',
+          department: '',
           approvers: [],
         };
       }

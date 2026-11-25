@@ -1,5 +1,14 @@
-export { approvalRoster, approverRefs, approverSentence, personRefs, waitText } from './approvers.js';
-export type { ApprovalRoster } from './approvers.js';
+export {
+  approvalRoster,
+  approverDepartmentText,
+  approverSentence,
+  ownerDepartmentsOf,
+  personRefs,
+  proposalRoster,
+  rosterOf,
+  waitText,
+} from './approvers.js';
+export type { ApprovalRoster, ApprovalTarget } from './approvers.js';
 export { compareRecordIds, fingerprintOf, NEW_RECORD_ID } from './fingerprint.js';
 export type { Changes, FingerprintItem, ItemKind } from './fingerprint.js';
 export type { ExecutionReceipt, ProposalExecutor } from './executor.js';

@@ -89,6 +89,7 @@ interface RulesJson {
 
 interface ResourceJson {
   bulk_threshold?: number;
+  approver?: string;
   read?: Record<string, string>;
   fields?: Record<string, string[]>;
   data_classes?: Record<string, string>;
@@ -416,7 +417,26 @@ test('policy approval: the file lists the roles, the department rule and the wai
   assert.deepEqual(decision.approverRoles, ['lead']);
   assert.equal(decision.sameDepartment, true);
   assert.equal(decision.waitMinutes, 120);
+  assert.equal(decision.approverMode, 'requester_lead', 'no record type keeps the requester lead');
+  assert.equal(decision.department, OWN_DEPARTMENT);
   assert.deepEqual(decision.approvers.map((person) => person.id), ['NV-01']);
+
+  // The base file asks the record owner's lead for the directory, and keeps the requester lead for leave.
+  const owner = shipped.approversFor(
+    { department: OWN_DEPARTMENT, kind: 'employee', ownerDepartment: OTHER_DEPARTMENT },
+    people,
+  );
+  assert.equal(owner.approverMode, 'owner_lead');
+  assert.equal(owner.department, OTHER_DEPARTMENT);
+  assert.deepEqual(owner.approvers.map((person) => person.id), ['NV-11']);
+
+  const leave = shipped.approversFor(
+    { department: OWN_DEPARTMENT, kind: 'leave', ownerDepartment: OTHER_DEPARTMENT },
+    people,
+  );
+  assert.equal(leave.approverMode, 'requester_lead');
+  assert.equal(leave.department, OWN_DEPARTMENT);
+  assert.deepEqual(leave.approvers.map((person) => person.id), ['NV-01']);
 
   withRulesFile((path, engine) => {
     const rules = shippedRules();
@@ -427,6 +447,25 @@ test('policy approval: the file lists the roles, the department rule and the wai
     writeRules(path, rules);
     const open = engine.approversFor({ department: OWN_DEPARTMENT }, people);
     assert.deepEqual(open.approvers.map((person) => person.id), ['NV-01', 'NV-11', 'NV-06']);
+  });
+});
+
+test('policy approval: a file without the approver key keeps the requester lead for every record type', () => {
+  withRulesFile((path, engine) => {
+    const rules = shippedRules();
+    for (const resource of Object.values(rules.resources ?? {})) delete resource.approver;
+    writeRules(path, rules);
+
+    const people: readonly PersonRef[] = [
+      { id: 'NV-01', name: 'Quang', role: 'lead', department: OWN_DEPARTMENT },
+      { id: 'NV-11', name: 'Hạnh', role: 'lead', department: OTHER_DEPARTMENT },
+    ];
+    for (const kind of ['task', 'leave', 'employee']) {
+      const decision = engine.approversFor({ department: OWN_DEPARTMENT, kind, ownerDepartment: OTHER_DEPARTMENT }, people);
+      assert.equal(decision.approverMode, 'requester_lead', kind);
+      assert.equal(decision.department, OWN_DEPARTMENT, kind);
+      assert.deepEqual(decision.approvers.map((person) => person.id), ['NV-01'], kind);
+    }
   });
 });
 
@@ -655,6 +694,10 @@ test('policy unavailable: an old file without schema 2, a typo and a bad value r
   if (badClient.clients !== undefined) {
     badClient.clients['user_device'] = { class: 'somewhere', ceiling: 'internal_general' };
   }
+  const badApproverMode = structuredClone(rules);
+  if (badApproverMode.resources?.['employee'] !== undefined) {
+    badApproverMode.resources['employee'].approver = 'line_manager';
+  }
 
   const broken: Record<string, string> = {
     'empty file': '',
@@ -683,6 +726,7 @@ test('policy unavailable: an old file without schema 2, a typo and a bad value r
     'data class names a field the adapter does not declare': JSON.stringify(unknownClassField),
     'unknown data class name': JSON.stringify(badClassName),
     'unknown client class': JSON.stringify(badClient),
+    'unknown approver mode': JSON.stringify(badApproverMode),
     'unknown top-level key': JSON.stringify({ ...rules, note: 'x' }),
   };
 
@@ -758,6 +802,9 @@ test('policy rules file: the shipped file is valid, schema 2 and has the PRD thr
   assert.equal(rules.schema, 2);
   assert.equal(rules.version, 1);
   assert.equal(rules.resources?.['task']?.bulk_threshold, 5);
+  assert.equal(rules.resources?.['task']?.approver, 'requester_lead');
+  assert.equal(rules.resources?.['leave']?.approver, 'requester_lead');
+  assert.equal(rules.resources?.['employee']?.approver, 'owner_lead');
   assert.equal(rules.cumulative_window_minutes, 60);
   assert.deepEqual(rules.approval, { approver_roles: ['lead'], same_department: true, wait_minutes: 120 });
 

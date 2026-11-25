@@ -19,6 +19,7 @@
   "resources": {
     "task": {
       "bulk_threshold": 5,
+      "approver": "requester_lead",
       "read": {
         "intern": "own_department",
         "staff": "own_department",
@@ -64,6 +65,7 @@
     },
     "leave": {
       "bulk_threshold": 5,
+      "approver": "requester_lead",
       "read": {
         "intern": "own_department",
         "staff": "own_department",
@@ -100,6 +102,7 @@
     },
     "employee": {
       "bulk_threshold": 5,
+      "approver": "owner_lead",
       "read": {
         "intern": "any",
         "staff": "any",

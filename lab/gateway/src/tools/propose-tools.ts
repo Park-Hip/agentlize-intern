@@ -23,8 +23,10 @@ import { formatMoment, itemLabel, itemRows } from '../proposals/card.js';
 import {
   actionFields,
   approvalRoster,
+  approverDepartmentText,
   approverSentence,
   effectiveStatus,
+  ownerDepartmentsOf,
   PROPOSAL_ID_PATTERN,
   waitText,
   type Proposal,
@@ -91,9 +93,18 @@ function fold(text: string): string {
  * The rule decides which roles count and whether they must share the
  * requester's department; the directory only supplies the people.
  */
-async function rosterFor(context: ToolContext): Promise<Awaited<ReturnType<typeof approvalRoster>>> {
+async function rosterFor(
+  context: ToolContext,
+  recordType: string,
+  ownerDepartments: readonly string[],
+): Promise<Awaited<ReturnType<typeof approvalRoster>>> {
   const { actor, adapters, policy } = context;
-  return approvalRoster(adapters, policy, { employeeId: actor.employeeId, department: actor.department });
+  return approvalRoster(adapters, policy, {
+    employeeId: actor.employeeId,
+    department: actor.department,
+    recordType,
+    ownerDepartments,
+  });
 }
 
 async function refusalForDecision(
@@ -102,8 +113,8 @@ async function refusalForDecision(
   context: ToolContext,
   objectId: string,
   adapter: ResourceAdapter,
+  ownerDepartments: readonly string[],
 ): Promise<ToolResult> {
-  const { actor } = context;
   const extra = { objectId, policyVersion: decision.policyVersion } as const;
 
   if (decision.reasonCode === 'POLICY_UNAVAILABLE') {
@@ -120,11 +131,11 @@ async function refusalForDecision(
     };
   }
 
-  const roster = await rosterFor(context);
+  const roster = await rosterFor(context, adapter.type, ownerDepartments);
   const whom =
     roster.approvers.length > 0
-      ? `Hãy hỏi ${roster.approvers.map((person) => person.name).join(' hoặc ')}, trưởng nhóm ${actor.department}.`
-      : `Hãy hỏi trưởng nhóm ${actor.department}.`;
+      ? `Hãy hỏi ${roster.approvers.map((person) => person.name).join(' hoặc ')}, trưởng nhóm ${approverDepartmentText(roster)}.`
+      : `Hãy hỏi trưởng nhóm ${approverDepartmentText(roster)}.`;
   const what = [...new Set(actions.map((action) => actionPhrase(adapter, action)))].join(' và ');
 
   if (decision.ruleId.endsWith('.undeclared')) {
@@ -350,7 +361,14 @@ const proposeTaskChange = defineTool(
         policyVersion: null,
         denyReason: denyReasonFor('NOT_PERMITTED', null),
       };
-      return refusalForDecision(refused, actions, context, built[0]?.recordId ?? '', tasks);
+      return refusalForDecision(
+        refused,
+        actions,
+        context,
+        built[0]?.recordId ?? '',
+        tasks,
+        built.map((item) => item.department),
+      );
     }
 
     const requiresApproval = decision.effect === 'needs_approval';
@@ -405,14 +423,14 @@ const proposeTaskChange = defineTool(
         : `Đã soạn đề xuất ${proposal.proposalId} cho ${proposal.items.length} task. Chưa có gì được ghi vào task.`;
     const lines = [head];
     if (requiresApproval) {
-      const roster = await rosterFor(context);
+      const roster = await rosterFor(context, tasks.type, built.map((item) => item.department));
       const why = cumulative
         ? `${windowMinutes} phút qua đã có các mục cùng việc này, cộng lại chạm ngưỡng duyệt hàng loạt`
         : decision.ruleId.endsWith('.bulk')
           ? `vì đề xuất có ${proposal.items.length} mục, chạm ngưỡng duyệt hàng loạt`
           : 'vì bộ luật quyền yêu cầu trưởng nhóm duyệt';
       lines.push(
-        `Việc này cần trưởng nhóm ${actor.department} duyệt ${why}.`,
+        `Việc này cần trưởng nhóm ${approverDepartmentText(roster)} duyệt ${why}.`,
         `${approverSentence(roster)} Sau khi bạn bấm Gửi, đề xuất chờ duyệt tối đa ${waitText(roster.waitMinutes)}.`,
       );
     }
@@ -512,13 +530,33 @@ async function createdStatusLine(context: ToolContext, recordType: string, code:
   }
 }
 
+/** The roster of a stored proposal; a target system that does not answer leaves the owner unknown. */
+async function rosterForProposal(
+  context: ToolContext,
+  proposal: Proposal,
+): Promise<Awaited<ReturnType<typeof approvalRoster>>> {
+  let ownerDepartments: readonly string[] = [context.actor.department];
+  const settings = context.policy.approversFor(
+    { department: context.actor.department, kind: proposal.recordType },
+    [],
+  );
+  if (settings.reasonCode !== 'POLICY_UNAVAILABLE' && settings.approverMode === 'owner_lead') {
+    try {
+      ownerDepartments = await ownerDepartmentsOf(context.adapters, proposal, context.actor.department);
+    } catch {
+      // The status answer still shows the proposal; the page names the approver once the target is back.
+    }
+  }
+  return rosterFor(context, proposal.recordType, ownerDepartments);
+}
+
 async function describeStatus(proposal: Proposal, context: ToolContext): Promise<StatusAnswer> {
   const status = effectiveStatus(proposal, context.now());
   const head = proposalHead(proposal, context.adapters);
   if (status === 'awaiting_confirmation') {
     const waiting = `${head} đang chờ người yêu cầu bấm Gửi, hết hạn lúc ${formatMoment(new Date(proposal.expiresAt), context.now())}.`;
     if (proposal.requiresApproval) {
-      const roster = await rosterFor(context);
+      const roster = await rosterForProposal(context, proposal);
       return {
         text: [
           waiting,
@@ -542,8 +580,11 @@ async function describeStatus(proposal: Proposal, context: ToolContext): Promise
     return { text: lines.join('\n'), reasonCode: null, status };
   }
   if (status === 'awaiting_approval') {
-    const roster = await rosterFor(context);
-    const who = roster.approvers.length > 0 ? roster.approvers.map((person) => person.name).join(' hoặc ') : 'trưởng nhóm cùng phòng';
+    const roster = await rosterForProposal(context, proposal);
+    const who =
+      roster.approvers.length > 0
+        ? roster.approvers.map((person) => person.name).join(' hoặc ')
+        : `trưởng nhóm ${approverDepartmentText(roster)}`;
     const deadline =
       proposal.approvalExpiresAt === null
         ? ''

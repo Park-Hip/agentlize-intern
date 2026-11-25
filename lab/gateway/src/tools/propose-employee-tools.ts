@@ -11,7 +11,7 @@ import {
 import { refuse } from '../call.js';
 import { RULE_IDS, type PolicyDecision } from '../policy/index.js';
 import { formatMoment, itemRows } from '../proposals/card.js';
-import { actionFields, approvalRoster, approverSentence, waitText } from '../proposals/index.js';
+import { actionFields, approvalRoster, approverDepartmentText, approverSentence, waitText } from '../proposals/index.js';
 import { wrapSystemData } from './block.js';
 import { draftWithinPendingLimit } from './pending-limit.js';
 import { defineTool } from './read-tools.js';
@@ -33,9 +33,17 @@ const proposeInput = z.strictObject({
 });
 
 /** The people the rule file lets approve this request, read from the directory. */
-async function rosterFor(context: ToolContext): Promise<Awaited<ReturnType<typeof approvalRoster>>> {
+async function rosterFor(
+  context: ToolContext,
+  ownerDepartments: readonly string[],
+): Promise<Awaited<ReturnType<typeof approvalRoster>>> {
   const { actor, adapters, policy } = context;
-  return approvalRoster(adapters, policy, { employeeId: actor.employeeId, department: actor.department });
+  return approvalRoster(adapters, policy, {
+    employeeId: actor.employeeId,
+    department: actor.department,
+    recordType: 'employee',
+    ownerDepartments,
+  });
 }
 
 /** Why the rule file said no, in the words the caller needs to act on. */
@@ -45,8 +53,8 @@ async function refusalForDecision(
   context: ToolContext,
   objectId: string,
   declaration: RecordDeclaration,
+  ownerDepartments: readonly string[],
 ): Promise<ToolResult> {
-  const { actor } = context;
   const extra = { objectId, policyVersion: decision.policyVersion } as const;
 
   if (decision.reasonCode === 'POLICY_UNAVAILABLE') {
@@ -63,11 +71,11 @@ async function refusalForDecision(
     };
   }
 
-  const roster = await rosterFor(context);
+  const roster = await rosterFor(context, ownerDepartments);
   const whom =
     roster.approvers.length > 0
-      ? `Hãy hỏi ${roster.approvers.map((person) => person.name).join(' hoặc ')}, trưởng nhóm ${actor.department}.`
-      : `Hãy hỏi trưởng nhóm ${actor.department}.`;
+      ? `Hãy hỏi ${roster.approvers.map((person) => person.name).join(' hoặc ')}, trưởng nhóm ${approverDepartmentText(roster)}.`
+      : `Hãy hỏi trưởng nhóm ${approverDepartmentText(roster)}.`;
   const what = actionPhrase(declaration, action);
 
   if (decision.ruleId.endsWith('.undeclared')) {
@@ -163,7 +171,9 @@ const proposeEmployeeChange = defineTool(
       object: { kind: directory.type, department, taskCount: 1, carriedItems: carried[action] ?? 0 },
       context: { scope: actor.identity.scope === 'read_only' ? 'read_only' : 'read_write', caller: actor.identity.caller },
     });
-    if (decision.effect === 'deny') return refusalForDecision(decision, action, context, objectId, directory);
+    if (decision.effect === 'deny') {
+      return refusalForDecision(decision, action, context, objectId, directory, [department]);
+    }
 
     const requiresApproval = decision.effect === 'needs_approval';
     const pendingLimit = policy.pendingLimit();
@@ -220,9 +230,9 @@ const proposeEmployeeChange = defineTool(
       `Đã soạn đề xuất ${proposal.proposalId} đổi email công việc của ${name} (${objectId}). Chưa có gì được ghi vào danh bạ.`,
     ];
     if (requiresApproval) {
-      const roster = await rosterFor(context);
+      const roster = await rosterFor(context, [department]);
       lines.push(
-        `Việc này cần trưởng nhóm ${actor.department} duyệt trước khi ghi.`,
+        `Việc này cần trưởng nhóm ${approverDepartmentText(roster)} duyệt trước khi ghi.`,
         `${approverSentence(roster)} Sau khi bạn bấm Gửi, đề xuất chờ duyệt tối đa ${waitText(roster.waitMinutes)}.`,
       );
     }
