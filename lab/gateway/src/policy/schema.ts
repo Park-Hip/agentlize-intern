@@ -1,8 +1,10 @@
 import { z } from 'zod';
 import { ADAPTER_DECLARATIONS, actionsByType } from '../adapters/registry.js';
 import type { RecordDeclaration } from '../adapters/types.js';
-import { DEFAULT_PENDING_LIMIT } from '../proposals/proposal-store.js';
 import { CLIENT_CLASSES, DATA_CLASSES } from './data-classes.js';
+
+/** How many proposals one person may leave waiting when the rule file does not name a limit. */
+export const DEFAULT_PENDING_LIMIT = 20;
 
 /**
  * The action names of each record type, from the adapters the gateway ships

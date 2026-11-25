@@ -13,6 +13,7 @@ Cổng nghe ở `127.0.0.1:8790`.
 | `get_task` | đọc | Một task, chỉ các trường vai của người hỏi được xem |
 | `list_tasks` | đọc | Task trong phạm vi đọc, lọc theo người, phòng, trạng thái |
 | `get_request_status` | đọc | Một đề xuất của chính mình đang ở bước nào, từng mục ra sao |
+| `action_status` | đọc | Tên thứ hai của `get_request_status`, cùng handler và cùng câu trả lời |
 | `propose_task_change` | soạn đề xuất | Một nhóm thay đổi cho 1 tới 50 task; trả link xác nhận, chưa ghi gì |
 | `propose_employee_change` | soạn đề xuất | Đổi email công việc của một nhân viên; trả link xác nhận, chưa ghi gì |
 
@@ -22,8 +23,8 @@ Hai cửa mở đúng cùng một danh mục tool, cùng khoá `lab_` và cùng 
 
 | Cửa | Dùng cho | Trả về |
 | --- | --- | --- |
-| `POST /v1/tools/<tên>` | Trang điều khiển, `curl`, phép thử | `{ "text", "reason_code", "trace_id" }` |
-| `POST /mcp` | Thổ Thần và mọi client MCP (Streamable HTTP, `@modelcontextprotocol/sdk` 1.32.2) | `content[0].text` giống hệt `text` ở trên; `_meta` mang `reason_code` và `trace_id` |
+| `POST /v1/tools/<tên>` | Trang điều khiển, `curl`, phép thử | `{ "text", "reason_code", "deny_reason", "gateway_status", "untrusted_content", "truncated", "trace_id" }` |
+| `POST /mcp` | Thổ Thần và mọi client MCP (Streamable HTTP, `@modelcontextprotocol/sdk` 1.32.2) | `content[0].text` giống hệt `text` ở trên; `_meta` mang `reason_code`, `deny_reason`, `gateway_status`, `untrusted_content`, `truncated` và `trace_id` |
 
 Cả hai cần header `Authorization: Bearer <khoá lab_>`.
 `GET /v1/tools` trả danh mục mà không cần khoá, vì danh mục không chứa dữ liệu.
@@ -46,6 +47,25 @@ Thử bằng MCP Inspector:
 ```
 npx --yes @modelcontextprotocol/inspector@2.15.0 --cli --transport http --server-url http://127.0.0.1:8790/mcp --header "Authorization: Bearer <khoá lab_ của chị Hoa>" --method tools/list
 ```
+
+## Câu trả lời của tool
+
+`gateway_status` là tên trạng thái của cổng thật cho một đề xuất; `get_request_status` và `action_status` trả trường này, các tool khác trả `null`.
+Bảng ánh xạ nằm ở một chỗ là `src/tools/gateway-status.ts`, và `src/gateway-status-test.ts` đi qua mọi trạng thái nội bộ.
+
+| Trạng thái nội bộ | `gateway_status` |
+| --- | --- |
+| `awaiting_confirmation`, `awaiting_approval` | `pending` |
+| `confirmed` với lệnh còn chờ hoặc đang gửi | `executing` |
+| Mọi lệnh ghi xong | `executed` |
+| Ít nhất một lệnh thất bại và không còn lệnh mở | `failed` |
+| `rejected` | `rejected` |
+| `expired` | `expired` |
+| `cancelled` | `cancelled` |
+
+`untrusted_content` là `true` khi câu trả lời có văn bản tự do đọc từ hệ thống, hôm nay là mô tả task.
+`truncated` là `true` khi văn bản đó dài hơn 50.000 ký tự và bị cắt.
+Hai cờ là `false` với mọi câu trả lời khác.
 
 ## Một lời gọi đi qua đâu
 
@@ -85,6 +105,7 @@ File dùng `schema: 2` ([ADR-0007](../../docs/adr/adr-0007-system-adapters-and-c
 
 Ở cấp file, khối `approval` khai vai được duyệt, người duyệt có phải cùng phòng không, và số phút chờ (`wait_minutes`, mặc định 120).
 `cumulative_window_minutes` (mặc định 60) là cửa sổ đếm các đề xuất bị chia nhỏ.
+`pending_limit` (mặc định 20) là số đề xuất đang chờ tối đa của một người, gồm chờ bấm Gửi và chờ duyệt.
 
 - Ô chưa khai bị từ chối với mã luật `<loại>.<hành động>.<vai>.undeclared`.
 - Khoá lạ (ví dụ gõ nhầm `tsak`), file hỏng, hay thiếu `schema: 2` làm mọi lời gọi trả `POLICY_UNAVAILABLE`.
@@ -139,6 +160,11 @@ Bộ luật được hỏi với số mục của đề xuất cộng số mục
 Chạm `bulk_threshold` thì ô `bulk` quyết định.
 Nên đổi 30 task một lần, hay chia thành nhiều đề xuất nhỏ trong 60 phút, đều cần trưởng nhóm duyệt.
 Mã luật trong vết kết thúc bằng `.bulk` khi chính đề xuất đủ số mục, và `.cumulative` khi phần đã đếm làm chạm ngưỡng.
+
+**Giới hạn đề xuất đang chờ.**
+Mỗi người giữ tối đa `pending_limit` đề xuất đang chờ, gồm chờ bấm Gửi và chờ duyệt.
+Người đã chạm giới hạn nhận từ chối `PENDING_LIMIT` với HTTP 429, không có đề xuất mới và không có lệnh ghi.
+Đề xuất quá hạn không chiếm chỗ, nên người đó soạn được ngay sau khi các đề xuất cũ hết hạn.
 
 ### 2. Bấm Gửi
 
@@ -256,7 +282,7 @@ Tra vết theo task, theo người hay theo đề xuất tự nối các dòng c
 | `src/identity/` | Khoá tool và mật khẩu trang |
 | `src/policy/` | Bộ luật quyền và file luật |
 | `src/adapters/` | Bộ tiếp hợp theo hệ thống |
-| `src/tools/` | Sáu tool |
+| `src/tools/` | Tool đọc, tool soạn đề xuất, `action_status` và phần đánh dấu văn bản tự do |
 | `src/proposals/` | Đề xuất, dấu vân tay, người duyệt |
 | `src/writes/` | Kiểm lúc Gửi, lệnh ghi, vòng chạy nền |
 | `src/web/` | Trang đăng nhập, xác nhận, hộp chờ duyệt, trang duyệt |

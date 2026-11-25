@@ -7,9 +7,6 @@ import { compareRecordIds, fingerprintOf, type Changes } from './fingerprint.js'
 /** A proposal lives this long before its requester has pressed Gửi. After it the page and the status tool say it has expired. */
 export const PROPOSAL_TTL_MS = 30 * 60 * 1000;
 
-/** How many proposals one person may leave waiting. The rule file may raise or lower it. */
-export const DEFAULT_PENDING_LIMIT = 20;
-
 /** Thrown by `create` when a person already has the allowed number of waiting proposals. */
 export class PendingLimitError extends Error {
   constructor(readonly limit: number) {
@@ -376,8 +373,10 @@ export class ProposalStore {
    * positions and the same fingerprint.
    * The pending count and the insert share the transaction, so two drafts that
    * race cannot both pass the last free slot.
+   * `pendingLimit` is required: the caller reads it from the rule file through
+   * the policy engine, so the store never falls back to a number of its own.
    */
-  create(input: NewProposal, pendingLimit: number = DEFAULT_PENDING_LIMIT): Proposal {
+  create(input: NewProposal, pendingLimit: number): Proposal {
     const createdAt = this.now();
     const orderedItems = [...input.items].sort((left, right) => compareRecordIds(left.recordId, right.recordId));
     const items: ProposalItem[] = orderedItems.map((item, index) => ({

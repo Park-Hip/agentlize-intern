@@ -7,7 +7,7 @@ import { EMPLOYEE_ID_PATTERN } from '@lab/shared';
 import { z } from 'zod';
 import { refuse } from '../call.js';
 import { StubSystems, startFixture, type GatewayFixture } from '../fixture.js';
-import { createPolicyEngine, DEFAULT_RULES_PATH } from '../policy/index.js';
+import { createPolicyEngine, DEFAULT_PENDING_LIMIT, DEFAULT_RULES_PATH } from '../policy/index.js';
 import { defineTool } from '../tools/read-tools.js';
 import type { ToolResult } from '../tools/types.js';
 import {
@@ -134,7 +134,7 @@ const proposeBadgeChange = defineTool(
           changes: { [BADGE_FIELD.name]: args.badge },
         },
       ],
-    });
+    }, DEFAULT_PENDING_LIMIT);
 
     return {
       status: 200,

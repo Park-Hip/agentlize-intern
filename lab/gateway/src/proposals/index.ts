@@ -5,7 +5,6 @@ export type { Changes, FingerprintItem } from './fingerprint.js';
 export type { ExecutionReceipt, ProposalExecutor } from './executor.js';
 export {
   actionFields,
-  DEFAULT_PENDING_LIMIT,
   effectiveStatus,
   MAX_APPROVAL_REASON,
   OLD_DATABASE_MESSAGE,
