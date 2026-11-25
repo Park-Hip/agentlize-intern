@@ -1,6 +1,6 @@
 # Những vấn đề cổng kiểm soát còn phải giải
 
-Ngày: 2026-11-25. Trạng thái: danh mục đã đối chiếu với mã Lab; ba câu hỏi bước 0 đã có câu trả lời công khai; cách giải còn là đề xuất.
+Ngày: 2026-11-25. Trạng thái: danh mục đã đối chiếu với mã Lab; đã chọn hướng 1 làm trọng tâm của spec ghi an toàn; ba câu hỏi bước 0 đã có câu trả lời công khai; cách giải còn là đề xuất.
 
 ## Đọc nhanh
 
@@ -106,9 +106,9 @@ Thêm một thao tác "tạo task" vào hệ thống giả và đếm số task 
 **Đe doạ:** SR4 (điểm dừng rủi ro), SR6 (không ghi trùng).
 Nguồn: τ-bench cho thấy cùng một yêu cầu chạy nhiều lần cho kết quả khác nhau ([arXiv 2406.12045](https://arxiv.org/abs/2406.12045)).
 
-#### 2.4.1. Câu trả lời cho U4: Lark Base không có ghi có điều kiện
+#### 2.4.1. Câu trả lời cho U4 (hồ sơ đích không có số phiên bản): Lark Base không có ghi có điều kiện
 
-**Câu hỏi:** Lark Base có số phiên bản hay thời điểm sửa cuối làm điều kiện ghi không, và tạo bản ghi có mã chống ghi trùng (idempotency) không?
+**Câu hỏi:** [U4 (hồ sơ đích không có số phiên bản)](../design/simulation-update-plan.md#44-u4-hồ-sơ-hệ-thống-đích-không-có-số-phiên-bản) hỏi Lark Base có số phiên bản hay thời điểm sửa cuối làm điều kiện ghi không, và tạo bản ghi có mã chống ghi trùng (idempotency) không?
 
 **Trả lời:** Lark Base không có ghi có điều kiện.
 Lệnh sửa một bản ghi là `PUT` và chỉ nhận `fields`; trang không có `client_token`, không có `If-Match`, không có `version` hay `etag`, và không nhận `last_modified_time` làm điều kiện ([sửa một bản ghi](https://open.larkoffice.com/document/server-docs/docs/bitable-v1/app-table-record/update.md)).
@@ -124,8 +124,8 @@ Tạo nhiều bản ghi cũng nhận `client_token` ([tạo nhiều bản ghi](h
 Tài liệu không nêu thời hạn nhớ mã và không nói lần gửi lặp trả lại bản ghi đầu.
 Vì vậy cổng chỉ được dùng `client_token` như khoá chống ghi trùng, không được dùng nó để tra kết quả; muốn tra phải dùng `record_id` trong câu trả lời.
 
-**Nghĩa cho U4:** giả định "hệ thống đích không có số phiên bản" đúng với Lark Base, nên U4 giữ ưu tiên như kế hoạch.
-P27 (đích không có số phiên bản) là cùng kết luận, đã ghi ở mục 2.9.
+**Nghĩa cho U4 (hồ sơ đích không có số phiên bản):** giả định "hệ thống đích không có số phiên bản" đúng với Lark Base, nên U4 giữ ưu tiên như kế hoạch.
+[P27 (đích không có số phiên bản)](#29-các-vấn-đề-tìm-thêm-khi-rà-spec-ghi-an-toàn) là cùng kết luận, đã ghi ở mục 2.9.
 #147 đã đóng, nên không mở lại; câu trả lời này xác nhận hồ sơ `no-version` là đúng cho Lark Base và cho các hệ thống cùng loại.
 
 **Kiểm lại:** các câu trích ở mục này là nhãn Q1 trong [`rd/checks/open-problems.sh`](../checks/open-problems.sh).
@@ -177,7 +177,7 @@ Bộ đếm này là luật của công ty, không phải hạn mức của hệ
 | Mã | Vấn đề | Lab đã có | Vì sao xếp thấp |
 | --- | --- | --- | --- |
 | P8 | Đọc ngay sau khi ghi thấy dữ liệu cũ, vì hệ thống thật cần vài giây để mọi bản sao cập nhật | Đọc và ghi cùng một nguồn | Xếp thấp với cách làm hôm nay, vì cổng chưa tra trước khi gửi lại; thành ghi trùng khi phương án ở [các phương án thiết kế, mục 3](../design/write-safety-options.md#3-không-rõ-lệnh-đã-chạy-chưa-thì-làm-gì) tra trên bản sao cũ của đích không có số phiên bản, nên phép đo đưa nó vào phạm vi |
-| P9 | Token hết hạn, hai tiến trình cùng làm mới token, hệ thống đích bảo trì hay đổi API | Ghi bằng khoá dịch vụ của cổng, không hết hạn | Phát sinh khi nối hệ thống thật; với Lark Task, cả token của ứng dụng cũng hết hạn sau khoảng 2 giờ và đổi phạm vi nhớ mã, xem [khảo sát hệ thống thật, mục 3](../research/target-system-gaps.md#3-chỉ-nhớ-mã-một-thời-gian-p2); U3 đưa P9 vào phạm vi, xem 2.8.1 |
+| P9 | Token hết hạn, hai tiến trình cùng làm mới token, hệ thống đích bảo trì hay đổi API | Ghi bằng khoá dịch vụ của cổng, không hết hạn | Phát sinh khi nối hệ thống thật; với Lark Task, cả token của ứng dụng cũng hết hạn sau khoảng 2 giờ và đổi phạm vi nhớ mã, xem [khảo sát hệ thống thật, mục 3](../research/target-system-gaps.md#3-chỉ-nhớ-mã-một-thời-gian-p2); [U3 (ghi bằng token của người yêu cầu)](../design/simulation-update-plan.md#43-u3-ghi-bằng-token-của-chính-người-yêu-cầu) đưa P9 vào phạm vi, xem 2.8.1 |
 | P10 | Hệ thống cũ chỉ nhận file, kết quả về sau nhiều giờ, một số dòng bị từ chối | Mỗi mục là một lời gọi | Chưa biết hệ thống nào sẽ nối dùng file |
 | P11 | Khung thời gian theo giờ UTC trong khi nghiệp vụ tính theo giờ Việt Nam, ngày làm việc, ngày lễ | Bộ đếm dồn và hạn duyệt tính theo phút trượt, không theo ngày | Chỉ thành vấn đề khi luật có mốc "trong ngày" |
 
@@ -188,7 +188,7 @@ Bộ đếm này là luật của công ty, không phải hạn mức của hệ
 **Trả lời:** token truy cập và token làm mới đều có hạn, và cả hai hạn đều trả về trong câu trả lời, nên cổng phải đọc trường thay vì viết cứng.
 Bảng dưới tóm tắt; cột "hiện hành" là trang đang dùng, cột "cũ" là trang còn nêu con số khác.
 
-| Mục | Tài liệu hiện hành | Tài liệu cũ | Ghi chú cho U3 |
+| Mục | Tài liệu hiện hành | Tài liệu cũ | Ghi chú cho U3 (ghi bằng token của người yêu cầu) |
 | --- | --- | --- | --- |
 | Truy cập | `expires_in` ví dụ 7200 giây | khoảng 2 giờ | mặc định 7200 giây, cấu hình được |
 | Làm mới | `refresh_token_expires_in` ví dụ 604800 giây (7 ngày) | khoảng 30 ngày | mặc định 604800 giây, cấu hình được |
@@ -209,11 +209,11 @@ Ba luật đổi mới:
 **Lark có thu hồi cả họ token khi dùng lại token làm mới cũ không?**
 Tài liệu không nói vậy.
 Trang làm mới chỉ nói token làm mới cũ mất hiệu lực và token truy cập còn hạn không bị ảnh hưởng ([làm mới token](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/authentication-management/access-token/refresh-user-access-token-v3.md)).
-OAuth 2.1 (bộ luật bảo mật OAuth, RFC 9700) nói khi thấy token làm mới đã bị vô hiệu được dùng lại, máy chủ cấp quyền thu hồi token làm mới đang hoạt động, không nói thu hồi token truy cập ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700.txt)).
-Vì vậy hành vi "dùng lại token làm mới cũ thì thu hồi mọi token của người đó" ở U3 là giả định mạnh hơn cả Lark lẫn RFC 9700.
+RFC 9700 (hướng dẫn bảo mật tốt nhất cho OAuth 2.0) nói khi thấy token làm mới đã bị vô hiệu được dùng lại, máy chủ cấp quyền thu hồi token làm mới đang hoạt động, không nói thu hồi token truy cập ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700.txt)).
+Vì vậy hành vi "dùng lại token làm mới cũ thì thu hồi mọi token của người đó" ở U3 là giả định mạnh hơn cả Lark lẫn hướng dẫn đó.
 U3 giữ hành vi đó để thử phản ứng an toàn, nhưng phải ghi là giả định trong README của nơi cấp token và trong ADR-0009, không ghi là hành vi của Lark.
 
-**Nghĩa cho U3:** nơi cấp token giả lấy mặc định 7200 giây cho token truy cập và 604800 giây cho token làm mới, cả hai đọc từ cấu hình.
+**Nghĩa cho U3 (ghi bằng token của người yêu cầu, xem [kế hoạch cập nhật, mục 4.3](../design/simulation-update-plan.md#43-u3-ghi-bằng-token-của-chính-người-yêu-cầu)):** nơi cấp token giả lấy mặc định 7200 giây cho token truy cập và 604800 giây cho token làm mới, cả hai đọc từ cấu hình.
 Mỗi lần làm mới phát token mới và vô hiệu token cũ; chỉ một tiến trình được làm mới, vì lần thứ hai dùng token cũ sẽ trả lỗi.
 Khi người dùng bị xoá khỏi danh bạ, thu hồi token của người đó là giả định nghỉ việc, không phải hành vi Lark đã công bố.
 Tài liệu cũ nêu lỗi 20021 khi người dùng đã nghỉ việc; tài liệu mới nêu 20066 khi trạng thái người dùng không hợp lệ ([tài liệu cũ](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/authen-v1/oidc-refresh_access_token/create.md), [làm mới token](https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/authentication-management/access-token/refresh-user-access-token-v3.md)).
@@ -305,9 +305,9 @@ Với giới hạn tốc độ (P7) hay hệ thống đích bảo trì (P2), kho
 **Đe doạ:** SR1 (danh tính và một cửa ghi), SR5 (không chắc thì chặn).
 Nguồn: token đã cấp vẫn dùng được tới khi bị thu hồi; từ 8 tới 18/8/2025, token OAuth bị lấy của Salesloft Drift vẫn đọc được dữ liệu Salesforce của khách ([Google](https://cloud.google.com/blog/topics/threat-intelligence/data-theft-salesforce-instances-via-salesloft-drift)).
 
-#### 3.1.1. Câu trả lời cho U2: đơn nghỉ phép ACheckin
+#### 3.1.1. Câu trả lời cho U2 (hệ thống đơn nghỉ phép giả): đơn nghỉ phép ACheckin
 
-**Câu hỏi:** đơn nghỉ phép của ACheckin gồm những trường nào và đi qua những trạng thái nào?
+**Câu hỏi:** [U2 (hệ thống đơn nghỉ phép giả)](../design/simulation-update-plan.md#42-u2-hệ-thống-đơn-nghỉ-phép-giả) hỏi đơn nghỉ phép của ACheckin gồm những trường nào và đi qua những trạng thái nào?
 
 **Trả lời:** trang hướng dẫn công khai nói nhân viên điền "thời gian, lý do nghỉ" và gửi tới quản lý trực tiếp; quản lý tạo hộ thì nhập "thông tin nhân viên thời gian và lý do nghỉ" ([hướng dẫn xin/duyệt nghỉ](https://help.acheckin.vn/chuc-nang-cham-cong/quan-ly-va-theo-doi-don-bao-lam-them/huong-dan-bao-nghi.md), [quản lý đơn báo](https://help.acheckin.vn/chuc-nang-cham-cong/quan-ly-va-theo-doi-don-bao-lam-them.md)).
 Ảnh form "Thêm đơn xin nghỉ" trong trang quản lý cho thấy bốn nhóm trường: Email nhân viên, Chọn ngày (Ngày bắt đầu, Ngày kết thúc), Lý do nghỉ, Nội dung ([quản lý đơn báo](https://help.acheckin.vn/chuc-nang-cham-cong/quan-ly-va-theo-doi-don-bao-lam-them.md)).

@@ -257,14 +257,14 @@ Ba câu của bước 0 đã có câu trả lời công khai, ghi trong [danh m�
 | --- | --- | --- |
 | Lark Base có ghi có điều kiện không? | Không. Lệnh sửa chỉ ghi đè; chỉ lệnh tạo có mã chống ghi trùng. | [P4](../problem/open-problems.md#24-p4-hai-đề-xuất-cho-cùng-một-việc) |
 | Token người dùng Lark sống bao lâu và đổi mới thế nào? | Thẻ truy cập khoảng 2 giờ, token làm mới 7 ngày theo tài liệu hiện hành; token làm mới cũ mất hiệu lực ngay. | [P9](../problem/open-problems.md#281-câu-trả-lời-cho-p9-token-người-dùng-lark) |
-| Đơn nghỉ ACheckin có trường và trạng thái nào? | Thời gian, lý do nghỉ (danh mục cấu hình), nội dung; chờ duyệt, đã duyệt, từ chối, có đường thu hồi. | [P12](../problem/open-problems.md#311-câu-trả-lời-cho-u2-đơn-nghỉ-phép-acheckin) |
+| Đơn nghỉ ACheckin có trường và trạng thái nào? | Thời gian, lý do nghỉ (danh mục cấu hình), nội dung; chờ duyệt, đã duyệt, từ chối, có đường thu hồi. | [P12](../problem/open-problems.md#311-câu-trả-lời-cho-u2-hệ-thống-đơn-nghỉ-phép-giả-đơn-nghỉ-phép-acheckin) |
 
 Hệ quả cho kế hoạch:
 
-- U4 giữ nguyên: hồ sơ `no-version` đúng với Lark Base, và #147 đã đóng.
-- U3 lấy mặc định 7200 giây cho thẻ truy cập và 604800 giây cho token làm mới, đọc từ cấu hình.
-  Hành vi thu hồi cả họ token khi dùng lại token cũ là giả định mạnh hơn Lark và RFC 9700, phải ghi rõ trong tài liệu của nơi cấp token.
-- U2 đã merge ở #145.
+- U4 (hồ sơ đích không có số phiên bản) giữ nguyên: hồ sơ `no-version` đúng với Lark Base, và #147 đã đóng.
+- U3 (ghi bằng token của người yêu cầu) lấy mặc định 7200 giây cho thẻ truy cập và 604800 giây cho token làm mới, đọc từ cấu hình.
+  Hành vi thu hồi cả họ token khi dùng lại token cũ là giả định mạnh hơn Lark và RFC 9700 (hướng dẫn bảo mật tốt nhất cho OAuth 2.0), phải ghi rõ trong tài liệu của nơi cấp token.
+- U2 (hệ thống đơn nghỉ phép giả) đã merge ở #145.
   `lab/fake-leave` khớp lõi và ba trạng thái chính, nhưng khác lược đồ (schema) công khai ở bốn điểm: `leave_type` cố định bốn giá trị, có thêm trường `reason` chữ tự do, không có đường thu hồi, không mô phỏng một tới bốn cấp duyệt.
   Không sửa `lab/` trong việc này; các khác biệt là giả định đã biết.
 
@@ -273,4 +273,4 @@ Hệ quả cho kế hoạch:
 - Ngưỡng 20 giây chờ ở U1 là số chọn để đo, nằm dưới mức Thổ Thần cắt lời gọi ở 60 giây ([tổng hợp phát hiện](../findings.md)); kết quả phải báo kèm ngưỡng này.
 - Chưa có nguồn công khai cho lược đồ bên trong của ACheckin (mã đơn, phòng, khoá chống ghi trùng); các trường đó là giả định của Lab, không phải của ACheckin.
 
-**Kết luận:** bước 0 không còn chặn U2, U3 và U4; U3 vẫn chờ ADR-0009, và các khác biệt của `lab/fake-leave` được ghi lại thay vì sửa lặng lẽ.
+**Kết luận:** bước 0 không còn chặn U2, U3 và U4; U3 (ghi bằng token của người yêu cầu) còn chờ U1 #144 merge, và các khác biệt của `lab/fake-leave` được ghi lại thay vì sửa lặng lẽ.

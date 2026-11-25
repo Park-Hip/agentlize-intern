@@ -169,10 +169,10 @@ check "$TOKEN_OLD" \
   "Q2 tài liệu cũ: người nghỉ việc trả lỗi 20021"
 check "https://www.rfc-editor.org/rfc/rfc9700.txt" \
   "it will revoke the active refresh token." \
-  "Q2 OAuth 2.1 chỉ đòi thu hồi token làm mới đang hoạt động"
+  "Q2 RFC 9700 chỉ đòi thu hồi token làm mới đang hoạt động"
 check "https://www.rfc-editor.org/rfc/rfc9700.txt" \
   "The previous refresh token is invalidated" \
-  "Q2 OAuth 2.1: token làm mới cũ bị vô hiệu"
+  "Q2 RFC 9700: token làm mới cũ bị vô hiệu"
 
 # --- Q3: đơn nghỉ phép của ACheckin gồm trường nào và trạng thái nào? ---
 # Bốn nhóm trường Email nhân viên, Chọn ngày, Lý do nghỉ, Nội dung lấy từ ảnh form
