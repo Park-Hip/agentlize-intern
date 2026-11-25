@@ -1,12 +1,14 @@
 import type { ToolSpec } from '../shared/door.js';
 
 /**
- * The six tools of the gateway, declared here by hand because plain function
- * calling has no catalog endpoint to ask (issue #109). The names, Vietnamese
- * descriptions and JSON Schemas mirror `GET /v1/tools`: the gateway publishes
- * the two sentences DeepSeek needed, so both assistants read one wording
- * (issue #136). `catalog-parity-test.ts` fails when a single character drifts,
- * because this copy does not follow the gateway by itself.
+ * The six tools this assistant uses, declared here by hand because plain
+ * function calling has no catalog endpoint to ask (issue #109). The names,
+ * Vietnamese descriptions and JSON Schemas mirror `GET /v1/tools` for those
+ * six: the gateway publishes the two sentences DeepSeek needed, so both
+ * assistants read one wording (issue #136). `catalog-parity-test.ts` fails
+ * when a single character drifts, because this copy does not follow the
+ * gateway by itself. The gateway's `action_status` alias stays out of this
+ * list, so the model has one name for one question (issue #155).
  */
 export const TOOL_DECLARATIONS: readonly ToolSpec[] = [
   {

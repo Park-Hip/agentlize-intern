@@ -57,7 +57,7 @@ export function createFakeModel(options: FakeModelOptions): ModelClient {
   };
 }
 
-/** The six tools the gateway publishes, in the order the README lists them. */
+/** The six tools this fake model uses, in the order the README lists them. */
 export const TOOL_SPECS: readonly ToolSpec[] = [
   {
     name: 'find_employee',

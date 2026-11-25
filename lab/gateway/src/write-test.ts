@@ -218,6 +218,7 @@ test('write: Gửi answers at once, then writes once, and the command keeps its 
     const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
     assert.match(status.body.text, /đã ghi thay đổi vào task T-12 ở lần gửi thứ 1/);
     assert.equal(status.body.reason_code, null);
+    assert.equal(status.body.gateway_status, 'executed');
 
     const line = f.gateway.trace.list().find((entry) => entry.tool === 'write_command');
     assert.equal(line?.outcome, 'ok');
@@ -364,6 +365,7 @@ test('write: a task changed after the draft fails with TARGET_CHANGED and keeps 
     assert.match(status.body.text, /nhờ AI soạn lại/);
     assert.equal(status.body.reason_code, 'TARGET_CHANGED');
     assert.equal(status.body.deny_reason, 'stale_target');
+    assert.equal(status.body.gateway_status, 'failed');
 
     const line = f.gateway.trace.list().find((entry) => entry.tool === 'write_command');
     assert.equal(line?.outcome, 'refused');
@@ -422,6 +424,7 @@ test('write: with no answer the command stays sent_unknown, and the next start s
 
     const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
     assert.match(status.body.text, /chưa nhận được kết quả/);
+    assert.equal(status.body.gateway_status, 'executing');
     const unknownLine = f.gateway.trace.list().find((entry) => entry.tool === 'write_command');
     assert.equal(unknownLine?.outcome, 'error');
     assert.ok((unknownLine?.attempts ?? 0) >= 1);
@@ -545,6 +548,7 @@ test('write: a three-item proposal makes one command per item, writes each once 
     assert.match(status.body.text, /đã ghi 3 trên 3 mục/);
     assert.match(status.body.text, /T-12: đã ghi ở lần gửi thứ 1/);
     assert.equal(status.body.reason_code, null);
+    assert.equal(status.body.gateway_status, 'executed');
   });
 });
 
@@ -576,6 +580,7 @@ test('write: one changed task is skipped while the other items of the proposal a
 
     const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
     assert.equal(status.body.reason_code, 'TARGET_CHANGED');
+    assert.equal(status.body.gateway_status, 'failed');
     assert.match(status.body.text, /T-12: CHƯA THỰC HIỆN \[TARGET_CHANGED\]/);
     assert.match(status.body.text, /T-13: đã ghi ở lần gửi thứ 1/);
   });
@@ -609,6 +614,7 @@ test('write: a batch at the bulk threshold waits for the lead, then the approval
 
     const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
     assert.equal(status.body.reason_code, null);
+    assert.equal(status.body.gateway_status, 'pending');
     assert.match(status.body.text, /đang chờ Trần Văn Quang duyệt/);
     assert.match(status.body.text, /2 giờ/);
 
@@ -631,6 +637,7 @@ test('write: a batch at the bulk threshold waits for the lead, then the approval
     assert.equal(f.systems.writeCount('T-100'), 1);
     const after = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
     assert.match(after.body.text, /đã ghi 30 trên 30 mục/);
+    assert.equal(after.body.gateway_status, 'executed');
 
     const again = await pressApproval(f, id, 'duyet', lead);
     assert.equal(again.status, 409);

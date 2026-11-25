@@ -5,6 +5,7 @@ import { TASK_STATUSES } from '../adapters/tasks.js';
 import { refuse } from '../call.js';
 import { denyReasonFor, withheldFieldsReason, type FieldsDecision, type ReadDecision } from '../policy/index.js';
 import { wrapSystemData } from './block.js';
+import { clipUntrustedText, MAX_UNTRUSTED_TEXT } from './free-text.js';
 import type { RegisteredTool, ToolContext, ToolResult } from './types.js';
 
 /** A list longer than this is cut and the answer says so. */
@@ -126,12 +127,32 @@ function taskLine(task: RecordData, fields: readonly string[]): string {
   return parts.join(' | ');
 }
 
+/** The task fields that hold free text a person typed, so an answer must mark and cut them (issue #155). */
+const FREE_TEXT_TASK_FIELDS: ReadonlySet<string> = new Set(['description']);
+
+interface TaskDetail {
+  readonly text: string;
+  readonly untrustedContent: boolean;
+  readonly truncated: boolean;
+}
+
 /** The detail block of `get_task`, showing only the fields the rule file declares. */
-function taskDetail(task: RecordData, adapter: ResourceAdapter, fields: readonly string[]): string {
-  return adapter.fields
+function taskDetail(task: RecordData, adapter: ResourceAdapter, fields: readonly string[]): TaskDetail {
+  let untrustedContent = false;
+  let truncated = false;
+  const lines = adapter.fields
     .filter((field) => fields.includes(field.name))
-    .map((field) => `${field.label}: ${String(task[field.key ?? field.name])}`)
-    .join('\n');
+    .map((field) => {
+      let value = String(task[field.key ?? field.name]);
+      if (FREE_TEXT_TASK_FIELDS.has(field.name)) {
+        untrustedContent = true;
+        const clipped = clipUntrustedText(value);
+        value = clipped.text;
+        truncated = truncated || clipped.truncated;
+      }
+      return `${field.label}: ${value}`;
+    });
+  return { text: lines.join('\n'), untrustedContent, truncated };
 }
 
 /** A refused read of a whole record type: no record is named, so nothing leaks. */
@@ -239,14 +260,20 @@ const getTask = defineTool(
       });
     }
 
+    const detail = taskDetail(task, tasks, fields.fields);
+    const cutNote = detail.truncated
+      ? `Mô tả task dài hơn ${MAX_UNTRUSTED_TEXT.toLocaleString('vi-VN')} ký tự nên câu trả lời chỉ hiện ${MAX_UNTRUSTED_TEXT.toLocaleString('vi-VN')} ký tự đầu.\n`
+      : '';
     return {
       status: 200,
-      text: `Task ${String(task['id'])}.\n${gate.note}${wrapSystemData(taskDetail(task, tasks, fields.fields))}`,
+      text: `Task ${String(task['id'])}.\n${gate.note}${cutNote}${wrapSystemData(detail.text)}`,
       reasonCode: null,
       outcome: 'ok',
       ruleId: read.ruleId,
       denyReason: gate.denyReason,
       droppedFields: gate.droppedFields,
+      untrustedContent: detail.untrustedContent,
+      truncated: detail.truncated,
       ...base,
     };
   },

@@ -40,6 +40,7 @@ export type {
 export type {
   ApproversDecision,
   FieldsDecision,
+  PendingLimitDecision,
   PersonRef,
   PolicyDecision,
   PolicyEffect,

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ADAPTER_DECLARATIONS, actionsByType } from '../adapters/registry.js';
 import type { RecordDeclaration } from '../adapters/types.js';
+import { DEFAULT_PENDING_LIMIT } from '../proposals/proposal-store.js';
 import { CLIENT_CLASSES, DATA_CLASSES } from './data-classes.js';
 
 /**
@@ -103,6 +104,12 @@ export function createRulesSchema(declarations: readonly RecordDeclaration[] = A
       version: z.number().int().positive(),
       approval: approvalSchema,
       cumulative_window_minutes: z.number().int().positive(),
+      /**
+       * How many proposals one person may leave waiting for their own press or
+       * for a lead. A file from before this key gets the default, so old files
+       * keep working (issue #155).
+       */
+      pending_limit: z.number().int().positive().default(DEFAULT_PENDING_LIMIT),
       clients: clientsSchema,
       resources: z.record(z.string().min(1), resourceSchema),
     })

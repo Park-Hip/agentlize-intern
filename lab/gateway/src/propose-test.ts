@@ -253,6 +253,7 @@ test('propose: get_request_status shows the link while waiting, hides another pe
     const { id, text } = await propose(f, HOA, { status: 'done' });
     const waiting = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
     assert.match(waiting.body.text, /đang chờ người yêu cầu bấm Gửi/);
+    assert.equal(waiting.body.gateway_status, 'pending');
     assert.equal(linkOf(waiting.body.text).link, linkOf(text).link);
 
     const stranger = await f.call('get_request_status', { request_id: id }, f.keyFor(QUANG));
@@ -263,6 +264,7 @@ test('propose: get_request_status shows the link while waiting, hides another pe
     h.clock.at += 31 * MINUTE;
     const late = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
     assert.match(late.body.text, /đã hết hạn/);
+    assert.equal(late.body.gateway_status, 'expired');
     assert.doesNotMatch(late.body.text, /xac-nhan/);
   });
 });
@@ -447,6 +449,7 @@ test('cancel: Sửa cancels the proposal, tells the person to ask the AI again, 
     assert.match(html, /nhờ AI soạn lại/);
     const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
     assert.match(status.body.text, /đã bấm Sửa/);
+    assert.equal(status.body.gateway_status, 'cancelled');
 
     const line = f.gateway.trace.list().find((entry) => entry.tool === 'proposal_cancel');
     assert.equal(line?.outcome, 'ok');

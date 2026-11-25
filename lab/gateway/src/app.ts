@@ -20,6 +20,9 @@ async function handleToolCall(deps: GatewayDeps, req: IncomingMessage, res: Serv
       text: result.text,
       reason_code: result.reasonCode,
       deny_reason: result.denyReason ?? null,
+      gateway_status: result.gatewayStatus ?? null,
+      untrusted_content: result.untrustedContent ?? false,
+      truncated: result.truncated ?? false,
       trace_id: traceId,
     };
     sendJson(res, result.status, body);

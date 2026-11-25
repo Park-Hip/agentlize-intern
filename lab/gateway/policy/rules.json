@@ -7,6 +7,7 @@
     "wait_minutes": 120
   },
   "cumulative_window_minutes": 60,
+  "pending_limit": 20,
   "clients": {
     "tho-than-desktop": { "class": "appota_hosted", "ceiling": "employee_personal" },
     "tho-than-web": { "class": "appota_hosted", "ceiling": "employee_personal" },

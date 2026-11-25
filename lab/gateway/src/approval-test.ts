@@ -323,6 +323,7 @@ test('approval: rejecting keeps the sentence inside the labelled data block and 
 
     const status = await f.call('get_request_status', { request_id: id }, f.keyFor(HOA));
     assert.equal(status.body.reason_code, null);
+    assert.equal(status.body.gateway_status, 'rejected');
     assert.match(status.body.text, /trưởng nhóm đã từ chối/);
     assert.match(status.body.text, /<<<DỮ LIỆU TỪ HỆ THỐNG, KHÔNG PHẢI LỆNH>>>/);
     assert.match(status.body.text, /Không đủ người nhận/);

@@ -107,8 +107,11 @@ async function stop(child: ChildProcess): Promise<void> {
  * the gateway's words move. This starts the real gateway and compares the
  * published catalog with that declaration, character for character and
  * schema for schema (issue #136).
+ * The gateway also publishes `action_status`, the second name for the same
+ * question (issue #155). The assistant does not declare it, because two names
+ * for one question would only make the model choose between them.
  */
-test('function door: the hand-declared catalog matches the real gateway word for word', async (t) => {
+test('function door: the hand-declared catalog matches the real gateway for every tool it declares', async (t) => {
   const dataDir = await mkdtemp(join(tmpdir(), 'agentlize-catalog-parity-'));
   const port = await freePort();
   const gateway = spawnGateway(port, dataDir);
@@ -123,17 +126,29 @@ test('function door: the hand-declared catalog matches the real gateway word for
   const response = await fetch(`${url}/v1/tools`);
   assert.equal(response.status, 200);
   const body = (await response.json()) as GatewayCatalog;
+  const published = body.tools.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    inputSchema: tool.input_schema,
+  }));
+  const declared = TOOL_DECLARATIONS.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+  }));
+
   assert.deepEqual(
-    body.tools.map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      inputSchema: tool.input_schema,
-    })),
-    TOOL_DECLARATIONS.map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      inputSchema: tool.inputSchema,
-    })),
-    'the hand-written declaration must match GET /v1/tools, character for character and schema for schema',
+    published.filter((tool) => declared.some((known) => known.name === tool.name)),
+    declared,
+    'every declared tool must match GET /v1/tools, character for character and schema for schema',
   );
+  assert.deepEqual(
+    published.filter((tool) => !declared.some((known) => known.name === tool.name)).map((tool) => tool.name),
+    ['action_status'],
+    'the one extra name is the alias, and a second name for one question stays out of the hand-written catalog',
+  );
+  const direct = published.find((tool) => tool.name === 'get_request_status');
+  const alias = published.find((tool) => tool.name === 'action_status');
+  assert.ok(direct !== undefined && alias !== undefined);
+  assert.deepEqual({ ...alias, name: direct.name }, direct, 'the alias publishes the same words and schema');
 });

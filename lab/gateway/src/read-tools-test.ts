@@ -6,6 +6,7 @@ import test from 'node:test';
 import { REFUSAL_PREFIX } from '@lab/shared';
 import { INJECTED_DESCRIPTION, SECRETS, startFixture, type GatewayFixture } from './fixture.js';
 import { BLOCK_END, BLOCK_REPLACEMENT, BLOCK_START, wrapSystemData } from './tools/block.js';
+import { MAX_UNTRUSTED_TEXT } from './tools/free-text.js';
 import { MAX_ROWS } from './tools/read-tools.js';
 
 const HOA = 'NV-02';
@@ -22,7 +23,7 @@ async function withGateway(run: (f: GatewayFixture) => Promise<void>): Promise<v
   }
 }
 
-test('read: the catalog lists the three read tools and the three proposal tools, in Vietnamese, with no tool that writes or confirms', async () => {
+test('read: the catalog lists the old six tools plus action_status, in Vietnamese, with no tool that writes or confirms', async () => {
   await withGateway(async (f) => {
     const response = await fetch(`${f.gateway.url}/v1/tools`);
     assert.equal(response.status, 200);
@@ -42,8 +43,9 @@ test('read: the catalog lists the three read tools and the three proposal tools,
       'propose_task_change',
       'get_request_status',
       'propose_employee_change',
+      'action_status',
     ]);
-    // The two propose tools draft a change; get_request_status reads a proposal like the other read tools.
+    // The two propose tools draft a change; get_request_status, and its second name action_status, read a proposal.
     assert.deepEqual(
       Object.fromEntries(body.tools.map((tool) => [tool.name, tool.kind])),
       {
@@ -53,6 +55,7 @@ test('read: the catalog lists the three read tools and the three proposal tools,
         propose_task_change: 'propose',
         get_request_status: 'read',
         propose_employee_change: 'propose',
+        action_status: 'read',
       },
     );
     for (const tool of body.tools) {
@@ -325,6 +328,29 @@ test('read: get_task shows a task of the own department, wrapped as system data'
     assert.equal(lines.filter((line) => line === BLOCK_END).length, 1);
     assert.equal(lines.at(-1), BLOCK_END, 'nothing follows the closing mark');
     assert.ok(lines.indexOf(BLOCK_START) < lines.findIndex((line) => line.startsWith('Mã: T-12')));
+  });
+});
+
+test('read: get_task marks the task description as untrusted content and cuts it at 50,000 characters', async () => {
+  await withGateway(async (f) => {
+    const key = f.keyFor(HOA);
+    const normal = await f.call('get_task', { task_id: 'T-12' }, key);
+    assert.equal(normal.body.untrusted_content, true);
+    assert.equal(normal.body.truncated, false);
+    assert.match(normal.body.text, /Mô tả: Mô tả việc số 12/);
+
+    // The system can hold text far longer than any answer should carry.
+    const long = 'Mô tả dài '.repeat(Math.ceil((MAX_UNTRUSTED_TEXT + 1) / 'Mô tả dài '.length));
+    assert.ok(long.length > MAX_UNTRUSTED_TEXT);
+    f.systems.tasks = f.systems.tasks.map((task) => (task.id === 'T-12' ? { ...task, description: long } : task));
+
+    const cut = await f.call('get_task', { task_id: 'T-12' }, key);
+    assert.equal(cut.body.untrusted_content, true);
+    assert.equal(cut.body.truncated, true);
+    assert.ok(cut.body.text.includes(long.slice(0, MAX_UNTRUSTED_TEXT)), 'the first 50,000 characters stay');
+    assert.ok(!cut.body.text.includes(long.slice(0, MAX_UNTRUSTED_TEXT + 1)), 'the rest is gone');
+    assert.match(cut.body.text, /chỉ hiện .* ký tự đầu/);
+    assert.equal(f.gateway.trace.list()[0]?.outcome, 'ok');
   });
 });
 

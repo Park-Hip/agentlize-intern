@@ -29,8 +29,11 @@ import {
   waitText,
   type Proposal,
   type ProposalItem,
+  type ProposalStatus,
 } from '../proposals/index.js';
 import { wrapSystemData } from './block.js';
+import { gatewayStatusOf } from './gateway-status.js';
+import { draftWithinPendingLimit } from './pending-limit.js';
 import { EMPLOYEE_PROPOSE_TOOLS } from './propose-employee-tools.js';
 import { defineTool, notFoundTask } from './read-tools.js';
 import type { RegisteredTool, ToolContext, ToolResult } from './types.js';
@@ -359,25 +362,33 @@ const proposeTaskChange = defineTool(
           : 'Bộ luật quyền yêu cầu trưởng nhóm duyệt việc này trước khi ghi.'
       : null;
 
-    const proposal = proposals.create({
-      requester: actor.employeeId,
-      caller: actor.identity.caller,
-      draftedByKeyId: actor.identity.keyId,
-      tool: PROPOSE_TOOL,
-      recordType: tasks.type,
-      changes: group,
-      requiresApproval,
-      approvalReason,
-      policyVersion: decision.policyVersion ?? 0,
-      items: built.map((item) => ({
-        system: tasks.type,
+    const pendingLimit = policy.pendingLimit();
+    if (pendingLimit.effect !== 'allow') return refuse('POLICY_UNAVAILABLE', pendingLimit.ruleId);
+    const drafted = draftWithinPendingLimit(
+      proposals,
+      {
+        requester: actor.employeeId,
+        caller: actor.identity.caller,
+        draftedByKeyId: actor.identity.keyId,
+        tool: PROPOSE_TOOL,
         recordType: tasks.type,
-        recordId: item.recordId,
-        baseVersion: item.baseVersion,
-        previous: item.previous,
-        changes: item.changes,
-      })),
-    });
+        changes: group,
+        requiresApproval,
+        approvalReason,
+        policyVersion: decision.policyVersion ?? 0,
+        items: built.map((item) => ({
+          system: tasks.type,
+          recordType: tasks.type,
+          recordId: item.recordId,
+          baseVersion: item.baseVersion,
+          previous: item.previous,
+          changes: item.changes,
+        })),
+      },
+      pendingLimit.limit,
+    );
+    if (!drafted.ok) return drafted.result;
+    const proposal = drafted.proposal;
 
     const rows: string[] = [];
     for (const item of proposal.items) {
@@ -450,6 +461,8 @@ function proposalHead(proposal: Proposal, adapters: readonly ResourceAdapter[]):
 interface StatusAnswer {
   readonly text: string;
   readonly reasonCode: ReasonCode | null;
+  /** The status the answer was built from, so the gateway name uses the same reading. */
+  readonly status: ProposalStatus;
 }
 
 function commandSentence(item: ProposalItem, command: WriteCommand | undefined): string {
@@ -484,6 +497,7 @@ async function describeStatus(proposal: Proposal, context: ToolContext): Promise
           confirmationLink(context.publicBaseUrl, proposal.proposalId),
         ].join('\n'),
         reasonCode: 'NEEDS_APPROVAL',
+        status,
       };
     }
     const lines = [waiting];
@@ -491,7 +505,7 @@ async function describeStatus(proposal: Proposal, context: ToolContext): Promise
       lines.push('Các mục:', proposal.items.map((item) => `${item.recordId}: ${Object.keys(item.changes).join(', ')}`).join('\n'));
     }
     lines.push('Link xác nhận:', confirmationLink(context.publicBaseUrl, proposal.proposalId));
-    return { text: lines.join('\n'), reasonCode: null };
+    return { text: lines.join('\n'), reasonCode: null, status };
   }
   if (status === 'awaiting_approval') {
     const roster = await rosterFor(context);
@@ -504,7 +518,7 @@ async function describeStatus(proposal: Proposal, context: ToolContext): Promise
     if (proposal.items.length > 1) {
       lines.push('Các mục:', proposal.items.map((item) => `${item.recordId}: ${Object.keys(item.changes).join(', ')}`).join('\n'));
     }
-    return { text: lines.join('\n'), reasonCode: null };
+    return { text: lines.join('\n'), reasonCode: null, status };
   }
   if (status === 'rejected') {
     const reason = proposal.approval?.reason;
@@ -515,17 +529,17 @@ async function describeStatus(proposal: Proposal, context: ToolContext): Promise
     } else {
       lines.push('Trưởng nhóm không ghi lý do.');
     }
-    return { text: lines.join('\n'), reasonCode: null };
+    return { text: lines.join('\n'), reasonCode: null, status };
   }
   if (status === 'cancelled') {
-    return { text: `${head} ${STATUS_SENTENCE.cancelled}`, reasonCode: null };
+    return { text: `${head} ${STATUS_SENTENCE.cancelled}`, reasonCode: null, status };
   }
   if (status === 'expired') {
     const sentence =
       proposal.approvalExpiresAt === null
         ? STATUS_SENTENCE.expired
         : 'Đề xuất đã hết hạn chờ duyệt nên không có gì được ghi. Hãy nhờ AI soạn lại nếu vẫn cần.';
-    return { text: `${head} ${sentence}`, reasonCode: null };
+    return { text: `${head} ${sentence}`, reasonCode: null, status };
   }
 
   // Confirmed: every item has its own command and its own result.
@@ -541,31 +555,34 @@ async function describeStatus(proposal: Proposal, context: ToolContext): Promise
     return {
       text: [head, 'cổng chưa gửi lệnh ghi cho mục nào.', ...itemLines()].join('\n'),
       reasonCode: null,
+      status,
     };
   }
 
   if (total === 1) {
     const command = results[0];
     if (command === undefined) {
-      return { text: `${head} đã được xác nhận, cổng chưa gửi lệnh ghi.`, reasonCode: null };
+      return { text: `${head} đã được xác nhận, cổng chưa gửi lệnh ghi.`, reasonCode: null, status };
     }
     if (command.status === 'sent_unknown') {
       return {
         text: `${head} cổng đã gửi lệnh nhưng chưa nhận được kết quả. Cổng giữ lệnh và gửi lại với đúng mã cũ, nên bản ghi không bị ghi hai lần.`,
         reasonCode: null,
+        status,
       };
     }
     if (command.status === 'done') {
       return {
         text: `${head} đã ghi thay đổi vào ${recordWordOf(context.adapters, proposal.recordType)} ${command.recordId} ở lần gửi thứ ${command.attempts}.`,
         reasonCode: null,
+        status,
       };
     }
     const code = command.reasonCode;
     const sentence =
       (code === null ? undefined : COMMAND_FAILURE_SENTENCE[code]) ?? 'Cổng không ghi được thay đổi. Hãy báo người vận hành Lab.';
     const text = code === null ? `CHƯA THỰC HIỆN ${sentence}` : refusalMessage(code, sentence);
-    return { text: `${head} ${text}`, reasonCode: code };
+    return { text: `${head} ${text}`, reasonCode: code, status };
   }
 
   const skipped = total - done - unknown;
@@ -578,6 +595,7 @@ async function describeStatus(proposal: Proposal, context: ToolContext): Promise
   return {
     text: [head, `${parts.join('; ')}.`, ...itemLines()].join('\n'),
     reasonCode,
+    status,
   };
 }
 
@@ -604,6 +622,10 @@ const getRequestStatus = defineTool(
       return notFound({ outOfScope: true, traceReasonCode: 'NOT_PERMITTED' });
     }
     const described = await describeStatus(proposal, context);
+    const commandStatuses =
+      described.status === 'confirmed'
+        ? context.commands.listByProposal(proposal.proposalId).map((command) => command.status)
+        : [];
     return {
       status: 200,
       text: described.text,
@@ -613,9 +635,22 @@ const getRequestStatus = defineTool(
       proposalId: proposal.proposalId,
       ruleId: readRuleId(proposal.recordType, context.actor.role),
       policyVersion: proposal.policyVersion,
+      gatewayStatus: gatewayStatusOf(described.status, commandStatuses),
     };
   },
 );
 
+/**
+ * The gateway's name for the same question, for a host that asks
+ * `action_status`. It is the same object with a second name, so the two names
+ * can never answer differently.
+ */
+const actionStatus: RegisteredTool = { ...getRequestStatus, name: 'action_status' };
+
 /** The tools of the write path. None writes: the page does, after a person presses Gửi. */
-export const PROPOSE_TOOLS: readonly RegisteredTool[] = [proposeTaskChange, getRequestStatus, ...EMPLOYEE_PROPOSE_TOOLS];
+export const PROPOSE_TOOLS: readonly RegisteredTool[] = [
+  proposeTaskChange,
+  getRequestStatus,
+  ...EMPLOYEE_PROPOSE_TOOLS,
+  actionStatus,
+];
