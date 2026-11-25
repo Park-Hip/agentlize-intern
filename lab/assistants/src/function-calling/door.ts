@@ -41,7 +41,7 @@ function parseAnswer(raw: string, status: number): ToolAnswer {
 
 /**
  * Assistant B's door: the usual way to connect an assistant when there is no
- * shared protocol. It declares the six tools itself (`tools.ts`) and calls
+ * shared protocol. It declares the seven tools itself (`tools.ts`) and calls
  * `POST /v1/tools/<name>` with the typist's own key and the turn code, exactly
  * as a hand-written integration would (issue #109). The key already names the
  * typist, so `employeeId` is not sent as a second, conflicting claim.

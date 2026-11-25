@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import type { ActionSpec } from '../adapters/types.js';
 import type { GatewayDatabase } from '../database.js';
 import type { Caller } from '../identity/index.js';
-import { compareRecordIds, fingerprintOf, type Changes } from './fingerprint.js';
+import { compareRecordIds, fingerprintOf, NEW_RECORD_ID, type Changes, type ItemKind } from './fingerprint.js';
 
 /** A proposal lives this long before its requester has pressed Gửi. After it the page and the status tool say it has expired. */
 export const PROPOSAL_TTL_MS = 30 * 60 * 1000;
@@ -43,8 +43,10 @@ export interface ProposalItem {
   readonly system: string;
   readonly recordType: string;
   readonly recordId: string;
-  /** The record version read when the proposal was drafted. */
+  /** The record version read when the proposal was drafted; 0 for a create. */
   readonly baseVersion: number;
+  /** `create` asks the target to make a new record; absent means `update`. */
+  readonly kind: ItemKind;
   readonly previous: Changes;
   readonly changes: Changes;
 }
@@ -91,8 +93,12 @@ export interface Proposal {
 export interface NewProposalItem {
   readonly system: string;
   readonly recordType: string;
+  /** Ignored for a create; the store gives it a placeholder. */
   readonly recordId: string;
+  /** 0 for a create. */
   readonly baseVersion: number;
+  /** Absent means `update`, so a caller from before create needs no edit. */
+  readonly kind?: ItemKind;
   readonly previous: Changes;
   readonly changes: Changes;
 }
@@ -188,6 +194,7 @@ interface ItemRow {
   record_type: string;
   record_id: string;
   base_version: number;
+  kind: ItemKind;
   previous: string;
   changes: string;
 }
@@ -224,6 +231,7 @@ function toItem(row: ItemRow): ProposalItem {
     recordType: row.record_type,
     recordId: row.record_id,
     baseVersion: row.base_version,
+    kind: row.kind,
     previous: parseChanges(row.previous),
     changes: parseChanges(row.changes),
   };
@@ -349,6 +357,7 @@ export class ProposalStore {
         record_type TEXT NOT NULL,
         record_id   TEXT NOT NULL,
         base_version INTEGER NOT NULL,
+        kind        TEXT NOT NULL DEFAULT 'update',
         previous    TEXT NOT NULL,
         changes     TEXT NOT NULL,
         PRIMARY KEY (proposal_id, position),
@@ -365,6 +374,12 @@ export class ProposalStore {
       );
       CREATE INDEX IF NOT EXISTS confirmations_proposal ON confirmations (proposal_id);
     `);
+    // A database from before the create contract keeps its rows; the new column
+    // defaults to `update`, so every earlier item reads exactly as it did.
+    const itemColumns = db.prepare("PRAGMA table_info('proposal_items')").all() as { name: string }[];
+    if (!itemColumns.some((column) => column.name === 'kind')) {
+      db.exec("ALTER TABLE proposal_items ADD COLUMN kind TEXT NOT NULL DEFAULT 'update'");
+    }
   }
 
   /**
@@ -379,15 +394,21 @@ export class ProposalStore {
   create(input: NewProposal, pendingLimit: number): Proposal {
     const createdAt = this.now();
     const orderedItems = [...input.items].sort((left, right) => compareRecordIds(left.recordId, right.recordId));
-    const items: ProposalItem[] = orderedItems.map((item, index) => ({
-      position: index + 1,
-      system: item.system,
-      recordType: item.recordType,
-      recordId: item.recordId,
-      baseVersion: item.baseVersion,
-      previous: item.previous,
-      changes: item.changes,
-    }));
+    const items: ProposalItem[] = orderedItems.map((item, index) => {
+      const kind = item.kind ?? 'update';
+      return {
+        position: index + 1,
+        system: item.system,
+        recordType: item.recordType,
+        // A create has no code yet. The placeholder is unique per item and
+        // keeps the row key and the fingerprint stable until the target answers.
+        recordId: kind === 'create' ? `${NEW_RECORD_ID}:${index + 1}` : item.recordId,
+        baseVersion: kind === 'create' ? 0 : item.baseVersion,
+        kind,
+        previous: item.previous,
+        changes: item.changes,
+      };
+    });
 
     const row: Row = {
       proposal_id: `dx-${randomBytes(8).toString('hex')}`,
@@ -422,8 +443,8 @@ export class ProposalStore {
           )
           .run(row);
         const insertItem = this.db.prepare(
-          `INSERT INTO proposal_items (proposal_id, position, system, record_type, record_id, base_version, previous, changes)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO proposal_items (proposal_id, position, system, record_type, record_id, base_version, kind, previous, changes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         );
         for (const item of items) {
           insertItem.run(
@@ -433,6 +454,7 @@ export class ProposalStore {
             item.recordType,
             item.recordId,
             item.baseVersion,
+            item.kind,
             JSON.stringify(item.previous),
             JSON.stringify(item.changes),
           );

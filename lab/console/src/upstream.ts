@@ -10,8 +10,8 @@ export const UPSTREAM_TIMEOUT_MS = 2_000;
 /** A tool call may read a proposal, a task and the directory, so it gets longer than a status read. */
 export const TOOL_CALL_TIMEOUT_MS = 15_000;
 
-/** The three services the overview reports on and the tool screen reads. */
-export type LabService = 'gateway' | 'directory' | 'tasks';
+/** The four services the overview reports on and the tool screen reads. */
+export type LabService = 'gateway' | 'directory' | 'tasks' | 'leave';
 
 export interface ServiceEndpoint {
   readonly name: LabService;
@@ -33,6 +33,7 @@ export function serviceEndpoints(env: NodeJS.ProcessEnv): ServiceEndpoints {
     gateway: endpoint('gateway', 'Cổng', env),
     directory: endpoint('directory', 'Danh bạ giả', env),
     tasks: endpoint('tasks', 'Task giả', env),
+    leave: endpoint('leave', 'Đơn nghỉ phép giả', env),
   };
 }
 
@@ -197,6 +198,79 @@ export async function fetchTasks(
       version: task.version,
     })),
   };
+}
+
+const leaveSchema = z
+  .object({
+    code: z.string(),
+    employee: z.string(),
+    department: z.string(),
+    leave_type: z.string(),
+    from_date: z.string(),
+    to_date: z.string(),
+    reason: z.string(),
+    note: z.string(),
+    status: z.string(),
+    request_key: z.string().optional(),
+    created_at: z.string(),
+    decided_at: z.string(),
+  })
+  .catchall(z.unknown());
+
+const leavesSchema = z.object({ requests: z.array(leaveSchema) }).catchall(z.unknown());
+
+export interface LeaveRequestRecord {
+  readonly code: string;
+  readonly employee: string;
+  readonly department: string;
+  readonly leaveType: string;
+  readonly fromDate: string;
+  readonly toDate: string;
+  readonly reason: string;
+  readonly note: string;
+  readonly status: string;
+  /** The key that created the row, kept by the source system as its create marker. */
+  readonly requestKey: string | undefined;
+  readonly createdAt: string;
+  readonly decidedAt: string;
+}
+
+export type LeavesResult =
+  | { readonly ok: true; readonly requests: readonly LeaveRequestRecord[] }
+  | { readonly ok: false; readonly detail: string };
+
+/**
+ * Every leave request the fake system holds. The source system filters by
+ * employee and leave date, not by department, so the console applies its
+ * department filter to the answer instead of asking for one.
+ */
+export async function fetchLeaveRequests(
+  endpoint: ServiceEndpoint,
+  serviceKey: string,
+  department?: string,
+): Promise<LeavesResult> {
+  const result = await get(`${endpoint.url}/leave-requests`, { authorization: `Bearer ${serviceKey}` });
+  if (!result.ok) return result;
+
+  const parsed = leavesSchema.safeParse(result.body);
+  if (!parsed.success) return { ok: false, detail: 'Danh sách đơn nghỉ phép không đúng định dạng' };
+  const requests = parsed.data.requests
+    .map((request) => ({
+      code: request.code,
+      employee: request.employee,
+      department: request.department,
+      leaveType: request.leave_type,
+      fromDate: request.from_date,
+      toDate: request.to_date,
+      reason: request.reason,
+      note: request.note,
+      status: request.status,
+      requestKey: request.request_key,
+      createdAt: request.created_at,
+      decidedAt: request.decided_at,
+    }))
+    .filter((request) => department === undefined || request.department === department);
+  return { ok: true, requests };
 }
 
 export type ActionOutcome = { readonly ok: true } | { readonly ok: false; readonly detail: string };

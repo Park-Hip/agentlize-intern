@@ -1,11 +1,30 @@
 import { adapterOf, recordValue, SystemUnavailableError, type ResourceAdapter } from '../adapters/index.js';
-import type { ProposalItem } from './proposal-store.js';
+import type { Proposal, ProposalItem } from './proposal-store.js';
 
 /** One line of a proposal card: what the field held when the proposal was drafted and what it would become. */
 export interface CardRow {
   readonly label: string;
   readonly before: string;
   readonly after: string;
+  /** True for a create: there is nothing before, and a page says so in words. */
+  readonly create?: boolean;
+}
+
+/**
+ * The code a page shows for an item. A create has no code until the target
+ * answers, so it is called "mới" and the write result carries the real code.
+ */
+export function itemLabel(item: ProposalItem): string {
+  return item.kind === 'create' ? 'mới' : item.recordId;
+}
+
+/**
+ * The record a trace line can name before the write: a create has no code yet,
+ * so it names none, and the write line later carries the code the target gave.
+ */
+export function traceObjectId(proposal: Proposal | undefined): string | null {
+  const item = proposal?.items[0];
+  return item === undefined || item.kind === 'create' ? null : item.recordId;
 }
 
 /** `NV-04 Vũ Quốc Minh`, the name read from the directory now; just the code when the directory does not answer. */
@@ -40,11 +59,14 @@ export async function itemRows(item: ProposalItem, adapters: readonly ResourceAd
   for (const field of order) {
     const after = item.changes[field];
     if (after === undefined) continue;
+    const spec = adapter.fields.find((candidate) => candidate.name === field);
     const before = item.previous[field] ?? '';
+    const personField = field === 'assignee' || field === 'employee';
     rows.push({
       label: labelOf(adapter, field),
-      before: field === 'assignee' && before !== '' ? await personLabel(adapters, before) : before,
-      after: field === 'assignee' ? await personLabel(adapters, after) : after,
+      before: personField && before !== '' ? await personLabel(adapters, before) : (spec?.values?.[before] ?? before),
+      after: personField ? await personLabel(adapters, after) : (spec?.values?.[after] ?? after),
+      ...(item.kind === 'create' ? { create: true } : {}),
     });
   }
   return rows;

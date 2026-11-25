@@ -82,7 +82,7 @@ test('shared: tool response carries the gateway status and the two free-text fla
 });
 
 test('shared: ports have defaults and can be overridden', () => {
-  assert.deepEqual(DEFAULT_PORTS, { gateway: 8790, directory: 8791, tasks: 8792, console: 8793 });
+  assert.deepEqual(DEFAULT_PORTS, { gateway: 8790, directory: 8791, tasks: 8792, leave: 8794, console: 8793 });
   assert.equal(resolvePort('gateway', {}), 8790);
   assert.equal(resolvePort('directory', {}), 8791);
   assert.equal(resolvePort('console', {}), 8793);

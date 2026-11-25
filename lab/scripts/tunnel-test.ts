@@ -70,10 +70,10 @@ async function startFakeCloudflared(dataDir: string): Promise<ChildProcess> {
 }
 
 async function tunnelEnv(dataDir: string, configuredPublicBaseUrl?: string): Promise<NodeJS.ProcessEnv> {
-  const ports = await freePorts(3);
-  const [gatewayPort, directoryPort, tasksPort] = ports;
-  if (gatewayPort === undefined || directoryPort === undefined || tasksPort === undefined) {
-    throw new Error('the test could not reserve three ports');
+  const ports = await freePorts(4);
+  const [gatewayPort, directoryPort, tasksPort, leavePort] = ports;
+  if (gatewayPort === undefined || directoryPort === undefined || tasksPort === undefined || leavePort === undefined) {
+    throw new Error('the test could not reserve four ports');
   }
 
   const env: NodeJS.ProcessEnv = {
@@ -83,6 +83,7 @@ async function tunnelEnv(dataDir: string, configuredPublicBaseUrl?: string): Pro
     [PORT_ENV.gateway]: String(gatewayPort),
     [PORT_ENV.directory]: String(directoryPort),
     [PORT_ENV.tasks]: String(tasksPort),
+    [PORT_ENV.leave]: String(leavePort),
   };
   // A value inherited from the developer's shell would hide the tunnel address.
   delete env[PUBLIC_BASE_URL_ENV];

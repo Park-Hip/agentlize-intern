@@ -98,9 +98,9 @@ npm run sr
 npm start
 ```
 
-`npm run lint` type-checks the workspace; `npm test` builds, then runs every `*-test.js` file, including a smoke test of the four services.
+`npm run lint` type-checks the workspace; `npm test` builds, then runs every `*-test.js` file, including a smoke test of the five services.
 `npm run sr` runs the same tests once and prints one row per requirement SR1-SR8 from `lab/scripts/sr-map.json`; it exits 1 when a requirement has no test or a failing test.
-`npm start` opens the gateway on 127.0.0.1:8790, the fake directory on 8791, the fake task list on 8792 and the console on 8793.
+`npm start` opens the gateway on 127.0.0.1:8790, the fake directory on 8791, the fake task list on 8792, the fake leave system on 8794 and the console on 8793.
 Run one package's tests with `npm test -w <folder>` (for example `npm test -w console`), or a subset with `npm test -w gateway -- --test-name-pattern policy`.
 Runtime data lives in `lab/.data` (git-ignored); the gateway reads its live rules from `rules.json` there, so `lab/gateway/policy/rules.json` is only the base copy.
 

@@ -271,7 +271,7 @@ export function itemsTable(items: readonly CardItemView[], showResults: boolean)
         const itemRows = item.rows.length === 0 ? [{ label: '-', before: '', after: '' }] : item.rows;
         return itemRows.map(
           (row) =>
-            `<tr><td class="code" data-label="Mục">${esc(item.recordId)}</td><th scope="row">${esc(row.label)}</th><td class="v" data-label="Hiện tại">${esc(row.before === '' ? '(trống)' : row.before)}</td><td class="v" data-label="Đề xuất">${esc(row.after)}</td></tr>`,
+            `<tr><td class="code" data-label="Mục">${esc(item.recordId)}</td><th scope="row">${esc(row.label)}</th><td class="v" data-label="Hiện tại">${esc(row.create === true ? '(mới)' : row.before === '' ? '(trống)' : row.before)}</td><td class="v" data-label="Đề xuất">${esc(row.after)}</td></tr>`,
         );
       })
       .join('\n');
@@ -294,7 +294,7 @@ ${rows}
           showRetry && index === 0
             ? `<td class="v" rowspan="${itemRows.length}" data-label="Lần gửi lại kế tiếp">${esc(retryOf(item))}</td>`
             : '';
-        return `<tr><td class="code" data-label="Mục">${esc(item.recordId)}</td><th scope="row">${esc(row.label)}</th><td class="v" data-label="Hiện tại">${esc(row.before === '' ? '(trống)' : row.before)}</td><td class="v" data-label="Đề xuất">${esc(row.after)}</td><td class="v" data-label="Kết quả">${esc(resultOf(item))}</td>${retry}</tr>`;
+        return `<tr><td class="code" data-label="Mục">${esc(item.recordId)}</td><th scope="row">${esc(row.label)}</th><td class="v" data-label="Hiện tại">${esc(row.create === true ? '(mới)' : row.before === '' ? '(trống)' : row.before)}</td><td class="v" data-label="Đề xuất">${esc(row.after)}</td><td class="v" data-label="Kết quả">${esc(resultOf(item))}</td>${retry}</tr>`;
       });
     })
     .join('\n');
@@ -435,6 +435,8 @@ ${body}
 export interface ApprovalPageView {
   readonly proposalId: string;
   readonly requesterLabel: string;
+  /** One line that says what the proposal does, in the inbox's words. */
+  readonly summary: string;
   readonly reason: string;
   readonly expiresAtLabel: string | null;
   readonly waitLabel: string;
@@ -507,6 +509,7 @@ export function approvalPage(view: ApprovalPageView): string {
     title,
     `<h1>${esc(title)}</h1>
 <p class="sub">Người yêu cầu: ${esc(view.requesterLabel)}</p>
+<p class="sub">${esc(view.summary)}</p>
 <div class="banner" role="status">Lý do cần duyệt: ${esc(view.reason)}</div>
 ${state}
 <div class="panel">

@@ -90,6 +90,7 @@ export interface MeasureContext {
     readonly gateway: string;
     readonly directory: string;
     readonly tasks: string;
+    readonly leave: string;
   };
   readonly dataDir: string;
   /** The random key the gateway uses for the fake systems. Never write it to a result. */

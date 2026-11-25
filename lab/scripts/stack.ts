@@ -23,10 +23,11 @@ const PACKAGE_DIR: Readonly<Record<ServiceName, string>> = {
   gateway: 'gateway',
   directory: 'fake-directory',
   tasks: 'fake-tasks',
+  leave: 'fake-leave',
   console: 'console',
 };
 
-const START_ORDER = ['directory', 'tasks'] as const;
+const START_ORDER = ['directory', 'tasks', 'leave'] as const;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
@@ -152,10 +153,10 @@ async function waitForHealth(
 
 /**
  * Start the lab services on loopback and wait until each answers `/health`.
- * The gateway, the fake directory, the fake task list and, unless the caller
- * opts out, the operator console start here. The caller owns the returned stack
- * and must call `stop()`. The service key is generated here when the
- * environment has none and is never printed.
+ * The gateway, the fake directory, the fake task list, the fake leave system
+ * and, unless the caller opts out, the operator console start here. The caller
+ * owns the returned stack and must call `stop()`. The service key is generated
+ * here when the environment has none and is never printed.
  */
 export async function startStack(options: StartStackOptions = {}): Promise<LabStack> {
   const env = options.env ?? process.env;
@@ -165,12 +166,13 @@ export async function startStack(options: StartStackOptions = {}): Promise<LabSt
   const includeConsole = options.includeConsole ?? true;
   const startedServices: readonly ServiceName[] = includeConsole
     ? SERVICES
-    : ['gateway', 'directory', 'tasks'];
+    : ['gateway', 'directory', 'tasks', 'leave'];
 
   const ports: Record<ServiceName, number> = {
     gateway: resolvePort('gateway', env),
     directory: resolvePort('directory', env),
     tasks: resolvePort('tasks', env),
+    leave: resolvePort('leave', env),
     console: resolvePort('console', env),
   };
 

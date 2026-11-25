@@ -5,12 +5,16 @@ import { DATA_DIR_ENV, EMPLOYEE_ID_PATTERN, SERVICE_KEY_ENV, type ToolResponse }
 import {
   changeableFields,
   EMPLOYEE_DECLARATION,
+  LEAVE_DECLARATION,
+  LEAVE_ID_PATTERN,
   SystemUnavailableError,
   TASK_DECLARATION,
   TASK_ID_PATTERN,
+  type AdapterCreate,
   type AdapterWrite,
   type ApplyResult,
   type EmployeeRecord,
+  type LeaveRecord,
   type RecordDeclaration,
   type ResourceAdapter,
   type TaskRecord,
@@ -136,14 +140,17 @@ export interface StubSystemOptions {
 export class StubSystems {
   employees: EmployeeRecord[] = seedEmployees();
   tasks: TaskRecord[] = seedTasks();
+  leaves: LeaveRecord[] = [];
   /** When set, every call throws as if the system did not answer. */
-  down: 'directory' | 'tasks' | undefined;
+  down: 'directory' | 'tasks' | 'leave' | undefined;
   readonly employeeSearches: EmployeeSearch[] = [];
   readonly taskSearches: TaskSearch[] = [];
   directoryReads = 0;
 
   /** Every PATCH the executor sent, so a test can count sends and compare their keys. */
   readonly patchCalls: TaskPatch[] = [];
+  /** Every create the executor sent, so a create test can compare the fixed key and the fields. */
+  readonly createCalls: AdapterCreate[] = [];
   /** Committed writes per task, replays excluded, like the fake task list's `/admin/write-count`. */
   readonly writes = new Map<string, number>();
   /** The next N PATCHes commit and then answer as if the connection died. */
@@ -151,6 +158,8 @@ export class StubSystems {
   /** The next N PATCHes answer as if the network died before anything was written. */
   failBeforeCommit = 0;
   private readonly saved = new Map<string, { fingerprint: string; task: TaskRecord }>();
+  private readonly savedLeaves = new Map<string, LeaveRecord>();
+  private nextLeave = 1;
 
   /** The adapters the gateway reads: the same data, reached the way a real system is. */
   readonly adapters: readonly ResourceAdapter[];
@@ -177,7 +186,65 @@ export class StubSystems {
         list: (filter) => this.findEmployees({ name: filter['name'], department: filter['department'] }),
         apply: (write) => this.applyEmployee(write),
       },
+      {
+        ...LEAVE_DECLARATION,
+        idPattern: LEAVE_ID_PATTERN,
+        get: (id) => this.getLeave(id),
+        list: (filter) =>
+          this.listLeaves({
+            employee: filter['employee'],
+            date: filter['date'],
+            status: filter['status'],
+          }),
+        apply: () => Promise.resolve({ kind: 'rejected', status: 405, error: 'updates_not_supported' }),
+        create: (write) => this.createLeave(write),
+      },
     ];
+  }
+
+  getLeave(code: string): Promise<LeaveRecord | undefined> {
+    this.failIfDown('leave');
+    return Promise.resolve(this.leaves.find((candidate) => candidate.code === code));
+  }
+
+  listLeaves(search: { employee?: string | undefined; date?: string | undefined; status?: string | undefined }): Promise<LeaveRecord[]> {
+    this.failIfDown('leave');
+    return Promise.resolve(
+      this.leaves.filter(
+        (candidate) =>
+          (search.employee === undefined || candidate.employee === search.employee) &&
+          (search.date === undefined || (candidate.from_date <= search.date && candidate.to_date >= search.date)) &&
+          (search.status === undefined || candidate.status === search.status),
+      ),
+    );
+  }
+
+  async createLeave(write: AdapterCreate): Promise<ApplyResult> {
+    this.failIfDown('leave');
+    this.createCalls.push(write);
+    const seen = this.savedLeaves.get(write.idempotencyKey);
+    if (seen !== undefined) return { kind: 'created', record: seen, recordId: seen.code, replayed: true };
+
+    const employee = String(write.changes['employee'] ?? '');
+    const department = this.employees.find((candidate) => candidate['employee_id'] === employee)?.['department'] ?? 'Vận hành';
+    const record: LeaveRecord = {
+      code: `NP-${this.nextLeave}`,
+      employee,
+      department: String(department),
+      leave_type: String(write.changes['leave_type'] ?? 'annual'),
+      from_date: String(write.changes['from_date'] ?? ''),
+      to_date: String(write.changes['to_date'] ?? ''),
+      reason: String(write.changes['reason'] ?? ''),
+      note: String(write.changes['note'] ?? ''),
+      status: 'pending',
+      request_key: write.idempotencyKey,
+      created_at: '2026-11-17T09:00:00.000Z',
+      decided_at: '',
+    };
+    this.nextLeave += 1;
+    this.leaves.push(record);
+    this.savedLeaves.set(write.idempotencyKey, record);
+    return { kind: 'created', record, recordId: record.code, replayed: false };
   }
 
   getEmployee(employeeId: string): Promise<EmployeeRecord | undefined> {
@@ -302,7 +369,7 @@ export class StubSystems {
     return Promise.resolve({ kind: 'written', record: next, version: version + 1, replayed: false });
   }
 
-  private failIfDown(system: 'directory' | 'tasks'): void {
+  private failIfDown(system: 'directory' | 'tasks' | 'leave'): void {
     if (this.down === system) throw new SystemUnavailableError(system, 'stopped for the test');
   }
 }

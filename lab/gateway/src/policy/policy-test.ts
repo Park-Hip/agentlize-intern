@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { EMPLOYEE_ACTIONS, TASK_ACTIONS } from '../adapters/index.js';
+import { EMPLOYEE_ACTIONS, LEAVE_ACTIONS, TASK_ACTIONS } from '../adapters/index.js';
 import { createPolicyEngine, DEFAULT_RULES_PATH, RESOURCE_ACTIONS, RULE_IDS } from './index.js';
 import type { PolicyEffect, PolicyEngine, PersonRef } from './index.js';
 
@@ -16,6 +16,7 @@ import type { PolicyEffect, PolicyEngine, PersonRef } from './index.js';
 type Role = 'intern' | 'staff' | 'lead' | 'hr';
 type TaskAction = 'edit_task_description' | 'change_task_status' | 'change_task_assignee_or_due';
 type EmployeeAction = 'edit_work_email';
+type LeaveAction = 'create_leave_request';
 
 const ROLES: readonly Role[] = ['intern', 'staff', 'lead', 'hr'];
 
@@ -55,6 +56,15 @@ const EMPLOYEE_MATRIX: Readonly<Record<EmployeeAction, Readonly<Record<Role, Cel
     staff: { effect: 'deny', bulk: 'deny', scope: 'any' },
     lead: { effect: 'deny', bulk: 'deny', scope: 'any' },
     hr: { effect: 'allow', bulk: 'allow', scope: 'any' },
+  },
+};
+
+const LEAVE_MATRIX: Readonly<Record<LeaveAction, Readonly<Record<Role, CellExpectation>>>> = {
+  create_leave_request: {
+    intern: { effect: 'needs_approval', bulk: 'needs_approval', scope: 'own_department' },
+    staff: { effect: 'needs_approval', bulk: 'needs_approval', scope: 'own_department' },
+    lead: { effect: 'allow', bulk: 'allow', scope: 'own_department' },
+    hr: { effect: 'allow', bulk: 'allow', scope: 'own_department' },
   },
 };
 
@@ -233,12 +243,12 @@ for (const role of ROLES) {
   });
 }
 
-test('policy file: every cell of both record types is declared and matches the table', () => {
+test('policy file: every cell of every record type is declared and matches the table', () => {
   const rules = shippedRules();
   const resources = rules.resources ?? {};
-  assert.deepEqual(Object.keys(resources).sort(), ['employee', 'task']);
+  assert.deepEqual(Object.keys(resources).sort(), ['employee', 'leave', 'task']);
 
-  for (const [type, matrix] of Object.entries({ task: TASK_MATRIX, employee: EMPLOYEE_MATRIX })) {
+  for (const [type, matrix] of Object.entries({ task: TASK_MATRIX, leave: LEAVE_MATRIX, employee: EMPLOYEE_MATRIX })) {
     const actions = resources[type]?.actions ?? {};
     assert.deepEqual(Object.keys(actions).sort(), Object.keys(matrix).sort(), type);
     for (const [action, expectations] of Object.entries(matrix)) {
@@ -273,6 +283,7 @@ test('policy file: the file declares read scope and fields for every role of eve
 
 test('policy vocabulary: the schema actions are the actions the adapters declare', () => {
   assert.deepEqual(TASK_ACTIONS.map((action) => action.name), [...(RESOURCE_ACTIONS['task'] ?? [])]);
+  assert.deepEqual(LEAVE_ACTIONS.map((action) => action.name), [...(RESOURCE_ACTIONS['leave'] ?? [])]);
   assert.deepEqual(EMPLOYEE_ACTIONS.map((action) => action.name), [...(RESOURCE_ACTIONS['employee'] ?? [])]);
 });
 

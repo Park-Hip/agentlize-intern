@@ -42,7 +42,7 @@ Trợ lý A viết `src/mcp/door.ts` (#108), trợ lý B viết `src/function-ca
 Mỗi tệp xuất `createDoor(context)` với `context` gồm `baseUrl`, `employeeId` và `toolKey`.
 Lệnh `npm run assistant` tự nạp đúng tệp theo `--door`; thiếu tệp thì lệnh báo issue đang dựng cửa đó.
 Cửa MCP lấy danh mục từ `tools/list` của cổng.
-Cửa gọi hàm chép tay sáu công cụ từ `GET /v1/tools`; `catalog-parity-test.ts` dựng cổng thật và so từng chữ, từng schema, nên hai trợ lý luôn đọc cùng một mô tả công cụ.
+Cửa gọi hàm chép tay bảy công cụ từ `GET /v1/tools`; `catalog-parity-test.ts` dựng cổng thật và so từng chữ, từng schema, nên hai trợ lý luôn đọc cùng một mô tả công cụ.
 
 ## 4. Mô hình
 

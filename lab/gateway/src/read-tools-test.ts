@@ -43,9 +43,10 @@ test('read: the catalog lists the old six tools plus action_status, in Vietnames
       'propose_task_change',
       'get_request_status',
       'propose_employee_change',
+      'propose_leave_request',
       'action_status',
     ]);
-    // The two propose tools draft a change; get_request_status, and its second name action_status, read a proposal.
+    // The propose tools draft a change; get_request_status, and its second name action_status, read a proposal.
     assert.deepEqual(
       Object.fromEntries(body.tools.map((tool) => [tool.name, tool.kind])),
       {
@@ -55,6 +56,7 @@ test('read: the catalog lists the old six tools plus action_status, in Vietnames
         propose_task_change: 'propose',
         get_request_status: 'read',
         propose_employee_change: 'propose',
+        propose_leave_request: 'propose',
         action_status: 'read',
       },
     );

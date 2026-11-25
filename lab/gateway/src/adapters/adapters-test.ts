@@ -26,16 +26,22 @@ test('adapters: one adapter per record type, each with fields, an owner field an
   const adapters = createHttpAdapters({
     directoryUrl: 'http://127.0.0.1:1',
     tasksUrl: 'http://127.0.0.1:2',
+    leaveUrl: 'http://127.0.0.1:3',
     serviceKey: 'test-service-key',
   });
 
-  assert.deepEqual(adapters.map((adapter) => adapter.type), ['task', 'employee']);
+  assert.deepEqual(adapters.map((adapter) => adapter.type), ['task', 'leave', 'employee']);
   for (const adapter of adapters) assertAdapter(adapter);
 
   const task = adapterOf(adapters, 'task');
   assert.equal(task.label, 'Task');
   assert.equal(task.ownerField, 'department');
   assert.equal(actionOfField(task.actions, 'assignee'), 'change_task_assignee_or_due');
+  const leave = adapterOf(adapters, 'leave');
+  assert.equal(leave.label, 'Đơn nghỉ phép');
+  assert.equal(leave.ownerField, 'department');
+  assert.equal(leave.create !== undefined, true);
+  assert.equal(actionOfField(leave.actions, 'leave_type'), 'create_leave_request');
   const employee = adapterOf(adapters, 'employee');
   assert.equal(employee.label, 'Nhân viên');
   assert.equal(actionOfField(employee.actions, 'work_email'), 'edit_work_email');

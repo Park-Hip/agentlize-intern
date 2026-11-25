@@ -10,6 +10,8 @@ export interface FieldSpec {
   readonly name: string;
   readonly label: string;
   readonly key?: string;
+  /** How a page writes a stored value, for example `annual` -> `Phép năm`. */
+  readonly values?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -40,6 +42,14 @@ export interface RecordDeclaration {
   readonly fields: readonly FieldSpec[];
   /** The field holding the department that owns the record. */
   readonly ownerField: string;
+  /**
+   * The field holding the state a sentence may report after a create, for
+   * example `status` on a leave request. Absent when the record has no state
+   * worth naming.
+   */
+  readonly statusField?: string;
+  /** The words a sentence uses for each value of `statusField`. */
+  readonly statusLabels?: Readonly<Record<string, string>>;
   readonly actions: readonly ActionSpec[];
 }
 
@@ -58,12 +68,24 @@ export interface AdapterWrite {
 }
 
 /**
+ * One new record as an adapter takes it. A create has no record code and no
+ * version: the fixed key replaces the version for that operation, and the
+ * target keeps the key on the row so the same request can be found again
+ * (write-safety-options section 13 point 5).
+ */
+export interface AdapterCreate {
+  readonly idempotencyKey: string;
+  readonly changes: AdapterChanges;
+}
+
+/**
  * What the target system said about one write. `unavailable` means the answer
  * never arrived, so the write may or may not have happened; only a resend with
  * the same key can settle it.
  */
 export type ApplyResult =
   | { readonly kind: 'written'; readonly record: RecordData; readonly version: number; readonly replayed: boolean }
+  | { readonly kind: 'created'; readonly record: RecordData; readonly recordId: string; readonly replayed: boolean }
   | { readonly kind: 'conflict'; readonly currentVersion: number | null }
   | { readonly kind: 'not_found' }
   | { readonly kind: 'rejected'; readonly status: number; readonly error: string }
@@ -79,6 +101,8 @@ export interface ResourceAdapter extends RecordDeclaration {
   get(id: string): Promise<RecordData | undefined>;
   list(filter: Filter): Promise<RecordData[]>;
   apply(write: AdapterWrite): Promise<ApplyResult>;
+  /** Present only on a record type the source system lets a person create. */
+  create?(write: AdapterCreate): Promise<ApplyResult>;
 }
 
 /** The value of a named field as the adapter stores it. */

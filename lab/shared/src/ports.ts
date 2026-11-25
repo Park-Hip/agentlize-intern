@@ -1,5 +1,5 @@
-/** The four processes the lab runs. The MCP adapter is a client, not a service. */
-export const SERVICES = ['gateway', 'directory', 'tasks', 'console'] as const;
+/** The five processes the lab runs. The MCP adapter is a client, not a service. */
+export const SERVICES = ['gateway', 'directory', 'tasks', 'leave', 'console'] as const;
 
 export type ServiceName = (typeof SERVICES)[number];
 
@@ -8,6 +8,7 @@ export const DEFAULT_PORTS: Readonly<Record<ServiceName, number>> = {
   gateway: 8790,
   directory: 8791,
   tasks: 8792,
+  leave: 8794,
   console: 8793,
 };
 
@@ -15,6 +16,7 @@ export const PORT_ENV: Readonly<Record<ServiceName, string>> = {
   gateway: 'LAB_GATEWAY_PORT',
   directory: 'LAB_DIRECTORY_PORT',
   tasks: 'LAB_TASKS_PORT',
+  leave: 'LAB_LEAVE_PORT',
   console: 'LAB_CONSOLE_PORT',
 };
 

@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import type { ReasonCode } from '@lab/shared';
 import type { GatewayDatabase } from '../database.js';
 import type { Proposal, ProposalItem } from '../proposals/index.js';
+import type { ItemKind } from '../proposals/index.js';
 
 /** The four states one write command can be in (spec section 5.3). */
 export const COMMAND_STATUSES = ['not_sent', 'sent_unknown', 'done', 'failed'] as const;
@@ -16,9 +17,11 @@ export interface WriteCommand {
   readonly proposalId: string;
   readonly recordId: string;
   readonly position: number;
+  /** `create` sends a POST; absent or `update` sends a PATCH to `recordId`. */
+  readonly kind: ItemKind;
   /** `<proposal code>:<position>`; every resend of this command uses this same key. */
   readonly idempotencyKey: string;
-  /** The record version read when the proposal was drafted. */
+  /** The record version read when the proposal was drafted; 0 for a create. */
   readonly expectedVersion: number;
   readonly status: CommandStatus;
   /** How many times the gateway has sent the write, replays included. */
@@ -35,6 +38,8 @@ export interface SettledCommand {
   readonly status: 'done' | 'failed';
   readonly result: string;
   readonly reasonCode: ReasonCode | null;
+  /** For a create that landed: the code the target gave the new record. */
+  readonly recordId?: string;
 }
 
 interface Row {
@@ -42,6 +47,7 @@ interface Row {
   proposal_id: string;
   record_id: string;
   position: number;
+  kind: ItemKind;
   idempotency_key: string;
   expected_version: number;
   status: CommandStatus;
@@ -60,6 +66,7 @@ function toCommand(row: Row): WriteCommand {
     proposalId: row.proposal_id,
     recordId: row.record_id,
     position: row.position,
+    kind: row.kind,
     idempotencyKey: row.idempotency_key,
     expectedVersion: row.expected_version,
     status: row.status,
@@ -88,6 +95,7 @@ export class CommandStore {
         proposal_id      TEXT NOT NULL REFERENCES proposals (proposal_id),
         record_id        TEXT NOT NULL,
         position         INTEGER NOT NULL,
+        kind             TEXT NOT NULL DEFAULT 'update',
         idempotency_key  TEXT NOT NULL UNIQUE,
         expected_version INTEGER NOT NULL,
         status           TEXT NOT NULL CHECK (status IN (${quoted(COMMAND_STATUSES)})),
@@ -105,6 +113,11 @@ export class CommandStore {
     const columns = db.prepare("PRAGMA table_info('write_commands')").all() as { name: string }[];
     if (!columns.some((column) => column.name === 'next_attempt_at')) {
       db.exec('ALTER TABLE write_commands ADD COLUMN next_attempt_at TEXT');
+    }
+    // A database from before the create contract defaults every existing row
+    // to `update`, so it keeps sending the same PATCH it sent before.
+    if (!columns.some((column) => column.name === 'kind')) {
+      db.exec("ALTER TABLE write_commands ADD COLUMN kind TEXT NOT NULL DEFAULT 'update'");
     }
   }
 
@@ -126,6 +139,7 @@ export class CommandStore {
       proposal_id: proposalId,
       record_id: item.recordId,
       position: item.position,
+      kind: item.kind,
       idempotency_key: `${proposalId}:${item.position}`,
       expected_version: item.baseVersion,
       status: 'not_sent',
@@ -137,9 +151,9 @@ export class CommandStore {
     };
     this.db
       .prepare(
-        `INSERT INTO write_commands (command_id, proposal_id, record_id, position, idempotency_key,
+        `INSERT INTO write_commands (command_id, proposal_id, record_id, position, kind, idempotency_key,
                                      expected_version, status, attempts, result, reason_code, next_attempt_at, updated_at)
-         VALUES (@command_id, @proposal_id, @record_id, @position, @idempotency_key,
+         VALUES (@command_id, @proposal_id, @record_id, @position, @kind, @idempotency_key,
                  @expected_version, @status, @attempts, @result, @reason_code, @next_attempt_at, @updated_at)`,
       )
       .run(row);
@@ -230,9 +244,19 @@ export class CommandStore {
 
         this.db
           .prepare(
-            'UPDATE write_commands SET status = ?, result = ?, reason_code = ?, next_attempt_at = NULL, updated_at = ? WHERE command_id = ?',
+            `UPDATE write_commands
+                SET status = ?, result = ?, reason_code = ?, next_attempt_at = NULL, updated_at = ?,
+                    record_id = COALESCE(?, record_id)
+              WHERE command_id = ?`,
           )
-          .run(outcome.status, outcome.result, outcome.reasonCode, this.now().toISOString(), commandId);
+          .run(
+            outcome.status,
+            outcome.result,
+            outcome.reasonCode,
+            this.now().toISOString(),
+            outcome.recordId ?? null,
+            commandId,
+          );
         const updated = this.get(commandId);
         if (updated === undefined) throw new Error(`command ${commandId} disappeared`);
         record(updated);
