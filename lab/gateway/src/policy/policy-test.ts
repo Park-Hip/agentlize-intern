@@ -61,8 +61,8 @@ const EMPLOYEE_MATRIX: Readonly<Record<EmployeeAction, Readonly<Record<Role, Cel
 
 const LEAVE_MATRIX: Readonly<Record<LeaveAction, Readonly<Record<Role, CellExpectation>>>> = {
   create_leave_request: {
-    intern: { effect: 'needs_approval', bulk: 'allow', scope: 'own_department' },
-    staff: { effect: 'needs_approval', bulk: 'allow', scope: 'own_department' },
+    intern: { effect: 'needs_approval', bulk: 'needs_approval', scope: 'own_department' },
+    staff: { effect: 'needs_approval', bulk: 'needs_approval', scope: 'own_department' },
     lead: { effect: 'allow', bulk: 'allow', scope: 'own_department' },
     hr: { effect: 'allow', bulk: 'allow', scope: 'own_department' },
   },
