@@ -647,6 +647,7 @@ export function saveFields(
     string,
     {
       bulk_threshold: number;
+      approver?: string;
       read: Record<string, string>;
       fields: Record<string, string[]>;
       actions: Record<string, Record<string, { effect: string; scope?: string; bulk?: string }>>;
@@ -654,6 +655,7 @@ export function saveFields(
   >;
   for (const [type, resource] of Object.entries(resources)) {
     add(`bulk_threshold.${type}`, String(resource.bulk_threshold));
+    add(`approver.${type}`, resource.approver ?? 'requester_lead');
     for (const [role, scope] of Object.entries(resource.read)) add(`read.${type}.${role}`, scope);
     for (const [role, list] of Object.entries(resource.fields)) {
       for (const field of list) add(`fields.${type}.${role}`, field);

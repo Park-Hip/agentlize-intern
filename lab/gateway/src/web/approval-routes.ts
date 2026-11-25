@@ -15,7 +15,11 @@ import { formatMoment, itemLabel, itemRows, personLabel, traceObjectId } from '.
 import {
   effectiveStatus,
   MAX_APPROVAL_REASON,
+  ownerDepartmentsOf,
+  personRefs,
   PROPOSAL_ID_PATTERN,
+  proposalRoster,
+  rosterOf,
   waitText,
   type Proposal,
 } from '../proposals/index.js';
@@ -56,32 +60,39 @@ async function readDirectory(deps: GatewayDeps): Promise<DirectoryView | undefin
   const directory = adapterOf(deps.adapters, 'employee');
   try {
     const people = await directory.list({});
-    const refs: PersonRef[] = [];
-    for (const person of people) {
-      const id = recordValue(person, directory.fields, 'id');
-      const name = recordValue(person, directory.fields, 'name');
-      if (id === undefined || name === undefined) continue;
-      refs.push({
-        id: String(id),
-        name: String(name),
-        role: String(person['role'] ?? ''),
-        department: String(person['department'] ?? ''),
-      });
-    }
-    return { directory, people, refs };
+    return { directory, people, refs: personRefs(people, directory) };
   } catch (error) {
     if (error instanceof SystemUnavailableError) return undefined;
     throw error;
   }
 }
 
-function mayApprove(deps: GatewayDeps, refs: readonly PersonRef[], requesterDepartment: string, employeeId: string): boolean {
-  const decision = deps.policy.approversFor({ department: requesterDepartment }, refs);
+/** Whether this person has an approver role at all, so the inbox may open even when it ends up empty. */
+function mayApproveAny(deps: GatewayDeps, refs: readonly PersonRef[], department: string, employeeId: string): boolean {
+  const decision = deps.policy.approversFor({ department }, refs);
   return decision.reasonCode !== 'POLICY_UNAVAILABLE' && decision.approvers.some((person) => person.id === employeeId);
 }
 
 function policyUnavailable(deps: GatewayDeps, refs: readonly PersonRef[], department: string): boolean {
   return deps.policy.approversFor({ department }, refs).reasonCode === 'POLICY_UNAVAILABLE';
+}
+
+/** The roster of one stored proposal; the one place the approval pages ask who may answer it. */
+async function approvalRosterOf(
+  deps: GatewayDeps,
+  directoryView: DirectoryView,
+  proposal: Proposal,
+  requester: PersonRef,
+  records: readonly (RecordData | undefined)[] = [],
+) {
+  return proposalRoster(
+    deps.adapters,
+    deps.policy,
+    directoryView.refs,
+    proposal,
+    { employeeId: requester.id, department: requester.department },
+    records,
+  );
 }
 
 /** How the summary says one field: its adapter label, lower case first, so a new field needs no edit here. */
@@ -201,7 +212,7 @@ async function handleInbox(deps: GatewayDeps, req: IncomingMessage, res: ServerR
   if (policyUnavailable(deps, directoryView.refs, viewer.department)) {
     return refusalPage(res, 503, 'POLICY_UNAVAILABLE', 'Cổng không đọc được bộ luật quyền nên chặn hộp chờ duyệt. Hãy báo người vận hành Lab.');
   }
-  if (!mayApprove(deps, directoryView.refs, viewer.department, viewer.id)) {
+  if (!mayApproveAny(deps, directoryView.refs, viewer.department, viewer.id)) {
     return refusalPage(
       res,
       403,
@@ -214,7 +225,23 @@ async function handleInbox(deps: GatewayDeps, req: IncomingMessage, res: ServerR
   for (const proposal of deps.proposals.listAwaitingApproval()) {
     if (proposal.requester === viewer.id) continue;
     const requester = directoryView.refs.find((person) => person.id === proposal.requester);
-    if (requester === undefined || !mayApprove(deps, directoryView.refs, requester.department, viewer.id)) continue;
+    if (requester === undefined) continue;
+    let roster: Awaited<ReturnType<typeof approvalRosterOf>>;
+    try {
+      roster = await approvalRosterOf(deps, directoryView, proposal, requester);
+    } catch (error) {
+      if (!(error instanceof SystemUnavailableError)) throw error;
+      return refusalPage(
+        res,
+        502,
+        'GATEWAY_UNAVAILABLE',
+        'Cổng không đọc được bản ghi đích nên chưa biết ai duyệt đề xuất đang chờ. Hãy thử lại sau.',
+      );
+    }
+    if (roster.unavailable) {
+      return refusalPage(res, 503, 'POLICY_UNAVAILABLE', 'Cổng không đọc được bộ luật quyền nên chặn hộp chờ duyệt. Hãy báo người vận hành Lab.');
+    }
+    if (!roster.approvers.some((person) => person.id === viewer.id)) continue;
     items.push({
       proposalId: proposal.proposalId,
       requesterLabel: `${requester.id} ${requester.name}`,
@@ -265,13 +292,30 @@ async function handleApprovalPage(deps: GatewayDeps, req: IncomingMessage, res: 
     return refusalPage(res, 503, 'POLICY_UNAVAILABLE', 'Cổng không đọc được bộ luật quyền nên chặn trang duyệt. Hãy báo người vận hành Lab.');
   }
   const self = proposal.requester === viewer.id;
-  if (!self && !mayApprove(deps, directoryView.refs, requester.department, viewer.id)) {
-    return refusalPage(
-      res,
-      403,
-      'NOT_PERMITTED',
-      'Bạn không thuộc vai được duyệt đề xuất này, nên không mở được trang duyệt.',
-    );
+  if (!self) {
+    let roster: Awaited<ReturnType<typeof approvalRosterOf>>;
+    try {
+      roster = await approvalRosterOf(deps, directoryView, proposal, requester);
+    } catch (error) {
+      if (!(error instanceof SystemUnavailableError)) throw error;
+      return refusalPage(
+        res,
+        502,
+        'GATEWAY_UNAVAILABLE',
+        'Cổng không đọc được bản ghi đích nên chưa kiểm được người duyệt. Hãy thử lại sau, hoặc báo người vận hành Lab.',
+      );
+    }
+    if (roster.unavailable) {
+      return refusalPage(res, 503, 'POLICY_UNAVAILABLE', 'Cổng không đọc được bộ luật quyền nên chặn trang duyệt. Hãy báo người vận hành Lab.');
+    }
+    if (!roster.approvers.some((person) => person.id === viewer.id)) {
+      return refusalPage(
+        res,
+        403,
+        'NOT_PERMITTED',
+        'Bạn không thuộc vai được duyệt đề xuất này, nên không mở được trang duyệt.',
+      );
+    }
   }
   if (!self && proposal.approvalExpiresAt === null) {
     return refusalPage(res, 403, 'NOT_PERMITTED', 'Đề xuất chưa được người yêu cầu bấm Gửi nên chưa vào bước duyệt.');
@@ -407,9 +451,19 @@ async function handleApprovalPress(
 
   // The rule file, the directory and the target records are read again; `allowed`
   // runs inside the store's transaction, so a rule edited mid-press cannot pass.
+  const settings = deps.policy.approversFor({ department: requester.department, kind: proposal.recordType }, []);
+  if (settings.reasonCode === 'POLICY_UNAVAILABLE') {
+    return refused(
+      503,
+      'POLICY_UNAVAILABLE',
+      'WEB.POLICY_UNAVAILABLE',
+      'Cổng không đọc được bộ luật quyền nên không duyệt. Hãy báo người vận hành Lab.',
+    );
+  }
   const recordsAdapter = adapterOf(deps.adapters, proposal.recordType);
   let currentRecords: (RecordData | undefined)[] = [];
-  if (action === 'approve') {
+  // A rejection needs the owner department too when the rule file asks the record owner's lead.
+  if (action === 'approve' || settings.approverMode === 'owner_lead') {
     try {
       currentRecords = await Promise.all(
         proposal.items.map(async (item) => (item.kind === 'create' ? undefined : recordsAdapter.get(item.recordId))),
@@ -424,6 +478,21 @@ async function handleApprovalPress(
       );
     }
   }
+  let ownerDepartments: readonly string[];
+  try {
+    ownerDepartments =
+      settings.approverMode === 'owner_lead'
+        ? await ownerDepartmentsOf(deps.adapters, proposal, requester.department, currentRecords)
+        : [requester.department];
+  } catch (error) {
+    if (!(error instanceof SystemUnavailableError)) throw error;
+    return refused(
+      502,
+      'GATEWAY_UNAVAILABLE',
+      `WEB.SYSTEM.${error.system}`,
+      'Cổng không đọc được bản ghi đích nên chưa biết người duyệt và chưa ghi gì. Hãy thử lại sau.',
+    );
+  }
   const requesterRecord = directoryView.people.find(
     (person) => String(recordValue(person, directoryView.directory.fields, 'id')) === proposal.requester,
   );
@@ -433,12 +502,17 @@ async function handleApprovalPress(
 
   let problem: string | undefined;
   const allowed = (): boolean => {
-    const decision = deps.policy.approversFor({ department: requester.department }, directoryView.refs);
-    if (decision.reasonCode === 'POLICY_UNAVAILABLE') {
+    const roster = rosterOf(deps.policy, directoryView.refs, {
+      employeeId: requester.id,
+      department: requester.department,
+      recordType: proposal.recordType,
+      ownerDepartments,
+    });
+    if (roster.unavailable) {
       problem = 'Cổng không đọc được bộ luật quyền nên không duyệt. Hãy báo người vận hành Lab.';
       return false;
     }
-    if (!decision.approvers.some((person) => person.id === viewer.id)) {
+    if (!roster.approvers.some((person) => person.id === viewer.id)) {
       problem = 'Bạn không còn thuộc vai được duyệt đề xuất này theo file luật hiện tại.';
       return false;
     }

@@ -32,6 +32,10 @@ const scopeSchema = z.enum(['own_department', 'any']);
 const dataClassSchema = z.enum(DATA_CLASSES);
 const clientClassSchema = z.enum(CLIENT_CLASSES);
 
+/** The two ways a record type finds its approver. Missing means the first, so an old file keeps its answer. */
+export const APPROVER_MODES = ['requester_lead', 'owner_lead'] as const;
+const approverModeSchema = z.enum(APPROVER_MODES);
+
 /** One client profile: a reporting label and the limit that actually decides (ADR-0010 section 3.2). */
 const clientProfileSchema = z.strictObject({
   class: clientClassSchema,
@@ -58,6 +62,12 @@ const cellSchema = z
 const resourceSchema = z
   .strictObject({
     bulk_threshold: z.number().int().positive(),
+    /**
+     * How this record type finds its approver: the requester's lead or the
+     * lead of the department that owns the record. A file from before this key
+     * gets `requester_lead`, so its old answer does not change (issue #148).
+     */
+    approver: approverModeSchema.default('requester_lead'),
     read: z.record(z.string().min(1), scopeSchema),
     fields: z.record(z.string().min(1), z.array(z.string().min(1))),
     /**

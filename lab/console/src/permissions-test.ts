@@ -118,6 +118,14 @@ test('permissions: the screen shows one table per record type, every cell in thr
   assert.match(html, /name="approval_wait_minutes" type="number" min="1" step="1" value="120"/);
   assert.match(html, /name="cumulative_window_minutes" type="number" min="1" step="1" value="60"/);
 
+  // Each record type says how it finds its approver, with the base file's choice selected.
+  assert.match(
+    html,
+    /<select id="approver_task" name="approver\.task"[^>]*><option value="requester_lead" selected>Trưởng phòng của người yêu cầu<\/option><option value="owner_lead">Trưởng phòng sở hữu bản ghi<\/option><\/select>/,
+  );
+  assert.match(html, /<select id="approver_leave" name="approver\.leave"[^>]*>[\s\S]*?<option value="requester_lead" selected>/);
+  assert.match(html, /<select id="approver_employee" name="approver\.employee"[^>]*>[\s\S]*?<option value="owner_lead" selected>/);
+
   assert.equal(html.includes('<script>'), false);
   assert.equal(html.includes(SERVICE_KEY), false);
   assert.equal(html.includes('name="csrf" value=""'), false);
@@ -165,6 +173,47 @@ test('permissions: a valid save writes the next version and keeps a history copy
   assert.ok(checkbox(reloaded, 'employee', 'staff', 'work_email') !== null);
   assert.equal(checkbox(reloaded, 'employee', 'staff', 'work_email')?.[1], undefined, 'the save is on the page');
   assert.match(reloaded, /name="fields\.employee\.hr" value="work_email" checked/);
+});
+
+test('permissions: a save changes how a record type finds its approver', async (t) => {
+  const fixture = await startFixture();
+  t.after(() => fixture.close());
+
+  const page = await (await fetch(`${fixture.url}/permissions`)).text();
+  const before = readRules(fixture.rulesPath);
+  const params = saveFields(before, hiddenFields(page), catalogOf(page), (fields) => {
+    setField(fields, 'approver.employee', 'requester_lead');
+    setField(fields, 'approver.leave', 'owner_lead');
+  });
+
+  const response = await postForm(fixture, params);
+  assert.equal(response.status, 303);
+  const after = readRules(fixture.rulesPath);
+  const resources = after['resources'] as Record<string, { approver: string }>;
+  assert.equal(resources['employee']?.approver, 'requester_lead');
+  assert.equal(resources['leave']?.approver, 'owner_lead');
+  assert.equal(resources['task']?.approver, 'requester_lead', 'a record type the form did not change keeps its answer');
+
+  const reloaded = await (await fetch(`${fixture.url}/permissions`)).text();
+  assert.match(reloaded, /<select id="approver_employee" name="approver\.employee"[^>]*>[\s\S]*?<option value="requester_lead" selected>/);
+  assert.match(reloaded, /<select id="approver_leave" name="approver\.leave"[^>]*>[\s\S]*?<option value="owner_lead" selected>/);
+});
+
+test('permissions: an unknown approver mode never reaches the file', async (t) => {
+  const fixture = await startFixture();
+  t.after(() => fixture.close());
+
+  const page = await (await fetch(`${fixture.url}/permissions`)).text();
+  const before = readRules(fixture.rulesPath);
+  const bytes = readFileSync(fixture.rulesPath, 'utf8');
+  const params = saveFields(before, hiddenFields(page), catalogOf(page), (fields) => {
+    setField(fields, 'approver.employee', 'line_manager');
+  });
+
+  const response = await postForm(fixture, params);
+  assert.equal(response.status, 400);
+  assert.match(await response.text(), /Cách tìm người duyệt của Nhân viên/);
+  assert.equal(readFileSync(fixture.rulesPath, 'utf8'), bytes);
 });
 
 test('permissions: a save changes task fields and a cell, and leaves everything else alone', async (t) => {

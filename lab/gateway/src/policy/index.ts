@@ -23,6 +23,7 @@ export type { PolicyEngine, PolicyEngineOptions, Requester } from './engine.js';
 export { RULES_FILE, resolveRulesPath, seedRulesFile } from './rules-file.js';
 export {
   ACTIONS,
+  APPROVER_MODES,
   createRulesSchema,
   DEFAULT_PENDING_LIMIT,
   READ_EMPLOYEE_FIELD,
@@ -39,6 +40,7 @@ export type {
   TableAction,
 } from './schema.js';
 export type {
+  ApproverMode,
   ApproversDecision,
   FieldsDecision,
   PendingLimitDecision,

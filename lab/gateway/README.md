@@ -102,8 +102,10 @@ File dùng `schema: 2` ([ADR-0007](../../docs/adr/adr-0007-system-adapters-and-c
 | `fields` | Trường mỗi vai được xem |
 | `actions` | Ô quyền theo hành động và vai: `effect` (`allow`, `deny`, `needs_approval`), `scope`, và `bulk` (hiệu lực khi số mục chạm ngưỡng) |
 | `bulk_threshold` | Ngưỡng hàng loạt |
+| `approver` | Cách tìm người duyệt: `requester_lead` (trưởng phòng của người yêu cầu, mặc định khi thiếu khoá) hoặc `owner_lead` (trưởng phòng sở hữu bản ghi, đọc qua `ownerField` của bộ tiếp hợp) |
 
 Ở cấp file, khối `approval` khai vai được duyệt, người duyệt có phải cùng phòng không, và số phút chờ (`wait_minutes`, mặc định 120).
+Người yêu cầu không bao giờ tự duyệt, ở cả hai cách.
 `cumulative_window_minutes` (mặc định 60) là cửa sổ đếm các đề xuất bị chia nhỏ.
 `pending_limit` (mặc định 20) là số đề xuất đang chờ tối đa của một người, gồm chờ bấm Gửi và chờ duyệt.
 

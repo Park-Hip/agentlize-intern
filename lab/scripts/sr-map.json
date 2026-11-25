@@ -68,6 +68,7 @@
       "approval: rejecting keeps the sentence inside the labelled data block and writes nothing",
       "approval refusals: content changed, expired, self approval",
       "approval: a lead who is the requester cannot approve their own proposal",
+      "approval mode (requester_lead|owner_lead):",
       "write: a batch at the bulk threshold waits for the lead",
       "write: a proposal that expired after the draft is refused",
       "expiry: after 30 minutes the page and both buttons say APPROVAL_EXPIRED",

@@ -9,8 +9,10 @@ import {
   actionFields,
   approvalRoster,
   effectiveStatus,
+  ownerDepartmentsOf,
   PROPOSAL_ID_PATTERN,
   waitText,
+  type ApprovalRoster,
   type ConfirmRoute,
   type DecideFailure,
   type Decision,
@@ -103,7 +105,29 @@ async function approvalView(deps: GatewayDeps, proposal: Proposal): Promise<{
   } catch (error) {
     if (!(error instanceof SystemUnavailableError)) throw error;
   }
-  const roster = await approvalRoster(deps.adapters, deps.policy, { employeeId: proposal.requester, department });
+  let roster: ApprovalRoster = {
+    approvers: [],
+    waitMinutes: 0,
+    policyVersion: null,
+    unavailable: false,
+    approverMode: 'requester_lead',
+    departments: [],
+  };
+  try {
+    const settings = deps.policy.approversFor({ department, kind: proposal.recordType }, []);
+    const ownerDepartments =
+      settings.reasonCode !== 'POLICY_UNAVAILABLE' && settings.approverMode === 'owner_lead'
+        ? await ownerDepartmentsOf(deps.adapters, proposal, department)
+        : [department];
+    roster = await approvalRoster(deps.adapters, deps.policy, {
+      employeeId: proposal.requester,
+      department,
+      recordType: proposal.recordType,
+      ownerDepartments,
+    });
+  } catch (error) {
+    if (!(error instanceof SystemUnavailableError)) throw error;
+  }
   const approval = proposal.approval;
   return {
     waitLabel: roster.waitMinutes > 0 ? waitText(roster.waitMinutes) : 'theo file luật',
