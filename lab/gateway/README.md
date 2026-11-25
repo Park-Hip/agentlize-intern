@@ -50,7 +50,7 @@ npx --yes @modelcontextprotocol/inspector@2.15.0 --cli --transport http --server
 
 ## Câu trả lời của tool
 
-`gateway_status` là tên trạng thái của cổng thật cho một đề xuất; `get_request_status` và `action_status` trả trường này, các tool khác trả `null`.
+`gateway_status` là tên trạng thái của cổng thật cho một đề xuất; `get_request_status` và `action_status` trả trường này khi tìm thấy đề xuất, còn lại là `null`.
 Bảng ánh xạ nằm ở một chỗ là `src/tools/gateway-status.ts`, và `src/gateway-status-test.ts` đi qua mọi trạng thái nội bộ.
 
 | Trạng thái nội bộ | `gateway_status` |
