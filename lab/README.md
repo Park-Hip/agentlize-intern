@@ -115,4 +115,4 @@ Nhờ vậy link xác nhận dùng địa chỉ công khai, và người ở má
 | `LAB_TUNNEL_MINUTES` | Rút ngắn giới hạn, từ 1 tới 45 phút |
 
 Sau phiên, tắt đường hầm, trả skill về như cũ và chạy `npm run seed-keys -- --rotate` để thu hồi khoá đã đi qua Internet.
-Kịch bản từng bước nằm ở [nghiệm thu mốc 1](../rd/evaluation/milestone-1-tho-than.md).
+Kịch bản từng bước nằm ở [nghiệm thu mốc 1](../archive/baseline/milestone-1-tho-than.md).

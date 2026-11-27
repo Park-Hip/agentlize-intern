@@ -2,7 +2,7 @@
 
 Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
-Quyết định 1 trong [spec bản thử, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt).
+Quyết định 1 trong [spec bản thử, mục 6](../../archive/baseline/mvp-spec.md#6-kiến-trúc-tóm-tắt).
 
 ## Đọc nhanh
 
@@ -19,12 +19,12 @@ Ba việc khó nhất phải xảy ra trên cùng một lần ghi: SR3 (phạm v
 
 Bằng chứng đã có:
 
-- Mười một sản phẩm chấm theo tám yêu cầu, không sản phẩm nào đạt đủ; mỗi mảnh khó chỉ một sản phẩm làm, và không ai chống ghi trùng ở hệ đích ([bài học từ thị trường](../../rd/research/market-lessons.md)).
-- Preloop là mã nguồn mở nhưng thiếu đúng SR1 (danh tính) và SR6, nên dựng trên nó vẫn phải viết lại phần lõi ([khảo sát thị trường, mục 6.2](../../rd/research/market-landscape.md#62-sản-phẩm-có-giải-bài-toán-của-lab-không)).
-- Thổ Thần không hỏi duyệt trước khi ghi và cắt lời gọi sau 60 giây ([khảo sát Thổ Thần, mục 2.1](../../rd/appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
+- Mười một sản phẩm chấm theo tám yêu cầu, không sản phẩm nào đạt đủ; mỗi mảnh khó chỉ một sản phẩm làm, và không ai chống ghi trùng ở hệ đích ([bài học từ thị trường](../../archive/research/market-lessons.md)).
+- Preloop là mã nguồn mở nhưng thiếu đúng SR1 (danh tính) và SR6, nên dựng trên nó vẫn phải viết lại phần lõi ([khảo sát thị trường, mục 6.2](../../archive/research/market-landscape.md#62-sản-phẩm-có-giải-bài-toán-của-lab-không)).
+- Thổ Thần không hỏi duyệt trước khi ghi và cắt lời gọi sau 60 giây ([khảo sát Thổ Thần, mục 2.1](../../rd/research/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
 - Thổ Thần chưa cho Lab một danh tính người dùng kiểm chứng được.
   Nối trên máy (stdio), server chỉ thấy tên ứng dụng, không thấy tài khoản.
-  Nối qua địa chỉ HTTPS công khai, máy chủ Thổ Thần gắn thêm header `x-user-id` và `x-user-email`, nhưng mới đo một tài khoản, và ai có khoá gọi thẳng địa chỉ của server cũng tự đặt được `x-user-id` ([khảo sát Thổ Thần, mục 2.1](../../rd/appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả), [khảo sát Thổ Thần, mục 3.6](../../rd/appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
+  Nối qua địa chỉ HTTPS công khai, máy chủ Thổ Thần gắn thêm header `x-user-id` và `x-user-email`, nhưng mới đo một tài khoản, và ai có khoá gọi thẳng địa chỉ của server cũng tự đặt được `x-user-id` ([khảo sát Thổ Thần, mục 2.1](../../rd/research/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả), [khảo sát Thổ Thần, mục 3.6](../../rd/research/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
 
 Mục tiêu của Lab là bằng chứng chạy lại được và số đo so sánh, không phải đưa vào vận hành.
 
@@ -44,10 +44,10 @@ Mục tiêu của Lab là bằng chứng chạy lại được và số đo so s
 
 ## 3. Quyết định
 
-Lab tự dựng một cổng kiểm soát mỏng, theo [spec bản thử](../../rd/design/mvp-spec.md).
+Lab tự dựng một cổng kiểm soát mỏng, theo [spec bản thử](../../archive/baseline/mvp-spec.md).
 
 - Mọi lời gọi của AI tới hai hệ thống giả đi qua cổng; hai hệ thống giả chỉ nhận lời gọi từ cổng.
-- Cổng chép các mẫu đã có: mặc định từ chối, lệnh cấm luôn thắng, lỗi hay hết giờ thì từ chối, hai lớp danh tính, che khi đọc và chặn khi ghi theo từng trường ([bài học từ thị trường](../../rd/research/market-lessons.md)).
+- Cổng chép các mẫu đã có: mặc định từ chối, lệnh cấm luôn thắng, lỗi hay hết giờ thì từ chối, hai lớp danh tính, che khi đọc và chặn khi ghi theo từng trường ([bài học từ thị trường](../../archive/research/market-lessons.md)).
 - Cổng tự làm phần gộp SR3, SR4, SR6 trên cùng một đường ghi ([ADR-0002](adr-0002-safe-read-and-write.md)).
 - Cổng không phụ thuộc nơi gọi: Thổ Thần, trợ lý gọi hàm của Lab hay MausBot đều chỉ là cửa vào mỏng.
 - Phần chạy tiếp sau sập do Lab tự viết; công cụ chạy quy trình chỉ được thêm khi Q1 cho thấy phần đó quá rối.
@@ -67,9 +67,9 @@ Lab tự dựng một cổng kiểm soát mỏng, theo [spec bản thử](../../
 
 | Nếu điều này xảy ra | Thì làm gì |
 | --- | --- |
-| Q1 cho thấy phần chạy tiếp tự viết sót, trùng hoặc quá rối | Viết ADR mới cho công cụ chạy quy trình ([Q1](../../rd/design/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không)) |
+| Q1 cho thấy phần chạy tiếp tự viết sót, trùng hoặc quá rối | Viết ADR mới cho công cụ chạy quy trình ([Q1](../../archive/baseline/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không)) |
 | Một sản phẩm công bố đủ che trường theo người, duyệt khoá nội dung và chống ghi trùng | Chạy tám phép thử của Lab vào sản phẩm đó với dữ liệu giả |
-| Thổ Thần thêm bước duyệt, hoặc header danh tính qua HTTPS vượt qua H9 (ghi đè `x-user-id`) và H10 (phiên tách theo người dùng) ([khảo sát Thổ Thần, mục 9](../../rd/appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được)) | Dùng header làm lớp kiểm thứ hai hoặc bỏ phần tương ứng của cổng; giữ phép thử |
-| Mục tiêu đổi từ nghiên cứu sang vận hành | Chạy thử sản phẩm theo [bài học từ thị trường, mục 5.3](../../rd/research/market-lessons.md#53-khi-nào-xem-lại-quyết-định-này) |
+| Thổ Thần thêm bước duyệt, hoặc header danh tính qua HTTPS vượt qua H9 (ghi đè `x-user-id`) và H10 (phiên tách theo người dùng) ([khảo sát Thổ Thần, mục 9](../../rd/research/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được)) | Dùng header làm lớp kiểm thứ hai hoặc bỏ phần tương ứng của cổng; giữ phép thử |
+| Mục tiêu đổi từ nghiên cứu sang vận hành | Chạy thử sản phẩm theo [bài học từ thị trường, mục 5.3](../../archive/research/market-lessons.md#53-khi-nào-xem-lại-quyết-định-này) |
 
 **Kết luận:** quyết định đúng cho giai đoạn nghiên cứu, và có tín hiệu rõ để xem lại.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Kiểm chéo nguồn cho rd/appota/tho-than-platform.md
+# Kiểm chéo nguồn cho rd/research/tho-than-platform.md
 # Mỗi dòng kiểm một câu trích hoặc một quan sát: mở URL, bỏ thẻ HTML, gộp khoảng trắng, so khớp nguyên văn.
 # Năm hàm đặc biệt cho thứ không kiểm được bằng chuỗi trong body:
 #   check_redirect: mã HTTP và vị trí Location

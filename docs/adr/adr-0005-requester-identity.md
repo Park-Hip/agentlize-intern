@@ -2,7 +2,7 @@
 
 Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
-Quyết định 3 trong [spec bản thử, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt).
+Quyết định 3 trong [spec bản thử, mục 6](../../archive/baseline/mvp-spec.md#6-kiến-trúc-tóm-tắt).
 
 ## Đọc nhanh
 
@@ -14,21 +14,21 @@ Quyết định 3 trong [spec bản thử, mục 6](../../rd/design/mvp-spec.md#
 
 ## 1. Bối cảnh
 
-Ví dụ xuyên suốt: chị Hoa nhờ AI chuyển T-12 sang anh Minh, Nam gõ đúng câu đó, và anh Quang duyệt việc chuyển 30 task ([spec, mục 3](../../rd/design/mvp-spec.md#3-bản-thử-hôm-nay)).
+Ví dụ xuyên suốt: chị Hoa nhờ AI chuyển T-12 sang anh Minh, Nam gõ đúng câu đó, và anh Quang duyệt việc chuyển 30 task ([spec, mục 3](../../archive/baseline/mvp-spec.md#3-bản-thử-hôm-nay)).
 Cổng phải trả lời đúng một câu: ai đang yêu cầu?
 Nếu trả lời sai, SR1 (danh tính và một cửa ghi) sai theo: một người mượn quyền của người khác, và vết chỉ ghi tên tài khoản dịch vụ ([PRD, mục 6](../../rd/problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc)).
 
 Những gì đã đo hoặc đọc được:
 
-- Qua stdio, máy chủ MCP chỉ thấy tên ứng dụng, không thấy tài khoản; khoá riêng đặt trong cấu hình skill thì tới được máy chủ, và đổi khoá có hiệu lực ở lần gọi sau ([kịch bản đo, mục 5.5](../../rd/appota/tho-than-mcp-probe.md#55-khoá-riêng-của-từng-người-h8)).
-- Qua HTTPS công khai, chat web và chat desktop đều gọi tool qua máy chủ Thổ Thần ở Singapore, không phải từ máy người dùng ([kịch bản đo, mục 4.8](../../rd/appota/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6), S2 tới S4).
-- Lời gọi tới cổng mang thêm bốn header: `x-user-id` dạng `user_` cộng 24 ký tự, `x-user-email`, `x-agent-id` và `x-executor-id` ([khảo sát Thổ Thần, mục 3.6](../../rd/appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
-- Mã LobeHub 2.1.56, bản gốc của Thổ Thần web, không gắn bốn header này: lời gọi MCP trong chat chỉ mang header do người dùng cấu hình và khoá xác thực, và form cho người dùng tự thêm header bất kỳ ([khảo sát Thổ Thần, mục 6.2](../../rd/appota/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt)).
+- Qua stdio, máy chủ MCP chỉ thấy tên ứng dụng, không thấy tài khoản; khoá riêng đặt trong cấu hình skill thì tới được máy chủ, và đổi khoá có hiệu lực ở lần gọi sau ([kịch bản đo, mục 5.5](../../archive/research/tho-than-mcp-probe.md#55-khoá-riêng-của-từng-người-h8)).
+- Qua HTTPS công khai, chat web và chat desktop đều gọi tool qua máy chủ Thổ Thần ở Singapore, không phải từ máy người dùng ([kịch bản đo, mục 4.8](../../archive/research/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6), S2 tới S4).
+- Lời gọi tới cổng mang thêm bốn header: `x-user-id` dạng `user_` cộng 24 ký tự, `x-user-email`, `x-agent-id` và `x-executor-id` ([khảo sát Thổ Thần, mục 3.6](../../rd/research/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
+- Mã LobeHub 2.1.56, bản gốc của Thổ Thần web, không gắn bốn header này: lời gọi MCP trong chat chỉ mang header do người dùng cấu hình và khoá xác thực, và form cho người dùng tự thêm header bất kỳ ([khảo sát Thổ Thần, mục 6.2](../../rd/research/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt)).
 - Vì vậy bốn header đến từ phần Appota thêm vào, từ một proxy, hoặc từ một bản chạy khác tag công khai; chưa đọc được mã đó.
-- Phiên đo chỉ có một tài khoản và một skill; chưa biết hai tài khoản có mã khác nhau không, và chưa biết máy chủ Thổ Thần ghi đè hay nối thêm header người dùng tự đặt ([khảo sát Thổ Thần, mục 9](../../rd/appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được), H9 và H10).
-- Log gốc của phiên đo không còn trên máy; cái còn lại là bảng tóm tắt có số dòng, nên độ tin cậy của phần header là trung bình ([khảo sát Thổ Thần, mục 3.6](../../rd/appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
+- Phiên đo chỉ có một tài khoản và một skill; chưa biết hai tài khoản có mã khác nhau không, và chưa biết máy chủ Thổ Thần ghi đè hay nối thêm header người dùng tự đặt ([khảo sát Thổ Thần, mục 9](../../rd/research/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được), H9 và H10).
+- Log gốc của phiên đo không còn trên máy; cái còn lại là bảng tóm tắt có số dòng, nên độ tin cậy của phần header là trung bình ([khảo sát Thổ Thần, mục 3.6](../../rd/research/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
 
-Một điều kiện nữa chưa biết, và nó quyết định mô hình có dùng được trong thực tế hay không: skill do từng người tự thêm, hay quản trị viên chia sẻ một skill cho cả tổ chức ([khảo sát Thổ Thần, mục 9](../../rd/appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được)).
+Một điều kiện nữa chưa biết, và nó quyết định mô hình có dùng được trong thực tế hay không: skill do từng người tự thêm, hay quản trị viên chia sẻ một skill cho cả tổ chức ([khảo sát Thổ Thần, mục 9](../../rd/research/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được)).
 Nếu cả tổ chức dùng chung một skill và một khoá, khoá không nói được ai đang hỏi.
 
 **Kết luận:** thứ duy nhất Lab chứng minh được hôm nay là khoá riêng tới được cổng và đổi được theo từng người; mã tài khoản của Thổ Thần là một lời khai chưa kiểm chứng, không phải một bằng chứng danh tính.
@@ -60,14 +60,14 @@ Lớp thứ hai chỉ được bật khi ba điều kiện ở mục 3.3 đều 
 
 - Cổng cấp cho mỗi người một khoá dạng `lab_` cộng 32 byte ngẫu nhiên, mã hoá base64url.
 - Cổng chỉ lưu mã băm SHA-256, so sánh thời gian hằng, và chỉ in 6 ký tự đầu trong log ([ADR-0003, mục 2](adr-0003-technology-stack.md#2-quyết-định)).
-- Bảng khoá giữ mã khoá, mã băm, sáu ký tự đầu, mã nhân viên, nơi gọi, phạm vi, lúc tạo và lúc thu hồi ([spec, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt)).
+- Bảng khoá giữ mã khoá, mã băm, sáu ký tự đầu, mã nhân viên, nơi gọi, phạm vi, lúc tạo và lúc thu hồi ([spec, mục 6](../../archive/baseline/mvp-spec.md#6-kiến-trúc-tóm-tắt)).
 - Mỗi lần gọi, cổng đổi khoá thành mã nhân viên và kiểm lại khoá; không có nguồn danh tính nào khác.
 - Khoá đi trong `Authorization: Bearer`.
-  Chương trình nối stdio đọc `LAB_USER_KEY`; ô "API Key" của Thổ Thần gửi cùng header đó ([kịch bản đo, mục 5.5](../../rd/appota/tho-than-mcp-probe.md#55-khoá-riêng-của-từng-người-h8)).
+  Chương trình nối stdio đọc `LAB_USER_KEY`; ô "API Key" của Thổ Thần gửi cùng header đó ([kịch bản đo, mục 5.5](../../archive/research/tho-than-mcp-probe.md#55-khoá-riêng-của-từng-người-h8)).
 - Cổng không nhận mã nhân viên, email hay vai do người gọi tự khai trong body hay header.
   Vai và phòng đọc từ danh bạ ở mỗi lần gọi.
 - Khoá chứng minh "người đang giữ khoá", không phải một lần đăng nhập.
-  Ai dùng máy đó cũng là người sở hữu khoá; đây là giới hạn đã ghi ở [spec, mục 8](../../rd/design/mvp-spec.md#8-giả-định-và-giá-trị-của-kết-luận).
+  Ai dùng máy đó cũng là người sở hữu khoá; đây là giới hạn đã ghi ở [spec, mục 8](../../archive/baseline/mvp-spec.md#8-giả-định-và-giá-trị-của-kết-luận).
 - Thu hồi khoá có hiệu lực ở lần gọi sau.
   Mọi khoá của một người bị lộ phải thu hồi được; đây là lý do khoá là cách chính, không phải header.
 
@@ -77,7 +77,7 @@ Khi đó mô hình này sai, và phải chờ một danh tính do nền tảng c
 
 ### 3.2. `x-user-id` không được dùng để cấp quyền trong bản thử
 
-Không dùng, kể cả làm lớp kiểm thứ hai, vì ba điều kiện của [khảo sát Thổ Thần, mục 6.5](../../rd/appota/tho-than-platform.md#65-hệ-quả-cho-adr-0005) đều chưa đạt:
+Không dùng, kể cả làm lớp kiểm thứ hai, vì ba điều kiện của [khảo sát Thổ Thần, mục 6.5](../../rd/research/tho-than-platform.md#65-hệ-quả-cho-adr-0005) đều chưa đạt:
 
 1. **Ghi đè ở mọi lời gọi trong chat.**
    H9 chưa chạy; form skill cho người dùng tự thêm header; chưa biết máy chủ Thổ Thần ghi đè hay nối thêm.
@@ -96,7 +96,7 @@ Dùng header hôm nay sẽ có một trong hai kết quả xấu:
 Một lý do nữa: phiên đo chỉ có một tài khoản.
 Một mẫu bằng một tài khoản không nói được mã tài khoản là duy nhất theo người, không đổi theo phiên, và không trùng giữa hai người.
 
-Khảo sát Thổ Thần, [mục 6.5](../../rd/appota/tho-than-platform.md#65-hệ-quả-cho-adr-0005) đề nghị bỏ `x-user-id` khỏi ADR nếu thiếu một điều.
+Khảo sát Thổ Thần, [mục 6.5](../../rd/research/tho-than-platform.md#65-hệ-quả-cho-adr-0005) đề nghị bỏ `x-user-id` khỏi ADR nếu thiếu một điều.
 Quyết định này không dùng nó để cấp quyền.
 Hợp đồng ở mục 3.3 chỉ là điều kiện xem lại, không có hiệu lực cho tới khi cả ba điều kiện đạt.
 
@@ -183,14 +183,14 @@ Bản thử không chọn đường nào trong hai đường này, vì chưa có
 
 | Điều đang dựa vào | Bằng chứng | Độ tin cậy | Cách kiểm lại |
 | --- | --- | --- | --- |
-| Chat web và desktop gọi tool qua máy chủ Thổ Thần | S2 tới S4: địa chỉ nguồn ở Singapore, `cf-ipcountry: SG`, `clientInfo` của desktop là `lobehub-mcp-client`; `log-20261117-171748-473.jsonl:139` (web), `:119` (desktop) ([kịch bản đo, mục 4.8](../../rd/appota/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6)) | Cao | Mở tunnel, chạy probe, gọi `whoami`, đọc `cf-connecting-ip` |
-| Lời gọi chat có `x-user-id`, `x-user-email`, `x-agent-id`, `x-executor-id` | S3 và S4; `log-20261117-171748-473.jsonl:139`, bảng header ở [kịch bản đo, mục 4.8](../../rd/appota/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6) | Trung bình: một tài khoản, log gốc không còn | Chạy lại S3, S4 với hai tài khoản; đọc `http.headers` |
-| LobeHub 2.1.56 không gắn bốn header này | Đọc mã ở [khảo sát Thổ Thần, mục 6.2](../../rd/appota/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt); 29 câu kiểm L1 tới L29 trong [script kiểm chéo](../../rd/checks/tho-than-platform.sh) | Cao | `bash rd/checks/tho-than-platform.sh` |
-| Ai có token cũng tự đặt được `x-user-id` | Header do người dùng cấu hình; không có chữ ký, chưa có dải IP cố định ([khảo sát Thổ Thần, mục 6.5](../../rd/appota/tho-than-platform.md#65-hệ-quả-cho-adr-0005)) | Cao về cơ chế; chưa đo một lời gọi giả | Gửi header giả trong skill, gọi `whoami`, xem cổng nhận gì (H9) |
-| Hai tài khoản có mã khác nhau | Chưa đo; H10 mới là giả thuyết ([khảo sát Thổ Thần, mục 9](../../rd/appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được)) | Thấp | Hai tài khoản cùng skill, so `x-user-id` và `mcp-session-id` |
-| Khoá riêng tới được cổng và đổi được | H8: stdio, HTTP `localhost`, đổi khoá có hiệu lực ở lần gọi sau ([kịch bản đo, mục 5.5](../../rd/appota/tho-than-mcp-probe.md#55-khoá-riêng-của-từng-người-h8)) | Cao | Chạy lại H8 trong `tools/mcp-probe` |
+| Chat web và desktop gọi tool qua máy chủ Thổ Thần | S2 tới S4: địa chỉ nguồn ở Singapore, `cf-ipcountry: SG`, `clientInfo` của desktop là `lobehub-mcp-client`; `log-20261117-171748-473.jsonl:139` (web), `:119` (desktop) ([kịch bản đo, mục 4.8](../../archive/research/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6)) | Cao | Mở tunnel, chạy probe, gọi `whoami`, đọc `cf-connecting-ip` |
+| Lời gọi chat có `x-user-id`, `x-user-email`, `x-agent-id`, `x-executor-id` | S3 và S4; `log-20261117-171748-473.jsonl:139`, bảng header ở [kịch bản đo, mục 4.8](../../archive/research/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6) | Trung bình: một tài khoản, log gốc không còn | Chạy lại S3, S4 với hai tài khoản; đọc `http.headers` |
+| LobeHub 2.1.56 không gắn bốn header này | Đọc mã ở [khảo sát Thổ Thần, mục 6.2](../../rd/research/tho-than-platform.md#62-lời-gọi-mcp-trong-chat-không-có-danh-tính-do-lobehub-đặt); 29 câu kiểm L1 tới L29 trong [script kiểm chéo](../../rd/checks/tho-than-platform.sh) | Cao | `bash rd/checks/tho-than-platform.sh` |
+| Ai có token cũng tự đặt được `x-user-id` | Header do người dùng cấu hình; không có chữ ký, chưa có dải IP cố định ([khảo sát Thổ Thần, mục 6.5](../../rd/research/tho-than-platform.md#65-hệ-quả-cho-adr-0005)) | Cao về cơ chế; chưa đo một lời gọi giả | Gửi header giả trong skill, gọi `whoami`, xem cổng nhận gì (H9) |
+| Hai tài khoản có mã khác nhau | Chưa đo; H10 mới là giả thuyết ([khảo sát Thổ Thần, mục 9](../../rd/research/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được)) | Thấp | Hai tài khoản cùng skill, so `x-user-id` và `mcp-session-id` |
+| Khoá riêng tới được cổng và đổi được | H8: stdio, HTTP `localhost`, đổi khoá có hiệu lực ở lần gọi sau ([kịch bản đo, mục 5.5](../../archive/research/tho-than-mcp-probe.md#55-khoá-riêng-của-từng-người-h8)) | Cao | Chạy lại H8 trong `archive/research/mcp-probe` |
 
-Log gốc của phiên đo không còn trên máy, chỉ còn bảng tóm tắt có số dòng ([khảo sát Thổ Thần, mục 3.6](../../rd/appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
+Log gốc của phiên đo không còn trên máy, chỉ còn bảng tóm tắt có số dòng ([khảo sát Thổ Thần, mục 3.6](../../rd/research/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
 Vì vậy ADR dựa vào bảng tóm tắt, không dựa vào log gốc.
 Độ tin cậy của phần header vì thế là trung bình, và đó là một lý do nữa để không dùng header làm danh tính.
 

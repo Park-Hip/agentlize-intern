@@ -2,7 +2,7 @@
 
 Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
-Quyết định 4 trong [spec bản thử, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt).
+Quyết định 4 trong [spec bản thử, mục 6](../../archive/baseline/mvp-spec.md#6-kiến-trúc-tóm-tắt).
 
 ## Đọc nhanh
 
@@ -14,15 +14,15 @@ Quyết định 4 trong [spec bản thử, mục 6](../../rd/design/mvp-spec.md#
 
 ## 1. Bối cảnh
 
-Ví dụ xuyên suốt: chị Hoa nhờ AI chuyển T-12 sang anh Minh; Nam gõ đúng câu đó; anh Quang duyệt việc chuyển 30 task ([spec, mục 3](../../rd/design/mvp-spec.md#3-bản-thử-hôm-nay)).
+Ví dụ xuyên suốt: chị Hoa nhờ AI chuyển T-12 sang anh Minh; Nam gõ đúng câu đó; anh Quang duyệt việc chuyển 30 task ([spec, mục 3](../../archive/baseline/mvp-spec.md#3-bản-thử-hôm-nay)).
 
 Những gì đã biết:
 
-- Thổ Thần không hỏi duyệt trước khi gọi tool ghi, không có biểu mẫu hỏi người dùng, cắt lời gọi sau 60 giây, nhưng link trong kết quả bấm được ([khảo sát Thổ Thần, mục 2.1](../../rd/appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
-- Lời duyệt phải khoá vào đúng nội dung và đi qua kênh mà agent không giả được ([bài học từ thị trường, mục 3.4](../../rd/research/market-lessons.md#34-lời-duyệt-phải-khóa-vào-đúng-nội-dung-và-đi-qua-kênh-agent-không-giả-được)).
-- Không sản phẩm nào chống ghi trùng ở hệ đích ([bài học từ thị trường, mục 3.5](../../rd/research/market-lessons.md#35-chống-ghi-trùng-không-ai-bán-ở-tầng-agent)).
-- Che dữ liệu theo người hỏi đã là tính năng bán được, và SR5 (không chắc thì chặn) đòi trường chưa khai thì không ra khỏi cổng ([bài học từ thị trường, mục 3.3](../../rd/research/market-lessons.md#33-che-dữ-liệu-theo-người-hỏi-đã-là-tính-năng-bán-được), [PRD, mục 6](../../rd/problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc)).
-- Kết quả tool có thể chứa câu lệnh cài sẵn (prompt injection); cách giảm là coi kết quả là dữ liệu và gắn nhãn nguồn ([tổng quan MCP, mục 8](../../rd/research/mcp-overview.md#8-mô-hình-mối-đe-dọa)).
+- Thổ Thần không hỏi duyệt trước khi gọi tool ghi, không có biểu mẫu hỏi người dùng, cắt lời gọi sau 60 giây, nhưng link trong kết quả bấm được ([khảo sát Thổ Thần, mục 2.1](../../rd/research/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
+- Lời duyệt phải khoá vào đúng nội dung và đi qua kênh mà agent không giả được ([bài học từ thị trường, mục 3.4](../../archive/research/market-lessons.md#34-lời-duyệt-phải-khóa-vào-đúng-nội-dung-và-đi-qua-kênh-agent-không-giả-được)).
+- Không sản phẩm nào chống ghi trùng ở hệ đích ([bài học từ thị trường, mục 3.5](../../archive/research/market-lessons.md#35-chống-ghi-trùng-không-ai-bán-ở-tầng-agent)).
+- Che dữ liệu theo người hỏi đã là tính năng bán được, và SR5 (không chắc thì chặn) đòi trường chưa khai thì không ra khỏi cổng ([bài học từ thị trường, mục 3.3](../../archive/research/market-lessons.md#33-che-dữ-liệu-theo-người-hỏi-đã-là-tính-năng-bán-được), [PRD, mục 6](../../rd/problem/prd-ai-platform.md#6-yêu-cầu-bắt-buộc)).
+- Kết quả tool có thể chứa câu lệnh cài sẵn (prompt injection); cách giảm là coi kết quả là dữ liệu và gắn nhãn nguồn ([tổng quan MCP, mục 8](../../archive/research/mcp-overview.md#8-mô-hình-mối-đe-dọa)).
 
 **Kết luận:** mọi kiểm soát phải nằm ở cổng, và việc ghi không được xảy ra bên trong một lời gọi tool.
 
@@ -86,7 +86,7 @@ Bảo đảm là "tối đa một lần" (at-most-once effect) với mỗi lện
 ## 4. Hệ quả
 
 - Hai hệ thống giả phải nhận mã chống ghi trùng và số phiên bản; đây là điều kiện để cổng giữ lời hứa, và phải ghi rõ khi nói về hệ thống thật.
-- Mỗi điểm ở mục 2 và 3 có phép thử riêng ở [spec, mục 7.4](../../rd/design/mvp-spec.md#74-tám-yêu-cầu).
+- Mỗi điểm ở mục 2 và 3 có phép thử riêng ở [spec, mục 7.4](../../archive/baseline/mvp-spec.md#74-tám-yêu-cầu).
 - Người dùng có thêm một bước bấm ngoài chat cho mọi lệnh ghi; M1 (thời gian) đo cái giá của bước này.
 - AI của Thổ Thần có thể tóm tắt mất link xác nhận; `get_request_status` trả lại link, và rủi ro này được đo khi nghiệm thu mốc 2.
 

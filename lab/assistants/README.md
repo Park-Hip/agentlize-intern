@@ -1,6 +1,6 @@
 # Bộ khung hai trợ lý của Lab
 
-Ngày: 2026-11-22. Trạng thái: hai cửa nối và lớp có lỗi M2 đã chạy; số đo 240 hội thoại ở [báo cáo Q2](../../rd/evaluation/q2-assistants.md).
+Ngày: 2026-11-22. Trạng thái: hai cửa nối và lớp có lỗi M2 đã chạy; số đo 240 hội thoại ở [báo cáo Q2](../../archive/baseline/q2-assistants.md).
 
 ## Đọc nhanh
 

@@ -141,4 +141,4 @@ Intern đã từng dùng Temporal trước đây hay chưa là câu hỏi để 
 Lượt tắt cả máy chủ trước đây không commit được vì trùng tên file với lượt 100 lần ở trên.
 Tên file kết quả nay có thêm tên đích và tên biến thể, nên hai lượt không còn có thể ghi đè nhau.
 
-Kết luận Q1 nằm trong `rd/design/mvp-spec.md` mục 2.1 và `docs/milestones.md`.
+Kết luận Q1 nằm trong `archive/baseline/mvp-spec.md` mục 2.1 và `docs/milestones.md`.

@@ -51,8 +51,8 @@ Lab kiểm bản thử theo ba lớp.
 Ví dụ phân biệt: phép thử hỏi "tắt cổng giữa task 17 thì có đủ 30 task không" và chạy một lần.
 Phép đo hỏi cùng câu đó nhưng chạy 100 lần, vì một lỗi hiếm có thể chỉ xuất hiện 1 lần trong 50.
 
-Bộ phép thử tự động có 420 phép thử, đạt cả 420 ngày 2026-11-19 ([spec, mục 2.1](../design/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không)).
-Ba phiên nghiệm thu trong Thổ Thần nằm ở [mốc 1](milestone-1-tho-than.md), [mốc 2](milestone-2-tho-than.md) và [mốc 3](milestone-3-tho-than.md).
+Bộ phép thử tự động có 420 phép thử, đạt cả 420 ngày 2026-11-19 ([spec, mục 2.1](../../archive/baseline/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không)).
+Ba phiên nghiệm thu trong Thổ Thần nằm ở [mốc 1](../../archive/baseline/milestone-1-tho-than.md), [mốc 2](../../archive/baseline/milestone-2-tho-than.md) và [mốc 3](../../archive/baseline/milestone-3-tho-than.md).
 Tài liệu này chỉ nói về lớp thứ hai, phép đo.
 
 **Kết luận:** phép thử cho biết có lỗi hay không; phép đo cho biết lỗi hiếm tới đâu và hệ thống chạy ra sao khi lặp lại nhiều lần.
@@ -111,7 +111,7 @@ Nếu lỗi không chạm, lần chạy đó bị tính là hỏng, để không
 
 ### 3.5. Năm bộ đếm an toàn
 
-Mỗi file kết quả mang năm con số phải bằng 0, đã chốt trong [spec, mục 7.5](../design/mvp-spec.md#75-năm-con-số-phải-bằng-0):
+Mỗi file kết quả mang năm con số phải bằng 0, đã chốt trong [spec, mục 7.5](../../archive/baseline/mvp-spec.md#75-năm-con-số-phải-bằng-0):
 
 | Bộ đếm | Nghĩa | Kiểm thế nào |
 | --- | --- | --- |
@@ -267,7 +267,7 @@ Lần chậm nhất, 61 giây, là lần hết giờ: Thổ Thần giả chờ �
 ## 7. Q1: cổng sập giữa lúc chuyển 30 task thì sao
 
 **Câu hỏi.**
-Đây là câu hỏi nghiên cứu Q1 trong [spec, mục 2.1](../design/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không).
+Đây là câu hỏi nghiên cứu Q1 trong [spec, mục 2.1](../../archive/baseline/mvp-spec.md#21-q1-lệnh-ghi-hàng-loạt-có-cần-workflow-engine-không).
 Chị Lan nghỉ ốm; chị Hoa nhờ AI chuyển 30 task của chị Lan sang anh Minh; anh Quang duyệt.
 Cổng đang ghi dở thì sập.
 Hàng đợi ghi do Lab tự viết có làm đủ 30 task mà không task nào bị ghi hai lần không?
@@ -400,7 +400,7 @@ Bản Temporal được dựng trong nửa ngày, bằng máy chủ dành cho ph
 | M3 (chi phí) | Năm phép đo trên gọi cổng trực tiếp, không qua mô hình AI, nên không tốn token. Cổng đã biết ghi chi phí mô hình vào vết, nhưng chưa có lượt chạy nào có mô hình để đo | Có trợ lý A và B dùng mô hình AI thật |
 | M6 (công sức dùng lại) | Đo giờ công và số dòng mã khi nối thêm một trợ lý thứ hai, nên cần viết trợ lý đó trước | Trợ lý A (MCP) và B (gọi hàm) được viết, ghi giờ công ngay khi viết |
 
-Cả hai thuộc câu hỏi nghiên cứu Q2 trong [spec, mục 2.2](../design/mvp-spec.md#22-q2-thêm-một-trợ-lý-thứ-hai-thì-mcp-tiết-kiệm-bao-nhiêu-công-so-với-gọi-hàm-và-phải-trả-giá-gì), và chờ khoá gọi mô hình AI.
+Cả hai thuộc câu hỏi nghiên cứu Q2 trong [spec, mục 2.2](../../archive/baseline/mvp-spec.md#22-q2-thêm-một-trợ-lý-thứ-hai-thì-mcp-tiết-kiệm-bao-nhiêu-công-so-với-gọi-hàm-và-phải-trả-giá-gì), và chờ khoá gọi mô hình AI.
 
 **Kết luận:** bước tiếp theo là dựng trợ lý A và B, rồi chạy M1, M2, M3 cho lớp có mô hình và đếm M6.
 
@@ -422,7 +422,7 @@ Cả hai thuộc câu hỏi nghiên cứu Q2 trong [spec, mục 2.2](../design/m
 ## 12. Số nào mang sang bản thật được
 
 Bản thử giả lập nhiều thứ, nên không phải con số nào cũng đúng với hệ thống thật.
-[Spec, mục 8](../design/mvp-spec.md#8-giả-định-và-giá-trị-của-kết-luận) chia kết luận làm ba loại:
+[Spec, mục 8](../../archive/baseline/mvp-spec.md#8-giả-định-và-giá-trị-của-kết-luận) chia kết luận làm ba loại:
 
 | Loại | Ví dụ từ tài liệu này | Mang sang bản thật |
 | --- | --- | --- |

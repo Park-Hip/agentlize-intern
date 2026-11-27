@@ -6,7 +6,7 @@ import { performance } from 'node:perf_hooks';
  * run without spending credit (issue #9).
  *
  * What the real host does, as measured on 2026-11-17 (see ADR-0004 and
- * `rd/appota/tho-than-platform.md` section 3.6):
+ * `rd/research/tho-than-platform.md` section 3.6):
  * - every tool call opens a new Streamable HTTP session: `initialize`, then
  *   `tools/list` or `tools/call`, then close;
  * - the request carries `Authorization: Bearer <per-person key>`, the headers

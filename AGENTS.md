@@ -16,10 +16,10 @@ Read it for the full acceptance criteria, the R&D framework and the week by week
 ## 2. Current state
 
 The work runs in phases; `docs/milestones.md` records what each phase asked, what it concluded, its git tag and its evidence, so start there.
-The Thổ Thần host facts and what they mean for the gateway are in section 2.1 of `rd/appota/tho-than-platform.md`.
+The Thổ Thần host facts and what they mean for the gateway are in section 2.1 of `rd/research/tho-than-platform.md`.
 The `lab/` prototype passed milestones 1-3 in Thổ Thần desktop; `lab/README.md` lists its packages and what each one does.
 Thổ Thần web cannot enable a custom skill yet (#65), so acceptance runs in the desktop app only.
-The two research questions of the prototype spec `rd/design/mvp-spec.md` are answered, with evidence in `rd/evaluation/`.
+The two research questions of the first prototype spec are answered; the baseline phase in `docs/milestones.md` gives the numbers and links the evidence in `archive/baseline/`.
 The next direction is the write-safety spec `rd/design/write-safety-spec.md`: writing safely into target systems less reliable than the fake ones, pending ADR-0009.
 The open work of the current phase is the last section of `docs/milestones.md`.
 
@@ -55,16 +55,6 @@ Every artifact needs an owner, a definition of done and verifiable evidence.
 
 ## 6. Commands
 
-Render a Markdown document to A4 PDF. Requires Node/npx, Python 3, and Chrome or Edge.
-The PDF is written to `dist/<name>.pdf` (git-ignored) unless an output path is given.
-
-```
-bash tools/render/render.sh docs/milestones.md
-```
-
-The render step drops the metadata line (date and status), so a handed-in PDF never carries it.
-It then reads the PDF back with `pypdf` and fails if the line survived (`python -m pip install pypdf`, otherwise that check is skipped with a warning).
-
 Check that every relative link in the docs resolves, no em dash slipped in, and file names follow section 8.
 Run it before every commit.
 
@@ -80,7 +70,7 @@ It exits 1 on a conflict with `main`, and prints a conflict with another open PR
 python tools/check-merge.py
 ```
 
-Re-run the source quote checks, one script per document (they open the cited URLs, so they need network).
+Re-run the source quote checks of the current documents, one script per document (they open the cited URLs, so they need network).
 
 ```
 for f in rd/checks/*.sh; do bash "$f"; done
@@ -108,9 +98,9 @@ Runtime data lives in `lab/.data` (git-ignored); the gateway reads its live rule
 The other commands (keys and page passwords, trace, measure, assistant, tunnel) are listed in `lab/README.md`, and each package's own README explains its command.
 Read them before changing the lab.
 `npm run assistant` spends real model credit: it needs `LAB_MODEL_API_KEY`, refuses to run in Vietnamese peak hours without `--allow-peak`, and stops when the balance falls under 0.20 USD.
-`npm run tunnel` exposes the gateway's `/mcp` for at most 45 minutes; the latest acceptance script that uses it is `rd/evaluation/milestone-3-tho-than.md`.
+`npm run tunnel` exposes the gateway's `/mcp` for at most 45 minutes; the latest acceptance script that uses it is `archive/baseline/milestone-3-tho-than.md`.
 
-`tools/mcp-probe` is a throwaway MCP server that recorded how Thổ Thần behaves as an MCP host, not a lab component; see `tools/mcp-probe/README.md`.
+`archive/research/mcp-probe` is the throwaway MCP server that recorded how Thổ Thần behaves as an MCP host, not a lab component; see its `README.md`.
 
 ## 7. Writing conventions
 
@@ -137,7 +127,7 @@ Write so the non-technical reader gets the point and the engineer loses nothing.
 - **One metadata line under the title.** Every report carries exactly one line, `Ngày: YYYY-MM-DD. Trạng thái: <một câu ngắn>.`, placed under the title and before the first section.
   `Ngày` is the day the content was last revised, not the day the file was touched.
   Do not add an owner, mentor, revision or version line: the intern owns every artifact, and git holds the history.
-  `python tools/check-docs.py` rejects those lines, and the render step drops the metadata line so a PDF handed in never carries it.
+  `python tools/check-docs.py` rejects those lines.
 - **Every section ends with "so what".** A conclusion, a decision, or a concrete next check. A section that only lists considerations is not finished.
 - **One set of criteria across documents.** All comparisons and proposals judge against the same requirements (currently SR1-SR8 in `rd/problem/prd-ai-platform.md`). Do not invent a parallel list. If the set changes, update it at the source.
 - **Readability check before submitting.** A non-technical reader should be able to read "Đọc nhanh" in 2 minutes and answer the three questions above. An engineer should be able to trace every claim to a source, a number or a test.
@@ -153,19 +143,15 @@ docs/
   context/       company context and read-only copies of mentor documents
   adr/           one file per decision: adr-0001-<slug>.md
   milestones.md  the phases of the prototype, their tags and conclusions; start here
-rd/              the R&D work, grouped by topic
+rd/              the R&D work of the current phase, grouped by topic
   problem/       problem, users, requirements SR1-SR8 (PRD), glossary, open problems
-  research/      outside solutions: MCP, five integration models, real systems, market, comparison
-  appota/        Appota's own systems: member company cases, AppotaPay skills, Thổ Thần
-  design/        specs, system map and plans for the next build
-  evaluation/    acceptance scripts and evaluation reports; measurement results in results/
+  research/      the systems the gateway plugs into: Thổ Thần, Lark, target system gaps
+  design/        specs and plans for the current build
+  evaluation/    how the measurements work; measurement results of every phase in results/
   checks/        scripts that re-verify quoted claims, one per document: <doc-slug>.sh
+archive/         documents of closed phases, one folder per phase, see docs/milestones.md
 lab/             prototype code
-submitted/       PDFs handed in to the program, never edited afterwards
-  weekly-report/ weekly reports sent to Lark: Markdown source and its PDF
-  weekly-plan/   weekly plans sent to the mentor, named like weekly reports
-tools/           render, doc-check and merge-check scripts, and the Thổ Thần MCP probe
-dist/            generated PDFs (git-ignored)
+tools/           doc-check and merge-check scripts
 scratch/         agent working files and raw captures (git-ignored)
 ```
 
@@ -174,19 +160,20 @@ Rules:
 - Put a document in the folder of its topic. File names carry no number or step.
   Add a new topic folder only when it will hold at least two documents.
 - A finding that changes the direction goes into the current phase of `docs/milestones.md`, which links to the detailed document.
-- When a phase closes, tag its last commit with the phase name, push the tag, and add the phase to `docs/milestones.md`.
+- When a phase closes, tag its last commit with the phase name, push the tag, add the phase to `docs/milestones.md`, and move the documents that only this phase used to `archive/<phase>/`.
+  A document the next phase still uses stays in `rd/`.
+- Files in `archive/` are frozen: only fix their paths and links.
+- Reports handed to the program are Lark docs, and the repo keeps no copy. A report links to the repo documents it summarizes.
 - File names are lowercase ASCII kebab-case with a short English slug, for example `option-comparison.md`. Content stays Vietnamese.
 - Files whose name GitHub fixes (`.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/`) keep that name.
-- Three exceptions allow a number or date:
+- Two exceptions allow a number or date:
   - `adr-0001-<slug>.md`, never renumbered.
-  - `YYYY-MM-DD-<slug>.pdf` in `submitted/`, the submission date.
-    A weekly report or weekly plan keeps its Markdown source next to its PDF, both named `YYYY-MM-DD-week-<n>` after the Monday of its week.
   - A measurement result in `rd/evaluation/results/`: a `.json` summary and a matching `.samples.ndjson.gz`, both named with the measurement date first and the 7 character commit measured last, and written by the command itself.
     `npm run measure` writes `<YYYY-MM-DD>-<scenario>-<target>-<variant>-<commit>`, and `npm run assistant` writes `<YYYY-MM-DD>-assistant-<door>-<job>-<plan>-<commit>`; the target, variant and plan segments are dropped when absent.
 - No version or draft markers in file names (`v2`, `final`, `old`). Version history is git. A document that is replaced is deleted, not kept beside the new one.
-- A summary page for a document sits next to it with the same slug (`appota-cases.md` and `appota-cases.html`).
-- Every claim that rests on an external quote has a script in `rd/checks/`, named after its document, that can re-verify it.
-- Generated files are not committed, except a PDF that was handed in (copy it to `submitted/` at that moment) and a measurement result in `rd/evaluation/results/` (commit it with the change it measures).
+- A summary page for a document sits next to it with the same slug (`<slug>.md` and `<slug>.html`).
+- Every claim that rests on an external quote has a script in `rd/checks/`, named after its document, that can re-verify it. An archived document keeps its script in `archive/<phase>/checks/`.
+- Generated files are not committed, except a measurement result in `rd/evaluation/results/` (commit it with the change it measures).
 
 ## 9. Issues and pull requests
 
