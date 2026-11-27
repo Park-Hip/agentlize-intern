@@ -81,7 +81,7 @@ Liyagent ghi `on_behalf_of` và `run_as`; StackOne áp luật theo "thành viên
 Nếu cổng chỉ biết agent, Nam (thực tập sinh) nhờ agent chuyển task T-12 vẫn thành công, và lịch sử chỉ ghi tên tài khoản của agent.
 
 **Hệ quả cho cổng:** mỗi lệnh mang hai tên, người yêu cầu và agent thực hiện.
-Trong Thổ Thần, cổng nhận ra người hỏi qua khóa riêng của từng người, vì Thổ Thần không tự gửi danh tính ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)).
+Trong Thổ Thần, cổng nhận ra người hỏi qua khóa riêng của từng người, vì Thổ Thần không tự gửi danh tính ([khảo sát Thổ Thần, mục 2.1](../appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
 
 ### 3.3. Che dữ liệu theo người hỏi đã là tính năng bán được
 

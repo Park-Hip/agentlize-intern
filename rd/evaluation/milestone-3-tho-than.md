@@ -706,7 +706,7 @@ Cả hai phiên:
 - [x] Mục 14 ghi rõ H12 (#73) không được kiểm lại.
 
 Nếu một dòng không đánh dấu được, #84 vẫn mở và ghi lý do vào phần cuối tài liệu này.
-Sau khi đủ, cập nhật dòng mốc 3 ở [tổng hợp, mục 8](../findings.md#8-bước-tiếp-theo) và tick các ô trong #84.
+Sau khi đủ, cập nhật dòng mốc 3 ở [các giai đoạn của bản thử](../../docs/milestones.md) và tick các ô trong #84.
 
 **Kết luận:** mốc 3 chỉ đạt khi mọi dòng trên có bằng chứng, không chỉ khi trang tiến độ trông đúng.
 

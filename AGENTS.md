@@ -15,14 +15,15 @@ Read it for the full acceptance criteria, the R&D framework and the week by week
 
 ## 2. Current state
 
-The research is done and summarized in `rd/findings.md`, which also records the Thổ Thần host facts (section 4) and the next steps (section 8).
+The work runs in phases; `docs/milestones.md` records what each phase asked, what it concluded, its git tag and its evidence, so start there.
+The Thổ Thần host facts and what they mean for the gateway are in section 2.1 of `rd/appota/tho-than-platform.md`.
 The `lab/` prototype passed milestones 1-3 in Thổ Thần desktop; `lab/README.md` lists its packages and what each one does.
 Thổ Thần web cannot enable a custom skill yet (#65), so acceptance runs in the desktop app only.
 The two research questions of the prototype spec `rd/design/mvp-spec.md` are answered, with evidence in `rd/evaluation/`.
 The next direction is the write-safety spec `rd/design/write-safety-spec.md`: writing safely into target systems less reliable than the fake ones, pending ADR-0009.
-The plan for the current week is the last section of the latest file in `submitted/weekly-report/`.
+The open work of the current phase is the last section of `docs/milestones.md`.
 
-Stack and architecture are recorded in ADR-0001 to ADR-0008 in `docs/adr/`, and the lab implements all of them.
+Stack and architecture are recorded in ADR-0001 to ADR-0010 in `docs/adr/` (ADR-0009 is still pending), and the lab implements all of them.
 Read the ADRs that touch an area before changing its business logic.
 
 The company ecosystem the lab plugs into is recorded in `docs/context/appota-ai-ecosystem.md` (AgentLize control plane, Thổ Thần AI execution plane, Kdata infrastructure, business data owners).
@@ -32,7 +33,7 @@ It is context for where the work lands, not a decision on stack or architecture,
 
 - **Prototype first, in the real host.** Build the smallest thing that runs inside Thổ Thần, then measure it.
 - **Evidence before claims.** A baseline and a test suite exist before any claim of success.
-- **Research on demand.** Read an outside system only to answer a question the prototype raises, with a time box, and record what was learned in `rd/findings.md` or the document it changes.
+- **Research on demand.** Read an outside system only to answer a question the prototype raises, with a time box, and record what was learned in the document it changes.
 - **Package at the end.** Docs, test suite, demo, follow up backlog.
 
 ## 4. Definition of done for Track 01
@@ -58,7 +59,7 @@ Render a Markdown document to A4 PDF. Requires Node/npx, Python 3, and Chrome or
 The PDF is written to `dist/<name>.pdf` (git-ignored) unless an output path is given.
 
 ```
-bash tools/render/render.sh rd/findings.md
+bash tools/render/render.sh docs/milestones.md
 ```
 
 The render step drops the metadata line (date and status), so a handed-in PDF never carries it.
@@ -151,8 +152,8 @@ docs/
   program/       the official program document, read only
   context/       company context and read-only copies of mentor documents
   adr/           one file per decision: adr-0001-<slug>.md
+  milestones.md  the phases of the prototype, their tags and conclusions; start here
 rd/              the R&D work, grouped by topic
-  findings.md    what the research found and what we do next; start here
   problem/       problem, users, requirements SR1-SR8 (PRD), glossary, open problems
   research/      outside solutions: MCP, five integration models, real systems, market, comparison
   appota/        Appota's own systems: member company cases, AppotaPay skills, Thổ Thần
@@ -172,7 +173,8 @@ Rules:
 
 - Put a document in the folder of its topic. File names carry no number or step.
   Add a new topic folder only when it will hold at least two documents.
-- New findings that change the direction go into `rd/findings.md`, and the detailed document links back to it.
+- A finding that changes the direction goes into the current phase of `docs/milestones.md`, which links to the detailed document.
+- When a phase closes, tag its last commit with the phase name, push the tag, and add the phase to `docs/milestones.md`.
 - File names are lowercase ASCII kebab-case with a short English slug, for example `option-comparison.md`. Content stays Vietnamese.
 - Files whose name GitHub fixes (`.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/`) keep that name.
 - Three exceptions allow a number or date:
@@ -189,7 +191,7 @@ Rules:
 ## 9. Issues and pull requests
 
 The remote is `Park-Hip/agentlize-intern` on GitHub.
-Plans and decisions live in the repo (ADR, spec, `rd/findings.md`); issues track the work and link to them.
+Plans and decisions live in the repo (ADR, spec, `docs/milestones.md`); issues track the work and link to them.
 
 Issues:
 

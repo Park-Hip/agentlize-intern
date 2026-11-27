@@ -98,7 +98,7 @@ Lab là **lớp kiểm từng lệnh ở phía hệ thống nghiệp vụ**: m�
 Cổng kiểm quyền theo từng tham số, giữ bước duyệt khi rủi ro cao, chống ghi trùng và ghi vết.
 
 Quyết định về quyền phải nằm ở cổng, không nằm ở nơi chat, vì hai lẽ.
-Một, ai có khoá cũng gọi thẳng được cổng mà không qua Thổ Thần ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)).
+Một, ai có khoá cũng gọi thẳng được cổng mà không qua Thổ Thần ([khảo sát Thổ Thần, mục 2.1](../appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
 Hai, các trợ lý khác không đi qua lớp kiểm nào của Thổ Thần.
 
 # 3. Người dùng và phạm vi thử

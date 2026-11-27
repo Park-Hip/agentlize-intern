@@ -3,7 +3,7 @@
 Ngày: 2026-11-17. Trạng thái: khảo sát qua tài liệu công bố, chưa chạy thử sản phẩm nào; giá là giá niêm yết.
 
 Đây là hồ sơ bằng chứng: bảng chấm, trích dẫn và nguồn.
-Bài học và kết luận rút gọn nằm ở [bài học từ thị trường](market-lessons.md); hướng đi chung nằm ở [tổng hợp phát hiện](../findings.md).
+Bài học và kết luận rút gọn nằm ở [bài học từ thị trường](market-lessons.md); hướng đi chung nằm ở [các giai đoạn của bản thử](../../docs/milestones.md).
 
 ## Đọc nhanh
 
@@ -538,5 +538,5 @@ Một số sản phẩm đổi tên hoặc đổi gói rất nhanh; tên trong b
 | 1 | Thêm mục "mua hay dựng" vào ADR-0001, so ba đường: mua, dựng trên nền mã nguồn mở, tự dựng | ADR nêu tiêu chí và lý do đường được chọn thắng |
 | 2 | Dùng biên lai của Liyagent làm danh sách trường cho vết của Lab | Vết của Lab có đủ người yêu cầu, người duyệt, dấu vân tay nội dung, mã chống ghi trùng, chi phí |
 | 3 | Dùng mô hình "Read a field" và "Write a field" của StackOne làm khung cho luật che trường của Lab, nhưng mặc định từ chối | Luật của Lab che số điện thoại cá nhân với chị Hoa và từ chối Nam đổi người phụ trách, có phép thử tự động |
-| 4 | Đọc luồng duyệt và cách từ chối khi lỗi trong mã Preloop, tối đa nửa ngày, khi dựng phần duyệt | Điểm mượn được ghi vào [tổng hợp phát hiện](../findings.md) |
+| 4 | Đọc luồng duyệt và cách từ chối khi lỗi trong mã Preloop, tối đa nửa ngày, khi dựng phần duyệt | Điểm mượn được ghi vào [bài học từ thị trường](market-lessons.md) |
 | 5 | Chạy HM1, HM3, HM4, HM6 với dữ liệu giả ở bước đánh giá | Mỗi giả thuyết có một kết quả và một lệnh chạy lại |
