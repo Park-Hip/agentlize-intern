@@ -26,7 +26,7 @@ Nó ghép các nguồn đã có, và gắn mỗi mối nối với nguồn mạn
 | --- | --- | --- |
 | Đã đo | Có log và ảnh, chạy lại được | [Kịch bản đo Thổ Thần](../research/tho-than-mcp-probe.md), ngày 2026-11-16; thử Thổ Thần web ngày 2026-11-17 ([khảo sát Thổ Thần, mục 2.1](../../rd/research/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)) |
 | Theo tài liệu công khai | Đọc từ mã nguồn hay tài liệu công bố, chưa chạy | [Khảo sát Thổ Thần](../../rd/research/tho-than-platform.md), [MausBot](mausbot.md) |
-| Kế hoạch | Có trong bản nháp nội bộ hay trong spec của Lab, chưa thấy chạy | [Slide hệ sinh thái](../../docs/context/appota-ai-ecosystem.md), [PRD Skill Studio](../../docs/context/prd-agentlize-skill-studio.docx), [spec bản thử](mvp-spec.md) |
+| Kế hoạch | Có trong bản nháp nội bộ hay trong spec của Lab, chưa thấy chạy | [Slide hệ sinh thái](../../docs/context/appota-ai-ecosystem.md), PRD nội bộ Skill Studio, [spec bản thử](mvp-spec.md) |
 | Chưa biết | Không nguồn nào nói | - |
 
 Slide hệ sinh thái là bản chép từ ảnh chụp và chưa được Kevin xác nhận.

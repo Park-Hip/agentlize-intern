@@ -140,7 +140,7 @@ README.md        map of the repo
 AGENTS.md        this file
 docs/
   program/       the official program document, read only
-  context/       company context and read-only copies of mentor documents
+  context/       company context; internal documents stay local and git-ignored (section 5)
   adr/           one file per decision: adr-0001-<slug>.md
   milestones.md  the phases of the prototype, their tags and conclusions; start here
 rd/              the R&D work of the current phase, grouped by topic

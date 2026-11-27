@@ -79,7 +79,7 @@ Cột cuối giữ được tốc độ của cột giữa mà không mất ngư
 
 1. **AI đang được nối vào công cụ nhanh hơn lớp kiểm soát được dựng.**
    Thổ Thần web đã là nơi cắm được máy chủ công cụ ([khảo sát Thổ Thần, mục 5](../research/tho-than-platform.md#5-mcp-hai-điểm-nối-đã-kiểm-chứng)).
-   Bản [PRD AgentLize Skill Studio](../../docs/context/prd-agentlize-skill-studio.docx) còn đề xuất cho mọi nhân viên tự đóng gói cách làm thành Skill.
+   Bản PRD nội bộ của AgentLize Skill Studio còn đề xuất cho mọi nhân viên tự đóng gói cách làm thành Skill.
    Mỗi Skill biết ghi dữ liệu sẽ gặp lại đủ năm chỗ hỏng ở 1.3 nếu không có một cửa chung.
 2. **Sửa sau thì đắt.**
    Nếu mỗi agent tự kiểm quyền, đổi một luật là phải sửa từng agent.
