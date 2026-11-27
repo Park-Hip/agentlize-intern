@@ -12,7 +12,7 @@ Ngày: 2026-11-24. Trạng thái: đã đọc tài liệu công khai cho Lark Ta
 
 ## 1. Câu hỏi và phạm vi
 
-Bài này trả lời câu hỏi R1 (đọc API Lark) của [thứ tự tìm hiểu, mục 3.1](../design/write-safety-research-plan.md#31-r1-api-lark), phần còn lại sau khi #142 đã trả lời Lark Base và token người dùng.
+Bài này trả lời việc đọc API Lark của [spec ghi an toàn, mục 4](../design/write-safety-spec.md#4-kiểm-chứng-và-thứ-tự-làm), phần còn lại sau khi #142 đã trả lời Lark Base và token người dùng.
 Câu hỏi: với Lark Task v2 và Lark Contacts, mỗi giao diện lập trình (API) ghi bảo đảm được gì?
 Bốn thứ cần trả lời cho từng API: có mã chống ghi trùng (idempotency key) không, có số phiên bản (version) hay ghi có điều kiện (conditional write) không, có chỗ gắn dấu và tìm theo dấu không, và giới hạn tốc độ (rate limit) báo thời gian chờ thế nào.
 Bài cũng trả lời API gọi bằng khoá ứng dụng hay khoá người dùng, cần quyền (scope) nào, mã trả về nào nghĩa là "đã làm", "chưa làm" hay "không biết", và có công ty thử (test company) không.
@@ -342,7 +342,7 @@ R3 đo ba ô đó trên công ty thử trước khi viết bộ tiếp hợp Lar
 
 ## Tài liệu liên quan
 
-- [Thứ tự tìm hiểu cho spec ghi an toàn](../design/write-safety-research-plan.md)
+- [Spec ghi an toàn](../design/write-safety-spec.md)
 - [Các phương án thiết kế cho việc ghi vào hệ thống thật](../design/write-safety-options.md)
 - [Kế hoạch đo Q3](../design/q3-measurement-plan.md)
 - [Hệ thống nghiệp vụ thật khác hệ thống giả ở đâu](target-system-gaps.md)

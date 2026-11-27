@@ -1,6 +1,6 @@
 # Spec ghi an toàn vào hệ thống nghiệp vụ thật
 
-Ngày: 2026-11-24. Trạng thái: vấn đề đã rõ và có bằng chứng; thiết kế còn là đề xuất, chưa chốt, chờ đọc thêm và đo trước khi viết ADR-0009.
+Ngày: 2026-11-27. Trạng thái: vấn đề đã rõ và có bằng chứng; đã đọc nguồn ngoài; thiết kế còn là đề xuất, chờ số đo Q3 trước khi viết ADR-0009.
 
 ## Đọc nhanh
 
@@ -8,7 +8,7 @@ Ngày: 2026-11-24. Trạng thái: vấn đề đã rõ và có bằng chứng; t
 - Khi mạng chập chờn, cổng có lúc không biết lệnh đã được ghi hay chưa: gửi lại thì có thể làm hai lần, không gửi thì có thể mất việc đã duyệt.
 - Trên phần mềm giả của Lab, cổng xử lý đúng chuyện này 300 trên 300 lần, vì phần mềm giả luôn nhận ra lệnh gửi lại; Lark Task chỉ nhận ra trong 5 phút, và không nhận ra lệnh sửa.
 - Lab đã có vài cách sửa để so sánh, nhưng chưa chọn cách nào.
-- Việc tiếp theo: đọc cách các hệ thống lớn giải cùng chuyện này, dựng phần mềm giả bắt chước Lark Task, đo cách làm hôm nay làm mốc, rồi mới chọn.
+- Việc tiếp theo: đo cách làm hôm nay trên phần mềm giả bắt chước Lark Task để làm mốc, rồi mới chọn.
 
 ## Ai đọc file nào
 
@@ -126,7 +126,9 @@ Phép đo không dùng mô hình AI, chạy khoảng 13 giờ máy qua hai đêm
 Thứ tự làm:
 
 1. Dựng phần mềm giả khó tính và đo hai cách mốc; việc này không phụ thuộc thiết kế.
-2. Cùng lúc, đọc cách các hệ thống lớn giải từng chuyện ở mục 3 ([thứ tự tìm hiểu](write-safety-research-plan.md)).
+   Phần mềm giả đã có tám hồ sơ đích (#159); phép đo hai cách mốc đang chạy (#144).
+2. Cùng lúc, đọc cách các hệ thống lớn giải từng chuyện ở mục 3.
+   Đã xong: nguồn ngoài nằm trong [các phương án thiết kế](write-safety-options.md) (#158), API Lark nằm trong [Lark Open API](../research/lark-open-api.md) (#160).
 3. Chọn phương án, viết ADR-0009, sửa cổng, đo cách mới.
 4. Nối Lark Task trên một nhóm task thử, khi đủ ba điều kiện:
    - Chủ dữ liệu và mentor đồng ý bằng văn bản, theo [AGENTS.md, mục 5](../../AGENTS.md#5-data-boundary).
@@ -143,5 +145,4 @@ Thứ tự làm:
 - [Bảng thuật ngữ](../problem/glossary.md)
 - [Danh mục vấn đề](../problem/open-problems.md)
 - [Kế hoạch cập nhật hệ thống giả lập](simulation-update-plan.md)
-- [Thứ tự tìm hiểu](write-safety-research-plan.md)
 - [Spec bản thử](../../archive/baseline/mvp-spec.md)
