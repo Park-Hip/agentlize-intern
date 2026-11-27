@@ -22,7 +22,7 @@ Các phương án sửa cổng nằm ở [các phương án thiết kế](write-
 
 **Q3. Khi hệ thống đích không nhận ra lệnh lặp, chỉ nhớ mã một thời gian, báo kết quả muộn, không có số phiên bản, dùng mã trả về theo cách riêng, hoặc đọc thấy dữ liệu cũ, cổng cần thêm gì để vẫn không ghi trùng, không ghi đè và không mất lệnh, và mỗi thứ thêm vào tốn bao nhiêu?**
 
-Q3 đủ hai điều kiện của một câu hỏi nghiên cứu theo [spec bản thử, mục 2](mvp-spec.md#2-hai-câu-hỏi-nghiên-cứu).
+Q3 đủ hai điều kiện của một câu hỏi nghiên cứu theo [spec bản thử, mục 2](../../archive/baseline/mvp-spec.md#2-hai-câu-hỏi-nghiên-cứu).
 Lab chưa biết cách gửi lại hôm nay hỏng ở loại đích nào, và cái giá của cách an toàn hơn là bao nhiêu lệnh phải dừng chờ người.
 Đáp án quyết định bộ tiếp hợp (adapter, phần mã nối cổng với một hệ thống) phải khai những gì, và cơ chế nào thành bắt buộc trong lõi cổng.
 

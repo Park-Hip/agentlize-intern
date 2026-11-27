@@ -78,7 +78,7 @@ Cột cuối giữ được tốc độ của cột giữa mà không mất ngư
 ## 2.2. Vì sao cần làm ngay
 
 1. **AI đang được nối vào công cụ nhanh hơn lớp kiểm soát được dựng.**
-   Thổ Thần web đã là nơi cắm được máy chủ công cụ ([khảo sát Thổ Thần, mục 5](../appota/tho-than-platform.md#5-mcp-hai-điểm-nối-đã-kiểm-chứng)).
+   Thổ Thần web đã là nơi cắm được máy chủ công cụ ([khảo sát Thổ Thần, mục 5](../research/tho-than-platform.md#5-mcp-hai-điểm-nối-đã-kiểm-chứng)).
    Bản [PRD AgentLize Skill Studio](../../docs/context/prd-agentlize-skill-studio.docx) còn đề xuất cho mọi nhân viên tự đóng gói cách làm thành Skill.
    Mỗi Skill biết ghi dữ liệu sẽ gặp lại đủ năm chỗ hỏng ở 1.3 nếu không có một cửa chung.
 2. **Sửa sau thì đắt.**
@@ -98,7 +98,7 @@ Lab là **lớp kiểm từng lệnh ở phía hệ thống nghiệp vụ**: m�
 Cổng kiểm quyền theo từng tham số, giữ bước duyệt khi rủi ro cao, chống ghi trùng và ghi vết.
 
 Quyết định về quyền phải nằm ở cổng, không nằm ở nơi chat, vì hai lẽ.
-Một, ai có khoá cũng gọi thẳng được cổng mà không qua Thổ Thần ([khảo sát Thổ Thần, mục 2.1](../appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
+Một, ai có khoá cũng gọi thẳng được cổng mà không qua Thổ Thần ([khảo sát Thổ Thần, mục 2.1](../research/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
 Hai, các trợ lý khác không đi qua lớp kiểm nào của Thổ Thần.
 
 # 3. Người dùng và phạm vi thử
@@ -148,7 +148,7 @@ Hai ví dụ:
 - Hai hệ thống giả lập: danh bạ khoảng 20 nhân viên và danh sách khoảng 100 task, toàn bộ là dữ liệu giả.
 - Hai phòng giả lập, Vận hành và Kinh doanh, để thử việc sửa task phòng khác.
 - Một agent dùng chung, gọi từ hai nơi: khung trò chuyện của Lab và một nơi gọi thứ hai dùng lại cùng bộ nối.
-- Hai cách nối agent vào công cụ, chạy song song trên cùng cửa kiểm soát và cùng bộ phép thử: gọi hàm trực tiếp và MCP ([so sánh phương án](../research/option-comparison.md)).
+- Hai cách nối agent vào công cụ, chạy song song trên cùng cửa kiểm soát và cùng bộ phép thử: gọi hàm trực tiếp và MCP ([so sánh phương án](../../archive/research/option-comparison.md)).
 
 Đây là bộ nhỏ nhất chạm được đủ tám yêu cầu ở mục 6 và đủ tiêu chí nghiệm thu của chương trình ở mục 7.1.
 
@@ -292,7 +292,7 @@ Một cách làm có thể đạt câu này mà trượt câu kia, nên mỗi c�
 Chương trình yêu cầu khảo sát năm cách tích hợp: gọi hàm (function calling), MCP (Model Context Protocol), công cụ chạy quy trình (workflow engine), điều phối agent (agent orchestration) và tích hợp theo sự kiện (event-driven).
 Không cách nào một mình đạt đủ tám yêu cầu, và cũng không cần như vậy.
 Mỗi cách được chấm theo ba câu: làm sẵn những gì, Lab phải tự dựng thêm gì, và ghép những cách nào thì đạt đủ mà tự dựng ít nhất.
-Kết quả nằm ở [so sánh phương án](../research/option-comparison.md).
+Kết quả nằm ở [so sánh phương án](../../archive/research/option-comparison.md).
 
 # 7. Bàn giao và cách đo
 
@@ -304,12 +304,12 @@ Mỗi dòng nối một tiêu chí nghiệm thu của chương trình ([chương
 
 | Tiêu chí của chương trình                                | Lab bàn giao                                                | Trạng thái                                                                                                                       |
 | -------------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Bảng so sánh ít nhất ba mô hình kiến trúc trước khi chốt | So sánh năm cách tích hợp theo tám yêu cầu ở mục 6          | Đã có, [so sánh phương án](../research/option-comparison.md)                                                                   |
+| Bảng so sánh ít nhất ba mô hình kiến trúc trước khi chốt | So sánh năm cách tích hợp theo tám yêu cầu ở mục 6          | Đã có, [so sánh phương án](../../archive/research/option-comparison.md)                                                                   |
 | Dựng hai cách tích hợp để so sánh                        | Gọi hàm trực tiếp và MCP, cùng cửa kiểm soát, cùng phép thử | Chờ bản ghi quyết định                                                                                                           |
-| Kiểm thử phân quyền, thao tác ghi, lỗi và chạy lại       | Tám phép thử ở mục 6 chạy tự động trên cả hai cách          | Có kế hoạch ở [spec bản thử, mục 2](../design/mvp-spec.md#2-hai-câu-hỏi-nghiên-cứu), chưa chạy                          |
+| Kiểm thử phân quyền, thao tác ghi, lỗi và chạy lại       | Tám phép thử ở mục 6 chạy tự động trên cả hai cách          | Có kế hoạch ở [spec bản thử, mục 2](../../archive/baseline/mvp-spec.md#2-hai-câu-hỏi-nghiên-cứu), chưa chạy                          |
 | Chứng minh agent khác tái sử dụng được công cụ           | Nơi gọi thứ hai dùng lại cùng bộ nối, nhánh E ở 5.1         | Chưa dựng                                                                                                                        |
 | Số liệu thời gian, độ ổn định, chi phí                   | Sáu chỉ số ở 7.3 cho cả hai cách                            | Chưa đo                                                                                                                          |
-| Kết luận khi nào không nên dùng MCP                      | Một mục trong báo cáo đánh giá, dựa trên số đo của hai cách | Có giả thuyết ở [phụ lục bằng chứng, mục 7.2](../research/comparison-framework.md#72-điều-kiện-cân-nhắc-hoặc-loại-khỏi-một-vai-trò), chưa có số đo |
+| Kết luận khi nào không nên dùng MCP                      | Một mục trong báo cáo đánh giá, dựa trên số đo của hai cách | Có giả thuyết ở [phụ lục bằng chứng, mục 7.2](../../archive/research/comparison-framework.md#72-điều-kiện-cân-nhắc-hoặc-loại-khỏi-một-vai-trò), chưa có số đo |
 
 ## 7.2. Điều kiện thành công
 
@@ -344,10 +344,10 @@ Hai điều kiện bắt buộc trong bảng đến từ mục 6: M2 (độ ổn
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------- |
 | Hai hệ thống giả lập                            | Chưa có                                                                                                                                 | Dựng danh bạ và danh sách công việc với dữ liệu giả, có mã chống ghi trùng | Không                                 |
 | Danh tính                                       | Chưa có                                                                                                                                 | Đăng nhập giả lập chạy local, giữ hai lớp người yêu cầu và agent           | Kevin chốt Lab có chạy trong Thổ Thần |
-| Cửa kiểm soát, luật quyền, chống ghi trùng, vết | Không cách tích hợp nào làm sẵn ([so sánh phương án, mục 3](../research/option-comparison.md#3-mỗi-cách-đáp-ứng-tám-yêu-cầu-đến-đâu)) | Tự dựng; đây là phần chính của Lab                                         | Bản ghi quyết định                    |
+| Cửa kiểm soát, luật quyền, chống ghi trùng, vết | Không cách tích hợp nào làm sẵn ([so sánh phương án, mục 3](../../archive/research/option-comparison.md#3-mỗi-cách-đáp-ứng-tám-yêu-cầu-đến-đâu)) | Tự dựng; đây là phần chính của Lab                                         | Bản ghi quyết định                    |
 | Hai cách tích hợp                               | Đã chọn gọi hàm trực tiếp và MCP để đặt cạnh nhau                                                                                       | Dựng cả hai trên cùng cửa kiểm soát                                        | Bản ghi quyết định                    |
-| Nơi chạy agent                                  | Thổ Thần web cắm được máy chủ công cụ ([khảo sát Thổ Thần, mục 5](../appota/tho-than-platform.md#5-mcp-hai-điểm-nối-đã-kiểm-chứng)) | Chạy Lab độc lập trước, thử cắm vào Thổ Thần sau                           | Tài khoản Thổ Thần                    |
-| Bộ phép thử                                     | Tám phép thử ở mục 6 và các ca ở [spec bản thử, mục 7](../design/mvp-spec.md#7-kế-hoạch-đánh-giá)                         | Tự động hóa, chạy trên cả hai cách                                         | Không                                 |
+| Nơi chạy agent                                  | Thổ Thần web cắm được máy chủ công cụ ([khảo sát Thổ Thần, mục 5](../research/tho-than-platform.md#5-mcp-hai-điểm-nối-đã-kiểm-chứng)) | Chạy Lab độc lập trước, thử cắm vào Thổ Thần sau                           | Tài khoản Thổ Thần                    |
+| Bộ phép thử                                     | Tám phép thử ở mục 6 và các ca ở [spec bản thử, mục 7](../../archive/baseline/mvp-spec.md#7-kế-hoạch-đánh-giá)                         | Tự động hóa, chạy trên cả hai cách                                         | Không                                 |
 
 Phần phải tự dựng là cửa kiểm soát và những gì đi kèm nó; mọi thứ khác dùng lại hoặc giả lập.
 Không phụ thuộc bên ngoài nào chặn việc dựng bản thử, trừ bản ghi quyết định.
@@ -410,7 +410,7 @@ Tách hai điểm này giúp đổi luật ở một chỗ mà không phải s�
 
 Cách chia bảy thành phần là quyết định thiết kế của tài liệu này.
 Mỗi thành phần dựa trên một hoặc vài nguồn có tách riêng đúng quyết định đó, xem [Phụ lục B](#phụ-lục-b---nguồn-cho-cách-chia-thành-phần).
-Bước so sánh đã đối chiếu bảy thành phần với năm cách tích hợp ([so sánh phương án, mục 2](../research/option-comparison.md#2-mỗi-cách-làm-sẵn-thành-phần-nào)).
+Bước so sánh đã đối chiếu bảy thành phần với năm cách tích hợp ([so sánh phương án, mục 2](../../archive/research/option-comparison.md#2-mỗi-cách-làm-sẵn-thành-phần-nào)).
 Thành phần nào đã có sẵn thì Lab dùng lại, phần thiếu mới tự dựng.
 
 # Phụ lục B - Nguồn cho cách chia thành phần

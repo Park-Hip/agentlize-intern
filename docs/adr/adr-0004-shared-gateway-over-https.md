@@ -2,7 +2,7 @@
 
 Ngày: 2026-11-17. Trạng thái: đã chấp nhận.
 
-Quyết định 2 trong [spec bản thử, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt).
+Quyết định 2 trong [spec bản thử, mục 6](../../archive/baseline/mvp-spec.md#6-kiến-trúc-tóm-tắt).
 
 ## Đọc nhanh
 
@@ -18,10 +18,10 @@ Quyết định 2 trong [spec bản thử, mục 6](../../rd/design/mvp-spec.md#
 
 ## 1. Bối cảnh
 
-Ví dụ xuyên suốt: chị Hoa nhờ AI chuyển T-12 sang anh Minh; anh Quang duyệt việc chuyển 30 task của chị Lan ([spec, mục 3](../../rd/design/mvp-spec.md#3-bản-thử-hôm-nay)).
+Ví dụ xuyên suốt: chị Hoa nhờ AI chuyển T-12 sang anh Minh; anh Quang duyệt việc chuyển 30 task của chị Lan ([spec, mục 3](../../archive/baseline/mvp-spec.md#3-bản-thử-hôm-nay)).
 Câu hỏi của ADR này: chị Hoa và anh Quang mở Thổ Thần ở máy của họ, vậy cổng đứng ở máy nào?
 
-Những gì đã đo, ngày 2026-11-17, qua địa chỉ HTTPS công khai ([kịch bản đo, mục 4.8](../../rd/appota/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6)):
+Những gì đã đo, ngày 2026-11-17, qua địa chỉ HTTPS công khai ([kịch bản đo, mục 4.8](../../archive/research/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6)):
 
 | Điều đã đo | Dòng log | Độ tin cậy |
 | --- | --- | --- |
@@ -33,14 +33,14 @@ Những gì đã đo, ngày 2026-11-17, qua địa chỉ HTTPS công khai ([kị
 | Qua stdio, server chỉ thấy tên ứng dụng, không thấy tài khoản (P2) | `log-20261116-203102-671.jsonl:4` | Cao |
 | `fake_write` chạy ngay, không hộp duyệt; link `echo_link` bấm được và mở từ máy người dùng (S6) | `log-20261117-171748-473.jsonl:158`, `:169`, `:180`, `:276` | Cao |
 | Thổ Thần cắt lời gọi sau 60 giây khi nối qua stdio (P4) | `log-20261116-204645-611.jsonl:11-13`, `log-20261116-205049-979.jsonl:11-13` | Cao cho stdio; chưa đo qua HTTPS |
-| Ba trong sáu phiên tunnel chạy quá 60 phút vì không hẹn giờ tắt (phiên 1, 2 và 4) | bảng sáu phiên ở [mục 4.8](../../rd/appota/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6) | Cao |
+| Ba trong sáu phiên tunnel chạy quá 60 phút vì không hẹn giờ tắt (phiên 1, 2 và 4) | bảng sáu phiên ở [mục 4.8](../../archive/research/tho-than-mcp-probe.md#48-kết-quả-đo-qua-https-công-khai-ngày-2026-11-17-s1-s6) | Cao |
 
 Log gốc của phép đo không nằm trong repo (thư mục `scratch/` bị bỏ qua trong git); số dòng ở đây lấy từ bảng ở kịch bản đo, như [ADR-0005](adr-0005-requester-identity.md#4-bằng-chứng-và-cách-kiểm-lại) đã làm.
 
 Những ràng buộc từ chính thiết kế của Lab:
 
 - Người duyệt phải khác người yêu cầu, và lời duyệt dùng một lần ([ADR-0002, mục 3](adr-0002-safe-read-and-write.md#3-quyết-định-về-ghi), điểm 3).
-- Mọi trạng thái nằm ở cổng, không nằm ở chương trình nối ([spec, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt)).
+- Mọi trạng thái nằm ở cổng, không nằm ở chương trình nối ([spec, mục 6](../../archive/baseline/mvp-spec.md#6-kiến-trúc-tóm-tắt)).
 - Khoá riêng từng người, kiểm ở cổng, thu hồi được ([ADR-0005](adr-0005-requester-identity.md)).
 - Cổng chỉ nghe ở `127.0.0.1` cho tới khi có ADR về nơi chạy ([ADR-0003, mục 2](adr-0003-technology-stack.md#2-quyết-định)); ADR này là ADR đó.
 
@@ -79,7 +79,7 @@ Nếu chương trình nối gọi cổng chung thì nó chỉ là đường vòn
 Cách hiểu sau còn buộc khoá của chương trình nối đi qua Internet tới `/v1/tools`, và [ADR-0005, mục 6](adr-0005-requester-identity.md#6-xem-lại-khi) đã ghi cách này buộc phải giới hạn kênh của khoá.
 
 Điều chưa đo: thời gian chờ 60 giây mới đo qua stdio, chưa đo qua HTTPS.
-Con số khớp với mức chờ mặc định của SDK MCP, nhưng chưa xác nhận trong mã LobeHub ([kịch bản đo, mục 7.4](../../rd/appota/tho-than-mcp-probe.md#74-bảng-kết-quả-p4-thử-lại-và-thời-gian-chờ)).
+Con số khớp với mức chờ mặc định của SDK MCP, nhưng chưa xác nhận trong mã LobeHub ([kịch bản đo, mục 7.4](../../archive/research/tho-than-mcp-probe.md#74-bảng-kết-quả-p4-thử-lại-và-thời-gian-chờ)).
 Vì vậy con số không phân biệt ba phương án, và ADR này không dùng nó làm lý do.
 
 **Kết luận:** (b) là phương án duy nhất vừa phục vụ web và desktop bằng một đường, vừa cho người duyệt thấy đề xuất; giá của nó là một địa chỉ công khai.
@@ -90,7 +90,7 @@ Chọn (b): cổng ở một máy chủ chung, Thổ Thần web và desktop gọ
 
 1. **Một cổng, một nơi giữ trạng thái.**
    Một tiến trình cổng, một bảng khoá, một sổ vết, một nơi giữ đề xuất.
-   Hai hệ thống giả vẫn là hai dịch vụ riêng, chỉ nghe ở `127.0.0.1` của máy chạy cổng ([spec, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt)).
+   Hai hệ thống giả vẫn là hai dịch vụ riêng, chỉ nghe ở `127.0.0.1` của máy chạy cổng ([spec, mục 6](../../archive/baseline/mvp-spec.md#6-kiến-trúc-tóm-tắt)).
 2. **Người dùng thêm một skill HTTP.**
    Địa chỉ `https://<địa chỉ>/mcp`, kiểu xác thực "API Key", dán khoá `lab_` của nhân vật ([ADR-0005, mục 3.1](adr-0005-requester-identity.md#31-khoá-riêng-từng-người-là-danh-tính-chính)).
    Không cài chương trình nào trên máy người dùng.
@@ -105,7 +105,7 @@ Chọn (b): cổng ở một máy chủ chung, Thổ Thần web và desktop gọ
 | Cách | Khi nào dùng | Quy trình | Giới hạn |
 | --- | --- | --- | --- |
 | Đường hầm tạm (tunnel), có hẹn giờ tắt cho từng phiên | Mặc định, bắt đầu ngay, không chờ ai | Mở `cloudflared tunnel --url http://127.0.0.1:8790`; đặt hẹn giờ tắt 45 phút ngay lúc mở; sửa địa chỉ của skill cho khớp phiên; hết phiên thì tắt tunnel, trả skill về trạng thái không xác thực, rồi chạy `npm run seed-keys -- --rotate` để khoá đã đi qua địa chỉ công khai bị thu hồi | Địa chỉ có thể đổi giữa các phiên; ba trong sáu phiên đã đo vượt 60 phút nên hẹn giờ là bắt buộc; cổng vẫn chỉ nghe ở `127.0.0.1`, tunnel là thứ mở ra ngoài |
-| Máy chủ thật | Khi Kevin cho một máy (ví dụ trên hạ tầng Kdata) và địa chỉ lâu dài ([system-map, U4](../../rd/design/system-map.md#61-chỉ-người-trong-công-ty-trả-lời-được)) | Việc mở ra ngoài, TLS và nơi chạy nằm ở một issue riêng | Chờ câu trả lời của Kevin (#18); không chặn mốc 1 |
+| Máy chủ thật | Khi Kevin cho một máy (ví dụ trên hạ tầng Kdata) và địa chỉ lâu dài ([system-map, U4](../../archive/baseline/system-map.md#61-chỉ-người-trong-công-ty-trả-lời-được)) | Việc mở ra ngoài, TLS và nơi chạy nằm ở một issue riêng | Chờ câu trả lời của Kevin (#18); không chặn mốc 1 |
 
 7. **Quy tắc cho mọi địa chỉ công khai.**
    Chỉ dữ liệu giả.
@@ -127,7 +127,7 @@ Chọn (b): cổng ở một máy chủ chung, Thổ Thần web và desktop gọ
   - Mở cổng ra ngoài: TLS, nơi chạy, chặn đường dẫn không được ra, giới hạn tốc độ, hẹn giờ tắt tunnel.
   - Chuyển module lưu trữ sang Postgres theo [ADR-0003, mục 5](adr-0003-technology-stack.md#5-xem-lại-khi); điều kiện kích hoạt ở đó là cổng phải chạy nhiều bản cùng lúc, nên issue nêu rõ một tiến trình với SQLite còn đủ hay không.
 - Sửa issue #10 và #15 để mốc 1 nghiệm thu qua `/mcp`, và đóng #7 ở trạng thái không làm.
-- [Spec bản thử](../../rd/design/mvp-spec.md) sửa theo: sơ đồ, cách cài, mục 11.
+- [Spec bản thử](../../archive/baseline/mvp-spec.md) sửa theo: sơ đồ, cách cài, mục 11.
 
 **Kết luận:** quyết định này bỏ một thành phần (chương trình nối) và thêm một việc vận hành (địa chỉ công khai); cả hai đều có issue và có số đo.
 
@@ -138,7 +138,7 @@ Chọn (b): cổng ở một máy chủ chung, Thổ Thần web và desktop gọ
 | U4 (địa chỉ công khai): Kevin không cho mở địa chỉ công khai nào, kể cả tạm | Quay về (a): làm #7, cổng chạy trên máy Lab, nghiệm thu mốc 1 trên desktop với một tài khoản; Thổ Thần web và lớp header của ADR-0005 không kiểm được, và báo cáo phải ghi rõ |
 | U4: Kevin cho một máy chủ chạy lâu dài | Bỏ tunnel; làm issue mở ngoài trên máy đó; chạy lại S3 và S4 qua địa chỉ cố định; xét Postgres |
 | U4: Kevin chỉ cho tunnel tạm | Giữ quy trình ở mục 3; ghi số phiên và số bước vào M5 |
-| U1 (thiết bị): người dùng thật ở web hoặc điện thoại | Không đổi quyết định; mốc 2 đo trên web trước, và chạy V7 (điện thoại) ở [system-map, mục 6.2](../../rd/design/system-map.md#62-lab-tự-kiểm-được) |
+| U1 (thiết bị): người dùng thật ở web hoặc điện thoại | Không đổi quyết định; mốc 2 đo trên web trước, và chạy V7 (điện thoại) ở [system-map, mục 6.2](../../archive/baseline/system-map.md#62-lab-tự-kiểm-được) |
 | U1: người dùng thật chỉ ở desktop và Kevin không cho địa chỉ công khai | Như dòng đầu: quay về (a) |
 | Thổ Thần desktop đổi và gọi thẳng từ máy người dùng thay vì qua máy chủ Thổ Thần | Chạy lại S4; nếu đúng, (a) hoặc (c) có lại lý do |
 | Phép đo `slow` qua HTTPS cho mốc cắt khác 60 giây, hoặc p95 của một lời gọi vượt mức dùng được (M1) | Sửa thời gian chờ trong spec; không đổi vị trí của cổng |

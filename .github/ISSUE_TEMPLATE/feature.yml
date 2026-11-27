@@ -22,7 +22,7 @@ body:
       description: Yêu cầu SR1-SR8 (ghi kèm tên), ADR, spec hoặc tài liệu trong rd/.
       placeholder: |
         - SR2 (kiểm tra quyền) trong rd/problem/prd-ai-platform.md
-        - rd/design/mvp-spec.md
+        - rd/design/write-safety-spec.md
   - type: textarea
     id: acceptance
     attributes:

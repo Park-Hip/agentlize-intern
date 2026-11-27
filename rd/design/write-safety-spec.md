@@ -144,4 +144,4 @@ Thứ tự làm:
 - [Danh mục vấn đề](../problem/open-problems.md)
 - [Kế hoạch cập nhật hệ thống giả lập](simulation-update-plan.md)
 - [Thứ tự tìm hiểu](write-safety-research-plan.md)
-- [Spec bản thử](mvp-spec.md)
+- [Spec bản thử](../../archive/baseline/mvp-spec.md)

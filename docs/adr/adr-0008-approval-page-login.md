@@ -19,10 +19,10 @@ Lời hứa "AI không bấm thay được" ([ADR-0002, mục 3](adr-0002-safe-r
 
 Giả định này yếu đi vì hai điều:
 
-- Bản Thổ Thần ngày 2026-11-18 có Thổ Thần Bridge, cho agent chạy lệnh thẳng trên máy người dùng ([khảo sát Thổ Thần, mục 3.7](../../rd/appota/tho-than-platform.md#37-bản-dựng-mới-ngày-2026-11-18-ứng-dụng-điện-thoại-và-thổ-thần-bridge)).
+- Bản Thổ Thần ngày 2026-11-18 có Thổ Thần Bridge, cho agent chạy lệnh thẳng trên máy người dùng ([khảo sát Thổ Thần, mục 3.7](../../rd/research/tho-than-platform.md#37-bản-dựng-mới-ngày-2026-11-18-ứng-dụng-điện-thoại-và-thổ-thần-bridge)).
   Nếu Thổ Thần desktop lưu cấu hình skill trên máy, agent có thể đọc khoá, đăng nhập, mở trang để lấy mã chống giả mạo (CSRF token), rồi gửi lệnh bấm.
   Lab chưa đo nơi lưu khoá.
-- Khoá được dán vào ô cấu hình skill, tức là nằm ở máy chủ Thổ Thần và ở mọi nơi cấu hình đó đi qua ([khảo sát Thổ Thần, mục 2.1](../../rd/appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
+- Khoá được dán vào ô cấu hình skill, tức là nằm ở máy chủ Thổ Thần và ở mọi nơi cấu hình đó đi qua ([khảo sát Thổ Thần, mục 2.1](../../rd/research/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
 
 Bước duyệt của mốc 3 còn thiếu ba điều: người duyệt biết có việc chờ ở đâu, chờ được bao lâu, và đăng nhập bằng gì.
 [ADR-0002, mục 3](adr-0002-safe-read-and-write.md#3-quyết-định-về-ghi) từng nhắc mức 24 giờ cho việc cần duyệt, nhưng chưa chốt.
@@ -36,7 +36,7 @@ Bước duyệt của mốc 3 còn thiếu ba điều: người duyệt biết c
 | A. Giữ khoá công cụ làm thông tin đăng nhập trang | Không phải làm gì | Ai đọc được khoá, kể cả agent qua Bridge, tự bấm được; SR4 (điểm dừng rủi ro) chỉ đúng khi giả định trên đúng | Loại |
 | B. Mỗi nhân vật có một mật khẩu trang riêng, khác khoá công cụ | Nơi gọi công cụ không giữ thứ mở được trang; rẻ; vẫn là đăng nhập giả lập, ghi rõ trên trang | Người dùng giữ hai thứ; thêm một bảng và một lệnh cấp | **Chọn** |
 | C. Mã dùng một lần gửi qua kênh khác (Lark, email) | Gần với thực tế hơn | Lab không nối Lark hay email và chỉ dùng dữ liệu giả | Loại |
-| D. Đăng nhập thật (SSO) | Đúng cách cho hệ thống thật | Ngoài phạm vi bản thử ([spec, mục 5.3](../../rd/design/mvp-spec.md#53-ngoài-phạm-vi-và-vì-sao)) | Để sau |
+| D. Đăng nhập thật (SSO) | Đúng cách cho hệ thống thật | Ngoài phạm vi bản thử ([spec, mục 5.3](../../archive/baseline/mvp-spec.md#53-ngoài-phạm-vi-và-vì-sao)) | Để sau |
 
 Về hạn chờ duyệt:
 

@@ -399,7 +399,7 @@ Phần nên làm là P12 (kiểm lại quyền ngay trước khi gửi) và lu�
 
 **Chuyện gì xảy ra:** khi được nhờ đổi dữ liệu, trợ lý trả lời như đã làm mà không gọi công cụ soạn đề xuất.
 
-**Lab đã có:** đo Q2 với 240 hội thoại; cửa MCP sai 8/120, cửa gọi hàm sai 1/120, cả 9 lần sai đều là bỏ bước soạn đề xuất ([báo cáo Q2](../evaluation/q2-assistants.md)).
+**Lab đã có:** đo Q2 với 240 hội thoại; cửa MCP sai 8/120, cửa gọi hàm sai 1/120, cả 9 lần sai đều là bỏ bước soạn đề xuất ([báo cáo Q2](../../archive/baseline/q2-assistants.md)).
 
 **Còn trống:** chưa biết cách bày công cụ nào làm trợ lý ít bỏ bước nhất.
 Các lựa chọn gồm vài công cụ nghiệp vụ viết tay, công cụ sinh tự động theo nguồn, meta tool kiểu "tìm, xem mô tả, chạy", hoặc một công cụ gộp "đọc rồi soạn đề xuất".
@@ -414,7 +414,7 @@ Con số 8/120 so với 1/120 cũng cần tính lại theo từng việc, vì c�
 
 **Chuyện gì xảy ra:** trợ lý nói "đã chuyển T-12 cho anh Minh" trong khi đề xuất còn chờ duyệt hoặc đã bị từ chối.
 
-**Lab đã có:** nghiệm thu mốc 3 thấy trợ lý đếm sai số task nhưng trang duyệt vẫn hiện đúng ([nghiệm thu mốc 3](../evaluation/milestone-3-tho-than.md)).
+**Lab đã có:** nghiệm thu mốc 3 thấy trợ lý đếm sai số task nhưng trang duyệt vẫn hiện đúng ([nghiệm thu mốc 3](../../archive/baseline/milestone-3-tho-than.md)).
 Lệnh bị từ chối trả mã lý do rõ ràng, không trả "ok".
 
 **Còn trống:** chưa đo tỉ lệ lời báo cuối của trợ lý khớp với trạng thái thật của cổng.
@@ -446,7 +446,7 @@ Câu lệnh cài cắm (prompt injection) là chữ giấu trong dữ liệu khi
 Trợ lý soạn đúng đề xuất đó, kèm lời tóm tắt nghe hợp lý.
 
 **Lab đã có:** dữ liệu từ hệ thống được bọc giữa hai dấu "dữ liệu, không phải lệnh", và dấu giả trong dữ liệu bị thay trước ([`tools/block.ts`](../../lab/gateway/src/tools/block.ts)).
-Nghiệm thu mốc 2 đã thử với T-13 ([nghiệm thu mốc 2](../evaluation/milestone-2-tho-than.md)).
+Nghiệm thu mốc 2 đã thử với T-13 ([nghiệm thu mốc 2](../../archive/baseline/milestone-2-tho-than.md)).
 Trang duyệt hiện dữ liệu cổng lưu, không hiện lời tóm tắt của trợ lý.
 
 **Còn trống:** cách bọc dữ liệu hạ tỉ lệ tấn công cố định xuống dưới 2%, nhưng kẻ tấn công thích nghi phá được trên 95% ([arXiv 2403.14720](https://arxiv.org/abs/2403.14720), [arXiv 2510.09023](https://arxiv.org/html/2510.09023v1)).

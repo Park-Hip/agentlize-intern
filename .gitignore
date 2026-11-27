@@ -9,3 +9,5 @@ lab/.data/
 lab/**/dist/
 lab/**/node_modules/
 .claude/
+.commandcode/
+draft_*/

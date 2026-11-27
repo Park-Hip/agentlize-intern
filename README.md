@@ -9,26 +9,33 @@ Owner of every artifact in this repo: Phạm Bách Hiệp. Mentor: Kevin.
 
 Start with [the prototype phases](docs/milestones.md): what each phase asked, what it concluded, and what is open now.
 
+The current phase, writing safely into target systems such as Lark:
+
 | Topic | Folder | Contents |
 | --- | --- | --- |
-| Problem | [rd/problem](rd/problem) | [PRD - AI Platform](rd/problem/prd-ai-platform.md): problem, users, requirements SR1-SR8; [bảng thuật ngữ](rd/problem/glossary.md); [mental model](rd/problem/track01-mental-model.html) |
-| Outside research | [rd/research](rd/research) | [Market lessons](rd/research/market-lessons.md), [market landscape](rd/research/market-landscape.md), [option comparison](rd/research/option-comparison.md), [comparison framework](rd/research/comparison-framework.md), [five methods](rd/research/five-methods), [real systems](rd/research/real-system-architectures.md), [MCP overview](rd/research/mcp-overview.md) |
-| Appota systems | [rd/appota](rd/appota) | [Thổ Thần platform](rd/appota/tho-than-platform.md), [MCP probe results in Thổ Thần](rd/appota/tho-than-mcp-probe.md), [Appota cases](rd/appota/appota-cases.md), [AppotaPay skills](rd/appota/appotapay-skills.md) |
-| Design | [rd/design](rd/design) | [Prototype spec](rd/design/mvp-spec.md), [system map](rd/design/system-map.md) |
+| Problem | [rd/problem](rd/problem) | [PRD - AI Platform](rd/problem/prd-ai-platform.md): problem, users, requirements SR1-SR8; [bảng thuật ngữ](rd/problem/glossary.md); [open problems](rd/problem/open-problems.md) |
+| Design | [rd/design](rd/design) | [Write-safety spec](rd/design/write-safety-spec.md) and its [options](rd/design/write-safety-options.md), [Q3 measurement plan](rd/design/q3-measurement-plan.md), [simulation update plan](rd/design/simulation-update-plan.md), [AgentLize gateway alignment](rd/design/agentlize-gateway-alignment.md) |
+| Target systems | [rd/research](rd/research) | [Thổ Thần platform](rd/research/tho-than-platform.md), [Lark Open API](rd/research/lark-open-api.md), [target system gaps](rd/research/target-system-gaps.md) |
+| Evaluation | [rd/evaluation](rd/evaluation) | [How the measurements work](rd/evaluation/measurements-explained.md), and the [results](rd/evaluation/results) of every phase |
 | Source checks | [rd/checks](rd/checks) | One script per document that re-opens the cited URLs |
-| Host probe | [tools/mcp-probe](tools/mcp-probe) | Throwaway MCP server that recorded how Thổ Thần behaves as an MCP host ([README](tools/mcp-probe/README.md)) |
 | Prototype | [lab](lab) | AI Operations Connector Lab: gateway, fake systems, `/mcp`, tests ([README](lab/README.md)) |
-| Acceptance | [rd/evaluation](rd/evaluation) | [Milestone 1 runbook](rd/evaluation/milestone-1-tho-than.md) for the manual run in Thổ Thần |
+
+Closed phases:
+
+- [archive/research](archive/research): choosing how to connect, the option comparison, the market survey, MCP overview, and the Thổ Thần probe.
+- [archive/baseline](archive/baseline): the first prototype spec, the milestone 1-3 acceptance runs in Thổ Thần, and the Q2 report.
 
 Other places:
 
+- [docs/adr](docs/adr): one file per architecture decision.
 - [docs/program](docs/program): the official 8 week program text.
 - [docs/context](docs/context): Appota AI ecosystem.
-- [submitted](submitted): PDFs already handed in, [weekly reports](submitted/weekly-report) sent to Lark, and [weekly plans](submitted/weekly-plan).
+
+Reports handed to the program are Lark docs; the repo keeps no copy.
 
 ## Commands
 
 ```
-bash tools/render/render.sh docs/milestones.md   # PDF to dist/
-python tools/check-docs.py                    # links, em dash, file names
+python tools/check-docs.py    # links, em dash, file names
+python tools/check-merge.py   # conflicts with main and with open PRs
 ```

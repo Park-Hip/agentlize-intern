@@ -17,12 +17,12 @@ Hôm nay việc đó cần năm bước rời nhau:
 
 - Danh mục tool: gọi `GET /v1/tools`, đọc JSON.
 - Quyền và trường: sửa tay `lab/gateway/policy/rules.json`, file đã commit; mỗi lần thử đổi quyền làm bẩn git.
-- Thử một câu: hỏi trong Thổ Thần, mà gói FREE chỉ có 500 credit và [spec, mục 7.1](../../rd/design/mvp-spec.md#71-ba-lớp-thử) chỉ chạy lớp này khi nghiệm thu một mốc; hoặc tự viết `curl` với khoá.
+- Thử một câu: hỏi trong Thổ Thần, mà gói FREE chỉ có 500 credit và [spec, mục 7.1](../../archive/baseline/mvp-spec.md#71-ba-lớp-thử) chỉ chạy lớp này khi nghiệm thu một mốc; hoặc tự viết `curl` với khoá.
 - Vết: `npm run trace`, chỉ lọc theo người hoặc theo task.
 - Dữ liệu của hai hệ thống giả: chỉ đọc được bằng API có khoá dịch vụ.
 
 Mentor hay quản lý không xem được bản thử nếu không có người gõ lệnh hộ.
-[Spec, mục 4.2](../../rd/design/mvp-spec.md#42-từng-loại-người-dùng) hứa một trang tra vết của cổng, nhưng trang đó chưa có issue.
+[Spec, mục 4.2](../../archive/baseline/mvp-spec.md#42-từng-loại-người-dùng) hứa một trang tra vết của cổng, nhưng trang đó chưa có issue.
 
 Ba điều làm việc này rẻ hơn vẻ ngoài:
 
@@ -71,7 +71,7 @@ Phương án B giữ ranh giới đó bằng mạng, không bằng mã.
 | Dữ liệu gốc | Bảng nhân viên và bảng task như hai hệ thống giả đang lưu, ghi rõ "góc nhìn người vận hành, AI không thấy thế này"; nút đặt lại dữ liệu và gây lỗi | API của hai hệ thống giả |
 | Vết | Lọc theo người, task, đề xuất, cửa vào; gom theo đề xuất để thấy chuỗi soạn, xác nhận, ghi; tự làm mới | Bảng `trace` |
 
-Các kịch bản mẫu của sân chơi là kịch bản A, B và D của [spec, mục 3](../../rd/design/mvp-spec.md#3-bản-thử-hôm-nay), câu lệnh cài trong mô tả T-12, và một câu hỏi ngoài phạm vi.
+Các kịch bản mẫu của sân chơi là kịch bản A, B và D của [spec, mục 3](../../archive/baseline/mvp-spec.md#3-bản-thử-hôm-nay), câu lệnh cài trong mô tả T-12, và một câu hỏi ngoài phạm vi.
 Kịch bản C (duyệt 30 task) vào sân chơi khi mốc 3 có phần duyệt.
 
 ### 3.3. Gọi thử đi qua cổng thật
@@ -129,7 +129,7 @@ Phép thử dùng `node:test` trên mã đã build; các màn hình có form cò
 
 - `npm start` chạy bốn tiến trình thay vì ba.
 - Cổng đổi hai chỗ: đọc luật từ `LAB_RULES_PATH`, và bật WAL cho `gateway.sqlite`.
-- [Spec, mục 6](../../rd/design/mvp-spec.md#6-kiến-trúc-tóm-tắt) đổi theo: cổng phục vụ trang đăng nhập, xác nhận và duyệt; tra vết nằm ở console.
+- [Spec, mục 6](../../archive/baseline/mvp-spec.md#6-kiến-trúc-tóm-tắt) đổi theo: cổng phục vụ trang đăng nhập, xác nhận và duyệt; tra vết nằm ở console.
   Dòng "Trang xác nhận, duyệt, tra vết" trong [ADR-0003, mục 2](adr-0003-technology-stack.md#2-quyết-định) đọc theo ADR này.
 - Ai có quyền vào máy chạy cổng thì sửa được luật của mọi người; với Lab đây là chấp nhận được, với hệ thống thật thì không.
 - Sửa luật không có bước duyệt; dấu vết duy nhất là phiên bản tăng và bản `rules-history/v<n>.json`.
