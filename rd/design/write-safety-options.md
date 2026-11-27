@@ -543,7 +543,7 @@ Nguồn ngoài giữ A: không chuẩn nào chống trùng hai lần gửi khác
 
 Các phương án trên dựa vào tài liệu của Lark, Stripe, Meta, mã của Lab và các nguồn công khai dưới đây.
 Kết quả đọc đã ghi vào mục 2 tới 10; mỗi câu trích có kiểm chứng trong `rd/checks/write-safety-options.sh`.
-Bảng dưới liệt kê nguồn công khai đã đọc, trừ dòng Lark Task thuộc việc R1.
+Bảng dưới liệt kê nguồn công khai đã đọc; dòng Lark Task được trả lời ở [Lark Open API](../research/lark-open-api.md).
 
 | Mục | Câu hỏi khi đọc | Nguồn cần đọc |
 | --- | --- | --- |
@@ -558,7 +558,6 @@ Bảng dưới liệt kê nguồn công khai đã đọc, trừ dòng Lark Task 
 | 2, 3, 4 | Lark Task có trường tuỳ ý cho dấu, có tìm theo trường đó, có sự kiện thay đổi task, có thời gian sửa cuối không | Tài liệu Lark Task v2 và một lần thử trên ứng dụng Lark thử |
 
 Mỗi nguồn đọc xong ghi vào mục tương ứng ở trên: phương án nào nó ủng hộ, phương án nào nó cho thấy còn thiếu.
-Giới hạn thời gian: nửa ngày cho mỗi dòng, theo [thứ tự tìm hiểu](write-safety-research-plan.md).
 
 **Kết luận:** đã đọc xong, giờ đo.
 Một phương án đã có ở hệ thống lớn và được đo trên hồ sơ giả thì mới đủ để chốt.

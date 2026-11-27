@@ -1,6 +1,6 @@
 # Kế hoạch cập nhật hệ thống giả lập và phép thử
 
-Ngày: 2026-11-24. Trạng thái: kế hoạch, chưa bắt đầu việc nào; spec ghi an toàn đã nhận U1 và U4, các phần còn lại xem mục 6.2.
+Ngày: 2026-11-27. Trạng thái: bước 0, U2, U4 và U5 đã xong; U1 đang đo (#144); U3 chờ #146 và ADR-0009.
 
 ## Đọc nhanh
 
@@ -223,14 +223,14 @@ Cho file luật chọn một trong hai cách tìm người duyệt cho từng lo
 
 ### 6.1. Thứ tự
 
-| Thứ tự | Việc | Phụ thuộc | Vì sao đứng ở đây |
-| --- | --- | --- | --- |
-| 1 | Bước 0 | Không | Ba cập nhật cần câu trả lời của nó |
-| 2 | U1 | Các hồ sơ đích của spec | Rẻ nhất, dùng lại toàn bộ phép đo |
-| 3 | U2 | Bước 0 | Mở khoá P3 và P4 thật; chạm file nóng nên đi một mình |
-| 4 | U3 | Bước 0, ADR-0009 | Lớn nhất, cần quyết định kiến trúc trước |
-| 5 | U4 | Bước 0 | Độc lập, nhỏ |
-| 6 | U5 | U2 | Có giá trị nhất khi đã có đơn nghỉ phép |
+| Thứ tự | Việc | Phụ thuộc | Vì sao đứng ở đây | Tình trạng |
+| --- | --- | --- | --- | --- |
+| 1 | Bước 0 | Không | Ba cập nhật cần câu trả lời của nó | Xong, #168 |
+| 2 | U1 | Các hồ sơ đích của spec | Rẻ nhất, dùng lại toàn bộ phép đo | Đang đo, #144 |
+| 3 | U2 | Bước 0 | Mở khoá P3 và P4 thật; chạm file nóng nên đi một mình | Xong, #164 |
+| 4 | U3 | Bước 0, ADR-0009 | Lớn nhất, cần quyết định kiến trúc trước | Chờ, #146 |
+| 5 | U4 | Bước 0 | Độc lập, nhỏ | Công tắc đã có trong hồ sơ `lark-task` (#159); số đo nằm trong #144 |
+| 6 | U5 | U2 | Có giá trị nhất khi đã có đơn nghỉ phép | Xong, #165 |
 
 U4 và U5 chạy song song được với U3 vì không chung file.
 Mỗi cập nhật là một issue `feature` với phạm vi file ghi ở mục 4, theo [AGENTS.md, mục 9](../../AGENTS.md#9-issues-and-pull-requests).

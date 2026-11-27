@@ -591,7 +591,7 @@ Hướng 3 rẻ nhất vì dùng lại nguyên bộ đo Q2.
 Hướng 2 có tin mới nhất nhưng phụ thuộc mô hình đủ mạnh để thao tác máy.
 Hướng 4 tạo khác biệt riêng cho Appota và mở khoá việc dùng dữ liệu thật.
 
-**Kết luận:** chọn hai hoặc ba hướng trong bốn, rồi viết lại spec ghi an toàn và thứ tự tìm hiểu theo hướng đã chọn.
+**Kết luận:** chọn hai hoặc ba hướng trong bốn, rồi viết lại spec ghi an toàn theo hướng đã chọn.
 
 ## 8. Chưa kiểm chứng
 

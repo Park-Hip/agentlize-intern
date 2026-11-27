@@ -1,6 +1,6 @@
 # Kế hoạch đo Q3: cổng còn ghi an toàn không khi đích không hợp tác
 
-Ngày: 2026-11-24. Trạng thái: kế hoạch, chưa chạy; đo cách làm hôm nay trước, rồi mới đo các phương án thiết kế.
+Ngày: 2026-11-27. Trạng thái: hồ sơ đích giả đã dựng (#159); đang đo cách gửi một lần và cách làm hôm nay (#144), rồi mới đo các phương án thiết kế.
 
 ## Đọc nhanh
 
