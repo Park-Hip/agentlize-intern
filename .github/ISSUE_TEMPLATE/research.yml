@@ -32,8 +32,8 @@ body:
     id: output
     attributes:
       label: Ghi kết quả vào
-      description: rd/findings.md hoặc tài liệu mà kết quả làm thay đổi.
-      placeholder: rd/findings.md mục 4
+      description: Tài liệu mà kết quả làm thay đổi; kết quả đổi hướng thì thêm vào giai đoạn hiện tại của docs/milestones.md.
+      placeholder: rd/design/write-safety-options.md mục 3
     validations:
       required: true
   - type: checkboxes

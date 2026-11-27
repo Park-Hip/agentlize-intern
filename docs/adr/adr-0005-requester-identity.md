@@ -28,7 +28,7 @@ Những gì đã đo hoặc đọc được:
 - Phiên đo chỉ có một tài khoản và một skill; chưa biết hai tài khoản có mã khác nhau không, và chưa biết máy chủ Thổ Thần ghi đè hay nối thêm header người dùng tự đặt ([khảo sát Thổ Thần, mục 9](../../rd/appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được), H9 và H10).
 - Log gốc của phiên đo không còn trên máy; cái còn lại là bảng tóm tắt có số dòng, nên độ tin cậy của phần header là trung bình ([khảo sát Thổ Thần, mục 3.6](../../rd/appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
 
-Một điều kiện nữa chưa biết, và nó quyết định mô hình có dùng được trong thực tế hay không: skill do từng người tự thêm, hay quản trị viên chia sẻ một skill cho cả tổ chức ([tổng hợp phát hiện, mục 6](../../rd/findings.md#6-câu-hỏi-còn-mở)).
+Một điều kiện nữa chưa biết, và nó quyết định mô hình có dùng được trong thực tế hay không: skill do từng người tự thêm, hay quản trị viên chia sẻ một skill cho cả tổ chức ([khảo sát Thổ Thần, mục 9](../../rd/appota/tho-than-platform.md#9-câu-hỏi-mở-và-giả-thuyết-kiểm-được)).
 Nếu cả tổ chức dùng chung một skill và một khoá, khoá không nói được ai đang hỏi.
 
 **Kết luận:** thứ duy nhất Lab chứng minh được hôm nay là khoá riêng tới được cổng và đổi được theo từng người; mã tài khoản của Thổ Thần là một lời khai chưa kiểm chứng, không phải một bằng chứng danh tính.

@@ -25,7 +25,7 @@ Nó ghép các nguồn đã có, và gắn mỗi mối nối với nguồn mạn
 
 | Mức | Nghĩa | Nguồn trong repo |
 | --- | --- | --- |
-| Đã đo | Có log và ảnh, chạy lại được | [Kịch bản đo Thổ Thần](../appota/tho-than-mcp-probe.md), ngày 2026-11-16; thử Thổ Thần web ngày 2026-11-17 ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)) |
+| Đã đo | Có log và ảnh, chạy lại được | [Kịch bản đo Thổ Thần](../appota/tho-than-mcp-probe.md), ngày 2026-11-16; thử Thổ Thần web ngày 2026-11-17 ([khảo sát Thổ Thần, mục 2.1](../appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)) |
 | Theo tài liệu công khai | Đọc từ mã nguồn hay tài liệu công bố, chưa chạy | [Khảo sát Thổ Thần](../appota/tho-than-platform.md), [MausBot](../research/mausbot.md) |
 | Kế hoạch | Có trong bản nháp nội bộ hay trong spec của Lab, chưa thấy chạy | [Slide hệ sinh thái](../../docs/context/appota-ai-ecosystem.md), [PRD Skill Studio](../../docs/context/prd-agentlize-skill-studio.docx), [spec bản thử](mvp-spec.md) |
 | Chưa biết | Không nguồn nào nói | - |
@@ -134,7 +134,7 @@ PRD Skill Studio duyệt một Skill trước khi cả phòng dùng, và duyệt
 Lab duyệt từng lệnh ghi rủi ro, như chuyển 30 task, trên trang của cổng.
 
 Danh tính là chỗ cổng phụ thuộc vào nơi chat.
-Hôm nay cổng nhận người qua khoá riêng, vì Thổ Thần không chuyển danh tính mà cổng kiểm chứng được ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)).
+Hôm nay cổng nhận người qua khoá riêng, vì Thổ Thần không chuyển danh tính mà cổng kiểm chứng được ([khảo sát Thổ Thần, mục 2.1](../appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
 Về lâu dài, nơi chat nên gửi danh tính đã xác minh: token đăng nhập công ty theo chuẩn ủy quyền của MCP, hoặc token ngắn hạn do máy chủ Thổ Thần ký.
 Vì vậy phần "đổi khoá thành người" trong cổng phải là một module thay được, không rải khắp code.
 
@@ -203,7 +203,7 @@ Tuần 2 chạy từ 16/11 tới 22/11; hôm nay là thứ Ba 17/11.
 | Thứ Ba 17/11 | Gửi Kevin ba câu ở 6.1 cùng ba giới hạn của Thổ Thần; chạy V1, gồm cả lời gọi mô hình | Tin nhắn đã gửi; kết quả V1 ghi vào [khảo sát Thổ Thần](../appota/tho-than-platform.md) |
 | Thứ Tư 18/11 | Viết năm ADR ở [spec, mục 6](mvp-spec.md#6-kiến-trúc-tóm-tắt), mỗi ADR có mục "xem lại khi" gắn với U1-U3; chạy V5 và V6 | Có `docs/adr/adr-0001-<slug>.md` tới `adr-0005-<slug>.md` |
 | Thứ Năm 19/11 và thứ Sáu 20/11 | Mốc 1: danh bạ giả, cổng đổi khoá thành người, `find_employee` chỉ trả trường đã khai, chương trình nối stdio, vết; chạy kịch bản D (tra cứu có lọc) trong Thổ Thần | Kịch bản D có ảnh và log; phép thử SR3 (phạm vi quyền) đạt bằng một lệnh |
-| Thứ Bảy 21/11 | V3 và V7; còn thời gian thì V4; cập nhật [tổng hợp phát hiện](../findings.md) và viết báo cáo tuần | Báo cáo tuần 2 trong `submitted/weekly-report/` |
+| Thứ Bảy 21/11 | V3 và V7; còn thời gian thì V4; cập nhật tổng hợp phát hiện và viết báo cáo tuần | Báo cáo tuần 2 trong `submitted/weekly-report/` |
 
 Mốc 2 (ghi một task) làm tiếp nếu mốc 1 xong sớm; nếu không, nó mở đầu tuần 3.
 

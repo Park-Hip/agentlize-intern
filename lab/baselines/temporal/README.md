@@ -11,7 +11,7 @@ Gói nằm ngoài workspace của `lab/`, nên `npm start` và `npm test` của 
 - Cổng vẫn là nơi soạn đề xuất, bấm Gửi, duyệt và ghi vết; chỉ phần gửi lệnh ghi đổi sang workflow.
 - Mỗi lần đo dựng một Temporal dev server riêng trên cổng mạng trống và thư mục dữ liệu tạm, rồi xoá khi xong.
 - Cách chạy lại: `npm run measure -- q1-outbox --target temporal --runs 100` và `npm run measure -- m5-complexity --target temporal`.
-- Kết quả và kết luận Q1 nằm trong `rd/evaluation/results/` và `rd/findings.md`.
+- Kết quả và kết luận Q1 nằm trong `rd/evaluation/results/` và `docs/milestones.md`.
 
 ## Yêu cầu
 
@@ -141,4 +141,4 @@ Intern đã từng dùng Temporal trước đây hay chưa là câu hỏi để 
 Lượt tắt cả máy chủ trước đây không commit được vì trùng tên file với lượt 100 lần ở trên.
 Tên file kết quả nay có thêm tên đích và tên biến thể, nên hai lượt không còn có thể ghi đè nhau.
 
-Kết luận Q1 nằm trong `rd/design/mvp-spec.md` mục 2.1 và `rd/findings.md`.
+Kết luận Q1 nằm trong `rd/design/mvp-spec.md` mục 2.1 và `docs/milestones.md`.

@@ -7,7 +7,7 @@ Owner of every artifact in this repo: Phạm Bách Hiệp. Mentor: Kevin.
 
 ## Where things are
 
-Start with [findings](rd/findings.md): what the research found, the lessons, and what we build next.
+Start with [the prototype phases](docs/milestones.md): what each phase asked, what it concluded, and what is open now.
 
 | Topic | Folder | Contents |
 | --- | --- | --- |
@@ -29,6 +29,6 @@ Other places:
 ## Commands
 
 ```
-bash tools/render/render.sh rd/findings.md   # PDF to dist/
+bash tools/render/render.sh docs/milestones.md   # PDF to dist/
 python tools/check-docs.py                    # links, em dash, file names
 ```

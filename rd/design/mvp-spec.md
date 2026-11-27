@@ -188,7 +188,7 @@ Vì vậy chiều hướng "cách nào ít công hơn, rẻ hơn" mang sang đư
 | Hai cách ngang nhau, hoặc MCP chậm hơn, đắt hơn | Không nên dùng MCP khi mọi nơi gọi do cùng một nhóm viết; MCP chỉ đáng dùng khi cắm vào phần mềm của bên khác |
 
 Dù số đo ra sao, kết luận cũng ghi thêm điều đã đo trên Thổ Thần: MCP chỉ mang lời gọi, không mang an toàn.
-Trong Thổ Thần, MCP không cho cổng biết chắc ai đang hỏi, không có bước duyệt trước khi ghi, và cắt mọi lời gọi sau 60 giây ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)).
+Trong Thổ Thần, MCP không cho cổng biết chắc ai đang hỏi, không có bước duyệt trước khi ghi, và cắt mọi lời gọi sau 60 giây ([khảo sát Thổ Thần, mục 2.1](../appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
 
 **Kết quả đo ngày 2026-11-22.**
 Hai trợ lý chạy 160 hội thoại sạch và 80 hội thoại có lỗi, trên cùng một cổng, cùng mô hình `deepseek-flash`, cùng câu lệnh hệ thống và cùng sáu mô tả công cụ ([báo cáo Q2](../evaluation/q2-assistants.md)).
@@ -592,6 +592,6 @@ Các bước đang giả lập, và kết luận nào bị giới hạn theo:
 ## Tài liệu liên quan
 
 - [PRD](../problem/prd-ai-platform.md): bài toán, người dùng, tám yêu cầu, sáu chỉ số.
-- [Tổng hợp phát hiện](../findings.md): năm cách nối, thị trường, hành vi của Thổ Thần.
+- [Các giai đoạn của bản thử](../../docs/milestones.md): năm cách nối, thị trường, kết luận Q1 và Q2.
 - [So sánh phương án](../research/option-comparison.md): năm cách tích hợp chấm theo tám yêu cầu.
 - [Hướng dẫn chạy bản thử](../../lab/README.md).

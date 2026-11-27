@@ -96,7 +96,7 @@ Nếu trợ lý có làm theo, nó cũng chỉ soạn được đề xuất; ch�
   Câu "có giữ link khi tóm tắt không" không áp dụng, vì không có đề xuất nào.
 - [x] Trần 100 credit: bỏ qua có chủ ý, vì không ghi số credit trước phiên.
   Sau phiên còn 345/500 credit gói tháng và 155 credit nạp thêm, nên điều kiện dừng "còn dưới 100" không xảy ra.
-- [x] Bằng chứng ở tài liệu này; [tổng hợp, mục 8](../findings.md#8-bước-tiếp-theo) đã cập nhật.
+- [x] Bằng chứng ở tài liệu này; [các giai đoạn của bản thử](../../docs/milestones.md) đã cập nhật.
 
 **Kết luận:** mốc 2 đạt về hành vi; số credit đã dùng được bỏ qua có chủ ý, và lần chạy sau ghi credit trước khi hỏi câu đầu tiên.
 

@@ -270,7 +270,7 @@ Hệ quả cho kế hoạch:
 
 Điểm còn mở:
 
-- Ngưỡng 20 giây chờ ở U1 là số chọn để đo, nằm dưới mức Thổ Thần cắt lời gọi ở 60 giây ([tổng hợp phát hiện](../findings.md)); kết quả phải báo kèm ngưỡng này.
+- Ngưỡng 20 giây chờ ở U1 là số chọn để đo, nằm dưới mức Thổ Thần cắt lời gọi ở 60 giây ([khảo sát Thổ Thần, mục 2.1](../appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)); kết quả phải báo kèm ngưỡng này.
 - Chưa có nguồn công khai cho lược đồ bên trong của ACheckin (mã đơn, phòng, khoá chống ghi trùng); các trường đó là giả định của Lab, không phải của ACheckin.
 
 **Kết luận:** bước 0 không còn chặn U2, U3 và U4; U3 (ghi bằng token của người yêu cầu) còn chờ U1 #144 merge, và các khác biệt của `lab/fake-leave` được ghi lại thay vì sửa lặng lẽ.

@@ -28,4 +28,4 @@ Closes #
 - [ ] Test liên quan đã chạy và qua, lệnh ghi ở mục trên.
 - [ ] Không có dữ liệu thật, khóa, token hay dữ liệu khách hàng trong code, log, fixture hay commit.
 - [ ] Lệnh chạy thay đổi thì `AGENTS.md` mục 6 đã cập nhật.
-- [ ] Kết quả đổi hướng thì `rd/findings.md` đã cập nhật.
+- [ ] Kết quả đổi hướng thì giai đoạn hiện tại trong `docs/milestones.md` đã cập nhật.

@@ -245,7 +245,7 @@ Kiểm tra lại từng ảnh trước khi `git add`: không có khoá, không c
 - [x] Mọi ảnh đã che khoá và email thật, nằm cạnh tài liệu; log thô không vào git.
 
 Nếu một dòng không đánh dấu được, issue #10 vẫn mở và ghi lý do vào phần cuối tài liệu này.
-Sau khi đủ, cập nhật dòng mốc 1 ở [tổng hợp, mục 8](../findings.md#8-bước-tiếp-theo) và tick các ô trong issue #10.
+Sau khi đủ, cập nhật dòng mốc 1 ở [các giai đoạn của bản thử](../../docs/milestones.md) và tick các ô trong issue #10.
 
 **Kết luận:** mốc 1 chỉ đạt khi cả chín dòng trên có bằng chứng, không chỉ khi câu trả lời trông đúng.
 

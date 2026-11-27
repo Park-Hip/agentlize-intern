@@ -19,12 +19,12 @@ Ba việc khó nhất phải xảy ra trên cùng một lần ghi: SR3 (phạm v
 
 Bằng chứng đã có:
 
-- Mười một sản phẩm chấm theo tám yêu cầu, không sản phẩm nào đạt đủ; mỗi mảnh khó chỉ một sản phẩm làm, và không ai chống ghi trùng ở hệ đích ([tổng hợp phát hiện, mục 3](../../rd/findings.md#3-thị-trường-2026)).
+- Mười một sản phẩm chấm theo tám yêu cầu, không sản phẩm nào đạt đủ; mỗi mảnh khó chỉ một sản phẩm làm, và không ai chống ghi trùng ở hệ đích ([bài học từ thị trường](../../rd/research/market-lessons.md)).
 - Preloop là mã nguồn mở nhưng thiếu đúng SR1 (danh tính) và SR6, nên dựng trên nó vẫn phải viết lại phần lõi ([khảo sát thị trường, mục 6.2](../../rd/research/market-landscape.md#62-sản-phẩm-có-giải-bài-toán-của-lab-không)).
-- Thổ Thần không hỏi duyệt trước khi ghi và cắt lời gọi sau 60 giây ([tổng hợp phát hiện, mục 4](../../rd/findings.md#4-thổ-thần)).
+- Thổ Thần không hỏi duyệt trước khi ghi và cắt lời gọi sau 60 giây ([khảo sát Thổ Thần, mục 2.1](../../rd/appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
 - Thổ Thần chưa cho Lab một danh tính người dùng kiểm chứng được.
   Nối trên máy (stdio), server chỉ thấy tên ứng dụng, không thấy tài khoản.
-  Nối qua địa chỉ HTTPS công khai, máy chủ Thổ Thần gắn thêm header `x-user-id` và `x-user-email`, nhưng mới đo một tài khoản, và ai có khoá gọi thẳng địa chỉ của server cũng tự đặt được `x-user-id` ([tổng hợp phát hiện, mục 4](../../rd/findings.md#4-thổ-thần), [khảo sát Thổ Thần, mục 3.6](../../rd/appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
+  Nối qua địa chỉ HTTPS công khai, máy chủ Thổ Thần gắn thêm header `x-user-id` và `x-user-email`, nhưng mới đo một tài khoản, và ai có khoá gọi thẳng địa chỉ của server cũng tự đặt được `x-user-id` ([khảo sát Thổ Thần, mục 2.1](../../rd/appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả), [khảo sát Thổ Thần, mục 3.6](../../rd/appota/tho-than-platform.md#36-phép-đo-https-công-khai-2026-11-17)).
 
 Mục tiêu của Lab là bằng chứng chạy lại được và số đo so sánh, không phải đưa vào vận hành.
 

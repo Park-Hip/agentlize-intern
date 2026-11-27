@@ -220,7 +220,7 @@ Ngược lại, khi danh mục công cụ đổi thường xuyên, MCP có lợi
 
 **MCP chỉ mang lời gọi, không mang an toàn.**
 Quyền theo vai, bước duyệt, danh tính người hỏi và vết xuyên suốt vẫn nằm ở cổng; MCP không thêm bước duyệt, không xác thực người dùng và không cắt được một lời gọi sai.
-Trong Thổ Thần, MCP còn không cho cổng biết chắc ai đang hỏi và cắt mọi lời gọi sau 60 giây ([tổng hợp phát hiện, mục 4](../findings.md#4-thổ-thần)).
+Trong Thổ Thần, MCP còn không cho cổng biết chắc ai đang hỏi và cắt mọi lời gọi sau 60 giây ([khảo sát Thổ Thần, mục 2.1](../appota/tho-than-platform.md#21-thổ-thần-gọi-công-cụ-của-lab-thế-nào-và-hệ-quả)).
 
 **Kết luận:** chọn dòng thứ nhất cho trường hợp có từ hai nơi gọi; giữ toàn bộ phần an toàn ở cổng, vì MCP chỉ là đường vận chuyển lời gọi.
 Khoảng cách độ đúng 8/120 so với 1/120 là mức biên, cần mẫu lớn hơn để xác nhận, không đủ để đổi dòng.
