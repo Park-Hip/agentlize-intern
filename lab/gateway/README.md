@@ -139,6 +139,23 @@ npm run seed-keys [-- --rotate]
 - `seed-keys` cấp cả hai cho mỗi nhân vật và khách, và không chạy lại cho tới khi có `--rotate`.
 - Khoá của nơi gọi `lab-console` do trang điều khiển tự cấp và thu hồi, nên `seed-keys` bỏ qua chúng.
 
+## Bí mật OAuth lúc chạy
+
+Phần OAuth của cổng cần khóa mã hóa dữ liệu lưu, khóa ký và bảo vệ cookie, và bí mật của từng ứng dụng ([ADR-0011](../../docs/adr/adr-0011-lab-oauth-authorization.md)).
+Các giá trị này nằm trong một tệp riêng, ngoài SQLite và ngoài git.
+
+| Biến | Mặc định | Việc |
+| --- | --- | --- |
+| `LAB_OAUTH_KEY_FILE` | `<LAB_DATA_DIR>/oauth-keys/keys.json` | Tệp chứa khóa mã hóa, khóa cookie, khóa ký và bí mật ứng dụng |
+
+- Lần chạy đầu, khi cơ sở dữ liệu chưa có dữ liệu OAuth, cổng sinh tệp với quyền chỉ chủ sở hữu đọc.
+- Tệp đã có thì cổng đọc lại, nên khởi động lại vẫn mở được dữ liệu cũ.
+- Tệp mất hoặc hỏng trong khi cơ sở dữ liệu đã có dữ liệu OAuth thì cổng dừng, không sinh khóa thay thế.
+- Chưa có xoay khóa nóng: đổi khóa là thao tác có chủ đích, không tự xảy ra.
+
+Dữ liệu OAuth nằm ở hai bảng trong `gateway.sqlite`: `oauth_state` giữ bản ghi của thư viện cấp quyền, và `oauth_grants` giữ lần cấp quyền ổn định của Lab.
+Mỗi hàng `oauth_state` lưu khóa tra cứu đã băm và toàn bộ nội dung đã mã hóa AES-256-GCM; không có mã thô trong cột.
+
 ## Đường đi của một thay đổi
 
 Ví dụ: chị Hoa nhờ AI chuyển 30 task của chị Lan cho anh Minh.
@@ -289,4 +306,5 @@ Tra vết theo task, theo người hay theo đề xuất tự nối các dòng c
 | `src/writes/` | Kiểm lúc Gửi, lệnh ghi, vòng chạy nền |
 | `src/web/` | Trang đăng nhập, xác nhận, hộp chờ duyệt, trang duyệt |
 | `src/trace/` | Bảng vết và bảng chi phí |
+| `src/oauth/` | Bí mật lúc chạy, bộ lưu mã hóa của thư viện cấp quyền và lần cấp quyền ổn định |
 | `src/cli/` | Lệnh `keys`, `seed-keys`, `trace` |
