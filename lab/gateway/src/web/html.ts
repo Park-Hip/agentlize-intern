@@ -69,8 +69,6 @@ thead th{font-size:.8rem;font-weight:600;color:var(--muted);text-transform:upper
 .inbox td.nowrap{white-space:nowrap}
 /* An employee code such as (NV-06) stays on one line, so it never breaks at the hyphen. */
 .nowrap{white-space:nowrap}
-/* A long unbroken identifier, such as an OAuth grant id, wraps instead of widening the table. */
-.grant-code{overflow-wrap:anywhere}
 tbody th{font-weight:600;color:var(--muted)}
 tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
 td.v{white-space:pre-wrap;overflow-wrap:anywhere}

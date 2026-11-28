@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { ReasonCode } from '@lab/shared';
 import type { GatewayDeps, OAuthConnectionSource } from '../../call.js';
 import { personLabel } from '../../proposals/card.js';
-import { layout, messagePage } from '../../web/html.js';
+import { esc, layout, messagePage } from '../../web/html.js';
 import { readForm } from '../../web/form.js';
 import {
   currentSession,
@@ -91,6 +91,19 @@ const STATUS_WORDS: Readonly<Record<ConnectionView['status'], string>> = {
   disabled: 'Ứng dụng đã tắt',
 };
 
+/** How many characters of a grant id the page shows before the ellipsis. */
+export const SHORT_GRANT_ID_LENGTH = 8;
+
+/**
+ * The readable form of a grant id: its first eight characters and an
+ * ellipsis, so a 43-character opaque id stays on one line under the app name.
+ * The full id is still reachable in the `title` attribute, and it is never what
+ * the page sends back: the form action carries the whole id, encoded.
+ */
+export function shortGrantId(grantId: string): string {
+  return grantId.length <= SHORT_GRANT_ID_LENGTH ? grantId : `${grantId.slice(0, SHORT_GRANT_ID_LENGTH)}…`;
+}
+
 /**
  * The page lists the signed-in person's grants only, each with the client name,
  * the scopes in words and a disconnect button. Nothing it shows comes from a
@@ -98,6 +111,11 @@ const STATUS_WORDS: Readonly<Record<ConnectionView['status'], string>> = {
  * from the grant table by that person (issue #182). It uses the gateway's
  * shared layout, so its colours, type and small-screen rules are the same ones
  * every other page already has.
+ *
+ * Every interpolated value goes through `esc`, like every other page of the
+ * gateway: a client name, a scope, a label or a grant id is data, never markup.
+ * The one address that carries the grant id is built with
+ * `encodeURIComponent`, so a character such as `/` or `<` cannot leave the path.
  */
 export function connectionsPage(view: {
   readonly viewerLabel: string;
@@ -113,25 +131,32 @@ export function connectionsPage(view: {
 <tbody>
 ${view.connections
   .map((connection) => {
+    // A known scope shows its everyday word and keeps the code beside it; an
+    // unknown one shows its own name, escaped, and no invented meaning.
     const scopes =
       connection.scopes.length === 0
         ? '(không có)'
         : connection.scopes
-            .map((scope) => `${SCOPE_LABELS[scope]?.label ?? scope} (<code>${scope}</code>)`)
+            .map((scope) => {
+              const known = SCOPE_LABELS[scope];
+              const code = `<code>${esc(scope)}</code>`;
+              return known === undefined ? code : `${esc(known.label)} (${code})`;
+            })
             .join(', ');
+    const action = `${CONNECTIONS_PATH}/${encodeURIComponent(connection.grantId)}/ngat`;
     const button =
       connection.status === 'active'
-        ? `<form method="post" action="/ket-noi/${connection.grantId}/ngat">
-<input type="hidden" name="csrf" value="${view.csrfToken}">
+        ? `<form method="post" action="${esc(action)}">
+<input type="hidden" name="csrf" value="${esc(view.csrfToken)}">
 <button type="submit" class="danger">Ngắt kết nối</button>
 </form>`
         : '<span class="meta">Không còn hiệu lực</span>';
     return `<tr>
-<td data-label="Ứng dụng">${connection.clientName}<br><span class="meta grant-code"><code>${connection.grantId}</code></span></td>
+<td data-label="Ứng dụng">${esc(connection.clientName)}<br><span class="meta nowrap" title="${esc(connection.grantId)}"><code>${esc(shortGrantId(connection.grantId))}</code></span></td>
 <td class="v" data-label="Phạm vi">${scopes}</td>
-<td class="nowrap" data-label="Kết nối lúc">${connection.createdAtLabel}</td>
-<td class="nowrap" data-label="Hết hạn">${connection.expiresAtLabel}</td>
-<td class="nowrap" data-label="Trạng thái"><strong>${STATUS_WORDS[connection.status]}</strong></td>
+<td class="nowrap" data-label="Kết nối lúc">${esc(connection.createdAtLabel)}</td>
+<td class="nowrap" data-label="Hết hạn">${esc(connection.expiresAtLabel)}</td>
+<td class="nowrap" data-label="Trạng thái"><strong>${esc(STATUS_WORDS[connection.status])}</strong></td>
 <td class="nowrap" data-label="Ngắt">${button}</td>
 </tr>`;
   })
@@ -143,7 +168,7 @@ ${view.connections
   return layout(
     'Kết nối ứng dụng',
     `<h1>Kết nối ứng dụng</h1>
-<p class="sub">Đăng nhập giả lập: ${view.viewerLabel}. Trang này chỉ hiện kết nối của nhân vật đang đăng nhập; ngắt một kết nối thì ứng dụng đó thôi gọi công cụ của Lab thay bạn.</p>
+<p class="sub">Đăng nhập giả lập: ${esc(view.viewerLabel)}. Trang này chỉ hiện kết nối của nhân vật đang đăng nhập; ngắt một kết nối thì ứng dụng đó thôi gọi công cụ của Lab thay bạn.</p>
 ${rows}
 <p class="meta">Ngắt kết nối thu hồi lần cấp quyền đó và mọi thẻ truy cập của nó. Một đề xuất đã soạn bằng kết nối đó sẽ không gửi, không duyệt hay ghi tiếp được; lệnh đã phát đi giữ nguyên kết quả thật. Kết nối lại tạo một lần cấp quyền mới, không mở lại đề xuất cũ.</p>`,
     undefined,
@@ -176,7 +201,16 @@ export async function handleConnections(
   if (path !== CONNECTIONS_PATH) {
     const match = CONNECTIONS_REVOKE_PATH.exec(path);
     if (match === null) return false;
-    await handleRevoke(deps, req, res, match[1] ?? '');
+    // The form action is built with `encodeURIComponent`, so the path segment is
+    // decoded before it is compared with a stored grant id.
+    let grantId: string;
+    try {
+      grantId = decodeURIComponent(match[1] ?? '');
+    } catch {
+      await handleRevoke(deps, req, res, '');
+      return true;
+    }
+    await handleRevoke(deps, req, res, grantId);
     return true;
   }
   await handleList(deps, req, res);
@@ -262,7 +296,7 @@ async function handleRevoke(
   // trace tells them apart, so a client cannot revoke someone else's grant.
   const owned = store.listByEmployee(active.session.employeeId).some((grant) => grant.grantId === grantId);
   if (!owned) {
-    return refuseWith(404, null, 'OAUTH.NOT_YOUR_GRANT', `Không tìm thấy kết nối ${grantId} của bạn.`, null);
+    return refuseWith(404, null, 'OAUTH.NOT_YOUR_GRANT', 'Không tìm thấy kết nối này của bạn.', null);
   }
 
   const changed = store.revoke(grantId);

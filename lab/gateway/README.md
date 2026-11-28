@@ -195,6 +195,8 @@ Handler là mặc định của cổng; phép thử có thể truyền handler k
 
 Trang ngắt kết nối ở `/ket-noi` (`src/oauth/web/connections.ts`) dùng cùng phiên đăng nhập trang và mã chống giả mạo với các trang khác.
 Trang chỉ liệt kê kết nối của nhân vật đang đăng nhập, mỗi dòng nêu ứng dụng, phạm vi, lúc nối, lúc hết hạn và một nút Ngắt kết nối khi kết nối còn hiệu lực.
+Mã kết nối dài được rút gọn còn tám ký tự đầu và dấu ba chấm, giữ trên một dòng; mã đầy đủ nằm ở thuộc tính `title` và trong địa chỉ của form.
+Mọi giá trị đưa vào trang đều qua `esc` như các trang khác, và địa chỉ form dựng bằng `encodeURIComponent`, nên một mã kết nối chứa ký tự HTML hay `/` vẫn hiện đúng chữ và không thoát khỏi đường dẫn.
 Bấm Ngắt kết nối thu hồi lần cấp quyền đó cùng mọi thẻ truy cập của nó; một mã kết nối của người khác trả 404 như mã không tồn tại, nên không ai thu hồi hộ người khác.
 Thu hồi một token qua `/oauth/token/revocation` chỉ chặn token đó; grant vẫn còn, và ứng dụng chỉ thu hồi được token của chính mình.
 

@@ -4,6 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test, { type TestContext } from 'node:test';
+import Database from 'better-sqlite3';
 import { DATA_DIR_ENV, PORT_ENV, RULES_PATH_ENV, SERVICE_KEY_ENV } from '@lab/shared';
 import { keyOf, pagePasswordOf, runCli } from './cli.js';
 import { freePorts, labRoot, spawnBuiltService, stopChild, waitForHealth, type SpawnedService } from './process.js';
@@ -14,6 +15,7 @@ const DEFAULT_RULES = join(labRoot, 'gateway', 'policy', 'rules.json');
 
 interface Lab {
   readonly base: string;
+  readonly dataDir: string;
   readonly env: NodeJS.ProcessEnv;
   readonly gatewayPort: number;
   readonly serviceKey: string;
@@ -66,6 +68,7 @@ async function startLab(t: TestContext): Promise<Lab> {
 
   return {
     base: `http://127.0.0.1:${gatewayPort}`,
+    dataDir,
     env,
     gatewayPort: gatewayPort ?? 0,
     serviceKey,
@@ -174,6 +177,48 @@ test('oauth revocation journey: the connections page needs a session, and a pres
   });
   assert.equal(foreign.status, 403);
   assert.match(await foreign.text(), /\[NOT_PERMITTED\]/);
+});
+
+test('oauth revocation journey: a grant id with HTML characters in the store is escaped on the page and reachable by its encoded press', async (t) => {
+  const lab = await startLab(t);
+  // Plant a grant whose id carries markup, as a hostile store could hold it.
+  const hostileId = 'g"<script>alert(1)</script>/../x';
+  const db = new Database(join(lab.dataDir, 'gateway.sqlite'));
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS oauth_grants (
+      grant_id TEXT PRIMARY KEY, employee_id TEXT NOT NULL, client_id TEXT NOT NULL, scope TEXT NOT NULL,
+      created_at TEXT NOT NULL, expires_at TEXT NOT NULL, revoked_at TEXT)`.replace(/\n\s+/g, ' '));
+    db.prepare(
+      `INSERT INTO oauth_grants (grant_id, employee_id, client_id, scope, created_at, expires_at, revoked_at)
+       VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+    ).run(hostileId, HOA, 'lab-demo-a', 'openid mcp:read', new Date().toISOString(), new Date(Date.now() + 3_600_000).toISOString());
+  } finally {
+    db.close();
+  }
+
+  const page = await signIn(lab, HOA, lab.hoaPagePassword, '/ket-noi');
+  const list = await fetch(`${lab.base}/ket-noi`, { headers: { cookie: page.cookie } });
+  const html = await list.text();
+  assert.equal(list.status, 200);
+  assert.doesNotMatch(html, /<script>/, 'the planted script tag is escaped, never executed');
+  assert.match(html, /&lt;script&gt;/, 'the id is shown as escaped text');
+
+  // The form action carries the whole id, percent-encoded, so a press can reach the exact grant.
+  const action = /action="\/ket-noi\/([^"]+)\/ngat"/.exec(html)?.[1] ?? '';
+  assert.notEqual(action, '', 'the hostile grant still has a disconnect form');
+  assert.ok(!action.includes('<') && !action.includes('/../'), 'the encoded action carries no raw markup or path climb');
+  assert.equal(decodeURIComponent(action), hostileId, 'the encoded segment decodes to the exact stored id');
+
+  const pressed = await fetch(`${lab.base}/ket-noi/${action}/ngat`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: { cookie: page.cookie, 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: page.csrf }).toString(),
+  });
+  assert.equal(pressed.status, 303, await pressed.text());
+
+  const after = await fetch(`${lab.base}/ket-noi`, { headers: { cookie: page.cookie } });
+  assert.match(await after.text(), /Đã ngắt/, 'the planted grant is now revoked, so the encoded press named it exactly');
 });
 
 test('oauth revocation journey: a key-drafted proposal still sends, so the new boundary left the old path alone', async (t) => {

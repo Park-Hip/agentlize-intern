@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { connectionsOf, connectionsPage, CONNECTIONS_PATH, CONNECTIONS_REVOKE_PATH, type ConnectionSource } from './connections.js';
+import { connectionsOf, connectionsPage, CONNECTIONS_PATH, CONNECTIONS_REVOKE_PATH, shortGrantId, SHORT_GRANT_ID_LENGTH, type ConnectionSource } from './connections.js';
 
 const NOW = new Date('2026-11-28T10:00:00.000Z');
 
@@ -97,3 +97,59 @@ test('oauth connections page: the two addresses are the list and a grant press, 
   assert.equal(CONNECTIONS_REVOKE_PATH.test('/ket-noi'), false);
   assert.equal(CONNECTIONS_REVOKE_PATH.test('/ket-noi/grant-x'), false);
 });
+
+test('oauth connections page: a short grant id stays on one line and the full id is only in the title', () => {
+  const grantId = 'XdxAbuqEwH3QgzSrPvD2-FAitAk_ceeDtVwi5VUTsZl';
+  assert.equal(shortGrantId(grantId), 'XdxAbuqE…');
+  assert.equal(SHORT_GRANT_ID_LENGTH, 8);
+  assert.equal(shortGrantId('short'), 'short', 'a short id is shown whole');
+
+  const html = connectionsPage({
+    viewerLabel: 'Nguyễn Thị Hoa (NV-02)',
+    connections: connectionsOf(source([grant({ grantId })]), 'NV-02', NOW),
+    csrfToken: 'csrf',
+  });
+  assert.match(html, /<span class="meta nowrap" title="XdxAbuqEwH3QgzSrPvD2-FAitAk_ceeDtVwi5VUTsZl"><code>XdxAbuqE…<\/code><\/span>/);
+  assert.ok(!/<td data-label="Ứng dụng">[^<]*<br><span[^>]*><code>XdxAbuqEwH3/.test(html), 'the body never shows the whole id');
+  // The button posts to the whole id, percent-encoded.
+  assert.match(html, /action="\/ket-noi\/XdxAbuqEwH3QgzSrPvD2-FAitAk_ceeDtVwi5VUTsZl\/ngat"/);
+});
+
+test('oauth connections page: every interpolated value is escaped, and the form action encodes the grant id', () => {
+  // A grant id and a client name carrying markup, as a hostile store or a
+  // misconfigured registration could hold them.
+  const hostileId = 'grant"<script>alert(1)</script>/../x';
+  const html = connectionsPage({
+    viewerLabel: 'Hoa <img src=x onerror=alert(1)> (NV-02)',
+    connections: [
+      {
+        grantId: hostileId,
+        clientName: '<b onclick="alert(1)">Ứng dụng</b>',
+        scopes: ['<svg onload=alert(1)>', 'mcp:read'],
+        createdAtLabel: '<i>x</i>',
+        expiresAtLabel: '<i>y</i>',
+        status: 'active',
+      },
+    ],
+    csrfToken: '"onmouseover="alert(1)',
+  });
+
+  // No raw tag or attribute break from any value reaches the page.
+  assert.doesNotMatch(html, /<script>/, 'the grant id script tag is escaped');
+  assert.doesNotMatch(html, /<img\s/, 'the viewer label tag is escaped');
+  assert.doesNotMatch(html, /<b onclick/, 'the client name tag is escaped');
+  assert.doesNotMatch(html, /<svg /, 'the unknown scope tag is escaped');
+  assert.ok(!html.includes('onerror=alert(1)>'), 'no attribute break from the viewer label');
+  assert.ok(!html.includes('"onmouseover="'), 'the CSRF token cannot break out of its attribute');
+  assert.match(html, /&lt;script&gt;/, 'what is shown is the escaped text');
+  assert.match(html, /&lt;b onclick=&quot;alert\(1\)&quot;&gt;/, 'the client name is escaped, quotes included');
+
+  // The one place the whole grant id travels is the form action, percent-encoded,
+  // so a `/` or a `<` cannot leave the path segment.
+  const action = /action="([^"]+)"/.exec(html)?.[1] ?? '';
+  assert.ok(action.startsWith('/ket-noi/'), 'the action is a fixed path');
+  assert.ok(!action.includes('<'), 'the action carries no raw angle bracket');
+  assert.ok(!action.includes('/../'), 'an encoded id cannot climb the path');
+  assert.equal(decodeURIComponent(action.slice('/ket-noi/'.length, -'/ngat'.length)), hostileId, 'the encoded action still names the exact grant');
+});
+
