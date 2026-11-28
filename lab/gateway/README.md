@@ -26,13 +26,16 @@ Hai cửa mở đúng cùng một danh mục tool, cùng khoá `lab_` và cùng 
 | `POST /v1/tools/<tên>` | Trang điều khiển, `curl`, phép thử | `{ "text", "reason_code", "deny_reason", "gateway_status", "untrusted_content", "truncated", "trace_id" }` |
 | `POST /mcp` | Thổ Thần và mọi client MCP (Streamable HTTP, `@modelcontextprotocol/sdk` 1.32.2) | `content[0].text` giống hệt `text` ở trên; `_meta` mang `reason_code`, `deny_reason`, `gateway_status`, `untrusted_content`, `truncated` và `trace_id` |
 
-Cả hai cần header `Authorization: Bearer <khoá lab_>`.
+Cửa `POST /v1/tools/<tên>` cần header `Authorization: Bearer <khoá lab_>`; cửa `/mcp` nhận khoá đó hoặc một thẻ truy cập OAuth.
 `GET /v1/tools` trả danh mục mà không cần khoá, vì danh mục không chứa dữ liệu.
 
 Cả hai cửa đọc thêm header `X-Lab-Turn` khi nơi gọi gửi nó: đó là mã lượt hội thoại, 1 tới 64 ký tự chữ, số và `- . _ : / @`.
 Header không bắt buộc.
 Thiếu header, gửi hai giá trị, hoặc gửi giá trị sai định dạng thì cột `turn_id` của vết để trống.
 Mã lượt là thứ nối các lời gọi của cùng một lượt với chi phí mô hình mà trợ lý báo sau đó.
+
+Riêng cửa `/mcp` nhận thêm thẻ truy cập OAuth của Lab, xem [OAuth cho cửa /mcp](#oauth-cho-cửa-mcp).
+Cửa `POST /v1/tools/<tên>` và `POST /v1/usage` chỉ nhận khoá `lab_`; thẻ OAuth gửi tới hai cửa đó trả 401, không được thử lại như khoá cũ.
 
 Riêng cửa `/mcp`:
 
@@ -155,6 +158,40 @@ Các giá trị này nằm trong một tệp riêng, ngoài SQLite và ngoài gi
 
 Dữ liệu OAuth nằm ở hai bảng trong `gateway.sqlite`: `oauth_state` giữ bản ghi của thư viện cấp quyền, và `oauth_grants` giữ lần cấp quyền ổn định của Lab.
 Mỗi hàng `oauth_state` lưu khóa tra cứu đã băm và toàn bộ nội dung đã mã hóa AES-256-GCM; không có mã thô trong cột.
+
+## OAuth cho cửa /mcp
+
+Cổng tự cấp quyền truy cập công cụ cho hai ứng dụng thử, trên dữ liệu giả, theo [ADR-0011](../../docs/adr/adr-0011-lab-oauth-authorization.md).
+Chỉ mở luồng `authorization_code` cho một tài nguyên là `<địa chỉ cổng>/mcp`; không có refresh token, không có `offline_access`.
+
+| Thành phần | Địa chỉ hoặc giá trị |
+| --- | --- |
+| Issuer | Gốc hostname của cổng, không có đường dẫn; cố định lúc chạy |
+| Discovery | `/.well-known/oauth-authorization-server` và `/.well-known/openid-configuration`, cùng một nội dung |
+| Thông tin tài nguyên | `/.well-known/oauth-protected-resource/mcp` |
+| Cấp mã | `GET /oauth/auth`, chỉ `response_type=code`, PKCE S256 bắt buộc, callback đã đăng ký khớp chính xác |
+| Đổi mã | `POST /oauth/token`, chỉ `authorization_code`, xác thực ứng dụng bằng `client_secret_basic` |
+| Thu hồi | `POST /oauth/token/revocation` |
+| Khóa công khai | `GET /oauth/jwks` |
+| Phạm vi | `openid`, `mcp:read`, `mcp:propose`; `mcp:propose` chỉ có hiệu lực khi có `mcp:read` |
+| Hạn | Mã 5 phút, thẻ truy cập opaque 60 phút, lần cấp quyền 4 giờ |
+
+Hai ứng dụng đăng ký trước là `lab-demo-a` và `lab-demo-b`, đều là ứng dụng bí mật và cùng hồ sơ `user_device` nên cùng mức trần dữ liệu ([ADR-0010](../../docs/adr/adr-0010-client-data-ceiling.md)).
+Bí mật của từng ứng dụng nằm trong tệp khóa lúc chạy; cổng không nhận ứng dụng khác và không có đăng ký động.
+Tên ứng dụng và người dùng lấy từ đăng ký và từ lần cấp quyền, không lấy từ tham số của request.
+
+Mỗi lượt `/mcp` kiểm thẻ, lần cấp quyền, ứng dụng, nhân viên, tài nguyên và phạm vi.
+Thẻ thiếu, sai, hết hạn hoặc đã thu hồi trả 401 với `WWW-Authenticate` trỏ tới thông tin tài nguyên; gọi một tool ngoài phạm vi trả 403 với `error="insufficient_scope"`.
+`mcp:read` chỉ đọc; `mcp:read` cùng `mcp:propose` mới soạn được đề xuất, và quyền nghiệp vụ vẫn do bộ luật quyết.
+Thẻ cấp cho `/mcp` không dùng được ở `/v1/tools/*` hay `/v1/usage`; khoá `lab_` vẫn chạy như cũ ở cả hai cửa.
+
+Trang đăng nhập và đồng ý thuộc issue #181.
+Cổng nhận chúng qua `src/oauth/interaction-types.ts`; chưa đăng ký handler thì `/interaction/<uid>` trả 503 và cổng không mở giao diện phát triển của thư viện.
+Phép thử của cổng tự đăng ký một handler giả trong fixture để đi hết luồng, không có đường cấp thẻ tùy ý trong runtime thật.
+
+| Biến | Mặc định | Việc |
+| --- | --- | --- |
+| `LAB_OAUTH_ISSUER` | `LAB_PUBLIC_BASE_URL`, rồi địa chỉ cổng đang nghe | Địa chỉ gốc làm issuer; phải ở gốc hostname, không có đường dẫn |
 
 ## Đường đi của một thay đổi
 
@@ -306,5 +343,5 @@ Tra vết theo task, theo người hay theo đề xuất tự nối các dòng c
 | `src/writes/` | Kiểm lúc Gửi, lệnh ghi, vòng chạy nền |
 | `src/web/` | Trang đăng nhập, xác nhận, hộp chờ duyệt, trang duyệt |
 | `src/trace/` | Bảng vết và bảng chi phí |
-| `src/oauth/` | Bí mật lúc chạy, bộ lưu mã hóa của thư viện cấp quyền và lần cấp quyền ổn định |
+| `src/oauth/` | Bí mật lúc chạy, bộ lưu mã hóa, grant ổn định, máy cấp quyền, discovery và danh tính token |
 | `src/cli/` | Lệnh `keys`, `seed-keys`, `trace` |

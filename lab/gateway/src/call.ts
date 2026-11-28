@@ -1,4 +1,5 @@
 import { performance } from 'node:perf_hooks';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { BodyError, maskKey, refusalMessage, type ReasonCode, type ToolKind } from '@lab/shared';
 import { z } from 'zod';
 import { adapterOf, SystemUnavailableError, type ResourceAdapter } from './adapters/index.js';
@@ -28,10 +29,23 @@ export const UNKNOWN_TOOL = '(unknown)';
 /** The header a host such as Thổ Thần attaches. Only ever written to the trace, masked. */
 export const HOST_USER_HEADER = 'x-user-id';
 
+/**
+ * The OAuth surface, once the gateway knows the address it listens on. It is a
+ * getter because the issuer and every published endpoint are fixed at that
+ * moment, and a test gateway binds port 0.
+ */
+export interface OAuthRequestHandler {
+  /** The RFC 9728 document a `/mcp` 401 points a client at. */
+  readonly resourceMetadataUrl: string;
+  handle(req: IncomingMessage, res: ServerResponse, path: string): Promise<boolean>;
+}
+
 export interface GatewayDeps {
   readonly identity: IdentityProvider;
   /** The one place a proposal's source of authority is resolved, shared by the pages and the outbox. */
   readonly authorization: AuthorizationRegistry;
+  /** Present when this gateway publishes OAuth discovery and issues tokens. */
+  readonly oauth?: (() => OAuthRequestHandler | undefined) | undefined;
   readonly policy: PolicyEngine;
   /** The registered system adapters: one per record type, the only way a call reaches a system. */
   readonly adapters: readonly ResourceAdapter[];

@@ -39,6 +39,12 @@ export interface Identity {
    * access token does not become a revoked grant later.
    */
   readonly authorization: AuthorizationRef;
+  /**
+   * The exact scopes an OAuth access token carried. Absent for a legacy key;
+   * the `/mcp` door reads it to answer `insufficient_scope` for a tool the
+   * token was not granted.
+   */
+  readonly oauthScopes?: readonly string[];
 }
 
 export type IdentityResult =

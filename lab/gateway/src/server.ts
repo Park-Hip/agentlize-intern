@@ -3,7 +3,18 @@ import { createHttpAdapters, systemUrl, type ResourceAdapter } from './adapters/
 import { createGatewayHandler } from './app.js';
 import { createAuthorizationRegistry, type AuthorizationRegistry } from './authorization/index.js';
 import { openGatewayDatabase, resolveDataDir } from './database.js';
-import { ApiKeyIdentity, KeyStore, PagePasswordStore } from './identity/index.js';
+import { KeyStore, PagePasswordStore } from './identity/index.js';
+import { createOAuthSurface, type OAuthSurface } from './oauth/http.js';
+import { GrantAuthorizationResolver } from './oauth/grants/index.js';
+import { createGatewayIdentity } from './oauth/identity.js';
+import type { OAuthInteractionHandler } from './oauth/interaction-types.js';
+import {
+  configuredIssuer,
+  DEFAULT_OAUTH_CLIENTS,
+  loadOAuthKeys,
+  type OAuthClientRegistration,
+} from './oauth/provider.js';
+import { hasOAuthState } from './oauth/storage/index.js';
 import { createPolicyEngine, resolveRulesPath, seedRulesFile } from './policy/index.js';
 import { ProposalStore, type ProposalExecutor } from './proposals/index.js';
 import { PROPOSE_TOOLS } from './tools/propose-tools.js';
@@ -12,6 +23,14 @@ import type { RegisteredTool } from './tools/types.js';
 import { TraceStore } from './trace/index.js';
 import { SessionStore } from './web/session-store.js';
 import { CommandStore, Outbox } from './writes/index.js';
+
+export interface OAuthGatewayOptions {
+  /** Overrides the issuer; the default is `LAB_OAUTH_ISSUER`, then `LAB_PUBLIC_BASE_URL`, then the listen address. */
+  readonly issuer?: string;
+  readonly clients?: readonly OAuthClientRegistration[];
+  /** Registered by the login and consent pages of the next issue; absent in production today. */
+  readonly interaction?: OAuthInteractionHandler;
+}
 
 export interface GatewayOptions {
   /** Explicit port, used by tests with 0. Defaults to `LAB_GATEWAY_PORT`. */
@@ -27,6 +46,8 @@ export interface GatewayOptions {
   readonly now?: () => Date;
   /** Replaces the executor that takes a confirmed proposal. Defaults to the background outbox. */
   readonly executor?: ProposalExecutor;
+  /** The OAuth side: issuer, registered clients and the interaction handler. Defaults to the two Lab clients. */
+  readonly oauth?: OAuthGatewayOptions;
 }
 
 export interface RunningGateway extends RunningService {
@@ -38,6 +59,8 @@ export interface RunningGateway extends RunningService {
   readonly proposals: ProposalStore;
   readonly sessions: SessionStore;
   readonly commands: CommandStore;
+  /** The OAuth surface: discovery, the provider and the stable grants; null until the listen address is known. */
+  readonly oauth: OAuthSurface;
 }
 
 /** Open the gateway database, then listen. The service key is required before either happens. */
@@ -54,6 +77,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
   }
 
   const db = openGatewayDatabase(dataDir);
+  let started: RunningService | undefined;
   try {
     const keys = new KeyStore(db);
     const now = options.now ?? ((): Date => new Date());
@@ -76,6 +100,18 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
         serviceKey,
       });
 
+    const oauthClients = options.oauth?.clients ?? DEFAULT_OAUTH_CLIENTS;
+    const oauthConfig = loadOAuthKeys({
+      env,
+      dataDir,
+      clients: oauthClients,
+      hasStoredState: () => hasOAuthState(db),
+      now,
+    });
+    // The OAuth surface is built once the listen address is known, so the issuer is fixed, never read from a request.
+    const oauthHolder: { surface?: OAuthSurface } = {};
+    const identity = createGatewayIdentity(keys, () => oauthHolder.surface?.tokenLookup, now);
+
     let outbox: Outbox | undefined;
     let executor: ProposalExecutor;
     if (options.executor === undefined) {
@@ -85,13 +121,14 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
       executor = options.executor;
     }
 
-    const running = await startService({
+    const service = await startService({
       service: 'gateway',
       env,
       ...(options.port === undefined ? {} : { port: options.port }),
       handler: createGatewayHandler({
-        identity: new ApiKeyIdentity(keys),
+        identity,
         authorization,
+        oauth: () => oauthHolder.surface,
         policy: createPolicyEngine({ rulesPath, declarations: adapters }),
         adapters,
         trace,
@@ -106,14 +143,28 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
         now,
       }),
     });
+    started = service;
+    listeningUrl = service.url;
 
-    listeningUrl = running.url;
+    const oauth = createOAuthSurface({
+      issuer:
+        options.oauth?.issuer === undefined ? configuredIssuer(env, listeningUrl) : options.oauth.issuer,
+      db,
+      config: oauthConfig,
+      clients: oauthClients,
+      ...(options.oauth?.interaction === undefined ? {} : { interaction: options.oauth.interaction }),
+      now,
+      log: (line) => console.error(`[gateway] ${line}`),
+    });
+    oauthHolder.surface = oauth;
+    // A proposal drafted through a token carries the grant id; the pages and the outbox resolve it here.
+    authorization.register(new GrantAuthorizationResolver(oauth.grants));
 
     // Every command a previous run left open is picked up by this first round, with no separate startup path.
     outbox?.start();
 
     return {
-      ...running,
+      ...service,
       keys,
       pagePasswords,
       authorization,
@@ -121,9 +172,10 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
       proposals,
       sessions,
       commands,
+      oauth,
       async close(): Promise<void> {
         try {
-          await running.close();
+          await service.close();
         } finally {
           try {
             await outbox?.close();
@@ -134,6 +186,9 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
       },
     };
   } catch (error) {
+    if (started !== undefined) {
+      await started.close().catch(() => undefined);
+    }
     db.close();
     throw error;
   }
