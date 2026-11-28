@@ -348,7 +348,10 @@ test('oauth pages: the consent page names the client, the person, the scopes and
     assert.ok(client !== undefined);
     assert.match(html, /Cho phép kết nối/);
     assert.ok(html.includes(client.clientName), 'names the client');
-    assert.ok(html.includes(`${PERSONAS.nhung.fullName} (${nHung})`), 'names the signed-in character as Full Name (NV-xx)');
+    assert.ok(
+      html.includes(`${PERSONAS.nhung.fullName} (<span class="nowrap">${nHung}</span>)`),
+      'names the signed-in character as Full Name (NV-xx), with the code unbroken',
+    );
     assert.match(html, /mcp:read/);
     assert.match(html, /mcp:propose/);
     assert.match(html, /Trần dữ liệu/);
@@ -555,8 +558,8 @@ test('oauth pages: the consent page shows the person who signed in, not one the 
     const namPassword = f.gateway.pagePasswords.issue({ employeeId: NAM }).rawPassword;
     const namConsent = await submitLogin(f, flow, NAM, namPassword);
     assert.equal(namConsent.status, 200);
-    assert.ok(namConsent.html.includes(`${PERSONAS.nam.fullName} (${NAM})`), 'names the signed-in person');
-    assert.ok(!namConsent.html.includes(`${PERSONAS.hoa.fullName} (${HOA})`), 'never names the other character');
+    assert.ok(namConsent.html.includes(`${PERSONAS.nam.fullName} (<span class="nowrap">${NAM}</span>)`), 'names the signed-in person');
+    assert.ok(!namConsent.html.includes(PERSONAS.hoa.fullName), 'never names the other character');
 
     const allow = await formPost(
       namConsent.url,
@@ -640,7 +643,8 @@ test('oauth pages: the ceiling sentence reads naturally for every data class the
       action: '/interaction/uid',
       csrfToken: 'csrf',
       clientName: 'Lab demo client A',
-      accountLabel: 'Nguyễn Thị Hoa (NV-02)',
+      accountName: 'Nguyễn Thị Hoa',
+      accountCode: HOA,
       scopes: [],
       ceiling: { clientClassLabel: 'chạy trên máy cá nhân', ceilingLabel, excludedFields: [], unavailable: false },
     });
@@ -662,10 +666,13 @@ test('oauth pages: the login page offers the shared persona options and a stacke
     action: '/interaction/uid',
     csrfToken: 'csrf',
     clientName: 'Lab demo client A',
-    accountLabel: 'Nguyễn Thị Hoa (NV-02)',
+    accountName: 'Nguyễn Thị Hoa',
+    accountCode: HOA,
     scopes: [{ scope: 'mcp:read', label: 'Đọc dữ liệu', description: 'Gọi công cụ đọc.' }],
     ceiling: { clientClassLabel: 'chạy trên máy cá nhân', ceilingLabel: 'dữ liệu nội bộ chung', excludedFields: [], unavailable: false },
   });
   assert.match(html, /data-label="Phạm vi"/, 'the scope code cell carries a label');
   assert.match(html, /data-label="Nghĩa"/, 'the meaning cell carries a label');
+  // The employee code stays on one line so it never breaks at the hyphen.
+  assert.match(html, /<span class="nowrap">NV-02<\/span>/, 'the employee code is a no-break span');
 });

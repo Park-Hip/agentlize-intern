@@ -67,6 +67,8 @@ th,td{text-align:left;vertical-align:top;padding:.5rem .6rem;border-bottom:1px s
 thead th{font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
 .inbox th,.inbox td{padding:.5rem .55rem}
 .inbox td.nowrap{white-space:nowrap}
+/* An employee code such as (NV-06) stays on one line, so it never breaks at the hyphen. */
+.nowrap{white-space:nowrap}
 tbody th{font-weight:600;color:var(--muted)}
 tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
 td.v{white-space:pre-wrap;overflow-wrap:anywhere}

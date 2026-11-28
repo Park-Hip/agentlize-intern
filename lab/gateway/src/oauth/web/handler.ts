@@ -56,7 +56,9 @@ export interface OAuthInteractionPageOptions {
 }
 
 interface PersonView {
-  readonly label: string;
+  readonly employeeId: string;
+  /** The person's name from the directory, or their code when the directory does not answer. */
+  readonly name: string;
   readonly role: string | null;
 }
 
@@ -149,18 +151,19 @@ export function createOAuthInteractionPages(options: OAuthInteractionPageOptions
     try {
       const directory = adapterOf(options.adapters, 'employee');
       const record = await directory.get(employeeId);
-      if (record === undefined) return { label: employeeId, role: null };
+      if (record === undefined) return { employeeId, name: employeeId, role: null };
       const name = recordValue(record, directory.fields, 'name');
       const role = recordValue(record, directory.fields, 'role');
-      // The same `Full Name (NV-xx)` shape the login page and the approval pages
-      // use, so the signed-in character reads the same way everywhere.
+      // The page prints `name (NV-xx)` and keeps the code on one line; keeping
+      // the two apart here lets it wrap only the name when space is tight.
       return {
-        label: typeof name === 'string' && name !== '' ? `${name} (${employeeId})` : employeeId,
+        employeeId,
+        name: typeof name === 'string' && name !== '' ? name : employeeId,
         role: typeof role === 'string' ? role : null,
       };
     } catch (error) {
       if (!(error instanceof SystemUnavailableError)) throw error;
-      return { label: employeeId, role: null };
+      return { employeeId, name: employeeId, role: null };
     }
   }
 
@@ -268,7 +271,8 @@ export function createOAuthInteractionPages(options: OAuthInteractionPageOptions
           action: actionFor(details.uid),
           csrfToken: csrf.tokenFor(details.uid, INTERACTION_CSRF_TTL_MS),
           clientName: client.clientName,
-          accountLabel: person.label,
+          accountName: person.name,
+          accountCode: person.employeeId,
           scopes: toScopeViews(scopesAsked(details)),
           ceiling: ceilingView(client, person.role),
         }),

@@ -53,7 +53,9 @@ export interface ConsentPageView {
   readonly action: string;
   readonly csrfToken: string;
   readonly clientName: string;
-  readonly accountLabel: string;
+  /** The signed-in person's name; the code is printed after it in a no-break span. */
+  readonly accountName: string;
+  readonly accountCode: string;
   readonly scopes: readonly ScopeView[];
   readonly ceiling: DataCeilingView;
 }
@@ -87,7 +89,7 @@ ${view.ceiling.excludedFields.map((field) => `<li>${esc(field)}</li>`).join('\n'
   return layout(
     'Cho phép kết nối',
     `<h1>Cho phép kết nối</h1>
-<p class="sub">Ứng dụng <strong>${esc(view.clientName)}</strong> xin phép gọi công cụ của Lab thay nhân vật <strong>${esc(view.accountLabel)}</strong>.</p>
+<p class="sub">Ứng dụng <strong>${esc(view.clientName)}</strong> xin phép gọi công cụ của Lab thay nhân vật <strong>${esc(view.accountName)} (<span class="nowrap">${esc(view.accountCode)}</span>)</strong>.</p>
 <section class="panel">
 <h2>Phạm vi xin cấp</h2>
 <table>
