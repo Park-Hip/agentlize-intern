@@ -199,7 +199,7 @@ Dùng lại màu, chữ, thẻ và trạng thái sáng tối từ [giao diện g
 
 ## 7. Các phần việc nối tiếp và phạm vi ghi
 
-Các phần dưới đây là nội dung để tạo issue sau khi chốt hướng, chưa phải issue đã mở.
+Các phần dưới đây đã được chia thành issue dưới [issue cha #175](https://github.com/Park-Hip/agentlize-intern/issues/175).
 Chạy nối tiếp vì cùng chạm các file nóng của gateway.
 Một phần chỉ bắt đầu khi phần cung cấp giao diện dùng chung đã hoàn tất.
 
@@ -222,6 +222,32 @@ Không cam kết cửa OAuth của Lab sẵn trước ngày 2 cho một phép th
 Tài liệu nghiên cứu không chứng minh giá thành vận hành; ghi số tiến trình, thời gian thêm và tài nguyên dùng ở lần nghiệm thu.
 
 **Kết luận:** phần dùng chung về nguồn quyền phải đi trước OAuth và giao diện, để không có hai cách kiểm quyền cùng tồn tại.
+
+### 7.1. Giao việc cho coding agent
+
+Mỗi issue có một người phụ trách, mốc tuần, phạm vi ghi, điều kiện hoàn thành và cách kiểm chứng.
+Nguồn kế hoạch và nghiên cứu được đưa lên GitHub qua [PR #176](https://github.com/Park-Hip/agentlize-intern/pull/176).
+Agent đọc nguồn đã liên kết trước khi làm và giữ các thay đổi của mỗi issue trong PR riêng.
+
+| Issue | Kết quả | Cần merge trước |
+| --- | --- | --- |
+| [#177](https://github.com/Park-Hip/agentlize-intern/issues/177) | Thử thư viện và chốt hợp đồng bằng bằng chứng trong một ngày công | Tài liệu nguồn |
+| [#178](https://github.com/Park-Hip/agentlize-intern/issues/178) | Nền tham chiếu quyền ổn định, migration đề xuất và điểm kiểm trước khi ghi | #177 |
+| [#179](https://github.com/Park-Hip/agentlize-intern/issues/179) | Bộ lưu mã hóa, tiêu thụ mã và grant bền | #178 |
+| [#180](https://github.com/Park-Hip/agentlize-intern/issues/180) | Máy chủ OAuth, discovery và xác thực MCP theo tài nguyên | #179 |
+| [#181](https://github.com/Park-Hip/agentlize-intern/issues/181) | Đăng nhập giả và đồng ý kết nối | #180 |
+| [#182](https://github.com/Park-Hip/agentlize-intern/issues/182) | Thu hồi và kiểm quyền ở trang duyệt cùng hàng đợi | #181 |
+| [#183](https://github.com/Park-Hip/agentlize-intern/issues/183) | Ứng dụng thử HTTPS, nhiều người trong cùng client và hai client độc lập | #182 |
+| [#184](https://github.com/Park-Hip/agentlize-intern/issues/184) | Nghiệm thu trình duyệt, tám yêu cầu và báo cáo giới hạn | #183 |
+| [#185](https://github.com/Park-Hip/agentlize-intern/issues/185) | Khảo sát cách đăng ký, callback và môi trường client ngoài trong bốn giờ kiểm ban đầu | Tài liệu nguồn; phạm vi tách khỏi #177 |
+| [#186](https://github.com/Park-Hip/agentlize-intern/issues/186) | Triển khai đúng một cách đăng ký được chọn bằng bằng chứng | #184 và #185 |
+| [#187](https://github.com/Park-Hip/agentlize-intern/issues/187) | Nghiệm thu client ngoài từ Docker qua HTTPS và thu hồi từng người | #186 |
+
+Các mốc tuần là lịch dự kiến trong issue, không phải cam kết Lab sẵn trước ngày 2.
+Chỉ #177 và #185 có thể bắt đầu song song sau tài liệu nguồn vì phạm vi ghi không giao nhau.
+Chưa bắt đầu triển khai OAuth; trạng thái issue mở không phải bằng chứng tính năng đã đạt.
+
+**Kết luận:** bắt đầu từ hai phép kiểm có giới hạn, rồi đi theo quan hệ phụ thuộc để không viết trùng phần dùng chung.
 
 ## 8. Nghiệm thu theo tám yêu cầu hiện có
 
