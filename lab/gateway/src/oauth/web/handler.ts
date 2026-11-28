@@ -1,5 +1,5 @@
 import type { ServerResponse } from 'node:http';
-import { EMPLOYEE_ID_PATTERN, PERSONAS } from '@lab/shared';
+import { EMPLOYEE_ID_PATTERN } from '@lab/shared';
 import { adapterOf, recordValue, SystemUnavailableError, type ResourceAdapter } from '../../adapters/index.js';
 import type { GatewayDatabase } from '../../database.js';
 import type { PagePasswordStore } from '../../identity/page-password-store.js';
@@ -41,12 +41,6 @@ const DATA_CLASS_LABELS: Readonly<Record<string, string>> = {
 };
 
 const SCOPE_ORDER = ['openid', 'mcp:read', 'mcp:propose'] as const;
-
-/** The people the login page offers: the six simulated characters of the lab. */
-const LOGIN_PEOPLE = Object.values(PERSONAS).map((persona) => ({
-  employeeId: persona.employeeId,
-  fullName: persona.fullName,
-}));
 
 export interface OAuthInteractionPageOptions {
   readonly db: GatewayDatabase;
@@ -146,7 +140,6 @@ export function createOAuthInteractionPages(options: OAuthInteractionPageOptions
     return oauthLoginPage({
       action: actionFor(details.uid),
       csrfToken: csrf.tokenFor(details.uid, INTERACTION_CSRF_TTL_MS),
-      people: LOGIN_PEOPLE,
       selected,
       ...(error === undefined ? {} : { error }),
     });
@@ -159,8 +152,10 @@ export function createOAuthInteractionPages(options: OAuthInteractionPageOptions
       if (record === undefined) return { label: employeeId, role: null };
       const name = recordValue(record, directory.fields, 'name');
       const role = recordValue(record, directory.fields, 'role');
+      // The same `Full Name (NV-xx)` shape the login page and the approval pages
+      // use, so the signed-in character reads the same way everywhere.
       return {
-        label: typeof name === 'string' ? `${employeeId} ${name}` : employeeId,
+        label: typeof name === 'string' && name !== '' ? `${name} (${employeeId})` : employeeId,
         role: typeof role === 'string' ? role : null,
       };
     } catch (error) {

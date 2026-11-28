@@ -127,10 +127,22 @@ export function messagePage(title: string, message: string, tone: Tone, link?: {
   return layout(title, `<h1>${esc(title)}</h1>\n${banner(message, tone)}\n${next}`);
 }
 
-export function loginPage(next: string, error?: string, selected?: string): string {
-  const options = Object.values(PERSONAS)
-    .map((persona) => `<option value="${esc(persona.employeeId)}"${persona.employeeId === selected ? ' selected' : ''}>${esc(persona.fullName)} (${esc(persona.employeeId)})</option>`)
+/**
+ * The `<option>` list of the six characters, as every login page shows them:
+ * `Full Name (NV-xx)`, with the signed-in one pre-selected. One copy of this
+ * markup keeps the gateway login page and the OAuth login page identical.
+ */
+export function personaOptions(selected?: string): string {
+  return Object.values(PERSONAS)
+    .map(
+      (persona) =>
+        `<option value="${esc(persona.employeeId)}"${persona.employeeId === selected ? ' selected' : ''}>${esc(persona.fullName)} (${esc(persona.employeeId)})</option>`,
+    )
     .join('\n');
+}
+
+export function loginPage(next: string, error?: string, selected?: string): string {
+  const options = personaOptions(selected);
   return layout(
     'Đăng nhập giả lập',
     `<h1>Đăng nhập giả lập</h1>

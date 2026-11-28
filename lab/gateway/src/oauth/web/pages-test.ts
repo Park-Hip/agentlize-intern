@@ -10,10 +10,10 @@ import { startGateway, type RunningGateway } from '../../server.js';
 import { OAUTH_INTERACTION_PREFIX } from '../discovery.js';
 import type { OAuthClientRegistration } from '../provider.js';
 import { loadOAuthRuntimeConfig } from '../runtime-config.js';
+import { consentPage, oauthLoginPage } from './pages.js';
 
 const HOA = PERSONAS.hoa.employeeId;
 const NAM = PERSONAS.nam.employeeId;
-const HOA_NAME = PERSONAS.hoa.fullName;
 const SERVICE_KEY = 'test-service-key-0123456789abcdef';
 
 type NowOption = { readonly now?: (() => Date) | undefined };
@@ -348,7 +348,7 @@ test('oauth pages: the consent page names the client, the person, the scopes and
     assert.ok(client !== undefined);
     assert.match(html, /Cho phép kết nối/);
     assert.ok(html.includes(client.clientName), 'names the client');
-    assert.ok(html.includes(`${nHung} ${PERSONAS.nhung.fullName}`), 'names the signed-in character');
+    assert.ok(html.includes(`${PERSONAS.nhung.fullName} (${nHung})`), 'names the signed-in character as Full Name (NV-xx)');
     assert.match(html, /mcp:read/);
     assert.match(html, /mcp:propose/);
     assert.match(html, /Trần dữ liệu/);
@@ -555,8 +555,8 @@ test('oauth pages: the consent page shows the person who signed in, not one the 
     const namPassword = f.gateway.pagePasswords.issue({ employeeId: NAM }).rawPassword;
     const namConsent = await submitLogin(f, flow, NAM, namPassword);
     assert.equal(namConsent.status, 200);
-    assert.ok(namConsent.html.includes(`${NAM} ${PERSONAS.nam.fullName}`), 'names the signed-in person');
-    assert.ok(!namConsent.html.includes(`${HOA} ${HOA_NAME}`), 'never names the other character');
+    assert.ok(namConsent.html.includes(`${PERSONAS.nam.fullName} (${NAM})`), 'names the signed-in person');
+    assert.ok(!namConsent.html.includes(`${PERSONAS.hoa.fullName} (${HOA})`), 'never names the other character');
 
     const allow = await formPost(
       namConsent.url,
@@ -625,4 +625,47 @@ test('oauth pages: the client secret is never on the consent page and a token is
     assert.ok(!location.includes('access_token'), 'the callback carries a code, never a token');
     assert.ok(!location.includes(clientSecret), 'the callback carries no client secret');
   });
+});
+
+test('oauth pages: the ceiling sentence reads naturally for every data class the rule file can name', () => {
+  const labels = [
+    'số liệu tổng hợp ẩn danh',
+    'dữ liệu nội bộ chung',
+    'dữ liệu cá nhân nhân viên',
+    'dữ liệu cá nhân khách hàng',
+    'dữ liệu thanh toán',
+  ];
+  for (const ceilingLabel of labels) {
+    const html = consentPage({
+      action: '/interaction/uid',
+      csrfToken: 'csrf',
+      clientName: 'Lab demo client A',
+      accountLabel: 'Nguyễn Thị Hoa (NV-02)',
+      scopes: [],
+      ceiling: { clientClassLabel: 'chạy trên máy cá nhân', ceilingLabel, excludedFields: [], unavailable: false },
+    });
+    assert.ok(
+      html.includes(`nên chỉ nhận được tối đa <strong>${ceilingLabel}</strong>`),
+      `the sentence names the ceiling once and reads well for ${ceilingLabel}`,
+    );
+    // The awkward repeat "trần dữ liệu dữ liệu" never appears.
+    assert.ok(!html.includes('trần dữ liệu dữ liệu'), 'the ceiling sentence never repeats the word dữ liệu');
+  }
+});
+
+test('oauth pages: the login page offers the shared persona options and a stacked scope row labels both cells', () => {
+  const options = oauthLoginPage({ action: '/interaction/uid', csrfToken: 'csrf', selected: 'NV-06' });
+  assert.match(options, /<option value="NV-06" selected>Phạm Thị Nhung \(NV-06\)<\/option>/, 'Full Name (NV-xx), pre-selected');
+
+  // The scope table labels both cells so a stacked row at 390 px is readable.
+  const html = consentPage({
+    action: '/interaction/uid',
+    csrfToken: 'csrf',
+    clientName: 'Lab demo client A',
+    accountLabel: 'Nguyễn Thị Hoa (NV-02)',
+    scopes: [{ scope: 'mcp:read', label: 'Đọc dữ liệu', description: 'Gọi công cụ đọc.' }],
+    ceiling: { clientClassLabel: 'chạy trên máy cá nhân', ceilingLabel: 'dữ liệu nội bộ chung', excludedFields: [], unavailable: false },
+  });
+  assert.match(html, /data-label="Phạm vi"/, 'the scope code cell carries a label');
+  assert.match(html, /data-label="Nghĩa"/, 'the meaning cell carries a label');
 });

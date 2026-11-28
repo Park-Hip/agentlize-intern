@@ -175,7 +175,9 @@
       "oauth pages: the login page is simulated, offers the characters and asks only for a page password",
       "oauth pages: the interaction pages carry no form-action directive, so Chrome keeps the cross-origin redirect",
       "oauth pages: the client secret is never on the consent page and a token is never in the callback URL",
-      "oauth pages: the same login and consent work for the second registered client, with its own name and grant"
+      "oauth pages: the same login and consent work for the second registered client, with its own name and grant",
+      "oauth pages: the ceiling sentence reads naturally for every data class the rule file can name",
+      "oauth pages: the login page offers the shared persona options and a stacked scope row labels both cells"
     ]
   }
 }

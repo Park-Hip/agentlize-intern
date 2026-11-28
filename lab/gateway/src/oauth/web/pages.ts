@@ -1,4 +1,4 @@
-import { esc, layout } from '../../web/html.js';
+import { esc, layout, personaOptions } from '../../web/html.js';
 
 /** What one scope asks for, in the words a person reads on the consent page. */
 export interface ScopeView {
@@ -20,7 +20,6 @@ export interface DataCeilingView {
 export interface LoginPageView {
   readonly action: string;
   readonly csrfToken: string;
-  readonly people: readonly { readonly employeeId: string; readonly fullName: string }[];
   readonly selected: string;
   readonly error?: string | undefined;
 }
@@ -31,12 +30,6 @@ export interface LoginPageView {
  * account, and it names only page passwords as the way in (ADR-0008).
  */
 export function oauthLoginPage(view: LoginPageView): string {
-  const options = view.people
-    .map(
-      (person) =>
-        `<option value="${esc(person.employeeId)}"${person.employeeId === view.selected ? ' selected' : ''}>${esc(person.fullName)} (${esc(person.employeeId)})</option>`,
-    )
-    .join('\n');
   const error = view.error === undefined ? '' : `<div class="banner bad" role="alert">${esc(view.error)}</div>\n`;
   return layout(
     'Đăng nhập giả lập',
@@ -46,7 +39,7 @@ ${error}<form class="panel" method="post" action="${esc(view.action)}">
 <input type="hidden" name="csrf" value="${esc(view.csrfToken)}">
 <label for="employee">Nhân vật</label>
 <select id="employee" name="employee" required>
-${options}
+${personaOptions(view.selected)}
 </select>
 <label for="password">Mật khẩu trang</label>
 <input id="password" name="password" type="password" autocomplete="off" required placeholder="trang_...">
@@ -78,7 +71,7 @@ export function consentPage(view: ConsentPageView): string {
       : view.scopes
           .map(
             (scope) =>
-              `<tr><th scope="row"><code>${esc(scope.scope)}</code></th><td class="v" data-label="Nghĩa"><strong>${esc(scope.label)}</strong>. ${esc(scope.description)}</td></tr>`,
+              `<tr><td class="code" data-label="Phạm vi"><code>${esc(scope.scope)}</code></td><td class="v" data-label="Nghĩa"><strong>${esc(scope.label)}</strong>. ${esc(scope.description)}</td></tr>`,
           )
           .join('\n');
 
@@ -106,7 +99,7 @@ ${scopes}
 </section>
 <section class="panel">
 <h2>Trần dữ liệu</h2>
-<p>Ứng dụng thuộc lớp <strong>${esc(view.ceiling.clientClassLabel)}</strong>, trần dữ liệu <strong>${esc(view.ceiling.ceilingLabel)}</strong>.</p>
+<p>Ứng dụng thuộc lớp <strong>${esc(view.ceiling.clientClassLabel)}</strong> nên chỉ nhận được tối đa <strong>${esc(view.ceiling.ceilingLabel)}</strong>.</p>
 ${ceilingBody}
 </section>
 <div class="banner" role="status">Đồng ý chỉ mở quyền gọi công cụ. Không có thay đổi nghiệp vụ nào được ghi, và mọi lần ghi vẫn phải được bạn xác nhận rồi trưởng nhóm duyệt khi luật đòi.</div>
