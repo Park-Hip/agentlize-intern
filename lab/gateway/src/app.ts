@@ -45,6 +45,10 @@ export function createGatewayHandler(deps: GatewayDeps): RequestHandler {
     const path = new URL(req.url ?? '/', `http://${LOOPBACK_HOST}`).pathname;
     const method = req.method ?? 'GET';
 
+    // The OAuth surface owns the discovery documents, the provider endpoints and the interaction seam.
+    const oauth = deps.oauth?.();
+    if (oauth !== undefined && (await oauth.handle(req, res, path))) return;
+
     if (path === '/health') {
       if (method !== 'GET') return sendJson(res, 405, { error: 'method_not_allowed' }, { allow: 'GET' });
       return sendJson(res, 200, { status: 'ok', service: 'gateway' });

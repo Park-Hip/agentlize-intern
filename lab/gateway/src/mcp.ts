@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { BodyError, readJsonBody, sendJson } from '@lab/shared';
+import { performance } from 'node:perf_hooks';
+import { BodyError, readJsonBody, refusalMessage, sendJson } from '@lab/shared';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {
@@ -11,12 +12,15 @@ import {
 import { MCP_DOOR } from './authorization/index.js';
 import {
   catalogEntries,
+  maskedHostUser,
   performCall,
   TraceUnavailableError,
   UNKNOWN_TOOL,
   type GatewayDeps,
 } from './call.js';
-import type { IdentityResult } from './identity/index.js';
+import type { Identity, IdentityResult } from './identity/index.js';
+import { OAUTH_SCOPE_PROPOSE, OAUTH_SCOPE_READ } from './oauth/discovery.js';
+import { newTraceId, readTurnId } from './trace/index.js';
 
 const SERVER_INFO = { name: 'agentlize-lab-gateway', version: '0.0.0' } as const;
 
@@ -37,6 +41,76 @@ function rpcError(
   data?: { reason_code: string | null; deny_reason: string | null },
 ): void {
   sendJson(res, status, { jsonrpc: '2.0', error: { code, message, ...(data === undefined ? {} : { data }) }, id: null }, headers);
+}
+
+/**
+ * The `WWW-Authenticate` a `/mcp` refusal carries. When the gateway publishes
+ * OAuth, the challenge names the resource metadata document so a client can
+ * discover where to get a token; an error and a scope join it for a refusal.
+ */
+function bearerChallenge(deps: GatewayDeps, extra: Readonly<Record<string, string>> = {}): string {
+  const parts = ['Bearer realm="lab-gateway"'];
+  const metadata = deps.oauth?.()?.resourceMetadataUrl;
+  if (metadata !== undefined) parts.push(`resource_metadata="${metadata}"`);
+  for (const [name, value] of Object.entries(extra)) parts.push(`${name}="${value}"`);
+  return parts.join(', ');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Every `tools/call` in the body, whether it is one message or a batch. */
+function toolCallsIn(body: unknown): { readonly name: string }[] {
+  const messages = Array.isArray(body) ? body : [body];
+  const calls: { readonly name: string }[] = [];
+  for (const message of messages) {
+    if (!isRecord(message) || message['method'] !== 'tools/call') continue;
+    const params = message['params'];
+    if (!isRecord(params) || typeof params['name'] !== 'string') continue;
+    calls.push({ name: params['name'] });
+  }
+  return calls;
+}
+
+/** The scopes an OAuth token must hold for these calls: reading for every tool, proposing for a write. */
+function requiredScopes(deps: GatewayDeps, body: unknown): readonly string[] | undefined {
+  const calls = toolCallsIn(body);
+  if (calls.length === 0) return undefined;
+  const required = new Set<string>([OAUTH_SCOPE_READ]);
+  for (const call of calls) {
+    const tool = deps.tools.find((candidate) => candidate.name === call.name);
+    if (tool?.kind === 'propose') required.add(OAUTH_SCOPE_PROPOSE);
+  }
+  return [...required];
+}
+
+/** Write one trace line for a scope refusal, because a refused call still happened. */
+function traceScopeRefusal(
+  deps: GatewayDeps,
+  req: IncomingMessage,
+  identity: Identity,
+  tool: string,
+  startedAt: number,
+): void {
+  deps.trace.append({
+    traceId: newTraceId(),
+    requester: identity.employeeId,
+    caller: identity.caller,
+    entry: 'mcp',
+    tool,
+    objectId: null,
+    outcome: 'refused',
+    reasonCode: 'NOT_PERMITTED',
+    outOfScope: false,
+    ruleId: 'MCP.INSUFFICIENT_SCOPE',
+    policyVersion: null,
+    hostUser: maskedHostUser(req.headers),
+    turnId: readTurnId(req.headers),
+    proposalId: null,
+    droppedFields: 0,
+    durationMs: performance.now() - startedAt,
+  });
 }
 
 /** The same entries as `GET /v1/tools`, with the key MCP expects for the parameter schema. */
@@ -101,15 +175,17 @@ export async function handleMcp(deps: GatewayDeps, req: IncomingMessage, res: Se
   }
 
   // A bad source stops the whole request, so a host sees the failure when it
-  // connects, not on its first tool call. This door names `/mcp` and accepts a
-  // legacy key today; an OAuth resolver registers the token form later.
+  // connects, not on its first tool call. This door accepts a legacy `lab_` key
+  // and a Lab-issued OAuth token; a token is never retried as a key.
   const authenticated = await deps.identity.authenticate(req.headers, MCP_DOOR);
   if (!authenticated.ok) {
     try {
       const { result } = await performCall(deps, 'mcp', req.headers, authenticated, UNKNOWN_TOOL, () =>
         Promise.resolve({}),
       );
-      return rpcError(res, result.status, REQUEST_REFUSED, result.text, { 'www-authenticate': 'Bearer realm="lab-gateway"' }, {
+      return rpcError(res, result.status, REQUEST_REFUSED, result.text, {
+        'www-authenticate': bearerChallenge(deps),
+      }, {
         reason_code: result.reasonCode,
         deny_reason: result.denyReason ?? null,
       });
@@ -126,6 +202,41 @@ export async function handleMcp(deps: GatewayDeps, req: IncomingMessage, res: Se
     if (!(error instanceof BodyError)) throw error;
     const message = error.code === 'body_too_large' ? 'Nội dung gửi lên quá lớn.' : 'Nội dung gửi lên phải là JSON.';
     return rpcError(res, error.status, PARSE_ERROR, message);
+  }
+
+  // An OAuth token carries its scopes; a tool the token was not granted is a
+  // 403 with `insufficient_scope`, before any system is read.
+  const required = requiredScopes(deps, body);
+  const granted = authenticated.identity.oauthScopes;
+  if (required !== undefined && granted !== undefined) {
+    const missing = required.filter((scope) => !granted.includes(scope));
+    if (missing.length > 0) {
+      const started = performance.now();
+      try {
+        traceScopeRefusal(
+          deps,
+          req,
+          authenticated.identity,
+          toolCallsIn(body)[0]?.name ?? UNKNOWN_TOOL,
+          started,
+        );
+      } catch {
+        return rpcError(res, 500, INTERNAL_ERROR, TRACE_UNAVAILABLE_SENTENCE);
+      }
+      const sentence = refusalMessage(
+        'NOT_PERMITTED',
+        `Thẻ truy cập này không có phạm vi ${required.join(' ')} nên cổng không gọi công cụ này. Hãy xin quyền lại.`,
+      );
+      return rpcError(res, 403, REQUEST_REFUSED, sentence, {
+        'www-authenticate': bearerChallenge(deps, {
+          error: 'insufficient_scope',
+          scope: required.join(' '),
+        }),
+      }, {
+        reason_code: 'NOT_PERMITTED',
+        deny_reason: 'no_permission',
+      });
+    }
   }
 
   const server = buildServer(deps, req, authenticated, mcpCatalog(deps));
