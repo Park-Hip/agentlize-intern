@@ -90,6 +90,10 @@ checks = [
     ("oidc-provider pinned: resource and refresh policy hooks",
      "https://raw.githubusercontent.com/panva/node-oidc-provider/v9.15.1/lib/helpers/defaults.js",
      ["issueRefreshToken", "resourceIndicators", "getResourceServerInfo", "pkce"]),
+    ("oidc-provider pinned: custom issueRefreshToken advertises refresh_token",
+     "https://raw.githubusercontent.com/panva/node-oidc-provider/v9.15.1/lib/helpers/configuration.js",
+     ["this.scopes.has('offline_access')", "this.issueRefreshToken !== this.#defaults.issueRefreshToken",
+      "this.grantTypes.add('refresh_token')"]),
 ]
 
 

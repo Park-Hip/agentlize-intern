@@ -1,6 +1,6 @@
 # Kế hoạch cấp quyền truy cập công cụ cho Lab
 
-Ngày: 2026-11-28. Trạng thái: đề xuất triển khai trên dữ liệu giả; bổ sung điều kiện nhận ứng dụng bên ngoài, chưa sửa mã chạy.
+Ngày: 2026-11-28. Trạng thái: đề xuất triển khai trên dữ liệu giả; phép thử thư viện đạt, chưa sửa mã chạy.
 
 ## Đọc nhanh
 
@@ -297,6 +297,8 @@ Chưa có yêu cầu bắt buộc Thổ Thần ở mốc đầu; kế hoạch hi
 Nếu người dùng chọn Thổ Thần, cập nhật kế hoạch theo phụ thuộc thực tế trước khi bắt đầu mã chạy.
 
 Bước thử thư viện chỉ đạt khi chứng minh cấu hình tối thiểu, HTTPS, chống dùng lại mã, lưu bí mật đúng và khởi động lại an toàn.
+Ngày 28/11/2026, phép thử trong `scratch/oauth-probe/` đã đạt 47/47 mục kiểm; quyết định dùng `oidc-provider` 9.15.1 được ghi tại [ADR-0011](../../docs/adr/adr-0011-lab-oauth-authorization.md).
+Hai ràng buộc triển khai đi kèm: không ghi đè `issueRefreshToken`, và trang đồng ý không đặt `form-action 'self'` khi ứng dụng ở origin khác.
 Nếu không đạt trong một ngày công, ghi điều không đạt và đối chiếu lại ba phương án trong nghiên cứu.
 Không tự chuyển sang tự viết toàn bộ giao thức hay mở rộng sang đăng nhập công ty.
 
