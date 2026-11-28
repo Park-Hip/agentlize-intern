@@ -57,9 +57,11 @@ export const AUTO_INTERACTION: OAuthInteractionHandler = interactionFor(HOA);
 async function startOAuthFixture(options: FixtureOptions = {}): Promise<OAuthFixture> {
   const dir = mkdtempSync(join(tmpdir(), 'lab-oauth-gateway-'));
   const systems = new StubSystems();
+  // `null` asks for no page at all; the default (no `interaction` key) would
+  // register the shipped login and consent pages of issue #181.
   const oauthOptions =
     options.interaction === null
-      ? {}
+      ? { interaction: null }
       : { interaction: options.interaction ?? AUTO_INTERACTION };
   const gateway = await startGateway({
     port: 0,

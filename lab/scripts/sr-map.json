@@ -10,7 +10,10 @@
       "read: a key without a person in the directory, a bad key and a revoked key are all refused",
       "write: a drafting key removed or a person gone from the directory is KEY_INVALID at Gửi",
       "a revoked key of chị Hoa is refused on the very next call",
-      "page password: a tool key is refused at login, and a page password is refused at both tool doors"
+      "page password: a tool key is refused at login, and a page password is refused at both tool doors",
+      "oauth pages: a lab_ tool key is refused at the login page exactly like a wrong page password",
+      "oauth pages: allowing the connection returns a working code that exchanges for a token of that person",
+      "oauth pages: the consent page shows the person who signed in, not one the form names"
     ]
   },
   "SR2": {
@@ -50,7 +53,9 @@
       "read: the client ceiling removes the personal fields, names the reason and counts them in the trace",
       "policy fields: an unknown role gets no field at all",
       "policy default: a field that is not listed is never returned",
-      "console: trace groups one task chain by proposal, with every column, and never shows personal data"
+      "console: trace groups one task chain by proposal, with every column, and never shows personal data",
+      "oauth pages: the consent page names the client, the person, the scopes and the data ceiling",
+      "oauth pages: the consent form cannot swap the client, callback, scope, resource or employee it was drawn for"
     ]
   },
   "SR4": {
@@ -74,7 +79,8 @@
       "expiry: after 30 minutes the page and both buttons say APPROVAL_EXPIRED",
       "policy approval: the file lists the roles, the department rule and the wait time",
       "policy window: the file names the 60-minute look-back",
-      "send: a stored proposal whose content no longer matches its print is refused as CONTENT_CHANGED"
+      "send: a stored proposal whose content no longer matches its print is refused as CONTENT_CHANGED",
+      "oauth pages: consent never writes a business change and never opens the approval pages"
     ]
   },
   "SR5": {
@@ -91,7 +97,12 @@
       "read: a typo in a record type stops every tool with POLICY_UNAVAILABLE",
       "read: a system that does not answer gives GATEWAY_UNAVAILABLE, never half an answer",
       "rules path: an edited rule file applies to the next call, and a broken one refuses the write",
-      "propose: a change that equals the task makes no proposal, an unclear name is asked back, a wrong date is a bad request"
+      "propose: a change that equals the task makes no proposal, an unclear name is asked back, a wrong date is a bad request",
+      "oauth pages: a wrong page password, a missing CSRF token and a foreign Origin are each refused with no session",
+      "oauth pages: an interaction uid swapped into the URL is refused because its CSRF token does not match",
+      "oauth pages: an expired interaction is refused, so a stale login page cannot sign in",
+      "oauth pages: a second consent press with a spent token is refused, so one interaction issues one code",
+      "oauth pages: refusing the connection returns access_denied with the state and the issuer, and makes no grant"
     ]
   },
   "SR6": {
@@ -160,7 +171,13 @@
       "mcp: tools/list is the same catalog as GET /v1/tools",
       "mcp: a call answers with the same text and reason code as the REST door",
       "mcp: the same field allowlist applies",
-      "mcp: x-user-id goes to the trace masked like a key"
+      "mcp: x-user-id goes to the trace masked like a key",
+      "oauth pages: the login page is simulated, offers the characters and asks only for a page password",
+      "oauth pages: the interaction pages carry no form-action directive, so Chrome keeps the cross-origin redirect",
+      "oauth pages: the client secret is never on the consent page and a token is never in the callback URL",
+      "oauth pages: the same login and consent work for the second registered client, with its own name and grant",
+      "oauth pages: the ceiling sentence reads naturally for every data class the rule file can name",
+      "oauth pages: the login page offers the shared persona options and a stacked scope row labels both cells"
     ]
   }
 }

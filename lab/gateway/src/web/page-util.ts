@@ -55,8 +55,12 @@ export function sessionCookie(deps: GatewayDeps, token: string): string {
   return `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_TTL_MS / 1000}${secure}`;
 }
 
-/** A browser form from another site carries its own `Origin`; one from these pages carries ours. A call with none (curl, tests) passes. */
-export function sameOrigin(deps: GatewayDeps, req: IncomingMessage): boolean {
+/**
+ * A browser form from another site carries its own `Origin`; one from these
+ * pages carries ours. A call with none (curl, tests) passes. The OAuth pages
+ * reuse this check rather than keeping a second copy of it.
+ */
+export function originMatches(publicBaseUrl: string, req: IncomingMessage): boolean {
   const origin = req.headers.origin;
   if (origin === undefined) return true;
   let host: string;
@@ -65,7 +69,11 @@ export function sameOrigin(deps: GatewayDeps, req: IncomingMessage): boolean {
   } catch {
     return false;
   }
-  return host === req.headers.host || host === new URL(deps.publicBaseUrl()).host;
+  return host === req.headers.host || host === new URL(publicBaseUrl).host;
+}
+
+export function sameOrigin(deps: GatewayDeps, req: IncomingMessage): boolean {
+  return originMatches(deps.publicBaseUrl(), req);
 }
 
 export function tokensEqual(left: string, right: string): boolean {
