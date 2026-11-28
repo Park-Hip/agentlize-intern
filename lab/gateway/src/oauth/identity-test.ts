@@ -72,6 +72,7 @@ function fakeLookup(overrides: { token?: OAuthAccessToken; grant?: LabGrant; cli
       findToken: async (raw) => (raw === 'raw-token' ? state.token : undefined),
       findGrant: (id) => (state.grant !== undefined && state.grant.grantId === id ? state.grant : undefined),
       findClient: (id) => (state.client !== undefined && state.client.clientId === id ? state.client : undefined),
+      isClientDisabled: () => false,
     },
   };
   return state;

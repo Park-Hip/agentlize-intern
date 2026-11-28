@@ -26,6 +26,8 @@ export interface OAuthTokenLookup {
   findToken(rawToken: string): Promise<OAuthAccessToken | undefined>;
   findGrant(grantId: string): LabGrant | undefined;
   findClient(clientId: string): OAuthClientRegistration | undefined;
+  /** True when the client was switched off; its tokens stop at the same boundary as a revoked grant. */
+  isClientDisabled(clientId: string): boolean;
 }
 
 function hasEmployeeCode(value: string): boolean {
@@ -82,6 +84,7 @@ export class OAuthTokenIdentity implements IdentityProvider {
 
     const client = lookup.findClient(token.clientId);
     if (client === undefined) return INVALID;
+    if (lookup.isClientDisabled(client.clientId)) return { ok: false, reason: 'KEY_REVOKED' };
 
     if (!namesResource(token.audience, lookup.resource)) return INVALID;
     if (!withinGrant(token.scope, grant.scope)) return INVALID;

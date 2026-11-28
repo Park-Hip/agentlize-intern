@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { ReasonCode } from '@lab/shared';
+import type { AuthorizationRef } from '../authorization/types.js';
 import type { GatewayDatabase } from '../database.js';
 import { UsageReader, UsageStore, type UsageRecord, type UsageRow } from './usage-store.js';
 
@@ -50,6 +51,8 @@ export interface TraceRecord {
   readonly turnId?: string | null;
   /** The proposal this line is a step of (write, send or cancel); null for a call that touched none. */
   readonly proposalId?: string | null;
+  /** The durable grant this line acted under, when the source was an OAuth grant; null for a legacy key. */
+  readonly grantId?: string | null;
   /** The fixed key of a write command; null for every line that is not a write. */
   readonly idempotencyKey?: string | null;
   /** How many times a write command had been sent when this line was written. */
@@ -103,6 +106,7 @@ interface Row {
   host_user: string | null;
   turn_id: string | null;
   proposal_id: string | null;
+  grant_id: string | null;
   idempotency_key: string | null;
   attempts: number | null;
   dropped_fields: number;
@@ -130,6 +134,7 @@ function createTraceSql(table: string): string {
       host_user      TEXT,
       turn_id        TEXT,
       proposal_id    TEXT,
+      grant_id       TEXT,
       idempotency_key TEXT,
       attempts       INTEGER,
       dropped_fields INTEGER NOT NULL DEFAULT 0,
@@ -157,6 +162,15 @@ export function newTraceId(): string {
   return `tr-${randomBytes(8).toString('hex')}`;
 }
 
+/**
+ * The grant a trace line names for a durable source: the grant id when the
+ * source is an OAuth grant, and null for a legacy key. One place decides it,
+ * so a page step, a tool call and a write line all write the field the same way.
+ */
+export function grantOfSource(source: AuthorizationRef | null | undefined): string | null {
+  return source !== null && source !== undefined && source.kind === 'oauth' ? source.id : null;
+}
+
 function toRow(row: Row): TraceRow {
   return {
     traceId: row.trace_id,
@@ -174,6 +188,7 @@ function toRow(row: Row): TraceRow {
     hostUser: row.host_user,
     turnId: row.turn_id ?? null,
     proposalId: row.proposal_id,
+    grantId: row.grant_id ?? null,
     idempotencyKey: row.idempotency_key,
     attempts: row.attempts,
     droppedFields: row.dropped_fields ?? 0,
@@ -319,7 +334,7 @@ export class TraceStore extends TraceReader {
 
     // A table made before a column existed gets it; ADD COLUMN is not an UPDATE, so the triggers stay quiet.
     const columns = (db.prepare('PRAGMA table_info(trace)').all() as { name: string }[]).map((column) => column.name);
-    for (const column of ['host_user', 'turn_id', 'proposal_id', 'idempotency_key', 'attempts', 'dropped_fields']) {
+    for (const column of ['host_user', 'turn_id', 'proposal_id', 'grant_id', 'idempotency_key', 'attempts', 'dropped_fields']) {
       if (!columns.includes(column)) {
         const integer = column === 'attempts' || column === 'dropped_fields';
         const type = integer ? 'INTEGER' : 'TEXT';
@@ -334,6 +349,9 @@ export class TraceStore extends TraceReader {
 
   /** Copy every line into a table whose checks know all the entries, keeping each `seq`. The triggers are put back at once. */
   private rebuild(): void {
+    // A table from before the grant column has none; reading it while the old name is still in place is the only moment it can be seen.
+    const source = (this.db.prepare('PRAGMA table_info(trace)').all() as { name: string }[]).map((column) => column.name);
+    const grantColumn = source.includes('grant_id') ? 'grant_id' : 'NULL';
     this.db.transaction(() => {
       this.db.exec(`
         DROP TRIGGER IF EXISTS trace_no_update;
@@ -346,10 +364,11 @@ export class TraceStore extends TraceReader {
       this.db.exec(createTraceSql('trace'));
       this.db.exec(`
         INSERT INTO trace (seq, trace_id, at, requester, caller, entry, tool, object_id, outcome, reason_code,
-                           out_of_scope, rule_id, policy_version, host_user, turn_id, proposal_id, idempotency_key,
-                           attempts, dropped_fields, duration_ms)
+                           out_of_scope, rule_id, policy_version, host_user, turn_id, proposal_id, grant_id,
+                           idempotency_key, attempts, dropped_fields, duration_ms)
         SELECT seq, trace_id, at, requester, caller, entry, tool, object_id, outcome, reason_code,
-               out_of_scope, rule_id, policy_version, host_user, turn_id, proposal_id, idempotency_key,
+               out_of_scope, rule_id, policy_version, host_user, turn_id, proposal_id,
+               ${grantColumn}, idempotency_key,
                attempts, dropped_fields, duration_ms
         FROM trace_before_web;
         DROP TABLE trace_before_web;
@@ -380,6 +399,7 @@ export class TraceStore extends TraceReader {
       host_user: record.hostUser,
       turn_id: record.turnId ?? null,
       proposal_id: record.proposalId ?? null,
+      grant_id: record.grantId ?? null,
       idempotency_key: record.idempotencyKey ?? null,
       attempts: record.attempts ?? null,
       dropped_fields: record.droppedFields ?? 0,
@@ -388,11 +408,11 @@ export class TraceStore extends TraceReader {
     this.db
       .prepare(
         `INSERT INTO trace (trace_id, at, requester, caller, entry, tool, object_id, outcome, reason_code,
-                            out_of_scope, rule_id, policy_version, host_user, turn_id, proposal_id, idempotency_key,
-                            attempts, dropped_fields, duration_ms)
+                            out_of_scope, rule_id, policy_version, host_user, turn_id, proposal_id, grant_id,
+                            idempotency_key, attempts, dropped_fields, duration_ms)
          VALUES (@trace_id, @at, @requester, @caller, @entry, @tool, @object_id, @outcome, @reason_code,
-                 @out_of_scope, @rule_id, @policy_version, @host_user, @turn_id, @proposal_id, @idempotency_key,
-                 @attempts, @dropped_fields, @duration_ms)`,
+                 @out_of_scope, @rule_id, @policy_version, @host_user, @turn_id, @proposal_id, @grant_id,
+                 @idempotency_key, @attempts, @dropped_fields, @duration_ms)`,
       )
       .run(row);
   }

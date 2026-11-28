@@ -25,6 +25,7 @@ import {
   type Proposal,
 } from '../proposals/index.js';
 import { checkWrite } from '../writes/index.js';
+import { grantOfSource } from '../trace/index.js';
 import { readForm } from './form.js';
 import { approvalInboxPage, approvalPage, messagePage, type ApprovalListItem, type CardItemView } from './html.js';
 import {
@@ -398,6 +399,7 @@ async function handleApprovalPress(
       caller: proposal === undefined ? null : callerOfAuthorization(deps.authorization, proposal, WEB_DOOR),
       taskId: traceObjectId(proposal),
       proposalId: proposal?.proposalId ?? null,
+      grantId: grantOfSource(proposal?.authorization),
       outcome: code !== null ? 'refused' : status === 404 ? 'not_found' : 'error',
       reasonCode: code,
       ruleId,
@@ -544,6 +546,7 @@ async function handleApprovalPress(
       caller: callerOfAuthorization(deps.authorization, proposal, WEB_DOOR),
       taskId: traceObjectId(decided),
       proposalId: decided.proposalId,
+      grantId: grantOfSource(decided.authorization),
       outcome: 'ok',
       reasonCode: null,
       ruleId: action === 'approve' ? 'WEB.APPROVE' : 'WEB.REJECT',

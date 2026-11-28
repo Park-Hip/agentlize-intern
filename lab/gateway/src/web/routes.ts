@@ -9,6 +9,7 @@ import {
   type AuthorizationGrant,
 } from '../authorization/index.js';
 import { TraceUnavailableError, type GatewayDeps } from '../call.js';
+import { grantOfSource } from '../trace/index.js';
 import { formatMoment, itemLabel, itemRows, personLabel, traceObjectId } from '../proposals/card.js';
 import {
   actionFields,
@@ -25,6 +26,7 @@ import {
 } from '../proposals/index.js';
 import { checkWrite, type WriteRefusal } from '../writes/index.js';
 import { handleApprovalPages } from './approval-routes.js';
+import { handleConnections } from '../oauth/web/connections.js';
 import { readForm } from './form.js';
 import { cardPage, loginPage, messagePage } from './html.js';
 import {
@@ -87,9 +89,9 @@ async function handleLogin(deps: GatewayDeps, req: IncomingMessage, res: ServerR
     200,
     messagePage(
       'Đã đăng nhập giả lập',
-      'Phiên 15 phút đã mở. Hãy mở lại link xác nhận mà AI đưa cho bạn, hoặc mở hộp Chờ tôi duyệt.',
+      'Phiên 15 phút đã mở. Hãy mở lại link xác nhận mà AI đưa cho bạn, hoặc mở hộp Chờ tôi duyệt, hoặc xem các ứng dụng đang kết nối.',
       'ok',
-      { href: '/cho-duyet', label: 'Mở hộp Chờ tôi duyệt' },
+      { href: '/ket-noi', label: 'Xem kết nối ứng dụng' },
     ),
     cookie,
   );
@@ -344,6 +346,7 @@ async function handleDecision(
       caller: callerOfProposal(deps, proposalId),
       taskId: traceObjectId(proposal),
       proposalId: PROPOSAL_ID_PATTERN.test(proposalId) ? proposalId : null,
+      grantId: grantOfSource(proposal?.authorization),
       outcome: code === null ? 'not_found' : 'refused',
       reasonCode: code,
       ruleId,
@@ -384,6 +387,7 @@ async function handleDecision(
           caller: proposal.caller,
           taskId: traceObjectId(proposal),
           proposalId: proposal.proposalId,
+          grantId: grantOfSource(proposal.authorization),
           outcome: 'refused',
           reasonCode: refusal.code,
           ruleId: refusal.ruleId,
@@ -400,6 +404,7 @@ async function handleDecision(
           caller: authorization.grant.caller,
           taskId: traceObjectId(proposal),
           proposalId: proposal.proposalId,
+          grantId: grantOfSource(proposal.authorization),
           outcome: 'refused',
           reasonCode: code,
           ruleId,
@@ -424,6 +429,7 @@ async function handleDecision(
             caller: authorization.grant.caller,
             taskId: traceObjectId(decided),
             proposalId: decided.proposalId,
+            grantId: grantOfSource(decided.authorization),
             outcome: 'ok',
             reasonCode: null,
             ruleId: routed !== undefined && routed.kind !== 'refuse' ? routed.ruleId : checked.ruleId,
@@ -491,6 +497,7 @@ async function handleDecision(
       caller,
       taskId: traceObjectId(decided),
       proposalId: decided.proposalId,
+      grantId: grantOfSource(decided.authorization),
       outcome: 'ok',
       reasonCode: null,
       ruleId: 'WEB.CONFIRM',
@@ -540,6 +547,7 @@ export async function handleWeb(deps: GatewayDeps, req: IncomingMessage, res: Se
       else await handleDecision(deps, req, res, proposalId, action === 'gui' ? 'confirm' : 'cancel');
       return true;
     }
+    if (await handleConnections(deps, req, res, path)) return true;
     return await handleApprovalPages(deps, req, res, path);
   } catch (error) {
     if (!(error instanceof TraceUnavailableError)) throw error;

@@ -16,10 +16,10 @@ import type { ProposalExecutor, ProposalStore } from './proposals/index.js';
 import type { CommandStore } from './writes/index.js';
 import type { RegisteredTool, ToolResult } from './tools/types.js';
 import type { SessionStore } from './web/session-store.js';
-import { newTraceId, readTurnId, type TraceEntry, type TraceStore } from './trace/index.js';
+import { newTraceId, grantOfSource, readTurnId, type TraceEntry, type TraceStore } from './trace/index.js';
+import type { LabGrant } from './oauth/grants/index.js';
 
-/**
- * The part of a tool call that does not depend on the door it came through.
+/** The part of a tool call that does not depend on the door it came through.
  * `POST /v1/tools/<name>` and `/mcp` both end here, so they share the catalog,
  * the permission checks, the answers and the trace line (SR8).
  */
@@ -37,7 +37,22 @@ export const HOST_USER_HEADER = 'x-user-id';
 export interface OAuthRequestHandler {
   /** The RFC 9728 document a `/mcp` 401 points a client at. */
   readonly resourceMetadataUrl: string;
+  /** The clients this gateway registered, so a page can name one without a second list. */
+  readonly clients?: readonly { readonly clientId: string; readonly clientName: string }[] | undefined;
+  /**
+   * The connection page reads and revokes the grants of one signed-in person.
+   * It is the narrow slice of the OAuth surface the page needs, so `call.ts`
+   * never imports the OAuth module at run time.
+   */
+  readonly connections?: OAuthConnectionSource | undefined;
   handle(req: IncomingMessage, res: ServerResponse, path: string): Promise<boolean>;
+}
+
+/** The three calls the connection page makes on the grant store; the store itself satisfies this. */
+export interface OAuthConnectionSource {
+  listByEmployee(employeeId: string): readonly LabGrant[];
+  revoke(grantId: string): boolean;
+  isClientDisabled(clientId: string): boolean;
 }
 
 export interface GatewayDeps {
@@ -73,10 +88,12 @@ export interface Trail {
   caller: string | null;
   /** The host's `X-Lab-Turn` for this call, or null when it sent none; it groups a turn's cost. */
   turnId: string | null;
+  /** The durable grant the call acted under, or null when it used a legacy key. */
+  grantId: string | null;
 }
 
 export function newTrail(): Trail {
-  return { tool: UNKNOWN_TOOL, requester: null, caller: null, turnId: null };
+  return { tool: UNKNOWN_TOOL, requester: null, caller: null, turnId: null, grantId: null };
 }
 
 const REFUSAL_STATUS: Readonly<Partial<Record<ReasonCode, number>>> = {
@@ -148,6 +165,7 @@ async function answerCall(
   const { identity } = authenticated;
   trail.requester = identity.employeeId;
   trail.caller = identity.caller;
+  trail.grantId = grantOfSource(identity.authorization);
 
   const tool = deps.tools.find((candidate) => candidate.name === toolName);
   if (tool === undefined) {
@@ -267,6 +285,7 @@ export function writeTrace(
       hostUser,
       turnId: trail.turnId,
       proposalId: result.proposalId ?? null,
+      grantId: trail.grantId,
       droppedFields: result.droppedFields ?? 0,
       durationMs: performance.now() - startedAt,
     });

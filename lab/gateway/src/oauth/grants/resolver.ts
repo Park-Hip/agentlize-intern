@@ -35,6 +35,9 @@ export class GrantAuthorizationResolver implements AuthorizationResolver {
     if (ref.kind !== 'oauth') return { ok: false, reason: 'AUTHORIZATION_UNKNOWN' };
     const grant = this.grants.find(ref.id);
     if (grant === undefined) return { ok: false, reason: 'AUTHORIZATION_INVALID' };
+    // A client switched off is refused at every step that resolves the grant,
+    // the same boundary as a revoked grant, not only when a new token is asked for.
+    if (this.grants.isClientDisabled(grant.clientId)) return { ok: false, reason: 'AUTHORIZATION_CLIENT_DISABLED' };
     return {
       ok: true,
       grant: {

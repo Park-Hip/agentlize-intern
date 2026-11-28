@@ -44,5 +44,12 @@ export function authorizationRefusal(reason: AuthorizationFailure): Authorizatio
         ruleId: 'WRITE.KEY_INVALID',
         sentence: 'Nguồn quyền đã soạn đề xuất không còn trong danh sách cấp quyền nên cổng không ghi. Hãy đăng nhập lại bằng nguồn quyền hợp lệ.',
       };
+    case 'AUTHORIZATION_CLIENT_DISABLED':
+      return {
+        code: 'KEY_REVOKED',
+        status: 401,
+        ruleId: 'WRITE.CLIENT_DISABLED',
+        sentence: 'Ứng dụng đã soạn đề xuất đã bị tắt nên cổng không ghi. Hãy bật lại ứng dụng hoặc kết nối lại bằng ứng dụng khác.',
+      };
   }
 }

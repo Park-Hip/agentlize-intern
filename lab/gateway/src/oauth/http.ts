@@ -36,6 +36,8 @@ export interface OAuthSurface {
   readonly grants: GrantStore;
   readonly clients: readonly OAuthClientRegistration[];
   readonly tokenLookup: OAuthTokenLookup;
+  /** The grant store, read by the connection page for the signed-in person only. */
+  readonly connections: GrantStore;
   /** True when the request was an OAuth one and the answer is written. */
   handle(req: IncomingMessage, res: ServerResponse, path: string): Promise<boolean>;
 }
@@ -249,6 +251,7 @@ export function createOAuthSurface(options: OAuthSurfaceOptions): OAuthSurface {
     },
     findGrant: (grantId) => grants.find(grantId),
     findClient: (clientId) => clients.find((client) => client.clientId === clientId),
+    isClientDisabled: (clientId) => grants.isClientDisabled(clientId),
   };
 
   const handleInteraction = async (req: IncomingMessage, res: ServerResponse, path: string): Promise<void> => {
@@ -347,6 +350,7 @@ export function createOAuthSurface(options: OAuthSurfaceOptions): OAuthSurface {
     grants,
     clients,
     tokenLookup,
+    connections: grants,
     handle,
   };
 }
