@@ -24,7 +24,9 @@ export type AuthorizationFailure =
   | 'AUTHORIZATION_INVALID'
   | 'AUTHORIZATION_REVOKED'
   | 'AUTHORIZATION_EXPIRED'
-  | 'AUTHORIZATION_UNKNOWN';
+  | 'AUTHORIZATION_UNKNOWN'
+  /** The client behind a grant is switched off; it is refused at the same boundary as a revocation. */
+  | 'AUTHORIZATION_CLIENT_DISABLED';
 
 /** What a resolver knows after checking a reference: person, caller, scope, status and the grant's own expiry. */
 export interface AuthorizationGrant {

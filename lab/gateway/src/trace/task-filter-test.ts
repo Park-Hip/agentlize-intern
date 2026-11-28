@@ -245,6 +245,7 @@ test('trace: the task filter leaves no duplicate approval rows and the table sti
       'host_user',
       'turn_id',
       'proposal_id',
+      'grant_id',
       'idempotency_key',
       'attempts',
       'dropped_fields',
@@ -289,7 +290,7 @@ test('trace cli: --task prints the requester, the approver, the policy version a
     assert.equal(rows.filter((line) => /\sproposal_approve\s/.test(line)).length, 1);
     assert.match(lines.join('\n'), new RegExp(String.raw`${QUANG}\s+tho-than-desktop\s+web\s+proposal_approve\s+T-12\s+ok\s+-\s+-\s+WEB\.APPROVE\s+v3`));
     assert.match(lines.join('\n'), new RegExp(String.raw`${HOA}\s+tho-than-desktop\s+web\s+proposal_send\s+T-12\s+ok\s+-\s+-\s+task\.change_task_assignee_or_due\.staff\.bulk\s+v3`));
-    assert.match(lines.join('\n'), new RegExp(String.raw`\swrite_command\s+T-17\s+ok\s+-\s+-\s+WRITE\.SEND\s+v3\s+-\s+${seeded.proposalId}\s+${seeded.proposalId}:3`));
+    assert.match(lines.join('\n'), new RegExp(String.raw`\swrite_command\s+T-17\s+ok\s+-\s+-\s+WRITE\.SEND\s+v3\s+-\s+${seeded.proposalId}\s+-\s+${seeded.proposalId}:3`));
   } finally {
     seeded.close();
   }

@@ -55,7 +55,10 @@
       "policy default: a field that is not listed is never returned",
       "console: trace groups one task chain by proposal, with every column, and never shows personal data",
       "oauth pages: the consent page names the client, the person, the scopes and the data ceiling",
-      "oauth pages: the consent form cannot swap the client, callback, scope, resource or employee it was drawn for"
+      "oauth pages: the consent form cannot swap the client, callback, scope, resource or employee it was drawn for",
+      "oauth connections page: only the signed-in person grants are read, and the client is named by its registration",
+      "oauth connections page: a button shows only for a live grant, and the page never carries an OAuth token or secret",
+      "oauth revocation: a disabled client is refused at the write boundary, like a revoked grant"
     ]
   },
   "SR4": {
@@ -80,7 +83,10 @@
       "policy approval: the file lists the roles, the department rule and the wait time",
       "policy window: the file names the 60-minute look-back",
       "send: a stored proposal whose content no longer matches its print is refused as CONTENT_CHANGED",
-      "oauth pages: consent never writes a business change and never opens the approval pages"
+      "oauth pages: consent never writes a business change and never opens the approval pages",
+      "oauth revocation: a revoked grant blocks Gửi before it and the lead approval after it, and a fresh grant does not revive the proposal",
+      "oauth revocation: revoking after Gửi blocks the lead approval and creates no command",
+      "oauth revocation: an expired token is refused while the grant it came from still stands"
     ]
   },
   "SR5": {
@@ -102,7 +108,9 @@
       "oauth pages: an interaction uid swapped into the URL is refused because its CSRF token does not match",
       "oauth pages: an expired interaction is refused, so a stale login page cannot sign in",
       "oauth pages: a second consent press with a spent token is refused, so one interaction issues one code",
-      "oauth pages: refusing the connection returns access_denied with the state and the issuer, and makes no grant"
+      "oauth pages: refusing the connection returns access_denied with the state and the issuer, and makes no grant",
+      "oauth connections: another person cannot disconnect a grant they do not hold",
+      "oauth revocation journey: the connections page needs a session, and a press from another origin is refused"
     ]
   },
   "SR6": {
@@ -122,7 +130,9 @@
       "write: eight identical commands sent at once make one write",
       "write: a key reused with different content answers 422 and writes nothing",
       "directory: the same Idempotency-Key replays the first answer",
-      "directory: reusing an Idempotency-Key for different content answers 422"
+      "directory: reusing an Idempotency-Key for different content answers 422",
+      "oauth revocation: a sent_unknown command keeps its evidence when the grant is revoked, and sends no more",
+      "oauth revocation: a command left not_sent is held after a revoke and after a restart, and never sent"
     ]
   },
   "SR7": {
@@ -147,7 +157,9 @@
       "trace: the reader filters by proposal and door",
       "trace: the table only grows, because the database refuses UPDATE and DELETE",
       "write: Gửi answers at once, then writes once, and the command keeps its key, version, count and result",
-      "send: when the trace line cannot be written the press is rolled back"
+      "send: when the trace line cannot be written the press is rolled back",
+      "oauth revocation: revoking Nam leaves Hoa in the same client working, and the trail names no secret",
+      "oauth revocation journey: the connections page is scoped to its person, and says so when the list is empty"
     ]
   },
   "SR8": {
@@ -176,6 +188,8 @@
       "oauth pages: the interaction pages carry no form-action directive, so Chrome keeps the cross-origin redirect",
       "oauth pages: the client secret is never on the consent page and a token is never in the callback URL",
       "oauth pages: the same login and consent work for the second registered client, with its own name and grant",
+      "oauth connections: disconnect revokes the grant and every token, while a token revocation leaves the grant",
+      "oauth revocation: a proposal drafted with a valid token is pressed after the token is revoked but before the grant",
       "oauth pages: the ceiling sentence reads naturally for every data class the rule file can name",
       "oauth pages: the login page offers the shared persona options and a stacked scope row labels both cells"
     ]

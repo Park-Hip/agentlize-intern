@@ -20,7 +20,7 @@ import {
 } from './call.js';
 import type { Identity, IdentityResult } from './identity/index.js';
 import { OAUTH_SCOPE_PROPOSE, OAUTH_SCOPE_READ } from './oauth/discovery.js';
-import { newTraceId, readTurnId } from './trace/index.js';
+import { newTraceId, grantOfSource, readTurnId } from './trace/index.js';
 
 const SERVER_INFO = { name: 'agentlize-lab-gateway', version: '0.0.0' } as const;
 
@@ -108,6 +108,7 @@ function traceScopeRefusal(
     hostUser: maskedHostUser(req.headers),
     turnId: readTurnId(req.headers),
     proposalId: null,
+    grantId: grantOfSource(identity.authorization),
     droppedFields: 0,
     durationMs: performance.now() - startedAt,
   });

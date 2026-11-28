@@ -2,6 +2,7 @@ import type { GatewayDatabase } from '../../database.js';
 
 export const OAUTH_STATE_TABLE = 'oauth_state';
 export const OAUTH_GRANT_TABLE = 'oauth_grants';
+export const OAUTH_CLIENT_TABLE = 'oauth_clients';
 
 /**
  * The two tables the OAuth side owns. Both live in the gateway database, so a
@@ -37,6 +38,11 @@ export function ensureOAuthSchema(db: GatewayDatabase): void {
       created_at  TEXT NOT NULL,
       expires_at  TEXT NOT NULL,
       revoked_at  TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS ${OAUTH_CLIENT_TABLE} (
+      client_id   TEXT PRIMARY KEY,
+      disabled_at TEXT
     );
   `);
 }

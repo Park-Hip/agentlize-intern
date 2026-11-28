@@ -11,7 +11,7 @@ export const LOGIN_PATH = '/dang-nhap';
 export const COOKIE_NAME = 'lab_session';
 
 /** After a login, `next` may only be one of our own pages (ADR-0008 section 3.1). */
-export const NEXT_PATTERN = /^(?:\/cho-duyet|\/(?:xac-nhan|duyet)\/dx-[0-9a-f]{16})$/;
+export const NEXT_PATTERN = /^(?:\/cho-duyet|\/ket-noi|\/(?:xac-nhan|duyet)\/dx-[0-9a-f]{16})$/;
 
 export const TRACE_UNAVAILABLE = 'Cổng không ghi được vết nên chưa làm gì. Hãy báo người vận hành Lab.';
 
@@ -100,6 +100,8 @@ export interface Step {
   readonly caller: string | null;
   readonly taskId?: string | null;
   readonly proposalId?: string | null;
+  /** The grant the proposal's source names, when the source is an OAuth grant. */
+  readonly grantId?: string | null;
   readonly outcome: ToolResult['outcome'];
   readonly reasonCode: ReasonCode | null;
   readonly ruleId?: string | null;
@@ -112,6 +114,7 @@ export function traceStep(deps: GatewayDeps, started: number, step: Step): void 
   trail.tool = step.tool;
   trail.requester = step.requester;
   trail.caller = step.caller;
+  trail.grantId = step.grantId ?? null;
   writeTrace(
     deps,
     'web',

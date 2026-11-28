@@ -17,7 +17,7 @@ import { consentPage, oauthLoginPage, type DataCeilingView, type ScopeView } fro
 export const INTERACTION_CSRF_TTL_MS = 60 * 60 * 1000;
 
 /** One everyday word for each scope, so the consent page reads without the protocol in mind. */
-const SCOPE_LABELS: Readonly<Record<string, { label: string; description: string }>> = {
+export const SCOPE_LABELS: Readonly<Record<string, { label: string; description: string }>> = {
   openid: { label: 'Xác nhận danh tính', description: 'Cho ứng dụng biết bạn đang dùng nhân vật giả nào.' },
   'mcp:read': { label: 'Đọc dữ liệu', description: 'Gọi các công cụ đọc của Lab, ví dụ tra danh bạ và xem task.' },
   'mcp:propose': {

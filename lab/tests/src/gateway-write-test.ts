@@ -485,7 +485,7 @@ for (const door of DOORS) {
         assert.match(status.text, new RegExp(`${task}: đã ghi ở lần gửi thứ 1`), 'the status names each item result');
         assert.match(
           traceTable(env, ['--task', task]),
-          new RegExp(String.raw`write_command\s+${task}\s+ok\s+-\s+\S+\s+WRITE\.SEND\s+v1\s+-\s+${proposal.id}\s+${proposal.id}:${index + 1}\s+1`),
+          new RegExp(String.raw`write_command\s+${task}\s+ok\s+-\s+\S+\s+WRITE\.SEND\s+v1\s+-\s+${proposal.id}\s+-\s+${proposal.id}:${index + 1}\s+1`),
           `${task} used its own position in the idempotency key`,
         );
       }
@@ -585,7 +585,7 @@ for (const door of DOORS) {
       assert.match(
         trace,
         new RegExp(
-          String.raw`write_command\s+T-19\s+ok\s+-\s+\S+\s+WRITE\.RETRY\s+v1\s+-\s+${proposal.id}\s+${proposal.id}:1\s+2`,
+          String.raw`write_command\s+T-19\s+ok\s+-\s+\S+\s+WRITE\.RETRY\s+v1\s+-\s+${proposal.id}\s+-\s+${proposal.id}:1\s+2`,
         ),
         'the retry used the old key and the fake task replayed its stored answer',
       );
@@ -647,7 +647,7 @@ for (const door of DOORS) {
       assert.equal(task.version, 2);
 
       const trace = traceTable(env, ['--task', 'T-21']);
-      assert.match(trace, /write_command\s+T-21\s+ok\s+-\s+\S+\s+WRITE\.RETRY\s+v1\s+-\s+\S+\s+\S+:1\s+2/);
+      assert.match(trace, /write_command\s+T-21\s+ok\s+-\s+\S+\s+WRITE\.RETRY\s+v1\s+-\s+\S+\s+-\s+\S+:1\s+2/);
     });
   });
 }

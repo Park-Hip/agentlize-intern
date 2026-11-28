@@ -72,16 +72,24 @@ function fakeLookup(overrides: { token?: OAuthAccessToken; grant?: LabGrant; cli
       findToken: async (raw) => (raw === 'raw-token' ? state.token : undefined),
       findGrant: (id) => (state.grant !== undefined && state.grant.grantId === id ? state.grant : undefined),
       findClient: (id) => (state.client !== undefined && state.client.clientId === id ? state.client : undefined),
+      isClientDisabled: () => false,
     },
   };
   return state;
 }
 
+/**
+ * The one moment these tests run at. The fixture grant expires at 14:00, so a
+ * fixed clock at 10:00 keeps every result independent of the wall clock: the
+ * suite passes today, in a year, and on a machine whose clock is wrong.
+ */
+const TEST_NOW = (): Date => new Date('2026-11-28T10:00:00.000Z');
+
 function headers(raw: string): Record<string, string> {
   return { authorization: `Bearer ${raw}` };
 }
 
-function identityFor(state: FakeLookup, now?: () => Date): OAuthTokenIdentity {
+function identityFor(state: FakeLookup, now: () => Date = TEST_NOW): OAuthTokenIdentity {
   return new OAuthTokenIdentity(() => state.lookup, now);
 }
 
@@ -122,8 +130,8 @@ test('oauth identity: a missing token, a token id as a grant or a refused door i
   });
   assert.deepEqual(await identityFor(state).authenticate({}, MCP_DOOR), { ok: false, reason: 'KEY_INVALID' });
 
-  // No lookup means the surface has not started; nothing is accepted.
-  const notStarted = new OAuthTokenIdentity(() => undefined);
+  // No lookup means the surface has not started; nothing is accepted, at any moment.
+  const notStarted = new OAuthTokenIdentity(() => undefined, TEST_NOW);
   assert.deepEqual(await notStarted.authenticate(headers('raw-token'), MCP_DOOR), {
     ok: false,
     reason: 'KEY_INVALID',
@@ -184,10 +192,14 @@ test('oauth identity: the MCP door routes a lab_ key to the key store and everyt
     const fakeToken = `opaque-${randomBytes(12).toString('base64url')}`;
     const state = fakeLookup({ token: token() });
 
-    const identity = createGatewayIdentity(keys, () => ({
-      ...state.lookup,
-      findToken: async (raw) => (raw === fakeToken ? state.token : undefined),
-    }));
+    const identity = createGatewayIdentity(
+      keys,
+      () => ({
+        ...state.lookup,
+        findToken: async (raw) => (raw === fakeToken ? state.token : undefined),
+      }),
+      TEST_NOW,
+    );
 
     const viaKey = await identity.authenticate(headers(issued.rawKey), MCP_DOOR);
     assert.equal(viaKey.ok, true);

@@ -193,6 +193,17 @@ Mỗi form có mã chống giả mạo giữ trong bảng `oauth_page_csrf`, ki�
 Trang đồng ý không đặt `form-action 'self'` vì ứng dụng ở origin khác (ADR-0011 mục 2); không có trang nào hiện token, mã cấp quyền hay bí mật ứng dụng.
 Handler là mặc định của cổng; phép thử có thể truyền handler khác, hoặc `interaction: null` để kiểm nhánh 503.
 
+Trang ngắt kết nối ở `/ket-noi` (`src/oauth/web/connections.ts`) dùng cùng phiên đăng nhập trang và mã chống giả mạo với các trang khác.
+Trang chỉ liệt kê kết nối của nhân vật đang đăng nhập, mỗi dòng nêu ứng dụng, phạm vi, lúc nối, lúc hết hạn và một nút Ngắt kết nối khi kết nối còn hiệu lực.
+Mã kết nối dài được rút gọn còn tám ký tự đầu và dấu ba chấm, giữ trên một dòng; mã đầy đủ nằm ở thuộc tính `title` và trong địa chỉ của form.
+Mọi giá trị đưa vào trang đều qua `esc` như các trang khác, và địa chỉ form dựng bằng `encodeURIComponent`, nên một mã kết nối chứa ký tự HTML hay `/` vẫn hiện đúng chữ và không thoát khỏi đường dẫn.
+Bấm Ngắt kết nối thu hồi lần cấp quyền đó cùng mọi thẻ truy cập của nó; một mã kết nối của người khác trả 404 như mã không tồn tại, nên không ai thu hồi hộ người khác.
+Thu hồi một token qua `/oauth/token/revocation` chỉ chặn token đó; grant vẫn còn, và ứng dụng chỉ thu hồi được token của chính mình.
+
+Mọi bước ghi kiểm lại nguồn quyền tại chỗ: lúc bấm Gửi, lúc trưởng nhóm duyệt và trước mỗi lần phát lệnh ghi trong hàng đợi, kể cả lệnh còn `not_sent` sau khi khởi động lại.
+Thu hồi grant, tắt ứng dụng (`oauth_clients.disabled_at`) hay grant hết hạn đều chặn như nhau; một lệnh đã `sent_unknown` giữ nguyên dấu vết và không gửi lại.
+Hết hạn token khác thu hồi grant: token hết hạn thì không gọi công cụ mới, còn đề xuất đã soạn bằng grant đó vẫn bấm Gửi được trong hạn của nó.
+
 | Biến | Mặc định | Việc |
 | --- | --- | --- |
 | `LAB_OAUTH_ISSUER` | `LAB_PUBLIC_BASE_URL`, rồi địa chỉ cổng đang nghe | Địa chỉ gốc làm issuer; phải ở gốc hostname, không có đường dẫn |
@@ -287,6 +298,7 @@ Mỗi đề xuất chạy từng mục theo vị trí, một mục một lúc.
 Bảng `trace` trong `<LAB_DATA_DIR>/gateway.sqlite` chỉ ghi thêm: hai trigger của SQLite chặn mọi UPDATE và DELETE.
 Mỗi dòng có mã vết, thời điểm, người yêu cầu, nơi gọi, cửa vào (`http`, `mcp` hoặc `web`), tool, đối tượng, kết quả, mã lý do, mã luật, phiên bản luật, `x-user-id` đã che, mã lượt (`turn_id`) và thời gian xử lý.
 Dòng của lệnh ghi có thêm mã chống ghi trùng và số lần gửi.
+Một dòng có thêm mã grant (`grant_id`) khi nguồn quyền là một lần cấp quyền OAuth, nên nối được người, ứng dụng, đề xuất, người duyệt và kết quả mà không lưu token, mã cấp quyền, verifier hay mật khẩu.
 Bảng không có cột cho tên, email, số điện thoại, địa chỉ hay khoá, nên các giá trị đó không thể lọt vào.
 
 Mã lượt đến từ header `X-Lab-Turn`; lời gọi không có header thì cột để trống.

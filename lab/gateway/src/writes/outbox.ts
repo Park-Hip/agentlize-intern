@@ -3,7 +3,7 @@ import type { ReasonCode } from '@lab/shared';
 import { adapterOf, type ApplyResult, type ResourceAdapter } from '../adapters/index.js';
 import { OUTBOX_DOOR, type AuthorizationRegistry } from '../authorization/index.js';
 import type { ExecutionReceipt, Proposal, ProposalExecutor, ProposalStore } from '../proposals/index.js';
-import { newTraceId, type TraceOutcome, type TraceStore } from '../trace/index.js';
+import { newTraceId, grantOfSource, type TraceOutcome, type TraceStore } from '../trace/index.js';
 import type { CommandStore, WriteCommand } from './command-store.js';
 
 /** How often the loop looks at the table when no wake arrives. */
@@ -390,6 +390,7 @@ export class Outbox implements ProposalExecutor {
       policyVersion: proposal?.policyVersion ?? null,
       hostUser: null,
       proposalId: command.proposalId,
+      grantId: grantOfSource(proposal?.authorization),
       idempotencyKey: command.idempotencyKey,
       attempts: command.attempts,
       durationMs: performance.now() - started,
