@@ -2,8 +2,13 @@ import { performance } from 'node:perf_hooks';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { EMPLOYEE_ID_PATTERN, type ReasonCode } from '@lab/shared';
 import { adapterOf, SystemUnavailableError, type RecordData } from '../adapters/index.js';
+import {
+  authorizationRefusal,
+  callerOfAuthorization,
+  WEB_DOOR,
+  type AuthorizationGrant,
+} from '../authorization/index.js';
 import { TraceUnavailableError, type GatewayDeps } from '../call.js';
-import type { KeyRecord } from '../identity/index.js';
 import { formatMoment, itemLabel, itemRows, personLabel, traceObjectId } from '../proposals/card.js';
 import {
   actionFields,
@@ -255,7 +260,7 @@ function carriedFor(deps: GatewayDeps, proposal: Proposal, since: Date): Record<
 async function writeChecks(
   deps: GatewayDeps,
   proposal: Proposal,
-  key: KeyRecord,
+  grant: AuthorizationGrant,
 ): Promise<WriteCheckOk | { ok: false; check: WriteRefusal }> {
   const directory = adapterOf(deps.adapters, 'employee');
   const records = adapterOf(deps.adapters, proposal.recordType);
@@ -285,7 +290,7 @@ async function writeChecks(
   const since = new Date(deps.now().getTime() - windowMinutes * 60_000);
   const check = checkWrite({
     proposal,
-    key,
+    authorization: { ok: true, grant },
     employee,
     adapter: records,
     records: current,
@@ -368,7 +373,11 @@ async function handleDecision(
     const proposal = PROPOSAL_ID_PATTERN.test(proposalId) ? deps.proposals.get(proposalId) : undefined;
     // Only a proposal still waiting for the press needs the second check; an expired or used one is answered by the store.
     if (proposal !== undefined && effectiveStatus(proposal, deps.now()) === 'awaiting_confirmation') {
-      if (proposal.draftedByKeyId === null) {
+      // One resolver answers for a key and for a grant alike. A proposal from
+      // before the migration has no source, so it is refused instead of guessed.
+      const authorization = deps.authorization.resolve(proposal.authorization, WEB_DOOR);
+      if (!authorization.ok) {
+        const refusal = authorizationRefusal(authorization.reason);
         traceStep(deps, started, {
           tool,
           requester,
@@ -376,43 +385,19 @@ async function handleDecision(
           taskId: traceObjectId(proposal),
           proposalId: proposal.proposalId,
           outcome: 'refused',
-          reasonCode: 'KEY_INVALID',
-          ruleId: 'WEB.DRAFT_KEY_MISSING',
+          reasonCode: refusal.code,
+          ruleId: refusal.ruleId,
         });
-        return refusalPage(
-          res,
-          401,
-          'KEY_INVALID',
-          'Đề xuất này được soạn trước khi cổng lưu khoá đã soạn nên cổng không kiểm được khoá và không ghi. Hãy nhờ AI soạn lại.',
-        );
-      }
-      const draftedKey = deps.keys.findById(proposal.draftedByKeyId);
-      if (draftedKey === undefined) {
-        traceStep(deps, started, {
-          tool,
-          requester,
-          caller: proposal.caller,
-          taskId: traceObjectId(proposal),
-          proposalId: proposal.proposalId,
-          outcome: 'refused',
-          reasonCode: 'KEY_INVALID',
-          ruleId: 'WEB.DRAFT_KEY_INVALID',
-        });
-        return refusalPage(
-          res,
-          401,
-          'KEY_INVALID',
-          'Khoá đã soạn đề xuất không còn trong danh sách cấp khoá nên cổng không ghi. Hãy nhờ AI soạn lại bằng một khoá còn hiệu lực.',
-        );
+        return refusalPage(res, refusal.status, refusal.code, refusal.sentence);
       }
 
-      const checked = await writeChecks(deps, proposal, draftedKey);
+      const checked = await writeChecks(deps, proposal, authorization.grant);
       if (!checked.ok) {
         const { status, code, ruleId, policyVersion, sentence } = checked.check;
         traceStep(deps, started, {
           tool,
           requester,
-          caller: draftedKey.caller,
+          caller: authorization.grant.caller,
           taskId: traceObjectId(proposal),
           proposalId: proposal.proposalId,
           outcome: 'refused',
@@ -436,7 +421,7 @@ async function handleDecision(
           traceStep(deps, started, {
             tool,
             requester: decided.requester,
-            caller: draftedKey.caller,
+            caller: authorization.grant.caller,
             taskId: traceObjectId(decided),
             proposalId: decided.proposalId,
             outcome: 'ok',
@@ -450,7 +435,7 @@ async function handleDecision(
         (stored) => {
           const recheck = checkWrite({
             proposal: stored,
-            key: draftedKey,
+            authorization,
             employee: checked.employee,
             adapter: adapterOf(deps.adapters, stored.recordType),
             records: checked.records,
@@ -525,13 +510,14 @@ async function handleDecision(
   redirect(res, `/xac-nhan/${result.proposal.proposalId}`);
 }
 
-/** The caller of the key that drafted the proposal, kept on the proposal so a page step still names it. */
+/**
+ * The caller of the source that drafted the proposal. It asks the registry,
+ * never the key store directly, so a key and a grant answer through one path.
+ */
 function callerOfProposal(deps: GatewayDeps, proposalId: string): string | null {
   if (!PROPOSAL_ID_PATTERN.test(proposalId)) return null;
   const proposal = deps.proposals.get(proposalId);
-  if (proposal === undefined) return null;
-  if (proposal.draftedByKeyId === null) return proposal.caller;
-  return deps.keys.findById(proposal.draftedByKeyId)?.caller ?? proposal.caller;
+  return proposal === undefined ? null : callerOfAuthorization(deps.authorization, proposal, WEB_DOOR);
 }
 
 /**

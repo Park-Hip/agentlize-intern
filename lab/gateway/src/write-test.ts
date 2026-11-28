@@ -281,7 +281,7 @@ test('write: a drafting key removed or a person gone from the directory is KEY_I
   await withGateway(async (f) => {
     const id = await propose(f, HOA, { status: 'done' });
     const browser = await signIn(f, HOA, id);
-    const draftedByKeyId = f.gateway.proposals.get(id)?.draftedByKeyId ?? '';
+    const draftedByKeyId = f.gateway.proposals.get(id)?.authorization?.id ?? '';
     assert.notEqual(draftedByKeyId, '');
 
     const db = new Database(join(f.dir, GATEWAY_DB_FILE));

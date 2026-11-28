@@ -1,6 +1,7 @@
 import { readPublicBaseUrl, readServiceKey, startService, type RunningService } from '@lab/shared';
 import { createHttpAdapters, systemUrl, type ResourceAdapter } from './adapters/index.js';
 import { createGatewayHandler } from './app.js';
+import { createAuthorizationRegistry, type AuthorizationRegistry } from './authorization/index.js';
 import { openGatewayDatabase, resolveDataDir } from './database.js';
 import { ApiKeyIdentity, KeyStore, PagePasswordStore } from './identity/index.js';
 import { createPolicyEngine, resolveRulesPath, seedRulesFile } from './policy/index.js';
@@ -31,6 +32,8 @@ export interface GatewayOptions {
 export interface RunningGateway extends RunningService {
   readonly keys: KeyStore;
   readonly pagePasswords: PagePasswordStore;
+  /** Exposes the one resolver so a provider can register a kind, and tests can swap a fake one. */
+  readonly authorization: AuthorizationRegistry;
   readonly trace: TraceStore;
   readonly proposals: ProposalStore;
   readonly sessions: SessionStore;
@@ -53,8 +56,10 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
   const db = openGatewayDatabase(dataDir);
   try {
     const keys = new KeyStore(db);
-    const pagePasswords = new PagePasswordStore(db);
     const now = options.now ?? ((): Date => new Date());
+    // The registry shares the app clock, so a grant deadline is judged at the same moment as the rest of a step.
+    const authorization = createAuthorizationRegistry(keys, now);
+    const pagePasswords = new PagePasswordStore(db);
     const trace = new TraceStore(db, now);
     const proposals = new ProposalStore(db, now);
     const sessions = new SessionStore(db, now);
@@ -74,7 +79,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
     let outbox: Outbox | undefined;
     let executor: ProposalExecutor;
     if (options.executor === undefined) {
-      outbox = new Outbox({ commands, proposals, adapters, trace, now });
+      outbox = new Outbox({ commands, proposals, adapters, trace, authorization, now });
       executor = outbox;
     } else {
       executor = options.executor;
@@ -86,6 +91,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
       ...(options.port === undefined ? {} : { port: options.port }),
       handler: createGatewayHandler({
         identity: new ApiKeyIdentity(keys),
+        authorization,
         policy: createPolicyEngine({ rulesPath, declarations: adapters }),
         adapters,
         trace,
@@ -110,6 +116,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
       ...running,
       keys,
       pagePasswords,
+      authorization,
       trace,
       proposals,
       sessions,

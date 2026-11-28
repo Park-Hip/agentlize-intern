@@ -1,3 +1,5 @@
+import type { AuthorizationContext, AuthorizationRef } from '../authorization/types.js';
+
 /**
  * The operator console's caller name (ADR-0006 section 3.3). Its keys live only
  * in the console's memory: issued at startup, revoked when it exits, and swept
@@ -31,7 +33,12 @@ export interface Identity {
   readonly employeeId: string;
   readonly caller: Caller;
   readonly scope: Scope;
-  readonly keyId: string;
+  /**
+   * The durable source that proved this call: the presented key today, a Lab
+   * grant once OAuth exists. A proposal keeps this reference, so an expired
+   * access token does not become a revoked grant later.
+   */
+  readonly authorization: AuthorizationRef;
 }
 
 export type IdentityResult =
@@ -43,11 +50,13 @@ export type IdentityHeaders = Readonly<Record<string, string | string[] | undefi
 
 /**
  * The replaceable seam. The first implementation reads a Bearer key
- * (`ApiKeyIdentity`); a later one could read a host-signed header instead.
+ * (`ApiKeyIdentity`); a later one reads a Lab OAuth token instead.
+ * A door passes its context explicitly, so a provider knows which resource and
+ * which authentication forms the door accepts instead of guessing.
  * It is async so an implementation can call out without changing callers.
  */
 export interface IdentityProvider {
-  authenticate(headers: IdentityHeaders): Promise<IdentityResult>;
+  authenticate(headers: IdentityHeaders, context?: AuthorizationContext): Promise<IdentityResult>;
 }
 
 export function isCaller(value: string): value is Caller {

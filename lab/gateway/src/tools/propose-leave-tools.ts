@@ -161,7 +161,7 @@ const proposeLeave = defineTool(
       {
         requester: actor.employeeId,
         caller: actor.identity.caller,
-        draftedByKeyId: actor.identity.keyId,
+        authorization: actor.identity.authorization,
         tool: PROPOSE_TOOL,
         recordType: leave.type,
         changes,

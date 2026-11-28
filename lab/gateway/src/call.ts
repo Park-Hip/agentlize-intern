@@ -2,6 +2,7 @@ import { performance } from 'node:perf_hooks';
 import { BodyError, maskKey, refusalMessage, type ReasonCode, type ToolKind } from '@lab/shared';
 import { z } from 'zod';
 import { adapterOf, SystemUnavailableError, type ResourceAdapter } from './adapters/index.js';
+import type { AuthorizationRegistry } from './authorization/index.js';
 import type {
   IdentityHeaders,
   IdentityProvider,
@@ -29,6 +30,8 @@ export const HOST_USER_HEADER = 'x-user-id';
 
 export interface GatewayDeps {
   readonly identity: IdentityProvider;
+  /** The one place a proposal's source of authority is resolved, shared by the pages and the outbox. */
+  readonly authorization: AuthorizationRegistry;
   readonly policy: PolicyEngine;
   /** The registered system adapters: one per record type, the only way a call reaches a system. */
   readonly adapters: readonly ResourceAdapter[];

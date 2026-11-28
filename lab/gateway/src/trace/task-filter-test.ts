@@ -50,7 +50,7 @@ function seed(): Seeded {
   const proposal = proposals.create({
     requester: HOA,
     caller: 'tho-than-desktop',
-    draftedByKeyId: 'key-0123456789abcdef',
+    authorization: { kind: 'key', id: 'key-0123456789abcdef' },
     tool: 'propose_task_change',
     recordType: 'task',
     changes: { assignee: 'NV-04' },
@@ -68,7 +68,7 @@ function seed(): Seeded {
   const rejected = proposals.create({
     requester: HOA,
     caller: 'tho-than-desktop',
-    draftedByKeyId: 'key-0123456789abcdef',
+    authorization: { kind: 'key', id: 'key-0123456789abcdef' },
     tool: 'propose_task_change',
     recordType: 'task',
     changes: { description: 'Mô tả mới.' },
