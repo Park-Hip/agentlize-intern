@@ -1,6 +1,6 @@
 # Bảng thuật ngữ
 
-Ngày: 2026-11-24. Trạng thái: bảng thuật ngữ dùng chung, cập nhật khi có thuật ngữ mới.
+Ngày: 2026-11-28. Trạng thái: bảng thuật ngữ dùng chung, bổ sung các khái niệm cấp quyền truy cập công cụ.
 
 Thuật ngữ dùng chung cho mọi tài liệu trong repo.
 Trong bài viết, ưu tiên tên tiếng Việt; tên tiếng Anh để trong ngoặc ở lần dùng đầu.
@@ -37,3 +37,14 @@ Trong bài viết, ưu tiên tên tiếng Việt; tên tiếng Anh để trong n
 | Lớp dữ liệu                 | Data class                         | Mức nhạy cảm của dữ liệu, năm mức từ số liệu tổng hợp ẩn danh tới dữ liệu thanh toán.                  |
 | Hồ sơ ứng dụng              | Client profile                     | Bản khai một loại ứng dụng AI được nối thế nào, gồm mức dữ liệu cao nhất nó được nhận.                 |
 | Chủ dữ liệu                 | Data owner                         | Người, thường là trưởng phòng, chịu trách nhiệm về một nguồn dữ liệu và duyệt thay đổi lên nó.         |
+| Cấp quyền cho ứng dụng      | OAuth                              | Người dùng cho một ứng dụng quyền gọi hệ thống khác mà không đưa mật khẩu cho ứng dụng đó.            |
+| Token truy cập              | Access token                       | Chuỗi bí mật gửi kèm lời gọi để dùng quyền đã cấp, khác token tính lượng chữ của mô hình.              |
+| Token gia hạn               | Refresh token                      | Bí mật dài hạn dùng để xin token truy cập mới mà không đăng nhập lại.                                  |
+| Lần cấp quyền               | Authorization grant                | Bản ghi ổn định cho việc một người cho một ứng dụng dùng một phạm vi quyền.                            |
+| Mã cấp quyền                | Authorization code                 | Mã ngắn hạn dùng một lần để ứng dụng đổi lấy token ở phía máy chủ.                                     |
+| Máy chủ cấp quyền           | Authorization server               | Nơi kiểm đăng nhập, hỏi đồng ý và cấp token cho ứng dụng.                                              |
+| Máy chủ tài nguyên          | Resource server                    | Nơi giữ công cụ hoặc dữ liệu và kiểm token trước khi cho truy cập.                                    |
+| Ứng dụng giữ được bí mật    | Confidential client                | Ứng dụng có máy chủ giữ bí mật riêng, không giao bí mật đó cho trình duyệt hay người cài ứng dụng.      |
+| Bảo vệ mã bằng bí mật riêng | PKCE                               | Mỗi lượt kết nối giữ thêm một bí mật, khiến người chỉ đánh cắp mã không đổi được token.                |
+| Tài nguyên nhận token       | Resource, audience                 | Địa chỉ hệ thống được phép nhận token; token của hệ thống này không tự dùng được ở hệ thống khác.     |
+| Thông tin khám phá          | Discovery metadata                 | Bản khai để ứng dụng tìm đúng nơi cấp quyền và biết các cách kết nối được hỗ trợ.                      |
