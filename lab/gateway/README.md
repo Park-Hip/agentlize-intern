@@ -185,9 +185,13 @@ Thẻ thiếu, sai, hết hạn hoặc đã thu hồi trả 401 với `WWW-Authe
 `mcp:read` chỉ đọc; `mcp:read` cùng `mcp:propose` mới soạn được đề xuất, và quyền nghiệp vụ vẫn do bộ luật quyết.
 Thẻ cấp cho `/mcp` không dùng được ở `/v1/tools/*` hay `/v1/usage`; khoá `lab_` vẫn chạy như cũ ở cả hai cửa.
 
-Trang đăng nhập và đồng ý thuộc issue #181.
-Cổng nhận chúng qua `src/oauth/interaction-types.ts`; chưa đăng ký handler thì `/interaction/<uid>` trả 503 và cổng không mở giao diện phát triển của thư viện.
-Phép thử của cổng tự đăng ký một handler giả trong fixture để đi hết luồng, không có đường cấp thẻ tùy ý trong runtime thật.
+Trang đăng nhập và đồng ý do cổng tự dựng trong `src/oauth/web/`, nối qua `src/oauth/interaction-types.ts` (issue #181).
+Trang đăng nhập ghi rõ Đăng nhập giả lập và chỉ nhận mật khẩu trang `trang_`; dán khoá công cụ `lab_` bị từ chối như mật khẩu sai.
+Trang đồng ý hiện tên ứng dụng, nhân vật đang đăng nhập, phạm vi xin cấp và trần dữ liệu, với hai nút Cho phép và Từ chối.
+Mọi giá trị trên hai trang lấy phía máy chủ; form chỉ mang mã chống giả mạo và mật khẩu trang hoặc lựa chọn cho phép, nên client, callback, phạm vi, tài nguyên hay nhân viên không đổi được từ trình duyệt.
+Mỗi form có mã chống giả mạo giữ trong bảng `oauth_page_csrf`, kiểm cả `Origin`; từ chối trả `access_denied` kèm `state` và `iss` đúng.
+Trang đồng ý không đặt `form-action 'self'` vì ứng dụng ở origin khác (ADR-0011 mục 2); không có trang nào hiện token, mã cấp quyền hay bí mật ứng dụng.
+Handler là mặc định của cổng; phép thử có thể truyền handler khác, hoặc `interaction: null` để kiểm nhánh 503.
 
 | Biến | Mặc định | Việc |
 | --- | --- | --- |

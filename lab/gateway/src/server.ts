@@ -8,6 +8,7 @@ import { createOAuthSurface, type OAuthSurface } from './oauth/http.js';
 import { GrantAuthorizationResolver } from './oauth/grants/index.js';
 import { createGatewayIdentity } from './oauth/identity.js';
 import type { OAuthInteractionHandler } from './oauth/interaction-types.js';
+import { createOAuthInteractionPages } from './oauth/web/handler.js';
 import {
   configuredIssuer,
   DEFAULT_OAUTH_CLIENTS,
@@ -28,8 +29,12 @@ export interface OAuthGatewayOptions {
   /** Overrides the issuer; the default is `LAB_OAUTH_ISSUER`, then `LAB_PUBLIC_BASE_URL`, then the listen address. */
   readonly issuer?: string;
   readonly clients?: readonly OAuthClientRegistration[];
-  /** Registered by the login and consent pages of the next issue; absent in production today. */
-  readonly interaction?: OAuthInteractionHandler;
+  /**
+   * Replaces the login and consent pages of issue #181. When absent the
+   * gateway registers its own pages; `null` leaves no page, so the router
+   * answers 503 instead of opening the provider's development views.
+   */
+  readonly interaction?: OAuthInteractionHandler | null | undefined;
 }
 
 export interface GatewayOptions {
@@ -121,6 +126,9 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
       executor = options.executor;
     }
 
+    // One policy engine for the tool doors and the OAuth consent page, read from the same rule file.
+    const policy = createPolicyEngine({ rulesPath, declarations: adapters });
+
     const service = await startService({
       service: 'gateway',
       env,
@@ -129,7 +137,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
         identity,
         authorization,
         oauth: () => oauthHolder.surface,
-        policy: createPolicyEngine({ rulesPath, declarations: adapters }),
+        policy,
         adapters,
         trace,
         tools: [...READ_TOOLS, ...PROPOSE_TOOLS, ...(options.extraTools ?? [])],
@@ -146,13 +154,35 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
     started = service;
     listeningUrl = service.url;
 
+    const issuer =
+      options.oauth?.issuer === undefined ? configuredIssuer(env, listeningUrl) : options.oauth.issuer;
+    // Issue #181: the login and consent pages are the default handler, so a
+    // running gateway never opens the provider's development views. A test may
+    // still pass its own handler, or `null` to prove the 503 path.
+    let interaction: OAuthInteractionHandler | undefined;
+    const custom = options.oauth?.interaction;
+    if (custom === null) {
+      interaction = undefined;
+    } else if (custom !== undefined) {
+      interaction = custom;
+    } else {
+      interaction = createOAuthInteractionPages({
+        db,
+        pagePasswords,
+        clients: oauthClients,
+        adapters,
+        policy,
+        issuer,
+        log: (line) => console.error(`[gateway] ${line}`),
+      });
+    }
+
     const oauth = createOAuthSurface({
-      issuer:
-        options.oauth?.issuer === undefined ? configuredIssuer(env, listeningUrl) : options.oauth.issuer,
+      issuer,
       db,
       config: oauthConfig,
       clients: oauthClients,
-      ...(options.oauth?.interaction === undefined ? {} : { interaction: options.oauth.interaction }),
+      ...(interaction === undefined ? {} : { interaction }),
       now,
       log: (line) => console.error(`[gateway] ${line}`),
     });
