@@ -8,6 +8,7 @@ import {
   type CallToolResult,
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
+import { MCP_DOOR } from './authorization/index.js';
 import {
   catalogEntries,
   performCall,
@@ -99,8 +100,10 @@ export async function handleMcp(deps: GatewayDeps, req: IncomingMessage, res: Se
     return rpcError(res, 405, METHOD_NOT_ALLOWED, 'Method not allowed. Gửi POST.', { allow: 'POST' });
   }
 
-  // A bad key stops the whole request, so a host sees the failure when it connects, not on its first tool call.
-  const authenticated = await deps.identity.authenticate(req.headers);
+  // A bad source stops the whole request, so a host sees the failure when it
+  // connects, not on its first tool call. This door names `/mcp` and accepts a
+  // legacy key today; an OAuth resolver registers the token form later.
+  const authenticated = await deps.identity.authenticate(req.headers, MCP_DOOR);
   if (!authenticated.ok) {
     try {
       const { result } = await performCall(deps, 'mcp', req.headers, authenticated, UNKNOWN_TOOL, () =>

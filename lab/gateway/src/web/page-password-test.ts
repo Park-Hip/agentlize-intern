@@ -99,7 +99,7 @@ test('page password: revoking the drafting key after the draft refuses Gửi wit
   const f = await startFixture();
   try {
     const proposalId = await propose(f, HOA, { status: 'done' });
-    const draftedByKeyId = f.gateway.proposals.get(proposalId)?.draftedByKeyId ?? '';
+    const draftedByKeyId = f.gateway.proposals.get(proposalId)?.authorization?.id ?? '';
     assert.match(draftedByKeyId, /^key-/);
     const browser = await signIn(f, HOA, proposalId);
 
@@ -151,7 +151,10 @@ test('page password: a proposal keeps the key that drafted it, so the page check
     const rawKey = f.keyFor(HOA);
     const proposalId = await propose(f, HOA, { status: 'done' }, rawKey);
     const proposal = f.gateway.proposals.get(proposalId);
-    assert.equal(proposal?.draftedByKeyId, f.gateway.keys.findByRawKey(rawKey)?.keyId);
+    assert.deepEqual(proposal?.authorization, {
+      kind: 'key',
+      id: f.gateway.keys.findByRawKey(rawKey)?.keyId,
+    });
     assert.equal(proposal?.requester, HOA);
   } finally {
     await f.close();

@@ -1,14 +1,17 @@
-import type { ReasonCode } from '@lab/shared';
+import { authorizationRefusal, type AuthorizationResolution } from '../authorization/index.js';
 import { actionOfField, type RecordData, type ResourceAdapter } from '../adapters/index.js';
-import type { KeyRecord } from '../identity/index.js';
 import { RULE_IDS, strictestOf, type PolicyDecision, type PolicyEngine } from '../policy/index.js';
 import type { Proposal } from '../proposals/index.js';
 
 /** The checks that must pass again at the moment a person presses Gửi (ADR-0002 section 3 point 4). */
 export interface WriteCheckInput {
   readonly proposal: Proposal;
-  readonly key: KeyRecord | undefined;
-  /** The key's person, read from the directory now, never kept from the draft. */
+  /**
+   * The source of authority resolved once, not a raw key: the same answer the
+   * draft, the Gửi page, the approval page and the outbox use.
+   */
+  readonly authorization: AuthorizationResolution;
+  /** The requester as the directory holds them now, never kept from the draft. */
   readonly employee: RecordData | undefined;
   /** The adapter of the record type the proposal changes, taken from the registry. */
   readonly adapter: ResourceAdapter;
@@ -29,7 +32,7 @@ export type WriteCheck =
     }
   | {
       readonly ok: false;
-      readonly code: ReasonCode;
+      readonly code: ReturnType<typeof authorizationRefusal>['code'];
       readonly status: number;
       readonly ruleId: string;
       readonly policyVersion: number | null;
@@ -40,7 +43,7 @@ export type WriteCheck =
 export type WriteRefusal = Extract<WriteCheck, { ok: false }>;
 
 function denied(
-  code: ReasonCode,
+  code: WriteRefusal['code'],
   status: number,
   ruleId: string,
   sentence: string,
@@ -55,24 +58,25 @@ function codeList(proposal: Proposal, missing: readonly number[]): string {
 }
 
 /**
- * The permission part of the second check: the key still belongs to the same
- * person, that person is still in the directory, the target system still holds
- * every record, and the rule file still allows every field the proposal
- * changes. The rule is asked with the real item count plus the items already
- * counted in the window, so a batch, or a split that reaches the bulk
- * threshold, is judged the same way at Gửi (ADR-0007 sections 3.3 and 3.4).
+ * The permission part of the second check: the source of authority still
+ * stands, it still names the same person as the requester, that person is
+ * still in the directory, the target system still holds every record, and the
+ * rule file still allows every field the proposal changes. The rule is asked
+ * with the real item count plus the items already counted in the window, so a
+ * batch, or a split that reaches the bulk threshold, is judged the same way at
+ * Gửi (ADR-0007 sections 3.3 and 3.4).
  * Time and content are checked by the proposal store in the same transaction.
  */
 export function checkWrite(input: WriteCheckInput): WriteCheck {
-  const { proposal, key, employee, adapter, records, carriedItems = {}, policy } = input;
+  const { proposal, authorization, employee, adapter, records, carriedItems = {}, policy } = input;
 
-  if (key === undefined) {
-    return denied('KEY_INVALID', 401, 'WRITE.KEY_INVALID', 'Khoá của phiên không còn trong danh sách cấp khoá nên cổng không ghi. Hãy đăng nhập lại bằng khoá hợp lệ.');
+  if (!authorization.ok) {
+    const refusal = authorizationRefusal(authorization.reason);
+    return denied(refusal.code, refusal.status, refusal.ruleId, refusal.sentence);
   }
-  if (key.revokedAt !== null) {
-    return denied('KEY_REVOKED', 401, 'WRITE.KEY_REVOKED', 'Khoá của bạn đã bị thu hồi nên cổng không ghi. Hãy xin người quản lý Lab cấp khoá mới.');
-  }
-  if (key.employeeId !== proposal.requester) {
+  const grant = authorization.grant;
+
+  if (grant.employeeId !== proposal.requester) {
     return denied('NOT_PERMITTED', 403, 'WRITE.NOT_REQUESTER', 'Đề xuất này của người khác nên bạn không gửi được. Hãy đăng nhập đúng nhân vật đã nhờ AI soạn.');
   }
   if (employee === undefined) {
@@ -117,7 +121,7 @@ export function checkWrite(input: WriteCheckInput): WriteCheck {
     for (const action of actions) {
       decisions.push(
         policy.decide({
-          actor: { id: key.employeeId, role, department },
+          actor: { id: grant.employeeId, role, department },
           action,
           object: {
             kind: adapter.type,
@@ -125,7 +129,7 @@ export function checkWrite(input: WriteCheckInput): WriteCheck {
             taskCount: proposal.items.length,
             carriedItems: carriedItems[action] ?? 0,
           },
-          context: { scope: key.scope === 'read_only' ? 'read_only' : 'read_write', caller: key.caller },
+          context: { scope: grant.scope === 'read_only' ? 'read_only' : 'read_write', caller: grant.caller },
         }),
       );
     }

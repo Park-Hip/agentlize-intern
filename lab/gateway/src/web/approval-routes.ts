@@ -9,6 +9,7 @@ import {
   type RecordData,
   type ResourceAdapter,
 } from '../adapters/index.js';
+import { authorizationRefusal, WEB_DOOR } from '../authorization/index.js';
 import type { GatewayDeps } from '../call.js';
 import type { PersonRef } from '../policy/index.js';
 import { formatMoment, itemLabel, itemRows, personLabel, traceObjectId } from '../proposals/card.js';
@@ -166,8 +167,8 @@ function deadlineOf(proposal: Proposal, now: Date): string {
 }
 
 function callerOf(deps: GatewayDeps, proposal: Proposal): string {
-  if (proposal.draftedByKeyId === null) return proposal.caller;
-  return deps.keys.findById(proposal.draftedByKeyId)?.caller ?? proposal.caller;
+  if (proposal.authorization?.kind !== 'key') return proposal.caller;
+  return deps.keys.findById(proposal.authorization.id)?.caller ?? proposal.caller;
 }
 
 async function itemsOf(deps: GatewayDeps, proposal: Proposal): Promise<CardItemView[]> {
@@ -428,6 +429,14 @@ async function handleApprovalPress(
 
   if (proposal === undefined) return refused(404, null, 'WEB.NOT_FOUND', `Không tìm thấy đề xuất ${proposalId}.`);
 
+  // A revoked or missing source blocks both buttons, not only a lead's approval:
+  // no write starts from a proposal whose authority no longer stands.
+  const authorization = deps.authorization.resolve(proposal.authorization, WEB_DOOR);
+  if (!authorization.ok) {
+    const refusal = authorizationRefusal(authorization.reason);
+    return refused(refusal.status, refusal.code, refusal.ruleId, refusal.sentence);
+  }
+
   const directoryView = await readDirectory(deps);
   if (directoryView === undefined) {
     return refused(
@@ -517,10 +526,9 @@ async function handleApprovalPress(
       return false;
     }
     if (action === 'approve') {
-      const key = proposal.draftedByKeyId === null ? undefined : deps.keys.findById(proposal.draftedByKeyId);
       const check = checkWrite({
         proposal,
-        key,
+        authorization,
         employee: requesterRecord,
         adapter: recordsAdapter,
         records: currentRecords,

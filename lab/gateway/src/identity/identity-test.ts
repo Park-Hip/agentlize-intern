@@ -64,11 +64,21 @@ test('identity: an issued key is recognised as exactly its owner', async () => {
 
   assert.deepEqual(await f.provider.authenticate(bearer(hoa.rawKey)), {
     ok: true,
-    identity: { employeeId: 'NV-07', caller: 'tho-than-desktop', scope: 'full', keyId: hoa.record.keyId },
+    identity: {
+      employeeId: 'NV-07',
+      caller: 'tho-than-desktop',
+      scope: 'full',
+      authorization: { kind: 'key', id: hoa.record.keyId },
+    },
   });
   assert.deepEqual(await f.provider.authenticate(bearer(nam.rawKey)), {
     ok: true,
-    identity: { employeeId: 'NV-12', caller: 'fc-assistant', scope: 'read_only', keyId: nam.record.keyId },
+    identity: {
+      employeeId: 'NV-12',
+      caller: 'fc-assistant',
+      scope: 'read_only',
+      authorization: { kind: 'key', id: nam.record.keyId },
+    },
   });
   f.close();
 });
@@ -78,7 +88,7 @@ test('identity: the result carries no role or department', async () => {
   const issued = f.store.issue({ employeeId: 'NV-07', caller: 'test' });
   const result = await f.provider.authenticate(bearer(issued.rawKey));
   assert.equal(result.ok, true);
-  if (result.ok) assert.deepEqual(Object.keys(result.identity).sort(), ['caller', 'employeeId', 'keyId', 'scope']);
+  if (result.ok) assert.deepEqual(Object.keys(result.identity).sort(), ['authorization', 'caller', 'employeeId', 'scope']);
   f.close();
 });
 
@@ -373,7 +383,12 @@ test('identity: a provider can be swapped without touching its callers', async (
     authenticate: () =>
       Promise.resolve({
         ok: true,
-        identity: { employeeId: 'NV-03', caller: 'test', scope: 'full', keyId: 'key-fixed' },
+        identity: {
+          employeeId: 'NV-03',
+          caller: 'test',
+          scope: 'full',
+          authorization: { kind: 'key', id: 'key-fixed' },
+        },
       }),
   };
   const who = async (provider: IdentityProvider): Promise<string | undefined> => {

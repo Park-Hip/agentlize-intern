@@ -118,7 +118,7 @@ const proposeBadgeChange = defineTool(
     const proposal = context.proposals.create({
       requester: context.actor.employeeId,
       caller: context.actor.identity.caller,
-      draftedByKeyId: context.actor.identity.keyId,
+      authorization: context.actor.identity.authorization,
       tool: 'propose_badge_change',
       recordType: directory.type,
       changes: { [BADGE_FIELD.name]: args.badge },

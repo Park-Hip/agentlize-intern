@@ -388,7 +388,7 @@ const proposeTaskChange = defineTool(
       {
         requester: actor.employeeId,
         caller: actor.identity.caller,
-        draftedByKeyId: actor.identity.keyId,
+        authorization: actor.identity.authorization,
         tool: PROPOSE_TOOL,
         recordType: tasks.type,
         changes: group,

@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { ActionSpec } from '../adapters/types.js';
+import { isAuthorizationKind, type AuthorizationRef } from '../authorization/index.js';
 import type { GatewayDatabase } from '../database.js';
 import type { Caller } from '../identity/index.js';
 import { compareRecordIds, fingerprintOf, NEW_RECORD_ID, type Changes, type ItemKind } from './fingerprint.js';
@@ -66,8 +67,14 @@ export interface Proposal {
   readonly proposalId: string;
   readonly requester: string;
   readonly caller: Caller;
-  /** The tool key that drafted this proposal. Checked again at Gửi and at approval, so revoking it blocks the write. */
-  readonly draftedByKeyId: string | null;
+  /**
+   * The durable source that drafted this proposal: a key today, a Lab grant
+   * once OAuth exists. Checked again at Gửi, at approval and at the outbox
+   * boundary, so revoking it blocks the write. Null means the row predates the
+   * migration and no one can say which source proved the requester, so every
+   * step refuses it.
+   */
+  readonly authorization: AuthorizationRef | null;
   readonly tool: string;
   /** Every item of a proposal is of this one record type (ADR-0007 section 3.3). */
   readonly recordType: string;
@@ -106,7 +113,7 @@ export interface NewProposalItem {
 export interface NewProposal {
   readonly requester: string;
   readonly caller: Caller;
-  readonly draftedByKeyId: string;
+  readonly authorization: AuthorizationRef;
   readonly tool: string;
   readonly recordType: string;
   readonly changes: Changes;
@@ -172,7 +179,8 @@ interface Row {
   proposal_id: string;
   requester: string;
   caller: Caller;
-  drafted_by_key_id: string | null;
+  authorization_kind: string | null;
+  authorization_id: string | null;
   tool: string;
   record_type: string;
   changes: string;
@@ -249,12 +257,20 @@ function toApproval(row: ApprovalRow | undefined): Approval | null {
   };
 }
 
+/** A row whose kind is missing or not one the code knows has no usable source, so it is blocked rather than guessed. */
+function authorizationOf(row: Row): AuthorizationRef | null {
+  const kind = row.authorization_kind;
+  const id = row.authorization_id;
+  if (kind === null || id === null || !isAuthorizationKind(kind)) return null;
+  return { kind, id };
+}
+
 function toProposal(row: Row, items: readonly ProposalItem[], approval: Approval | null = null): Proposal {
   return {
     proposalId: row.proposal_id,
     requester: row.requester,
     caller: row.caller,
-    draftedByKeyId: row.drafted_by_key_id,
+    authorization: authorizationOf(row),
     tool: row.tool,
     recordType: row.record_type,
     changes: parseChanges(row.changes),
@@ -327,6 +343,22 @@ export class ProposalStore {
       if (!names.has('record_type') || !names.has('approval_expires_at')) {
         throw new Error(OLD_DATABASE_MESSAGE);
       }
+      // Move the source of authority from the old single key id to a kind and
+      // an id. The transaction keeps every old proposal whole: requester,
+      // status, content, fingerprint, deadlines and idempotency keys are not
+      // touched. A row that never stored a key stays null, which every step
+      // refuses instead of guessing a source.
+      if (!names.has('authorization_kind')) {
+        db.transaction(() => {
+          db.exec('ALTER TABLE proposals ADD COLUMN authorization_kind TEXT');
+          db.exec('ALTER TABLE proposals ADD COLUMN authorization_id TEXT');
+          if (names.has('drafted_by_key_id')) {
+            db.exec(
+              "UPDATE proposals SET authorization_kind = 'key', authorization_id = drafted_by_key_id WHERE drafted_by_key_id IS NOT NULL",
+            );
+          }
+        })();
+      }
     }
 
     db.exec(`
@@ -334,7 +366,8 @@ export class ProposalStore {
         proposal_id        TEXT PRIMARY KEY,
         requester          TEXT NOT NULL,
         caller             TEXT NOT NULL,
-        drafted_by_key_id  TEXT,
+        authorization_kind TEXT,
+        authorization_id   TEXT,
         tool               TEXT NOT NULL,
         record_type        TEXT NOT NULL,
         changes            TEXT NOT NULL,
@@ -414,7 +447,8 @@ export class ProposalStore {
       proposal_id: `dx-${randomBytes(8).toString('hex')}`,
       requester: input.requester,
       caller: input.caller,
-      drafted_by_key_id: input.draftedByKeyId,
+      authorization_kind: input.authorization.kind,
+      authorization_id: input.authorization.id,
       tool: input.tool,
       record_type: input.recordType,
       changes: JSON.stringify(input.changes),
@@ -434,10 +468,10 @@ export class ProposalStore {
         if (this.countPending(input.requester) >= pendingLimit) throw new PendingLimitError(pendingLimit);
         this.db
           .prepare(
-            `INSERT INTO proposals (proposal_id, requester, caller, drafted_by_key_id, tool, record_type, changes,
+            `INSERT INTO proposals (proposal_id, requester, caller, authorization_kind, authorization_id, tool, record_type, changes,
                                     requires_approval, approval_reason, approval_expires_at, fingerprint, risk,
                                     policy_version, status, created_at, expires_at)
-             VALUES (@proposal_id, @requester, @caller, @drafted_by_key_id, @tool, @record_type, @changes,
+             VALUES (@proposal_id, @requester, @caller, @authorization_kind, @authorization_id, @tool, @record_type, @changes,
                      @requires_approval, @approval_reason, @approval_expires_at, @fingerprint, @risk,
                      @policy_version, @status, @created_at, @expires_at)`,
           )

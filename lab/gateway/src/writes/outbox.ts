@@ -1,6 +1,7 @@
 import { performance } from 'node:perf_hooks';
 import type { ReasonCode } from '@lab/shared';
 import { adapterOf, type ApplyResult, type ResourceAdapter } from '../adapters/index.js';
+import { OUTBOX_DOOR, type AuthorizationRegistry } from '../authorization/index.js';
 import type { ExecutionReceipt, Proposal, ProposalExecutor, ProposalStore } from '../proposals/index.js';
 import { newTraceId, type TraceOutcome, type TraceStore } from '../trace/index.js';
 import type { CommandStore, WriteCommand } from './command-store.js';
@@ -22,6 +23,8 @@ export interface OutboxOptions {
   readonly proposals: ProposalStore;
   readonly adapters: readonly ResourceAdapter[];
   readonly trace: TraceStore;
+  /** The one resolver every step uses; the outbox asks it again before each send. */
+  readonly authorization: AuthorizationRegistry;
   /** Replaced in tests that move time by hand. */
   readonly now?: () => Date;
   readonly pollMs?: number;
@@ -109,6 +112,7 @@ export class Outbox implements ProposalExecutor {
   private readonly proposals: ProposalStore;
   private readonly adapters: readonly ResourceAdapter[];
   private readonly trace: TraceStore;
+  private readonly authorization: AuthorizationRegistry;
   private readonly now: () => Date;
   private readonly pollMs: number;
   private readonly log: (line: string) => void;
@@ -124,6 +128,7 @@ export class Outbox implements ProposalExecutor {
     this.proposals = options.proposals;
     this.adapters = options.adapters;
     this.trace = options.trace;
+    this.authorization = options.authorization;
     this.now = options.now ?? ((): Date => new Date());
     this.pollMs = options.pollMs ?? OUTBOX_POLL_MS;
     this.log = options.log ?? ((line) => console.error(line));
@@ -186,15 +191,20 @@ export class Outbox implements ProposalExecutor {
   private async drain(): Promise<void> {
     if (this.stopped) return;
     try {
+      // A proposal whose source does not resolve is held for this round, so
+      // the loop moves on instead of picking the same row every turn. It is
+      // not forgotten: the next round asks the resolver again.
+      const held = new Set<string>();
       for (;;) {
         if (this.stopped) return;
         this.dirty = false;
-        const next = this.nextDue();
+        const next = this.nextDue(held);
         if (next === undefined) {
           if (!this.dirty) return;
           continue;
         }
-        await this.send(next);
+        const progressed = await this.send(next);
+        if (!progressed) held.add(next.proposalId);
       }
     } catch (error) {
       this.log(`[gateway] outbox stopped its round: ${error instanceof Error ? error.message : String(error)}`);
@@ -209,9 +219,10 @@ export class Outbox implements ProposalExecutor {
    * Keeping to the first position means item 18 never starts before item 17,
    * while a proposal waiting for a retry does not hold up another proposal.
    */
-  private nextDue(): WriteCommand | undefined {
+  private nextDue(held: ReadonlySet<string> = new Set()): WriteCommand | undefined {
     const firstOfProposal = new Map<string, WriteCommand>();
     for (const command of this.commands.listOpen()) {
+      if (held.has(command.proposalId)) continue;
       if (!firstOfProposal.has(command.proposalId)) firstOfProposal.set(command.proposalId, command);
     }
 
@@ -223,8 +234,25 @@ export class Outbox implements ProposalExecutor {
     return due[0];
   }
 
-  private async send(command: WriteCommand): Promise<void> {
-    if (command.status === 'done' || command.status === 'failed') return;
+  /** True when this turn changed or attempted something, false when the command was held before any state moved. */
+  private async send(command: WriteCommand): Promise<boolean> {
+    if (command.status === 'done' || command.status === 'failed') return true;
+
+    // The check happens before the row moves. A command no one has sent stays
+    // `not_sent`; a command whose answer was lost stays `sent_unknown` with its
+    // attempts and result, because it may already have landed. Neither status
+    // is rewritten and no evidence is deleted.
+    const known = this.proposals.get(command.proposalId);
+    if (known !== undefined) {
+      const resolution = this.authorization.resolve(known.authorization, OUTBOX_DOOR);
+      if (!resolution.ok) {
+        this.log(
+          `[gateway] command ${command.commandId} held as ${command.status}: ${resolution.reason}; no state changed`,
+        );
+        return false;
+      }
+    }
+
     const ruleId = command.attempts === 0 ? 'WRITE.SEND' : 'WRITE.RETRY';
     const started = performance.now();
 
@@ -233,20 +261,20 @@ export class Outbox implements ProposalExecutor {
       current = this.commands.markSent(command.commandId);
     } catch (error) {
       this.log(`[gateway] command ${command.commandId} could not be marked: ${error instanceof Error ? error.message : String(error)}`);
-      return;
+      return false;
     }
 
-    const proposal = this.proposals.get(current.proposalId);
+    const proposal = known ?? this.proposals.get(current.proposalId);
     if (proposal === undefined) {
       this.log(`[gateway] command ${current.commandId} points at a missing proposal`);
       this.settle(current, { kind: 'rejected', status: 500, error: 'missing proposal' }, ruleId, started);
-      return;
+      return true;
     }
     const item = proposal.items.find((candidate) => candidate.position === current.position);
     if (item === undefined) {
       this.log(`[gateway] command ${current.commandId} points at a missing item`);
       this.settle(current, { kind: 'rejected', status: 500, error: 'missing item' }, ruleId, started);
-      return;
+      return true;
     }
 
     let result: ApplyResult;
@@ -272,7 +300,7 @@ export class Outbox implements ProposalExecutor {
     switch (result.kind) {
       case 'written':
         this.settle(current, { kind: 'written', status: 200, replayed: result.replayed, version: result.version }, ruleId, started);
-        return;
+        return true;
       case 'created':
         this.settle(
           current,
@@ -280,13 +308,13 @@ export class Outbox implements ProposalExecutor {
           ruleId,
           started,
         );
-        return;
+        return true;
       case 'conflict':
         this.settle(current, { kind: 'target_changed', status: 409, currentVersion: result.currentVersion }, ruleId, started);
-        return;
+        return true;
       case 'not_found':
         this.settle(current, { kind: 'target_changed', status: 404, currentVersion: null }, ruleId, started);
-        return;
+        return true;
       case 'rejected':
         this.settle(
           current,
@@ -296,7 +324,7 @@ export class Outbox implements ProposalExecutor {
           ruleId,
           started,
         );
-        return;
+        return true;
       case 'unavailable': {
         // The write may or may not have landed. Keep the command and send it again with the same key, after a growing wait.
         const retryAt = new Date(this.now().getTime() + retryDelayMs(current.attempts));
@@ -312,7 +340,7 @@ export class Outbox implements ProposalExecutor {
             `[gateway] command ${current.commandId} could not note its unknown state: ${error instanceof Error ? error.message : String(error)}`,
           );
         }
-        return;
+        return true;
       }
     }
   }

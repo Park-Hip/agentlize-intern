@@ -1,3 +1,5 @@
+import { DEFAULT_DOOR } from '../authorization/types.js';
+import type { AuthorizationContext } from '../authorization/types.js';
 import type { KeyStore } from './key-store.js';
 import type { IdentityHeaders, IdentityProvider, IdentityResult } from './types.js';
 
@@ -14,11 +16,15 @@ export function readBearerKey(headers: IdentityHeaders): string | undefined {
 /**
  * Turns a per-person Bearer key into an employee code. The store is read on
  * every call, so a revocation applies to the very next request.
+ * A door that does not accept keys refuses before a key is read, so an OAuth
+ * door never silently treats a token as a key.
  */
 export class ApiKeyIdentity implements IdentityProvider {
   constructor(private readonly keys: KeyStore) {}
 
-  authenticate(headers: IdentityHeaders): Promise<IdentityResult> {
+  authenticate(headers: IdentityHeaders, context: AuthorizationContext = DEFAULT_DOOR): Promise<IdentityResult> {
+    if (!context.accept.includes('key')) return Promise.resolve({ ok: false, reason: 'KEY_INVALID' });
+
     const rawKey = readBearerKey(headers);
     if (rawKey === undefined) return Promise.resolve({ ok: false, reason: 'KEY_INVALID' });
 
@@ -32,7 +38,7 @@ export class ApiKeyIdentity implements IdentityProvider {
         employeeId: record.employeeId,
         caller: record.caller,
         scope: record.scope,
-        keyId: record.keyId,
+        authorization: { kind: 'key', id: record.keyId },
       },
     });
   }

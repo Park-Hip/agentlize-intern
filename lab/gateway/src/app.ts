@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { LOOPBACK_HOST, readJsonBody, sendJson, type RequestHandler, type ToolResponse } from '@lab/shared';
+import { HTTP_DOOR } from './authorization/index.js';
 import { catalogEntries, performCall, TraceUnavailableError, type GatewayDeps } from './call.js';
 import { handleMcp } from './mcp.js';
 import { handleUsage } from './trace/usage-route.js';
@@ -13,7 +14,8 @@ const USAGE_PATH = '/v1/usage';
 const MCP_PATH = '/mcp';
 
 async function handleToolCall(deps: GatewayDeps, req: IncomingMessage, res: ServerResponse, name: string): Promise<void> {
-  const authenticated = await deps.identity.authenticate(req.headers);
+  // The HTTP tool door names its resource and accepts the legacy key only.
+  const authenticated = await deps.identity.authenticate(req.headers, HTTP_DOOR);
   try {
     const { result, traceId } = await performCall(deps, 'http', req.headers, authenticated, name, () => readJsonBody(req));
     const body: ToolResponse = {
