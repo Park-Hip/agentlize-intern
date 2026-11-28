@@ -4,6 +4,7 @@ import { EMPLOYEE_ID_PATTERN, type ReasonCode } from '@lab/shared';
 import { adapterOf, SystemUnavailableError, type RecordData } from '../adapters/index.js';
 import {
   authorizationRefusal,
+  callerOfAuthorization,
   WEB_DOOR,
   type AuthorizationGrant,
 } from '../authorization/index.js';
@@ -509,13 +510,14 @@ async function handleDecision(
   redirect(res, `/xac-nhan/${result.proposal.proposalId}`);
 }
 
-/** The caller of the source that drafted the proposal, kept on the proposal so a page step still names it. */
+/**
+ * The caller of the source that drafted the proposal. It asks the registry,
+ * never the key store directly, so a key and a grant answer through one path.
+ */
 function callerOfProposal(deps: GatewayDeps, proposalId: string): string | null {
   if (!PROPOSAL_ID_PATTERN.test(proposalId)) return null;
   const proposal = deps.proposals.get(proposalId);
-  if (proposal === undefined) return null;
-  if (proposal.authorization?.kind !== 'key') return proposal.caller;
-  return deps.keys.findById(proposal.authorization.id)?.caller ?? proposal.caller;
+  return proposal === undefined ? null : callerOfAuthorization(deps.authorization, proposal, WEB_DOOR);
 }
 
 /**

@@ -9,7 +9,7 @@ import {
   type RecordData,
   type ResourceAdapter,
 } from '../adapters/index.js';
-import { authorizationRefusal, WEB_DOOR } from '../authorization/index.js';
+import { authorizationRefusal, callerOfAuthorization, WEB_DOOR } from '../authorization/index.js';
 import type { GatewayDeps } from '../call.js';
 import type { PersonRef } from '../policy/index.js';
 import { formatMoment, itemLabel, itemRows, personLabel, traceObjectId } from '../proposals/card.js';
@@ -164,11 +164,6 @@ async function summaryOf(deps: GatewayDeps, proposal: Proposal): Promise<string>
 
 function deadlineOf(proposal: Proposal, now: Date): string {
   return proposal.approvalExpiresAt === null ? 'chưa bắt đầu' : formatMoment(new Date(proposal.approvalExpiresAt), now);
-}
-
-function callerOf(deps: GatewayDeps, proposal: Proposal): string {
-  if (proposal.authorization?.kind !== 'key') return proposal.caller;
-  return deps.keys.findById(proposal.authorization.id)?.caller ?? proposal.caller;
 }
 
 async function itemsOf(deps: GatewayDeps, proposal: Proposal): Promise<CardItemView[]> {
@@ -400,7 +395,7 @@ async function handleApprovalPress(
     const trace: Step = {
       tool,
       requester: active?.session.employeeId ?? null,
-      caller: proposal === undefined ? null : callerOf(deps, proposal),
+      caller: proposal === undefined ? null : callerOfAuthorization(deps.authorization, proposal, WEB_DOOR),
       taskId: traceObjectId(proposal),
       proposalId: proposal?.proposalId ?? null,
       outcome: code !== null ? 'refused' : status === 404 ? 'not_found' : 'error',
@@ -546,7 +541,7 @@ async function handleApprovalPress(
     traceStep(deps, started, {
       tool,
       requester: viewer.id,
-      caller: callerOf(deps, proposal),
+      caller: callerOfAuthorization(deps.authorization, proposal, WEB_DOOR),
       taskId: traceObjectId(decided),
       proposalId: decided.proposalId,
       outcome: 'ok',

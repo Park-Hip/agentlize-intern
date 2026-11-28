@@ -56,9 +56,10 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Runnin
   const db = openGatewayDatabase(dataDir);
   try {
     const keys = new KeyStore(db);
-    const authorization = createAuthorizationRegistry(keys);
-    const pagePasswords = new PagePasswordStore(db);
     const now = options.now ?? ((): Date => new Date());
+    // The registry shares the app clock, so a grant deadline is judged at the same moment as the rest of a step.
+    const authorization = createAuthorizationRegistry(keys, now);
+    const pagePasswords = new PagePasswordStore(db);
     const trace = new TraceStore(db, now);
     const proposals = new ProposalStore(db, now);
     const sessions = new SessionStore(db, now);

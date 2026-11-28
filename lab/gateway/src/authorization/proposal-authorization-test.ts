@@ -225,6 +225,46 @@ test('authorization: an expired grant is refused as such, never as a revocation'
   }
 });
 
+test('outbox: a held command logs once per state, not once per poll round', async () => {
+  const f = await startFixture({ executor: quiet });
+  try {
+    const rawKey = f.keyFor(HOA);
+    const answer = await f.call('propose_task_change', { task_ids: ['T-12'], changes: { assignee: 'NV-04' } }, rawKey);
+    assert.equal(answer.status, 200, answer.body.text);
+    const id = linkOf(answer.body.text);
+    assert.equal((await press(f, id, 'gui', await signIn(f, HOA, id))).status, 303);
+    const command = f.gateway.commands.findByProposal(id);
+    assert.ok(command !== undefined);
+    const keyId = f.gateway.keys.findByRawKey(rawKey)?.keyId;
+    assert.ok(keyId !== undefined);
+    f.gateway.keys.revoke(keyId);
+
+    const lines: string[] = [];
+    const outbox = new Outbox({
+      commands: f.gateway.commands,
+      proposals: f.gateway.proposals,
+      adapters: f.systems.adapters,
+      trace: f.gateway.trace,
+      authorization: f.gateway.authorization,
+      pollMs: 10,
+      log: (line) => lines.push(line),
+    });
+    outbox.start();
+    await new Promise((resolveSleep) => setTimeout(resolveSleep, 120));
+    const held = (): string[] => lines.filter((line) => line.includes(command.commandId));
+    assert.equal(held().length, 1, 'ten or more poll rounds leave one held line');
+
+    // The state changes, so the next hold is a new episode with its own line.
+    f.gateway.commands.markSent(command.commandId);
+    await new Promise((resolveSleep) => setTimeout(resolveSleep, 120));
+    await outbox.close();
+    assert.equal(held().length, 2, 'a state change earns exactly one more line');
+    assert.match(held()[1] ?? '', /sent_unknown/);
+  } finally {
+    await f.close();
+  }
+});
+
 test('outbox: a revoked source stops unsent commands and never rewrites a sent_unknown one', async () => {
   const f = await startFixture({ executor: quiet });
   try {

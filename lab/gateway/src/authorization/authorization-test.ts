@@ -9,6 +9,7 @@ import { KeyStore } from '../identity/key-store.js';
 import { CommandStore } from '../writes/command-store.js';
 import { ProposalStore } from '../proposals/proposal-store.js';
 import {
+  AuthorizationRegistry,
   createAuthorizationRegistry,
   HTTP_DOOR,
   KeyAuthorizationResolver,
@@ -103,6 +104,46 @@ test('authorization: a door with no provider for a kind refuses it instead of fa
     db.close();
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+/** A provider that says yes even when its own grant is already dead, to prove the registry checks again. */
+function yesResolver(status: 'active' | 'revoked', expiresAt: string | null): AuthorizationResolver {
+  return {
+    kind: 'oauth',
+    resolve: (ref) => ({
+      ok: true,
+      grant: { ref, employeeId: 'NV-02', caller: 'test', scope: 'full', expiresAt, status },
+    }),
+  };
+}
+
+test('authorization: the registry refuses a revoked or expired grant even when a resolver says yes', () => {
+  const registry = new AuthorizationRegistry(() => new Date('2026-11-28T10:00:00.000Z'));
+  const grant = { kind: 'oauth' as const, id: 'grant-x' };
+
+  registry.register(yesResolver('revoked', null));
+  assert.deepEqual(registry.resolve(grant, MCP_DOOR), { ok: false, reason: 'AUTHORIZATION_REVOKED' });
+
+  registry.register(yesResolver('active', '2026-11-28T09:59:59.000Z'));
+  assert.deepEqual(registry.resolve(grant, MCP_DOOR), { ok: false, reason: 'AUTHORIZATION_EXPIRED' });
+
+  registry.register(yesResolver('active', '2026-11-28T10:00:00.000Z'));
+  assert.deepEqual(registry.resolve(grant, MCP_DOOR), { ok: false, reason: 'AUTHORIZATION_EXPIRED' }, 'the deadline is inclusive');
+
+  registry.register(yesResolver('active', '2026-11-28T10:00:01.000Z'));
+  assert.equal(registry.resolve(grant, MCP_DOOR).ok, true);
+
+  registry.register(yesResolver('active', null));
+  assert.equal(registry.resolve(grant, MCP_DOOR).ok, true, 'a grant with no deadline of its own stays valid');
+});
+
+test('authorization: a grant deadline that cannot be read is refused, not trusted', () => {
+  const registry = new AuthorizationRegistry(() => new Date('2026-11-28T10:00:00.000Z'));
+  registry.register(yesResolver('active', 'not-a-date'));
+  assert.deepEqual(registry.resolve({ kind: 'oauth', id: 'grant-x' }, MCP_DOOR), {
+    ok: false,
+    reason: 'AUTHORIZATION_EXPIRED',
+  });
 });
 
 test('identity: a door that accepts only grants refuses a Bearer key before reading it', async () => {

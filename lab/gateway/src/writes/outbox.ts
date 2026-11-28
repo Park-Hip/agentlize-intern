@@ -118,6 +118,8 @@ export class Outbox implements ProposalExecutor {
   private readonly log: (line: string) => void;
   private timer: NodeJS.Timeout | undefined;
   private wakeHandle: NodeJS.Immediate | undefined;
+  /** The hold last logged for each command, so a dead source does not write a line on every poll round. */
+  private readonly heldSignatures = new Map<string, string>();
   private current: Promise<void> | undefined;
   private started = false;
   private stopped = false;
@@ -246,13 +248,20 @@ export class Outbox implements ProposalExecutor {
     if (known !== undefined) {
       const resolution = this.authorization.resolve(known.authorization, OUTBOX_DOOR);
       if (!resolution.ok) {
-        this.log(
-          `[gateway] command ${command.commandId} held as ${command.status}: ${resolution.reason}; no state changed`,
-        );
+        // One line per held state, not per poll round: the signature changes only when the command's state or the refusal does.
+        const signature = `${command.status}:${resolution.reason}`;
+        if (this.heldSignatures.get(command.commandId) !== signature) {
+          this.heldSignatures.set(command.commandId, signature);
+          this.log(
+            `[gateway] command ${command.commandId} held as ${command.status}: ${resolution.reason}; no state changed`,
+          );
+        }
         return false;
       }
     }
 
+    // The source resolves again, so a later hold is a new episode worth one line.
+    this.heldSignatures.delete(command.commandId);
     const ruleId = command.attempts === 0 ? 'WRITE.SEND' : 'WRITE.RETRY';
     const started = performance.now();
 
